@@ -7,25 +7,34 @@ description: Executes Test-Driven Development (TDD) using Bun Test to write unit
 
 You are in **Implementation Engineer Mode**. Your goal is to write failing unit tests, craft the minimal Astro component/utility code to make them pass, and ensure both unit and BDD tests are green.
 
-## Instructions (Red-Green-Refactor)
+## 1. Input Handoff & Contract Retrieval
+- **Read OKF Spec:** `docs/specs/<feature-id>.md`
+  - Extract TypeScript interfaces from `## 3. Component Contracts (Props)`.
+  - Extract component structure and hydration rules from `## 2. Component Structure & Hydration`.
+- **Read BDD Suite:** `tests/e2e/<feature-id>.spec.ts`
+  - Identify failing user assertion targets.
 
-1. **Red Phase (Write Unit Tests):**
-   - Create unit tests using Bun's native test runner (`bun test`) in `tests/unit/<feature-name>.test.ts`.
-   - Test utility functions, data mappers, and isolated component helper logic.
-   - Run `bun test` and ensure the tests **fail**.
+## 2. Red Phase (Unit Testing)
+- **Target File Path:** `tests/unit/<feature-id>.test.ts`
+- Write unit tests using native `bun:test` (`import { test, expect, describe } from "bun:test"`):
+  - Test utility functions, data mapping, and isolated component helper logic.
+- Run `bun test tests/unit/<feature-id>.test.ts` and confirm failure.
 
-2. **Green Phase (Write Code):**
-   - Create or update `.astro` components, page routes, or TypeScript modules.
-   - Match the exact TypeScript `Props` and contracts defined in `docs/specs/`.
-   - Write clean, minimal code to pass the unit tests.
-   - Run `bun test` to verify unit tests pass.
+## 3. Green Phase (Implementation)
+- Create or update `.astro` components, page routes, or TypeScript modules under `src/`.
+- Adhere strictly to the `Props` interface exported in `docs/specs/<feature-id>.md`.
+- Implement minimal code to satisfy tests—avoid unnecessary dependencies or over-engineering.
 
-3. **Validation Phase:**
-   - Run `bun x playwright test` to verify the BDD user journeys now pass.
-   - Fix any discrepancies until all test suites (unit + E2E) are green.
+## 4. Verification & Green Checks
+1. **Unit Verification:** Run `bun test tests/unit/<feature-id>.test.ts` (MUST PASS).
+2. **BDD Verification:** Run `bun x playwright test tests/e2e/<feature-id>.spec.ts` (MUST PASS).
 
-4. **Refactor Phase:**
-   - Clean up types, formatting, or unused imports without changing external behavior or breaking tests.
+## 5. Refactor Phase
+- Clean up formatting, imports, and types without altering external behavior or breaking green suites.
 
-## Hand-off Criteria
-Report test execution results (`bun test` and Playwright) to confirm the feature is fully implemented and tested.
+## 6. Handoff Output Protocol
+Emit a completion summary once all suites pass:
+- **Unit Suite:** `tests/unit/<feature-id>.test.ts` -> `GREEN`
+- **BDD Suite:** `tests/e2e/<feature-id>.spec.ts` -> `GREEN`
+- **Implementation Files:** List modified/created files in `src/`
+- **Next Skill Signal:** Hand off to `git-stack-reviewer` to prepare stacked PR layer (`gh stack`).

@@ -72,3 +72,8 @@ Invoke these skills whenever their respective domain is touched:
 - **bun-performance-guard**: When running scripts, installing dependencies, or writing tests. Always favor bun test, bunx, and native Bun APIs over Node.js polyfills or npm/npx.
 
 - **systematic-debugging**: If any test fails unexpected or a build breaks. Formulate a hypothesis and isolate the failure before modifying code.
+
+## Knowledge Management Directive
+When asked to document architectural decisions, data models, or system concepts:
+- Invoke the `okf-generator` skill.
+- Output OKF-compliant YAML specifications into `docs/knowledge/`.
