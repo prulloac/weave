@@ -62,7 +62,7 @@ Engineered for deep focus, reclaiming knowledge exploration from sluggish web in
 
 ## Related Concepts
 
-- Depends on [OKF Specification](/concepts/okf-bundle.md)
-- Related to [Node Graph Engine](/concepts/node-graph-engine.md)
-- Related to [Search Index](/concepts/search-index.md)
-- Depends on [Git Repository Mount](/concepts/git-repository-mount.md)
+- Depends on [OKF Specification](./okf-bundle.md)
+- Related to [Node Graph Engine](./node-graph-engine.md)
+- Related to [Search Index](./search-index.md)
+- Depends on [Git Repository Mount](./git-repository-mount.md)

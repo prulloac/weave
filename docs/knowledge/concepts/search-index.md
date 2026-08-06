@@ -26,7 +26,7 @@ Offline full-text index generated alongside the node graph. Powers instant, keyb
 
 | Contract | Guarantee |
 | --- | --- |
-| Input | Parsed [OKF Bundle](/concepts/okf-bundle.md) + node graph |
+| Input | Parsed [OKF Bundle](./okf-bundle.md) + node graph |
 | Output | Queryable full-text index |
 | Latency | Low-latency, local-first |
 | Operational mode | Strictly offline |
@@ -34,7 +34,7 @@ Offline full-text index generated alongside the node graph. Powers instant, keyb
 
 ## Related Concepts
 
-- Indexes [OKF Bundle](/concepts/okf-bundle.md)
-- Built alongside [Node Graph Engine](/concepts/node-graph-engine.md)
-- Runs inside [Git Repository Mount](/concepts/git-repository-mount.md)
-- Implements [Weave Vision](/concepts/weave-vision.md)
+- Indexes [OKF Bundle](./okf-bundle.md)
+- Built alongside [Node Graph Engine](./node-graph-engine.md)
+- Runs inside [Git Repository Mount](./git-repository-mount.md)
+- Implements [Weave Vision](./weave-vision.md)

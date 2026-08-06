@@ -26,7 +26,7 @@ High-performance static engine that turns OKF bundles into a fully traversable n
 
 | Contract | Guarantee |
 | --- | --- |
-| Input | Parsed [OKF Bundle](/concepts/okf-bundle.md) |
+| Input | Parsed [OKF Bundle](./okf-bundle.md) |
 | Output | Fully traversable node graph |
 | Edge discovery | Markdown links + frontmatter metadata |
 | Build technique | Temporary symlinks + build-time metadata validation |
@@ -36,7 +36,7 @@ High-performance static engine that turns OKF bundles into a fully traversable n
 
 ## Related Concepts
 
-- Consumes [OKF Bundle](/concepts/okf-bundle.md)
-- Feeds [Search Index](/concepts/search-index.md)
-- Runs inside [Git Repository Mount](/concepts/git-repository-mount.md)
-- Implements [Weave Vision](/concepts/weave-vision.md)
+- Consumes [OKF Bundle](./okf-bundle.md)
+- Feeds [Search Index](./search-index.md)
+- Runs inside [Git Repository Mount](./git-repository-mount.md)
+- Implements [Weave Vision](./weave-vision.md)

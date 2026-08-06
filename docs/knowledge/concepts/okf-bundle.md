@@ -34,7 +34,7 @@ A portable bundle of OKF-compliant Markdown and YAML flat files. Weave's primary
 
 ## Related Concepts
 
-- Feeds [Node Graph Engine](/concepts/node-graph-engine.md)
-- Consumed by [Search Index](/concepts/search-index.md)
-- Found within [Git Repository Mount](/concepts/git-repository-mount.md)
-- Enables [Weave Vision](/concepts/weave-vision.md)
+- Feeds [Node Graph Engine](./node-graph-engine.md)
+- Consumed by [Search Index](./search-index.md)
+- Found within [Git Repository Mount](./git-repository-mount.md)
+- Enables [Weave Vision](./weave-vision.md)

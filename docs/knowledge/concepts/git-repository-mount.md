@@ -35,7 +35,7 @@ Weave mounts gracefully over any local Git repository by executing a single comm
 
 ## Related Concepts
 
-- Hosts [OKF Bundle](/concepts/okf-bundle.md)
-- Hosts [Node Graph Engine](/concepts/node-graph-engine.md)
-- Hosts [Search Index](/concepts/search-index.md)
-- Enables [Weave Vision](/concepts/weave-vision.md)
+- Hosts [OKF Bundle](./okf-bundle.md)
+- Hosts [Node Graph Engine](./node-graph-engine.md)
+- Hosts [Search Index](./search-index.md)
+- Enables [Weave Vision](./weave-vision.md)
