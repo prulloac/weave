@@ -77,3 +77,14 @@ Invoke these skills whenever their respective domain is touched:
 When asked to document architectural decisions, data models, or system concepts:
 - Invoke the `okf-generator` skill.
 - Output OKF-compliant YAML specifications into `docs/knowledge/`.
+
+## Backlog Maintenance Directive
+
+Keep `docs/backlog.md` up to date as work progresses. The agent is responsible for updating every status as it works through the pipeline; only the `merged` status requires manual user action.
+
+Rules:
+1. **Update continuously, not at the end.** Toggle feature status and phase columns (`Spec`, `BDD`, `TDD`) as each pipeline phase completes: `backlog` -> `in-progress` -> `red` -> `green` -> `review`.
+2. **Move to `review`** when the feature's stack is submitted to GitHub (PR links filled in).
+3. **Add rows** when new features, tasks, or cross-cutting work are identified; link them to their spec/PR where applicable.
+4. **Never set `merged`** — that status is the user's call after manually merging PRs. After the user confirms a merge, the agent may clean up (e.g. remove worktrees) but must NOT mark anything merged itself.
+5. **Commit backlog changes** together with the work that triggered them (same commit or an immediately following `docs(backlog):` commit), so the backlog always reflects the repo state.
