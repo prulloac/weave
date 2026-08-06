@@ -25,7 +25,7 @@ tags:
   - "astro"
   - "component-spec"
 generated:
-  by: "/opencode/spec-writer"
+  by: opencode/big-pickle
   at: "YYYY-MM-DDTHH:MM:SSZ"
 status: draft
 ---
