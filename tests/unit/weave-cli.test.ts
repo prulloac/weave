@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { createArtifactLayer, removeArtifacts } from '../../cli/artifacts';
 import { parseArgs } from '../../cli/index';
 import { mount, unmount } from '../../cli/mount';
-import { addMount, readRegistry, registryPath, removeMount } from '../../cli/status';
+import { addMount, pruneRegistry, readRegistry, registryPath, removeMount } from '../../cli/status';
 import { startServer } from '../../cli/server';
 
 const WEAVE_TMP = join(tmpdir(), 'weave');
@@ -123,7 +125,46 @@ describe('registry', () => {
 		expect(existsSync(registryPath())).toBe(true);
 		cleanRegistry();
 	});
+
+	test('prune drops dead entries and removes orphan artifacts', async () => {
+		cleanRegistry();
+		const deadDir = mkdtempSync(join(tmpdir(), 'weave-dead-'));
+		const liveDir = mkdtempSync(join(tmpdir(), 'weave-live-'));
+
+		await addMount({ port: await unusedPort(), target: '/dead', startedAt: 't', url: '', artifactDir: deadDir });
+		await addMount({
+			port: await unusedPort(),
+			target: '/gone',
+			startedAt: 't',
+			url: '',
+			artifactDir: join(tmpdir(), 'weave-does-not-exist'),
+		});
+
+		const server = await startServer(() => 'x', 0);
+		await addMount({ port: server.port, target: '/live', startedAt: 't', url: server.url, artifactDir: liveDir });
+
+		const active = await pruneRegistry();
+		expect(active.map((entry) => entry.port)).toEqual([server.port]);
+		expect(existsSync(deadDir)).toBe(false);
+		expect(existsSync(liveDir)).toBe(true);
+
+		server.stop();
+		await server.closed;
+		rmSync(deadDir, { recursive: true, force: true });
+		rmSync(liveDir, { recursive: true, force: true });
+		cleanRegistry();
+	});
 });
+
+function unusedPort(): Promise<number> {
+	return new Promise((resolve) => {
+		const server = createServer();
+		server.listen(0, '0.0.0.0', () => {
+			const port = (server.address() as AddressInfo).port;
+			server.close(() => resolve(port));
+		});
+	});
+}
 
 describe('mount / unmount', () => {
 	function makeBundle(): string {
