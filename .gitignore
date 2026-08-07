@@ -12,6 +12,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# playwright
+test-results/
+playwright-report/
+
 
 # environment variables
 .env
