@@ -110,7 +110,7 @@ test.describe('weave mount (terminal)', () => {
 
 	test('mounting on a busy port picks the next free port', async () => {
 		const blocker = createServer();
-		await new Promise<void>((resolve) => blocker.listen(0, () => resolve()));
+		await new Promise<void>((resolve) => blocker.listen(0, '0.0.0.0', () => resolve()));
 		const blockedPort = (blocker.address() as AddressInfo).port;
 
 		const mount = startMount(OKF_BUNDLE, String(blockedPort));
