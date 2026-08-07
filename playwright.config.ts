@@ -10,10 +10,18 @@ export default defineConfig({
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
   },
-  webServer: {
-    command: 'bun run tests/e2e/explorer-server.ts',
-    url: 'http://localhost:4321',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'bun run tests/e2e/explorer-server.ts',
+      url: 'http://localhost:4321',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: 'bun cli/index.ts mount tests/fixtures/okf-bundle --port 4322',
+      url: 'http://localhost:4322',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 });
