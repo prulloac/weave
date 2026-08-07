@@ -1,27 +1,27 @@
-import type { ParsedBundle } from './okf/types';
+import type { ParsedBundle } from './okf/types'
 
 function escapeHtml(value: unknown): string {
 	return String(value)
 		.replaceAll('&', '&amp;')
 		.replaceAll('<', '&lt;')
 		.replaceAll('>', '&gt;')
-		.replaceAll('"', '&quot;');
+		.replaceAll('"', '&quot;')
 }
 
 function escapeAttr(value: unknown): string {
-	return escapeHtml(value).replaceAll("'", '&#39;');
+	return escapeHtml(value).replaceAll("'", '&#39;')
 }
 
 export function renderExplorer(bundle: ParsedBundle): string {
-	const concepts = [...bundle.concepts.values()].sort((a, b) => a.id.localeCompare(b.id));
-	const validationEntries = [...bundle.validation.concepts.values()];
+	const concepts = [...bundle.concepts.values()].sort((a, b) => a.id.localeCompare(b.id))
+	const validationEntries = [...bundle.validation.concepts.values()]
 
 	const indexList = (bundle.index ?? [])
 		.map(
 			(entry) =>
 				`<li data-testid="index-entry" data-target="${escapeAttr(entry.target)}">${escapeHtml(entry.title)}</li>`,
 		)
-		.join('');
+		.join('')
 
 	const validationList = validationEntries
 		.map(
@@ -30,16 +30,14 @@ export function renderExplorer(bundle: ParsedBundle): string {
 					validation.warnings.map(escapeHtml).join('; ') || 'ok'
 				}</li>`,
 		)
-		.join('');
+		.join('')
 
 	const conceptCards = concepts
 		.map((concept) => {
 			const status = concept.status
 				? `<p data-testid="status">status: ${escapeHtml(concept.status)}</p>`
-				: '';
-			const description = concept.description
-				? `<p>${escapeHtml(concept.description)}</p>`
-				: '';
+				: ''
+			const description = concept.description ? `<p>${escapeHtml(concept.description)}</p>` : ''
 			const links = concept.links
 				.map(
 					(link) =>
@@ -47,7 +45,7 @@ export function renderExplorer(bundle: ParsedBundle): string {
 							link.resolved ?? '',
 						)}" data-resolves="${escapeAttr(link.resolvesInBundle)}">${escapeHtml(link.raw)}</li>`,
 				)
-				.join('');
+				.join('')
 
 			return `<article data-testid="concept" data-id="${escapeAttr(concept.id)}">
 				<h3>${escapeHtml(concept.title ?? concept.id)} <small>(${escapeHtml(concept.type)})</small></h3>
@@ -55,9 +53,9 @@ export function renderExplorer(bundle: ParsedBundle): string {
 				${description}
 				<h4>Links</h4>
 				<ul>${links}</ul>
-			</article>`;
+			</article>`
 		})
-		.join('');
+		.join('')
 
 	return `<h1>OKF Bundle Explorer</h1>
 
@@ -82,5 +80,5 @@ export function renderExplorer(bundle: ParsedBundle): string {
 		<section id="concepts" data-testid="concepts">
 			<h2>Concepts</h2>
 			${conceptCards}
-		</section>`;
+		</section>`
 }

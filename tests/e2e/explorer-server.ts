@@ -1,11 +1,11 @@
-import { fileURLToPath } from 'node:url';
-import { parseBundle } from '../../src/lib/okf/parser';
-import { renderExplorer } from '../../src/lib/explorer-render';
+import { fileURLToPath } from 'node:url'
+import { renderExplorer } from '../../src/lib/explorer-render'
+import { parseBundle } from '../../src/lib/okf/parser'
 
-const PORT = 4321;
-const bundleRoot = fileURLToPath(new URL('../fixtures/okf-bundle', import.meta.url));
+const PORT = 4321
+const bundleRoot = fileURLToPath(new URL('../fixtures/okf-bundle', import.meta.url))
 
-const bundle = await parseBundle(bundleRoot);
+const bundle = await parseBundle(bundleRoot)
 const html = `<!doctype html>
 <html lang="en">
 	<head>
@@ -14,13 +14,13 @@ const html = `<!doctype html>
 		<title>OKF Bundle Explorer</title>
 	</head>
 	<body>${renderExplorer(bundle)}</body>
-</html>`;
+</html>`
 
 const server = Bun.serve({
 	port: PORT,
 	fetch() {
-		return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+		return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
 	},
-});
+})
 
-console.log(`OKF bundle explorer listening on http://localhost:${server.port}`);
+console.log(`OKF bundle explorer listening on http://localhost:${server.port}`)

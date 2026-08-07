@@ -1,98 +1,96 @@
-import { existsSync } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs'
+import { stat } from 'node:fs/promises'
 
-import { renderExplorer } from '../src/lib/explorer-render';
-import { parseBundle } from '../src/lib/okf/parser';
-import { createArtifactLayer, removeArtifacts } from './artifacts';
-import { DEFAULT_PORT, SHUTDOWN_PATH, startServer, type MountServer } from './server';
-import { addMount, readRegistry, removeMount, writeRegistry } from './status';
+import { renderExplorer } from '../src/lib/explorer-render'
+import { parseBundle } from '../src/lib/okf/parser'
+import { createArtifactLayer, removeArtifacts } from './artifacts'
+import { DEFAULT_PORT, type MountServer, SHUTDOWN_PATH, startServer } from './server'
+import { addMount, readRegistry, removeMount, writeRegistry } from './status'
 
 export class CliError extends Error {
 	constructor(
 		public readonly code: number,
 		message: string,
 	) {
-		super(message);
+		super(message)
 	}
 }
 
 export interface MountOptions {
-	path: string;
-	port?: number;
-	buildOnly?: boolean;
+	path: string
+	port?: number
+	buildOnly?: boolean
 }
 
 export interface MountResult {
-	port: number;
-	artifactDir: string;
-	conceptCount: number;
-	buildMs: number;
-	url: string;
+	port: number
+	artifactDir: string
+	conceptCount: number
+	buildMs: number
+	url: string
 }
 
 export interface UnmountResult {
-	port: number;
-	removedArtifacts: string[];
+	port: number
+	removedArtifacts: string[]
 }
 
 export async function mount(options: MountOptions): Promise<MountResult> {
-	const target = options.path;
+	const target = options.path
 
-	let info;
+	let info: Awaited<ReturnType<typeof stat>>
 	try {
-		info = await stat(target);
+		info = await stat(target)
 	} catch {
-		throw new CliError(2, `path does not exist: ${target}`);
+		throw new CliError(2, `path does not exist: ${target}`)
 	}
 	if (!info.isDirectory()) {
-		throw new CliError(2, `not a directory: ${target}`);
+		throw new CliError(2, `not a directory: ${target}`)
 	}
 
-	await pruneStaleMounts();
+	await pruneStaleMounts()
 
-	const requestedPort = options.port ?? DEFAULT_PORT;
-	let duplicate = readRegistry().find(
+	const requestedPort = options.port ?? DEFAULT_PORT
+	const existing = readRegistry().find(
 		(entry) => entry.target === target && entry.port === requestedPort,
-	);
-	if (duplicate) {
-		const alive = await isAlive(duplicate.url);
+	)
+	if (existing) {
+		const alive = await isAlive(existing.url)
 		if (!alive) {
-			await writeRegistry(readRegistry().filter((entry) => entry.port !== duplicate!.port));
-			await removeArtifacts(duplicate.artifactDir);
-			duplicate = undefined;
+			await writeRegistry(readRegistry().filter((entry) => entry.port !== existing.port))
+			await removeArtifacts(existing.artifactDir)
+		} else {
+			throw new CliError(4, `already mounted at ${existing.port}: ${target}`)
 		}
 	}
-	if (duplicate) {
-		throw new CliError(4, `already mounted at ${duplicate.port}: ${target}`);
-	}
 
-	const artifactDir = (await createArtifactLayer(target)).root;
+	const artifactDir = (await createArtifactLayer(target)).root
 
-	let bundle;
-	const start = performance.now();
+	let bundle: Awaited<ReturnType<typeof parseBundle>>
+	const start = performance.now()
 	try {
-		bundle = await parseBundle(artifactDir);
+		bundle = await parseBundle(artifactDir)
 	} catch (error) {
-		await removeArtifacts(artifactDir);
-		throw error;
+		await removeArtifacts(artifactDir)
+		throw error
 	}
-	const buildMs = performance.now() - start;
-	const conceptCount = bundle.concepts.size;
+	const buildMs = performance.now() - start
+	const conceptCount = bundle.concepts.size
 
 	if (options.buildOnly) {
-		return { port: 0, artifactDir, conceptCount, buildMs, url: '' };
+		return { port: 0, artifactDir, conceptCount, buildMs, url: '' }
 	}
 
-	const server = await startServer(() => renderExplorer(bundle), requestedPort);
+	const server = await startServer(() => renderExplorer(bundle), requestedPort)
 	await addMount({
 		port: server.port,
 		target,
 		startedAt: new Date().toISOString(),
 		url: server.url,
 		artifactDir,
-	});
+	})
 
-	registerSignalCleanup(server, artifactDir, server.port);
+	registerSignalCleanup(server, artifactDir, server.port)
 
 	return {
 		port: server.port,
@@ -100,64 +98,62 @@ export async function mount(options: MountOptions): Promise<MountResult> {
 		conceptCount,
 		buildMs,
 		url: server.url,
-	};
+	}
 }
 
 export async function unmount(port: number): Promise<UnmountResult> {
-	const entry = readRegistry().find((candidate) => candidate.port === port);
+	const entry = readRegistry().find((candidate) => candidate.port === port)
 	if (!entry) {
-		throw new CliError(5, `no active mount on port ${port}`);
+		throw new CliError(5, `no active mount on port ${port}`)
 	}
 
-	await fetch(`${entry.url}/${SHUTDOWN_PATH}`, { method: 'POST' }).catch(() => undefined);
+	await fetch(`${entry.url}/${SHUTDOWN_PATH}`, { method: 'POST' }).catch(() => undefined)
 
-	const deadline = Date.now() + 5000;
+	const deadline = Date.now() + 5000
 	while (readRegistry().some((candidate) => candidate.port === port) && Date.now() < deadline) {
-		await sleep(50);
+		await sleep(50)
 	}
 
 	// The mount process cleans up after its server stops. If it crashed or the
 	// entry is stale, remove the orphaned artifacts ourselves.
 	if (readRegistry().some((candidate) => candidate.port === port)) {
-		await cleanup(entry.artifactDir, port);
+		await cleanup(entry.artifactDir, port)
 	}
 
-	return { port, removedArtifacts: [entry.artifactDir] };
+	return { port, removedArtifacts: [entry.artifactDir] }
 }
 
 async function pruneStaleMounts(): Promise<void> {
-	const stale = readRegistry().filter((entry) => !existsSync(entry.artifactDir));
+	const stale = readRegistry().filter((entry) => !existsSync(entry.artifactDir))
 	if (stale.length > 0) {
-		await writeRegistry(readRegistry().filter((entry) => existsSync(entry.artifactDir)));
+		await writeRegistry(readRegistry().filter((entry) => existsSync(entry.artifactDir)))
 	}
 }
 
 async function isAlive(url: string): Promise<boolean> {
 	try {
-		const response = await fetch(url, { signal: AbortSignal.timeout(500) });
-		return response.ok;
+		const response = await fetch(url, { signal: AbortSignal.timeout(500) })
+		return response.ok
 	} catch {
-		return false;
+		return false
 	}
 }
 
 async function cleanup(artifactDir: string, port: number): Promise<void> {
-	await removeArtifacts(artifactDir);
-	await removeMount(port);
+	await removeArtifacts(artifactDir)
+	await removeMount(port)
 }
 
-let signalHandlersRegistered = false;
+let signalHandlersRegistered = false
 function registerSignalCleanup(server: MountServer, artifactDir: string, port: number): void {
-	if (signalHandlersRegistered) return;
-	signalHandlersRegistered = true;
-	const handler = () => server.stop();
-	process.on('SIGINT', handler);
-	process.on('SIGTERM', handler);
-	void server.closed
-		.then(() => cleanup(artifactDir, port))
-		.catch(() => undefined);
+	if (signalHandlersRegistered) return
+	signalHandlersRegistered = true
+	const handler = () => server.stop()
+	process.on('SIGINT', handler)
+	process.on('SIGTERM', handler)
+	void server.closed.then(() => cleanup(artifactDir, port)).catch(() => undefined)
 }
 
 function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+	return new Promise((resolve) => setTimeout(resolve, ms))
 }

@@ -1,10 +1,10 @@
 ---
-import { fileURLToPath } from 'node:url';
-import { parseBundle } from '../../lib/okf/parser';
-import { renderExplorer } from '../../lib/explorer-render';
+import { fileURLToPath } from 'node:url'
+import { renderExplorer } from '../../lib/explorer-render'
+import { parseBundle } from '../../lib/okf/parser'
 
-const bundleRoot = fileURLToPath(new URL('../../../../tests/fixtures/okf-bundle', import.meta.url));
-const bundle = await parseBundle(bundleRoot);
+const bundleRoot = fileURLToPath(new URL('../../../../tests/fixtures/okf-bundle', import.meta.url))
+const bundle = await parseBundle(bundleRoot)
 ---
 
 <html lang="en">

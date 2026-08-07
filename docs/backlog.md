@@ -42,6 +42,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [ ] Test infrastructure: `tests/e2e/` (Playwright), `tests/unit/` (bun test)
 - [ ] CI workflow (lint + unit + e2e on stack PRs)
 - [x] `package.json` scripts: `weave` bin, `test`, `test:e2e`
+- [x] CI workflow: lint (Biome) + typecheck + unit + e2e on PRs/main (`.github/workflows/ci.yml`)
 
 ## Maintenance
 
