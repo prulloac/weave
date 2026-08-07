@@ -5,6 +5,7 @@ okf_version: "0.2"
 # Knowledge Index
 
 ## Concepts
+
 - [Weave Vision](concepts/weave-vision.md) - Core vision: a portable, CLI-driven visualization engine weaving flat files into a living universe of knowledge.
 - [OKF Bundle](concepts/okf-bundle.md) - Portable collection of OKF-compliant Markdown and YAML flat files; Weave's input format.
 - [Node Graph Engine](concepts/node-graph-engine.md) - Static engine building a fully traversable node graph in milliseconds.

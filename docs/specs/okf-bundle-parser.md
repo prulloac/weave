@@ -27,6 +27,7 @@ Conformance follows the permissive OKF v0.2 rules: a bundle is valid if every no
 - **Runtime:** Bun-first; uses native `Bun.file`, `Bun.glob`, and Node-compatible `fs/promises` fallbacks. No third-party YAML parser — hand-rolled minimal frontmatter + YAML-subset parser keeps the dependency tree empty and the build static.
 
 **Files:**
+
 - `src/lib/okf/types.ts` — shared interfaces and enums.
 - `src/lib/okf/frontmatter.ts` — YAML frontmatter block extraction and parsing.
 - `src/lib/okf/links.ts` — Markdown link extraction (both `(/abs)` and `(rel.md)` forms).

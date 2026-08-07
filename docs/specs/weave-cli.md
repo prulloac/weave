@@ -31,6 +31,7 @@ Portable, offline CLI that mounts Weave over any local directory or Git reposito
   - `weave --version` / `weave --help`.
 
 **Files:**
+
 - `cli/index.ts` — argument parsing + dispatch.
 - `cli/mount.ts` — mount lifecycle.
 - `cli/artifacts.ts` — temporary symlink layer creation/teardown.
