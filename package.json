@@ -2,6 +2,9 @@
   "name": "weave",
   "type": "module",
   "version": "0.0.1",
+  "bin": {
+    "weave": "./cli/index.ts"
+  },
   "engines": {
     "node": ">=22.12.0"
   },
@@ -10,6 +13,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "cli": "bun cli/index.ts",
     "test": "bun test tests/unit",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
