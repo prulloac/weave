@@ -37,7 +37,7 @@ bun link
 
 ## Usage
 
-```
+```text
 weave mount <path> [--port <port>] [--build-only]
 weave unmount <port>
 weave status [--prune]
