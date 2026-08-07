@@ -19,7 +19,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | OKF Bundle Parser | [okf-bundle-parser.md](specs/okf-bundle-parser.md) | [#1](https://github.com/prulloac/weave/pull/1) | x | - | - | review |
-| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) | x | x | x | green |
+| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) / [#8](https://github.com/prulloac/weave/pull/8) | x | x | x | review |
 
 ## Tier 2 — Engine
 
