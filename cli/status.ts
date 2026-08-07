@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { rename, mkdir, writeFile } from 'node:fs/promises';
+import { rename, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -47,9 +47,34 @@ export async function removeMount(port: number): Promise<void> {
 }
 
 export async function pruneRegistry(): Promise<MountEntry[]> {
-	const active = readRegistry().filter((entry) => existsSync(entry.artifactDir));
-	await writeRegistry(active);
+	const entries = readRegistry();
+	const active: MountEntry[] = [];
+	const orphans: MountEntry[] = [];
+
+	for (const entry of entries) {
+		const alive = (await isServerAlive(entry.url)) && existsSync(entry.artifactDir);
+		if (alive) active.push(entry);
+		else orphans.push(entry);
+	}
+
+	if (orphans.length > 0) {
+		await Promise.all(
+			orphans.map((entry) => rm(entry.artifactDir, { recursive: true, force: true }).catch(() => undefined)),
+		);
+		await writeRegistry(active);
+	}
+
 	return active;
+}
+
+async function isServerAlive(url: string): Promise<boolean> {
+	if (!url) return false;
+	try {
+		const response = await fetch(url, { signal: AbortSignal.timeout(500) });
+		return response.ok;
+	} catch {
+		return false;
+	}
 }
 
 export function formatStatus(entries: MountEntry[]): string {
