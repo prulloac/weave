@@ -1,0 +1,19 @@
+---
+import { fileURLToPath } from 'node:url';
+import { parseBundle } from '../../lib/okf/parser';
+import { renderExplorer } from '../../lib/explorer-render';
+
+const bundleRoot = fileURLToPath(new URL('../../../../tests/fixtures/okf-bundle', import.meta.url));
+const bundle = await parseBundle(bundleRoot);
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>OKF Bundle Explorer</title>
+	</head>
+	<body>
+		<Fragment set:html={renderExplorer(bundle)} />
+	</body>
+</html>
