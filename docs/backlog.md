@@ -19,7 +19,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | OKF Bundle Parser | [okf-bundle-parser.md](specs/okf-bundle-parser.md) | [#1](https://github.com/prulloac/weave/pull/1) | x | - | - | review |
-| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) | x | - | - | review |
+| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) | x | x | x | green |
 
 ## Tier 2 — Engine
 
@@ -41,7 +41,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] spec-writer skill actor convention aligned to OKF v0.2
 - [ ] Test infrastructure: `tests/e2e/` (Playwright), `tests/unit/` (bun test)
 - [ ] CI workflow (lint + unit + e2e on stack PRs)
-- [ ] `package.json` scripts: `weave` bin, `test`, `test:e2e`
+- [x] `package.json` scripts: `weave` bin, `test`, `test:e2e`
 
 ## Maintenance
 
