@@ -20,8 +20,10 @@ Portable, offline CLI that mounts Weave over any local directory or Git reposito
 
 ## 2. Module Structure & Execution Context
 
-- **Entry Point:** `src/cli/index.ts` with `bin` mapping in `package.json` (`weave`).
+- **Entry Point:** `cli/index.ts` with `bin` mapping in `package.json` (`weave`).
 - **No browser JS at build time; CLI runs under Bun.** Uses native `Bun.argv`, `Bun.serve`, and `Bun.shell`.
+- **Location rationale:** the CLI lives at the repo root in `cli/` rather than `src/`, because `src/` is reserved for the Astro site. The CLI is a standalone runtime tool, not site code; this keeps Astro's `src/` pure and makes the CLI independently publishable.
+- **Shebang:** `cli/index.ts` starts with `#!/usr/bin/env bun`; Bun executes `.ts` directly, so no compile step is needed for the `bin` mapping.
 - **Commands:**
   - `weave mount <path>` — build graph + index and serve locally.
   - `weave unmount <port>` — stop the server and clean up temporary artifacts.
@@ -29,11 +31,13 @@ Portable, offline CLI that mounts Weave over any local directory or Git reposito
   - `weave --version` / `weave --help`.
 
 **Files:**
-- `src/cli/index.ts` — argument parsing + dispatch.
-- `src/cli/mount.ts` — mount lifecycle.
-- `src/cli/artifacts.ts` — temporary symlink layer creation/teardown.
-- `src/cli/server.ts` — local static server.
-- `src/cli/status.ts` — mount registry queries.
+- `cli/index.ts` — argument parsing + dispatch.
+- `cli/mount.ts` — mount lifecycle.
+- `cli/artifacts.ts` — temporary symlink layer creation/teardown.
+- `cli/server.ts` — local static server.
+- `cli/status.ts` — mount registry queries.
+
+The CLI imports the shared parser from `src/lib/okf/parser.ts`; no other `src/` coupling is allowed.
 
 ## 3. Command Contracts
 
