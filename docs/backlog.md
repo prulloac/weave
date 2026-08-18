@@ -46,6 +46,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [ ] CI workflow (lint + unit + e2e on stack PRs)
 - [x] `package.json` scripts: `weave` bin, `test`, `test:e2e`
 - [x] CI workflow: lint (Biome) + typecheck + unit + e2e on PRs/main (`.github/workflows/ci.yml`)
+- [x] BDD test case documentation: `docs/bdd/` with Given/When/Then scenarios
+- [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
+- [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 
 ## Maintenance
 

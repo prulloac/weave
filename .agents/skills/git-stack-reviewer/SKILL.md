@@ -36,9 +36,11 @@ Break down large SDD → BDD → TDD pipelines into small, dependent, and easily
 
   - **Layer 1 (Spec):** `docs(spec): add specification contract for <feature>`
 
-  - **Layer 2 (BDD):** `test(e2e): add failing behavior tests for <feature>`
+  - **Layer 2 (BDD):** `docs(bdd): add BDD test cases for <feature>`
 
-  - **Layer 3 (TDD):** `feat(<scope>): implement component and pass unit tests`
+  - **Layer 3 (E2E):** `test(e2e): add failing behavior tests for <feature>`
+
+  - **Layer 4 (TDD):** `feat(<scope>): implement component and pass unit tests`
 
 - **GitHub Stack CLI Operations:**
 

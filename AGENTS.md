@@ -35,8 +35,10 @@ When given a feature request or bug, execute these phases sequentially using Ope
 **Phase 2: Behavior Testing (BDD)**
 
 1. Invoke the bdd-tester skill.
-2. Read the spec from docs/specs/ and create end-to-end user journey tests in tests/e2e/ using Playwright.
-3. Run tests using bun x playwright test to confirm they fail (Red phase).
+2. Read the spec from docs/specs/ and write human-readable BDD test cases in docs/bdd/<feature-name>.md using Given/When/Then scenarios.
+3. PAUSE: Present the BDD test cases to the user and wait for explicit approval before proceeding.
+4. Translate the approved BDD scenarios into Playwright end-to-end tests in tests/e2e/.
+5. Run tests using bun x playwright test to confirm they fail (Red phase).
 
 **Phase 3: Unit Testing & Implementation (TDD)**
 
