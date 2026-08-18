@@ -30,7 +30,7 @@ The visualization hydrates only when scrolled into view (`client:visible`) and i
 
 ### Component Tree
 
-```
+```text
 lens.astro (SSR)
   └── ForceGraph.tsx (client:visible)
         ├── <canvas> (WebGL/SVG renderer)
