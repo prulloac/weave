@@ -23,5 +23,11 @@ export default defineConfig({
 			reuseExistingServer: !process.env.CI,
 			timeout: 120_000,
 		},
+		{
+			command: 'bash tests/e2e/astro-dev-server.sh 4323',
+			url: 'http://localhost:4323',
+			reuseExistingServer: !process.env.CI,
+			timeout: 120_000,
+		},
 	],
 })

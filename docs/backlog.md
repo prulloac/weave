@@ -20,8 +20,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| OKF Bundle Parser | [okf-bundle-parser.md](specs/okf-bundle-parser.md) | [#1](https://github.com/prulloac/weave/pull/1) | x | - | - | review |
-| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) / [#8](https://github.com/prulloac/weave/pull/8) | x | x | x | review |
+| OKF Bundle Parser | [okf-bundle-parser.md](specs/okf-bundle-parser.md) | [#1](https://github.com/prulloac/weave/pull/1) | x | - | - | done |
+| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) / [#8](https://github.com/prulloac/weave/pull/8) | x | x | x | done |
 
 ## Tier 2 — Engine
 
@@ -35,15 +35,15 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Visualization Lens (physics-based map) | - | - | - | - | - | backlog |
+| Visualization Lens (physics-based map) | [visualization-lens.md](specs/visualization-lens.md) | - | x | x | x | review |
 
 ## Cross-cutting
 
 - [x] Knowledge corpus: vision + related concepts (`docs/knowledge/`)
 - [x] okf-generator skill aligned to OKF v0.2
 - [x] spec-writer skill actor convention aligned to OKF v0.2
-- [ ] Test infrastructure: `tests/e2e/` (Playwright), `tests/unit/` (bun test)
-- [ ] CI workflow (lint + unit + e2e on stack PRs)
+- [x] Test infrastructure: `tests/e2e/` (Playwright), `tests/unit/` (bun test)
+- [x] CI workflow (lint + unit + e2e on stack PRs)
 - [x] `package.json` scripts: `weave` bin, `test`, `test:e2e`
 - [x] CI workflow: lint (Biome) + typecheck + unit + e2e on PRs/main (`.github/workflows/ci.yml`)
 - [x] BDD test case documentation: `docs/bdd/` with Given/When/Then scenarios

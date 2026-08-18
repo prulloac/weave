@@ -1,0 +1,57 @@
+---
+import { fileURLToPath } from 'node:url'
+import ForceGraph from '../components/lens/ForceGraph'
+import Legend from '../components/lens/Legend'
+import { computeLayout } from '../lib/lens/layout'
+import type { SerializedGraph } from '../lib/lens/types'
+import { parseBundle } from '../lib/okf/parser'
+
+const bundleRoot = fileURLToPath(new URL('../../tests/fixtures/okf-bundle', import.meta.url))
+const bundle = await parseBundle(bundleRoot)
+
+const concepts = [...bundle.concepts.values()].sort((a, b) => a.id.localeCompare(b.id))
+
+const nodes = concepts.map((c) => ({
+	id: c.id,
+	title: c.title ?? c.id,
+	type: c.type,
+	status: c.status,
+	tags: c.tags,
+	inDegree: c.links.filter((l) => l.resolvesInBundle).length,
+	outDegree: concepts.filter((other) =>
+		other.links.some((l) => l.resolvesInBundle && l.resolved === `${c.id}.md`),
+	).length,
+}))
+
+const edges = concepts.flatMap((c) =>
+	c.links
+		.filter((l) => l.resolvesInBundle && l.resolved)
+		.map((l) => ({
+			from: c.id,
+			to: l.resolved?.replace(/\.md$/, '') ?? '',
+			source: 'link' as const,
+		})),
+)
+
+const graph: SerializedGraph = { nodes, edges }
+const width = 960
+const height = 600
+const positions = computeLayout(graph, width, height)
+
+const uniqueTypes = [...new Set(nodes.map((n) => n.type))].sort()
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>Visualization Lens</title>
+	</head>
+	<body>
+		<h1>Visualization Lens</h1>
+		<div style={{ position: 'relative' }}>
+			<ForceGraph graph={graph} width={width} height={height} client:visible />
+		</div>
+		<Legend types={uniqueTypes} />
+	</body>
+</html>

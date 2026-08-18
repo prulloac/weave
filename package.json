@@ -21,8 +21,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@astrojs/preact": "^6.0.2",
 		"@tailwindcss/vite": "^4.3.3",
 		"astro": "^7.1.6",
+		"preact": "^10.29.8",
 		"tailwindcss": "^4.3.3"
 	},
 	"devDependencies": {
