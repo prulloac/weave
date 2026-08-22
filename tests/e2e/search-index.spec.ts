@@ -166,18 +166,19 @@ test.describe('bm25 ranking semantics', () => {
 		const { buildSearchIndex } = await import('../../src/lib/search/build')
 		const { search } = await import('../../src/lib/search/query')
 		const commonCorpus = bundle([
-			concept('concepts/match', { title: 'Parser Guide' }),
+			concept('concepts/x', { body: 'needle alpha beta' }),
 			...['b', 'c', 'd', 'e'].map((n) =>
-				concept(`concepts/${n}`, { body: 'parser parser parser' }),
+				concept(`concepts/${n}`, { body: 'needle gamma delta' }),
 			),
 		])
 		const rareCorpus = bundle([
-			concept('concepts/match', { title: 'Parser Guide' }),
+			concept('concepts/x', { body: 'needle alpha beta' }),
 			concept('concepts/b'),
 		])
 
-		const commonScore = search(buildSearchIndex(commonCorpus), 'parser')[0]?.score ?? 0
-		const rareScore = search(buildSearchIndex(rareCorpus), 'parser')[0]?.score ?? 0
+		const commonScore = search(buildSearchIndex(commonCorpus), 'needle')[0]?.score ?? 0
+		const rareScore = search(buildSearchIndex(rareCorpus), 'needle')[0]?.score ?? 0
+		expect(commonScore).toBeGreaterThan(0)
 		expect(commonScore).toBeLessThan(rareScore)
 	})
 
