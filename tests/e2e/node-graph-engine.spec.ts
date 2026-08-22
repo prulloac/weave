@@ -60,7 +60,13 @@ test.describe('every concept becomes a node', () => {
 	test('orphan concepts stay in the graph', async () => {
 		const { buildGraph } = await import('../../src/lib/graph/build')
 		const { getNode, orphanNodes } = await import('../../src/lib/graph/traverse')
-		const graph = buildGraph(bundle([concept('concepts/lonely'), concept('concepts/linked')]))
+		const graph = buildGraph(
+			bundle([
+				concept('concepts/lonely'),
+				linked('concepts/hub', 'concepts/target'),
+				concept('concepts/target'),
+			]),
+		)
 
 		expect(orphanNodes(graph)).toEqual(['concepts/lonely'])
 		const lonely = getNode(graph, 'concepts/lonely')
