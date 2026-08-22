@@ -34,8 +34,12 @@ async function walkMarkdown(root: string, visited = new Set<string>()): Promise<
 			if (visited.has(real)) continue
 			visited.add(real)
 			files.push(...(await walkMarkdown(abs, visited)))
-		} else if (entry.isFile() && entry.name.endsWith('.md')) {
-			files.push(abs)
+		} else if (entry.isFile() || entry.isSymbolicLink()) {
+			if (entry.isSymbolicLink()) {
+				const info = await fsp.stat(abs)
+				if (!info.isFile()) continue
+			}
+			if (entry.name.endsWith('.md')) files.push(abs)
 		}
 	}
 	return files
