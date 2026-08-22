@@ -27,9 +27,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Node Graph Engine | [node-graph-engine.md](specs/node-graph-engine.md) | - | x | - | - | in-progress |
-| Search Index | [search-index.md](specs/search-index.md) | - | x | - | - | in-progress |
-| Weave CLI Find & Navigate | [weave-cli-navigation.md](specs/weave-cli-navigation.md) | - | x | - | - | in-progress |
+| Node Graph Engine | [node-graph-engine.md](specs/node-graph-engine.md) | - | x | x | - | red |
+| Search Index | [search-index.md](specs/search-index.md) | - | x | x | - | red |
+| Weave CLI Find & Navigate | [weave-cli-navigation.md](specs/weave-cli-navigation.md) | - | x | x | - | red |
 
 ## Tier 3 — Lens
 
