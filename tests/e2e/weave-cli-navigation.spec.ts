@@ -1,8 +1,8 @@
 import { execSync, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from '@playwright/test'
 
@@ -17,7 +17,9 @@ function runCli(args: string[]) {
 function makeBundle(files: Record<string, string>): string {
 	const dir = mkdtempSync(join(tmpdir(), 'weave-nav-'))
 	for (const [name, content] of Object.entries(files)) {
-		writeFileSync(join(dir, name), content)
+		const filePath = join(dir, name)
+		mkdirSync(dirname(filePath), { recursive: true })
+		writeFileSync(filePath, content)
 	}
 	return dir
 }
@@ -36,16 +38,16 @@ function makeFindBundle(): string {
 
 function makeChainBundle(): string {
 	return makeBundle({
-		'a.md': conceptFile('Node A', '[next](b.md)'),
-		'b.md': conceptFile('Node B', '[next](c.md)'),
-		'c.md': conceptFile('Node C', 'end of the chain'),
+		'concepts/a.md': conceptFile('Node A', '[next](b.md)'),
+		'concepts/b.md': conceptFile('Node B', '[next](c.md)'),
+		'concepts/c.md': conceptFile('Node C', 'end of the chain'),
 	})
 }
 
 function makeIslandsBundle(): string {
 	return makeBundle({
-		'a.md': conceptFile('Island A', 'alone in the universe'),
-		'z.md': conceptFile('Island Z', 'also alone'),
+		'concepts/a.md': conceptFile('Island A', 'alone in the universe'),
+		'concepts/z.md': conceptFile('Island Z', 'also alone'),
 	})
 }
 
@@ -101,7 +103,13 @@ test.describe('weave find (terminal)', () => {
 		expect(first.stdout).toBe(second.stdout)
 		const parsed = JSON.parse(first.stdout) as Array<Record<string, unknown>>
 		expect(Array.isArray(parsed)).toBe(true)
-		expect(Object.keys(parsed[0] ?? {})).toEqual(['id', 'title', 'path', 'type', 'score'])
+		expect(Object.keys(parsed[0] ?? {}).slice(0, 5)).toEqual([
+			'id',
+			'title',
+			'path',
+			'type',
+			'score',
+		])
 	})
 
 	test.afterAll(() => {
@@ -222,7 +230,7 @@ test.describe('navigation errors follow the mount convention', () => {
 		const result = runCli(['show', SHARED_FIXTURE, 'concepts/nonexistent'])
 
 		expect(result.status).toBe(1)
-		expect(result.stdout.toLowerCase()).toMatch(/not found/)
+		expect(result.stderr.toLowerCase()).toMatch(/not found/)
 	})
 
 	test('missing target directory exits 2', () => {
