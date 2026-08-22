@@ -29,6 +29,7 @@ This is the technical companion to the Visualization Lens (Tier 3): the CLI serv
 - **Reuse, don't re-invent:** consumes the [Node Graph Engine](./node-graph-engine.md) and [Search Index](./search-index.md) contracts; no new engine logic.
 - **Commands:**
   - `weave find <query>` — full-text ranked search.
+  - `weave list` — metadata-only filter over frontmatter (no full-text scoring).
   - `weave show <id|path>` — render a concept: metadata, body, outgoing links, backlinks.
   - `weave backlinks <id|path>` — list incoming edges for a concept.
   - `weave path <from> <to>` — shortest path between two concepts.
@@ -37,6 +38,7 @@ This is the technical companion to the Visualization Lens (Tier 3): the CLI serv
 **Files:**
 
 - `cli/find.ts` — `weave find` implementation.
+- `cli/list.ts` — `weave list` implementation.
 - `cli/show.ts` — `weave show` + `weave backlinks` implementation.
 - `cli/path.ts` — `weave path` implementation.
 - `cli/resolve.ts` — shared id-or-path input resolution for the target directory and concept arguments.
@@ -125,6 +127,30 @@ export interface PathResult {
 - `path: null` when no route exists (exit code 1).
 - `--json` — emit `PathResult`.
 
+### 3.5 `weave list <path>`
+
+```text
+weave list <path> [--type <type>] [--tag <tag>] [--status <status>] [--limit 20] [--json]
+```
+
+```typescript
+export interface ListResult {
+  id: string;
+  title: string;
+  path: string;
+  type: string;
+  status?: 'draft' | 'stable' | 'deprecated';
+  tags?: string[];
+}
+```
+
+- **Metadata-only filter** over frontmatter fields; the body is never tokenized or scored — this is the cheap, precise counterpart to full-text `find`.
+- Filters AND-combine: `--type concept --tag cli` matches only concepts satisfying both. `--tag` is repeatable (`--tag a --tag b` requires both).
+- Human output: one line per concept, `title [path]`, sorted by id ascending.
+- `--limit N` — cap results (default 20), applied after sorting.
+- `--json` — emit `ListResult[]` with stable key order, same ordering guarantee.
+- **Backed by `parseBundle` only:** no graph build, no index build — the fastest command in the suite.
+
 ## 4. Data Flow & Dependencies
 
 - `<path>` target must be a directory; resolve with the same semantics as `weave mount` (exit 2 on missing, 3 on permission denied).
@@ -137,6 +163,7 @@ export interface PathResult {
 ## 5. Edge Cases & Errors
 
 - **Empty query** (`find ""`): exit 1 with a message, no results.
+- **No metadata matches** (`list` with filters that select nothing): exit 1, no results.
 - **Unknown concept** (`show`/`backlinks` with an id that is not in the bundle): exit 1, "concept not found".
 - **No route** (`path` between disconnected nodes): `path: null`, exit 1.
 - **Empty bundle:** `find` returns nothing (exit 1); `show`/`backlinks` exit 1.

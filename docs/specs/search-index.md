@@ -19,7 +19,7 @@ status: draft
 
 Pure, offline, synchronous TypeScript module that turns a validated `ParsedBundle` (from [OKF Bundle Parser](./okf-bundle-parser.md)) — and optionally the [Node Graph](./node-graph-engine.md) — into an in-memory, queryable full-text index. It powers instant, keyboard-driven querying of Markdown and YAML content without a browser, keeping the exploration flow inside the terminal, exactly as the [Search Index](../knowledge/concepts/search-index.md) concept promises.
 
-A hand-rolled inverted index with a Markdown-aware tokenizer and field-weighted ranking keeps the dependency tree empty and the build static, matching the parser's zero-dependency ethos.
+A hand-rolled inverted index with a Markdown-aware tokenizer and **BM25** ranking keeps the dependency tree empty and the build static, matching the parser's zero-dependency ethos.
 
 ## 2. Module Structure & Execution Context
 
@@ -106,7 +106,11 @@ export type Field = 'title' | 'tags' | 'description' | 'body' | 'path' | 'type' 
 ### 4.2 Querying
 
 - Tokenize the query; a document is a candidate when it matches **every** query token (AND semantics) across the restricted or default field set.
-- Score each candidate as a weighted sum of per-field matches, in descending field weight order: `title` > `tags` > `description` > `body` > `type`/`path`/`frontmatter`.
+- Score each candidate with **per-field BM25**, combined as a weighted sum in descending field weight order: `title` > `tags` > `description` > `body` > `type`/`path`/`frontmatter`.
+  - Constants: `k1 = 1.2`, `b = 0.75`.
+  - `IDF(t) = ln((N − df(t) + 0.5) / (df(t) + 0.5) + 1)` where `N` is the number of documents in the bundle and `df(t)` the document frequency of token `t` (computed bundle-wide at build time, per field).
+  - Per field: `score_f(d) = Σ_t IDF(t) · tf(t,d,f) · (k1 + 1) / (tf(t,d,f) + k1 · (1 − b + b · |d_f| / avgdl_f))` — standard BM25 term-frequency saturation and document-length normalization against the field's average length.
+  - Total: `score(d) = Σ_f w_f · score_f(d)`; weights are fixed constants, documented in `query.ts`.
 - Optional graph boost: when a `NodeGraph` was provided at build time, add a degree bonus (`inDegree + outDegree`) so well-connected hub concepts surface first — the "living universe" ranking signal.
 - Snippet: when a body term matches, emit a ~120-character window around the first occurrence; otherwise omit.
 - Results sorted by `score` descending, then `id` ascending for determinism, capped at `limit`.
@@ -126,7 +130,7 @@ export type Field = 'title' | 'tags' | 'description' | 'body' | 'path' | 'type' 
 - **Markdown-heavy bodies:** link text and inline code are indexed as their visible text, not their raw syntax.
 - **Unicode and diacritics:** tokenizer normalizes case and splits on non-alphanumeric boundaries; diacritics are preserved (no lossy folding) unless a future normalization policy overrides this.
 - **Missing optional fields (title, description, tags):** indexed as empty strings; document still searchable by body/path/type.
-- **Duplicate tokens in a document:** scored once per term per field (count-weighted term frequency), never inflating rank by repetition of the same token.
+- **Duplicate tokens in a document:** term frequency feeds BM25 but saturates via `k1`, so repeating the same token never linearly inflates rank.
 - **Determinism:** result ordering is stable across builds for identical inputs.
 
 ## Related Concepts
