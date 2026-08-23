@@ -120,13 +120,21 @@ export interface ConceptPage {
 ### 3.3 Lens Data Payload
 
 The `/lens` shell embeds the [SerializedGraph](./node-graph-engine.md) inline so the client
-needs no fetches:
+needs no fetches, alongside a server-rendered **lens index**:
 
 ```html
 <script type="application/json" id="weave-graph">{ ...serialized graph... }</script>
 <div id="weave-lens-root"></div>
+<aside data-testid="lens-index">
+  <!-- one anchor per concept -->
+  <a data-testid="lens-index-entry" data-id="concepts/okf-bundle" href="/concept/concepts/okf-bundle">OKF Bundle</a>
+</aside>
 <script type="module" src="/assets/lens.js"></script>
 ```
+
+The lens index is part of the zero-JS contract: it gives every concept a keyboard-accessible,
+deterministic path to its page regardless of simulation state. Pointer-driven navigation on
+canvas nodes remains an island-level behavior and is verified at the unit layer.
 
 The graph is produced by the Node Graph Engine's `buildGraph()` + `serializeGraph()` — the
 hand-rolled construction in `src/pages/lens.astro` is considered superseded by this contract.
