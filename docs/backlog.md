@@ -36,7 +36,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Visualization Lens (physics-based map) | [visualization-lens.md](specs/visualization-lens.md) | [#9](https://github.com/prulloac/weave/pull/9) / [#10](https://github.com/prulloac/weave/pull/10) / [#11](https://github.com/prulloac/weave/pull/11) | x | x | x | done |
-| Lens Mount Integration (styled explorer + navigable mount) | [lens-mount-integration.md](specs/lens-mount-integration.md) | - | - | - | - | backlog |
+| Lens Mount Integration (styled explorer + navigable mount) | [lens-mount-integration.md](specs/lens-mount-integration.md) | - | x | x | - | red |
 | Visual Design Pass (design-system extraction, light/dark theming) | - | - | - | - | - | backlog |
 
 ## Cross-cutting
