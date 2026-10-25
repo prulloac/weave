@@ -51,6 +51,7 @@ bun run contract:types    # regenerate TypeScript types from the schema
 bun run contract:export   # regenerate golden expected JSON from fixtures
 bun run contract:check    # validate all goldens against the schemas
 bun run contract:verify   # export + check
+go test ./contract/v1     # Go structs round-trip the goldens and validate against schemas
 ```
 
 ## Adding a Golden Case
