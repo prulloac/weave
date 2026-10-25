@@ -164,6 +164,7 @@ see [ADR 0002](adr/0002-v1-scope-layout-and-contract.md) and
 
 ## Status
 
-Proposal, `draft`. No production code has been migrated yet. The current TypeScript
-implementation remains the reference until the conformance suite described in
-[Integration testing](integration/testing.md) passes against the Go port.
+Proposal, `draft`. **Phase 0 is complete:** contract v1 schemas, generated TypeScript types, the
+golden corpus and the exporter exist under `contract/v1`. No Go engine code has been written yet.
+The current TypeScript implementation remains the reference until the conformance suite described
+in [Integration testing](integration/testing.md) passes against the Go port.

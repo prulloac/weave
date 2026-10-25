@@ -43,7 +43,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Layer Split & Go Port (Go engine/render/mount, CLI-first integration, TS lens assets) | [architecture/index.md](architecture/index.md) | - | x | - | - | backlog |
+| Layer Split & Go Port (Go engine/render/mount, CLI-first integration, TS lens assets) | [architecture/index.md](architecture/index.md) | - | x | - | - | in-progress |
 
 ## Cross-cutting
 
@@ -57,6 +57,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] BDD test case documentation: `docs/bdd/` with Given/When/Then scenarios
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)
 
 ## Maintenance
 

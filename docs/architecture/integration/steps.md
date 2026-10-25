@@ -45,6 +45,8 @@ kept for traceability.
 
 ## Phase 0 — Freeze the contract
 
+**Status:** complete (schemas, generated types, golden corpus, exporter and validation tests).
+
 **Goal:** make the observable behavior language-neutral.
 
 Deliverables:
