@@ -58,6 +58,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)
+- [x] Go module scaffold, contract structs, schema round-trip tests and CI (Phase 2)
 
 ## Maintenance
 

@@ -90,6 +90,9 @@ Rollback: remove the exporter; the reference is unchanged.
 
 ## Phase 2 — Scaffold the Go module
 
+**Status:** complete (module, contract structs, schema round-trip tests, package skeletons, CI and
+`scripts/verify.sh`).
+
 **Goal:** a compiling Go module with contract types and the test harness.
 
 Deliverables:
