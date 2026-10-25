@@ -47,7 +47,34 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bun test
+      - run: bun test ./tests/unit
+
+  contract:
+    name: Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run contract:types
+      - run: bun run contract:export
+      - run: git diff --exit-code -- contract/v1/types.ts contract/v1/golden/expected
+      - run: bun run contract:check
+
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./...
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
 
   e2e:
     name: E2E tests
