@@ -26,7 +26,7 @@ semantics.
 engine/operations
    ↑            ↑
 cmd/weave     future weave mcp
-(argv/stdio)  (TCP, MCP tools)
+(argv)        (TCP, MCP tools)
 ```
 
 No HTTP handler and no transport types appear in this package.
@@ -167,7 +167,7 @@ unsupported contract major.
 
 ### One-shot
 
-The default integration mode is one process per operation:
+v1 ships one-shot only. The default integration mode is one process per operation:
 
 ```sh
 weave find /notes "graph" --json
@@ -180,10 +180,10 @@ Characteristics:
 - Simple error handling through exit codes and stdout.
 - Startup cost is a Go process start plus parse; acceptable for build-time and interactive use.
 
-### Stdio (optional)
+### Stdio (deferred post-v1)
 
-For hosts that issue many operations, an optional long-lived process reads NDJSON requests from
-stdin and writes NDJSON responses to stdout:
+This mode is designed but **not shipped in v1**. After the one-shot CLI stabilizes, a long-lived
+process may read NDJSON requests from stdin and write NDJSON responses to stdout:
 
 ```sh
 weave engine --stdio
@@ -235,9 +235,9 @@ No engine, render or operation semantics should need to change for MCP.
 1. Table tests for every operation and validation error.
 2. Golden request/response fixtures shared with the CLI tests.
 3. Determinism tests: identical requests produce identical envelopes.
-4. Stdio tests: NDJSON framing, ordering, malformed lines, EOF, stdout purity.
-5. Version negotiation: unsupported contract major returns `INVALID_REQUEST`.
-6. Future MCP adapter contract tests reuse the same fixtures.
+4. Version negotiation: unsupported contract major returns `INVALID_REQUEST`.
+5. Future MCP adapter contract tests reuse the same fixtures.
+6. Post-v1: stdio tests cover NDJSON framing, ordering, malformed lines, EOF and stdout purity.
 
 ## Related Documents
 

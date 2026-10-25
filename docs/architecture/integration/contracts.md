@@ -87,10 +87,10 @@ Failure:
 Rules:
 
 - Exactly one of `result` or `error` is present.
-- `id` is echoed only in stdio mode.
+- `id` is reserved for the deferred stdio mode and omitted in one-shot output.
 - Unknown fields are ignored.
 - The envelope is valid JSON even when the exit code is non-zero.
-- `--legacy-json` exists only for migration and is deprecated; new hosts use `--json`.
+- `--json` is the only machine mode in v1. `--legacy-json` is deferred post-v1.
 
 ### Version discovery
 
@@ -98,14 +98,16 @@ Rules:
 catalogue and error codes. Hosts call it once per binary version and fail fast on an unsupported
 contract major.
 
-### Stdio mode
+### Stdio mode (deferred post-v1)
 
 ```sh
 weave engine --stdio
 ```
 
+This mode is **not shipped in v1**. When it lands:
+
 - NDJSON request per line, NDJSON envelope per line.
-- Requests are processed in order in v1.
+- Requests are processed in order.
 - stdout carries responses only; diagnostics go to stderr.
 - Malformed input returns an `INVALID_REQUEST` envelope.
 - EOF or a `shutdown` request exits the process.
@@ -241,10 +243,10 @@ Host rules:
 | --- | --- | --- | --- |
 | Go engine v1 | v1 | n/a | Internal/optional API |
 | Go operations v1 | v1 | `weave.cli/v1` | Primary machine surface |
-| Go CLI v1 | v1 | `weave.cli/v1` | One-shot and stdio |
+| Go CLI v1 | v1 | `weave.cli/v1` | One-shot only; stdio deferred |
 | Go render/mount v1 | v1 | n/a | Presentation only |
 | Lens v1 | v1 | n/a | Presentation only |
-| TS reference (frozen) | v1 | legacy JSON | Conformance reference until cutover |
+| TS reference (frozen) | v1 | legacy (frozen) | Conformance reference until cutover |
 
 ## Related Documents
 

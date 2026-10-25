@@ -77,7 +77,7 @@ later be wrapped by an MCP transport without redesigning the domain:
 
 - A subprocess boundary avoids embedding a Go runtime into a non-Go host.
 - stdout/stderr and exit codes are stable, testable and observable.
-- One-shot commands are stateless; the optional stdio mode is still process-local, not a daemon.
+- One-shot commands are stateless; a future stdio mode would still be process-local, not a daemon.
 - The operations model maps directly to future MCP tools, so the transport changes but the
   semantics do not.
 - HTTP remains available only where it is inherent: serving the browser presentation.
@@ -151,15 +151,18 @@ Porting the monolith in one step would make semantic drift and regressions hard 
 | TCP service now | Rejected for v1: premature; the operations layer preserves the option |
 | Rewrite the lens in Go/WASM | Rejected: browser UI already works in TypeScript |
 
+Resolved during review: `--legacy-json` and `weave engine --stdio` are **deferred until after v1**.
+The v1 machine contract is the one-shot `--json` envelope only. No legacy output mode and no
+long-lived stdio mode ship in the first Go CLI.
+
 ## Follow-Up Decisions
 
 1. Go module path and repository layout (single module versus workspace).
 2. Whether the default binary embeds the lens or loads it from disk.
-3. Whether the CLI JSON envelope is the only machine mode or a legacy-compatible mode ships
-   alongside it during migration.
-4. Whether the optional stdio mode ships in v1 or after the one-shot CLI is stable.
-5. Whether the Astro development site is kept, archived, or used only for lens development.
-6. Long-term ownership of the TypeScript reference implementation after cutover.
+3. Whether the Astro development site is kept, archived, or used only for lens development.
+4. Long-term ownership of the TypeScript reference implementation after cutover.
+5. When to introduce `--legacy-json` and how long to keep it.
+6. When to introduce `weave engine --stdio` and whether it needs a reload operation.
 7. The MCP transport details (bind address, authentication, tool naming) when that work starts.
 
 ## Related Documents

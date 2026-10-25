@@ -23,7 +23,7 @@ server is a later transport adapter over the same operations.
                                 │ CLI I/O (primary)
 ┌───────────────────────────────▼───────────────────────────────┐
 │  cmd/weave + engine/operations                                │
-│  commands · JSON envelopes · NDJSON stdio · exit codes        │
+│  commands · JSON envelopes · exit codes                       │
 ├───────────────────────────────────────────────────────────────┤
 │  weave/engine                                                 │
 │  okf parser · graph · BM25 search · navigation · cache        │
@@ -60,7 +60,7 @@ server is a later transport adapter over the same operations.
 | Surface | Audience | Status | Contract |
 | --- | --- | --- | --- |
 | CLI processes | Any language or runtime | Primary now | argv, stdin/stdout/stderr, exit codes, `weave.cli/v1` |
-| Operations NDJSON | Hosts issuing many requests | Optional now | Same envelope, process-local stdio |
+| Operations NDJSON | Hosts issuing many requests | Deferred post-v1 | Same envelope, process-local stdio |
 | Go package API | Go hosts | Optional | Engine and operations packages |
 | Browser presentation | Humans | Presentation only | DOM hooks and HTML routes |
 | TCP MCP server | Future agent integrations | Later | MCP tools over the operations layer |
@@ -96,7 +96,8 @@ CLI remains the compatibility promise.
 | Go library | Optional in-process API for Go hosts; not required for integration |
 | HTTP | Presentation only: browser UI, lens shell, local pages |
 | Future transport | TCP MCP adapter over the same operations, added later |
-| CLI output contract | `weave.cli/v1` envelope plus legacy-compatible mode |
+| CLI output contract | `weave.cli/v1` envelope only in v1 |
+| Deferred CLI modes | `--legacy-json` and `weave engine --stdio` ship after v1 |
 | Operations | One typed operation set shared by CLI and future MCP |
 | Contract | JSON Schema v1 with cross-language golden fixtures |
 | Reference implementation | TypeScript until the Go port passes the full conformance suite |

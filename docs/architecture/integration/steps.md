@@ -158,9 +158,7 @@ Deliverables:
 
 - `cmd/weave` machine commands: `contract`, `parse`, `graph`, `find`, `list`, `show`,
   `backlinks`, `path`, `version`.
-- Envelope output (`--json`), legacy output (`--legacy-json`), stdout/stderr separation and
-  exit codes.
-- `weave engine --stdio` NDJSON loop.
+- Envelope output (`--json`), stdout/stderr separation and exit codes.
 - `mount.NewSite`, `Handler`, `Close`, artifacts, assets and registry for the presentation.
 - Standalone `mount`, `unmount`, `status` commands with port fallback and optional shutdown.
 
@@ -169,7 +167,6 @@ Gate:
 - Every CLI operation passes the process contract tests: valid envelope, empty stderr on success,
   documented exit code on failure, deterministic output.
 - `weave contract --json` advertises the supported operations and versions.
-- Stdio mode passes NDJSON ordering, malformed-line and EOF tests.
 - Artifact tests prove no writes to the source and correct cleanup.
 - `weave mount`, `status`, `unmount` still pass the browser E2E suite.
 - `go test -race ./...` passes.
@@ -239,7 +236,7 @@ Rollback: deploy the tagged TypeScript binary.
 - [ ] Go operations and envelopes
 - [ ] Go renderer
 - [ ] Go mount (presentation)
-- [ ] Go CLI (one-shot and stdio)
+- [ ] Go CLI (one-shot envelope)
 - [ ] Lens package and build
 - [ ] Go embed and fallback
 - [ ] Dual-run diff
@@ -264,7 +261,7 @@ Rollback: deploy the tagged TypeScript binary.
 - The Go engine passes the full contract corpus and race suite.
 - Every CLI operation emits a valid envelope, respects stdout/stderr rules and returns documented
   exit codes.
-- `weave contract --json` and `weave engine --stdio` are stable and tested.
+- `weave contract --json` is stable and tested.
 - The Go renderer satisfies the DOM contract and zero-JS rules.
 - The presentation mount serves all routes and embeds the lens asset.
 - The lens package is independent and versioned.
@@ -273,6 +270,17 @@ Rollback: deploy the tagged TypeScript binary.
 
 The future MCP transport is explicitly out of scope for this plan; the operations layer is the
 stable seam it will use.
+
+## Post-v1 Backlog
+
+Explicitly deferred after the first Go CLI release:
+
+- `--legacy-json` output, if migration demand justifies it.
+- `weave engine --stdio` NDJSON mode.
+- The TCP MCP server, built on the operations layer.
+- Any reload/watch semantics for stdio or MCP sessions.
+
+None of these change the v1 CLI envelope contract or the engine semantics.
 
 ## Related Documents
 

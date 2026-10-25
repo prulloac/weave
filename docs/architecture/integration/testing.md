@@ -179,11 +179,12 @@ Assertions per operation:
 - No color, banner, progress bar or log line on stdout in `--json` mode.
 - Deterministic output across repeated runs.
 - JSON Schema validation of every envelope.
-- `--legacy-json` remains parseable during migration.
 - `weave contract --json` advertises exactly the supported operations.
 - Unknown operations and missing fields return `INVALID_REQUEST` and exit 2.
-- `weave engine --stdio` handles ordered requests, malformed lines, EOF and shutdown.
 - Concurrent one-shot processes do not interfere (cache is optional and safe).
+
+`--legacy-json` and `weave engine --stdio` are post-v1; their tests are added when those modes
+ship.
 
 ## Level 5 — Presentation HTTP and Browser E2E
 
@@ -284,7 +285,7 @@ Windows is required for symlink and hardlink artifact tests.
 | --- | --- |
 | Contract | Schemas validate; TS passes goldens |
 | Engine | All bundle/graph/search/nav goldens; race; fuzz corpus clean |
-| Operations | Envelopes, error codes, stdio framing, determinism |
+| Operations | Envelopes, error codes, determinism |
 | CLI | Envelopes, stdout/stderr, exit codes, contract discovery |
 | Render | DOM contract; zero-JS; XSS; golden HTML (presentation) |
 | Lens | Unit, payload, E2E, size, no forbidden imports (presentation) |

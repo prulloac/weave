@@ -1,13 +1,12 @@
 ---
 type: Layer Specification
 title: "CLI Layer (Go)"
-description: "Primary integration contract: command surface, machine envelopes, stdout/stderr rules, exit codes, version discovery and optional stdio mode."
+description: "Primary integration contract: command surface, machine envelopes, stdout/stderr rules, exit codes and version discovery."
 tags:
   - "architecture"
   - "cli"
   - "go"
   - "integration"
-  - "stdio"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-25T00:00:00Z"
@@ -53,7 +52,7 @@ cmd/weave/
 │   ├── show.go
 │   ├── backlinks.go
 │   ├── path.go
-│   ├── engine.go        # --stdio loop
+│   ├── engine.go        # post-v1 --stdio loop
 │   ├── mount.go         # presentation only
 │   ├── unmount.go
 │   ├── status.go
@@ -62,7 +61,7 @@ cmd/weave/
 └── output/
     ├── human.go
     ├── envelope.go
-    └── legacy.go
+    └── legacy.go          # post-v1
 ```
 
 `mount`, `unmount` and `status` drive the presentation server. They are not part of the machine
@@ -81,7 +80,10 @@ weave show <path> <id|file> [--json]
 weave backlinks <path> <id|file> [--json]
 weave path <path> <id|file> <id|file> [--json]
 weave version [--json]
-weave engine --stdio
+
+# Deferred post-v1 (not in the first Go CLI release)
+# weave engine --stdio
+# --legacy-json
 
 # Presentation (human browser UI; not an integration API)
 weave mount <path> [--port <port>] [--build-only]
@@ -97,8 +99,9 @@ weave --version | --help
 | --- | --- | --- | --- |
 | Human | default | human text | diagnostics |
 | Envelope JSON | `--json` | one JSON envelope | diagnostics |
-| Legacy JSON | `--legacy-json` | legacy result-shaped JSON | diagnostics |
-| NDJSON stdio | `weave engine --stdio` | one envelope per line | diagnostics |
+
+v1 has exactly these two modes. Legacy JSON and NDJSON stdio are deferred; see
+[Deferred Modes](#deferred-modes-post-v1).
 
 ### Envelope JSON
 
@@ -133,49 +136,21 @@ Rules:
 - stdout is **only** the envelope. No logs, warnings, colors, banners or progress bars.
 - Warnings and human diagnostics go to stderr, prefixed with `weave:`.
 - A failed operation still emits a valid envelope on stdout in `--json` mode, and exits non-zero.
-- `--json` is the recommended machine mode. `--legacy-json` exists only to ease migration and is
-  documented as deprecated.
+- `--json` is the only machine mode in v1.
 - In human mode, stdout is the requested text and errors go to stderr.
 
-### Legacy JSON
+### Deferred Modes (Post-v1)
 
-`--legacy-json` reproduces the pre-Go output shapes:
+These are explicitly **not** part of the first Go CLI release:
 
-- `find`: array of results,
-- `list`: array of results,
-- `show`: object,
-- `backlinks`: object,
-- `path`: object.
+- `--legacy-json`: the pre-Go result-shaped output. It may be added later if migration demand
+  justifies it, and would be documented as deprecated from the start.
+- `weave engine --stdio`: NDJSON request/response over stdin/stdout for hosts that issue many
+  operations. It may be added after the one-shot CLI contract is stable.
 
-It carries no envelope and no version field. It is scheduled for removal after the TypeScript
-reference is archived. New integrations must use `--json`.
-
-### NDJSON stdio
-
-```sh
-weave engine --stdio
-```
-
-Input:
-
-```json
-{"id":"1","op":"find","path":"/notes","query":"graph","limit":10}
-```
-
-Output:
-
-```json
-{"id":"1","contract":"weave.contract/v1","cli":"weave.cli/v1","ok":true,"result":[]}
-```
-
-Rules:
-
-- One request object per line; one response object per line.
-- Requests are processed in input order in v1.
-- Malformed lines produce an `INVALID_REQUEST` envelope with the line number in `details`.
-- stdout contains responses only.
-- EOF exits cleanly; a `{"op":"shutdown"}` request exits after acknowledging.
-- No network listener. This is still process-local CLI I/O.
+Neither mode affects the v1 envelope contract. The operations layer already models the requests
+and responses, so adding them later does not change engine semantics. The future MCP server uses
+the same seam.
 
 ## Exit Codes
 
@@ -270,7 +245,7 @@ needs machine access uses the operations commands above, not the mount.
 
 ## Testing
 
-1. Golden tests for human, envelope and legacy output.
+1. Golden tests for human and envelope output.
 2. Argument parser table tests for every flag and error path.
 3. Process tests with `exec.Command` against a built binary:
    - stdout/stderr separation,
@@ -279,9 +254,9 @@ needs machine access uses the operations commands above, not the mount.
    - no color/progress in machine mode,
    - version and contract discovery.
 4. JSON Schema validation of every envelope.
-5. NDJSON stdio tests: ordering, malformed lines, EOF, shutdown.
-6. Determinism tests: repeated invocations produce identical envelopes.
-7. Presentation command tests are separate and may use HTTP.
+5. Determinism tests: repeated invocations produce identical envelopes.
+6. Presentation command tests are separate and may use HTTP.
+7. Post-v1: legacy-output and NDJSON tests are added when those modes ship.
 
 ## Related Documents
 
