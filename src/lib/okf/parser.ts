@@ -133,6 +133,9 @@ export async function parseBundle(root: string): Promise<ParsedBundle> {
 		const base = basename(rel)
 
 		if (base === 'index.md') {
+			// Only the bundle-root index.md declares the bundle index and version.
+			// Nested index.md files are reserved directory listings, not concepts.
+			if (rel !== 'index.md') continue
 			try {
 				const parsed = await readIndex(file)
 				index = parsed.index

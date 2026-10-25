@@ -29,7 +29,9 @@ function stripComment(line: string): string {
 		}
 		if (ch === '[') depth++
 		if (ch === ']') depth--
-		if (ch === '#' && depth === 0) return line.slice(0, i)
+		if (ch === '#' && depth === 0 && (i === 0 || /\s/.test(line[i - 1] ?? ''))) {
+			return line.slice(0, i)
+		}
 	}
 	return line
 }

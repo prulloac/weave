@@ -8,14 +8,21 @@ function hasScheme(target: string): boolean {
 	return URL_SCHEME.test(target)
 }
 
+/** Drop `?query` and `#fragment` so link identity is the file path only. */
+function destinationPath(target: string): string {
+	const withoutFragment = target.split('#', 1)[0] ?? ''
+	return withoutFragment.split('?', 1)[0] ?? ''
+}
+
 export function extractLinks(body: string): OkfLink[] {
 	const links: OkfLink[] = []
 	for (const match of body.matchAll(LINK_PATTERN)) {
 		const raw = match[0]
 		const target = match[2]
 		const link: OkfLink = { raw, target, resolvesInBundle: false }
-		if (!hasScheme(target) && !target.startsWith('#') && target.startsWith('/')) {
-			link.resolved = posix.normalize(target.slice(1))
+		const path = destinationPath(target)
+		if (!hasScheme(target) && !target.startsWith('#') && path.startsWith('/')) {
+			link.resolved = posix.normalize(path.slice(1))
 		}
 		links.push(link)
 	}
@@ -27,9 +34,12 @@ export function resolveLink(link: OkfLink, currentDir: string): void {
 		link.resolved = undefined
 		return
 	}
-	const target = link.target.startsWith('/')
-		? link.target.slice(1)
-		: posix.join(currentDir, link.target)
+	const path = destinationPath(link.target)
+	if (path.length === 0) {
+		link.resolved = undefined
+		return
+	}
+	const target = path.startsWith('/') ? path.slice(1) : posix.join(currentDir, path)
 	link.resolved = posix.normalize(target)
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -61,6 +61,16 @@ status: stable
 	test('parses inline flow arrays', () => {
 		const result = extractFrontmatter('---\ntags: [a, b, c]\n---\n')
 		expect(result!.data).toEqual({ tags: ['a', 'b', 'c'] })
+	})
+
+	test('preserves hash characters inside unquoted URLs', () => {
+		const result = extractFrontmatter(
+			'---\nurl: https://example.com/page#frag\nnote: value # comment\n---\n',
+		)
+		expect(result!.data).toEqual({
+			url: 'https://example.com/page#frag',
+			note: 'value',
+		})
 	})
 })
 
@@ -214,5 +224,51 @@ describe('parseBundle', () => {
 	test('parses nested directory trees recursively', async () => {
 		const bundle = await parseBundle(BUNDLE)
 		expect(bundle.concepts.get('tables/users')!.type).toBe('Table')
+	})
+
+	test('resolves links with fragments and query strings to the underlying concept', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'okf-anchors-'))
+		try {
+			writeFileSync(
+				join(dir, 'a.md'),
+				'---\ntype: Concept\n---\n[section](b.md#part) [query](b.md?view=1) [local](#top)\n',
+			)
+			writeFileSync(join(dir, 'b.md'), '---\ntype: Concept\n---\n')
+
+			const bundle = await parseBundle(dir)
+			const links = bundle.concepts.get('a')!.links
+			const byTarget = new Map(links.map((link) => [link.target, link]))
+
+			expect(byTarget.get('b.md#part')?.resolved).toBe('b.md')
+			expect(byTarget.get('b.md#part')?.resolvesInBundle).toBe(true)
+			expect(byTarget.get('b.md?view=1')?.resolved).toBe('b.md')
+			expect(byTarget.get('b.md?view=1')?.resolvesInBundle).toBe(true)
+			expect(byTarget.get('#top')?.resolved).toBeUndefined()
+
+			const warnings = bundle.validation.concepts.get('a')!.warnings
+			expect(warnings.some((warning) => /broken/i.test(warning))).toBe(false)
+		} finally {
+			rmSync(dir, { recursive: true, force: true })
+		}
+	})
+
+	test('keeps the bundle index scoped to the root index.md', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'okf-nested-index-'))
+		try {
+			writeFileSync(join(dir, 'index.md'), '---\nokf_version: "0.2"\n---\n- [A](a.md)\n')
+			writeFileSync(join(dir, 'a.md'), '---\ntype: Concept\n---\n')
+			mkdirSync(join(dir, 'sub'))
+			writeFileSync(join(dir, 'sub', 'index.md'), '---\ntype: Index\n---\n- [B](../a.md)\n')
+			writeFileSync(join(dir, 'sub', 'log.md'), '# log\n')
+
+			const bundle = await parseBundle(dir)
+
+			expect(bundle.okfVersion).toBe('0.2')
+			expect(bundle.index).toEqual([{ title: 'A', target: 'a.md' }])
+			expect(bundle.concepts.has('sub/index')).toBe(false)
+			expect(bundle.concepts.has('sub/log')).toBe(false)
+		} finally {
+			rmSync(dir, { recursive: true, force: true })
+		}
 	})
 })
