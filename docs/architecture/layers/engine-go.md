@@ -39,7 +39,7 @@ engine/
 │   ├── fs.go            # FileSystem interface + OS adapter
 │   ├── walk.go          # deterministic tree walk, symlink guard
 │   ├── frontmatter.go   # yaml.v3 decoding + normalization
-│   ├── links.go         # goldmark AST link extraction and resolution
+│   ├── links.go         # source-preserving Markdown link scanner and resolution
 │   ├── parse.go         # per-file and bundle assembly
 │   ├── validate.go      # conformance validation
 │   └── cache.go         # optional per-file parse cache
@@ -117,7 +117,7 @@ Design rules:
 1. **Walk** the bundle root deterministically.
 2. **Read** files with bounded concurrency.
 3. **Extract frontmatter** with `yaml.v3`.
-4. **Extract links** from the Markdown AST with goldmark.
+4. **Extract links** with the source-preserving Markdown scanner.
 5. **Resolve** link targets against the final concept set.
 6. **Validate** per concept and per bundle.
 7. **Build graph** from resolved links and the `related` frontmatter array.
@@ -185,16 +185,23 @@ Normalization rules:
 
 Do not reject unknown keys or unknown types. Do not require `metadata.id`.
 
-## Link Extraction with goldmark
+## Link Extraction
 
-Extract links from the goldmark AST rather than with regular expressions:
+Links are extracted with a small source-preserving scanner rather than the goldmark AST. Goldmark
+is reserved for HTML rendering in the presentation layer. The scanner is used because the
+contract's `raw` field must preserve the exact source form (`[x](<b.md>)`, `[x](b.md "title")`,
+`[x][ref]`, `[x][]`, `[x]`), which inline AST nodes do not expose.
 
-- Walk `ast.Link` and `ast.Image` nodes.
-- Skip images.
-- Capture the raw source span when available; otherwise reconstruct a stable raw form.
-- Resolve reference and collapsed-reference links through goldmark's parser.
-- Ignore links inside code spans and fenced/indented code blocks automatically.
-- Exclude autolinks in v1 for parity with the current behavior.
+The scanner:
+
+- strips fenced code blocks and inline code spans,
+- collects reference definitions and resolves full, collapsed and shortcut references,
+- handles inline, titled and angle-bracket destinations,
+- skips image embeds,
+- excludes autolinks in v1,
+- returns source slices in document order.
+
+This behavior is pinned by the `anchors`, `reference-links` and `code-links` golden cases.
 
 Resolution:
 

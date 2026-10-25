@@ -114,6 +114,9 @@ Rollback: delete the Go module; no production behavior changes.
 
 ## Phase 3 — Port the engine
 
+**Status:** complete (parser, graph, BM25 search, navigation, operations, cache, conformance and
+benchmarks).
+
 **Goal:** byte-equivalent domain output.
 
 Order:
