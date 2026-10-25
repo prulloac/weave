@@ -14,7 +14,7 @@ export async function path(
 	fromInput: string,
 	toInput: string,
 ): Promise<PathResult | null> {
-	const bundle = await parseBundle(bundlePath)
+	const bundle = await parseBundle(bundlePath, { cache: true })
 	const from = normalizeTarget(bundle.concepts, bundlePath, fromInput)
 	const to = normalizeTarget(bundle.concepts, bundlePath, toInput)
 	if (!from || !to) return null

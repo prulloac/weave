@@ -16,6 +16,7 @@
 		"cli": "bun cli/index.ts",
 		"test": "bun test tests/unit",
 		"test:e2e": "playwright test",
+		"bench": "bun test ./tests/bench",
 		"lint": "biome check .",
 		"lint:md": "markdownlint-cli2",
 		"typecheck": "tsc --noEmit"

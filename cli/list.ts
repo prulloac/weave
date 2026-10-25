@@ -17,7 +17,7 @@ export interface ListResult {
 }
 
 export async function list(bundlePath: string, filters: ListFilters): Promise<ListResult[]> {
-	const bundle = await parseBundle(bundlePath)
+	const bundle = await parseBundle(bundlePath, { cache: true })
 
 	const matches = [...bundle.concepts.values()]
 		.filter((concept) => {

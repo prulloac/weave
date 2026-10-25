@@ -41,7 +41,7 @@ function toShowResult(concept: OkfConcept, backlinkIds: string[]): ShowResult {
 }
 
 export async function show(bundlePath: string, targetInput: string): Promise<ShowResult | null> {
-	const bundle = await parseBundle(bundlePath)
+	const bundle = await parseBundle(bundlePath, { cache: true })
 	const id = normalizeTarget(bundle.concepts, bundlePath, targetInput)
 	if (!id) return null
 
@@ -58,7 +58,7 @@ export async function backlinks(
 	bundlePath: string,
 	targetInput: string,
 ): Promise<BacklinksResult | null> {
-	const bundle = await parseBundle(bundlePath)
+	const bundle = await parseBundle(bundlePath, { cache: true })
 	const id = normalizeTarget(bundle.concepts, bundlePath, targetInput)
 	if (!id || !bundle.concepts.has(id)) return null
 

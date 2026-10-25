@@ -22,6 +22,6 @@ export function normalizeTarget(
 }
 
 export async function resolveTarget(bundlePath: string, input: string): Promise<string | null> {
-	const bundle = await parseBundle(bundlePath)
+	const bundle = await parseBundle(bundlePath, { cache: true })
 	return normalizeTarget(bundle.concepts, bundlePath, input)
 }

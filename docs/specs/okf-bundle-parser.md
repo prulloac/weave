@@ -32,6 +32,7 @@ Conformance follows the permissive OKF v0.2 rules: a bundle is valid if every no
 - `src/lib/okf/frontmatter.ts` — YAML frontmatter block extraction and parsing.
 - `src/lib/okf/links.ts` — Markdown link extraction (both `(/abs)` and `(rel.md)` forms).
 - `src/lib/okf/parser.ts` — bundle walker + concept assembly.
+- `src/lib/okf/cache.ts` — optional per-file parse cache keyed by path, mtime and size.
 - `src/lib/okf/validate.ts` — conformance validation.
 
 ## 3. Component Contracts
@@ -115,7 +116,16 @@ export interface ConceptValidation {
 ### 3.3 Parser API
 
 ```typescript
-export function parseBundle(root: string): Promise<ParsedBundle>;
+export interface ParseOptions {
+  /** Reuse per-file parse results keyed by path, mtime and size. */
+  cache?: boolean;
+  /** Override the cache directory; defaults to WEAVE_CACHE_DIR or the OS temp dir. */
+  cacheDir?: string;
+  /** Telemetry hook invoked for every file served from cache. */
+  onCacheHit?: (file: string) => void;
+}
+
+export function parseBundle(root: string, options?: ParseOptions): Promise<ParsedBundle>;
 export function parseConcept(filePath: string, bundleRoot: string): Promise<OkfConcept>;
 export function extractFrontmatter(raw: string): { data: Record<string, unknown>; body: string } | null;
 export function extractLinks(body: string): OkfLink[];
@@ -123,7 +133,7 @@ export function extractLinks(body: string): OkfLink[];
 
 ## 4. Data Flow & Dependencies
 
-- Walk bundle tree with `Bun.glob('**/*.md')`.
+- Walk bundle tree recursively with `fs/promises.readdir`, reading up to 32 files concurrently, following at most one level of directory symlinks with a realpath cycle guard.
 - Skip reserved filenames `index.md` and `log.md` from concept mapping (index.md is parsed into `index`; log.md is ignored by the parser).
 - Per file: split frontmatter (`---` delimited), parse YAML subset, validate `type`, extract links from body.
 - Resolve links to bundle-relative paths; mark `resolvesInBundle` against the concept map.
@@ -132,7 +142,7 @@ export function extractLinks(body: string): OkfLink[];
 
 ## 5. Performance, Edge Cases & Errors
 
-- **Performance:** parse + validate a 10k-file bundle in under 100 ms on a local SSD; streaming reads, no full-tree string buffering. Meets vision's "milliseconds" graph generation budget.
+- **Performance:** `bun run bench` parses a synthetic 10k-file bundle in about 0.04 ms/file (~410 ms total) on WSL ext4 with bounded-concurrency reads (32 in flight). The committed smoke budget is 5 s, chosen to catch order-of-magnitude regressions rather than to assert the vision's "milliseconds" claim; re-measure before tightening. CLI commands opt into the on-disk parse cache (`ParseOptions.cache`), while mounts parse once at startup.
 - **Missing/broken frontmatter:** file excluded from `concepts`, recorded with `hasFrontmatter: false`; never throws.
 - **Missing `type`:** concept included, flagged `hasType: false`; consumers decide routing.
 - **Broken links:** kept as edges with `resolvesInBundle: false`; graph consumers MUST tolerate.

@@ -23,7 +23,7 @@ export async function find(
 ): Promise<FindResult[]> {
 	if (!query.trim()) return []
 
-	const bundle = await parseBundle(bundlePath)
+	const bundle = await parseBundle(bundlePath, { cache: true })
 	const graph = buildGraph(bundle)
 	const index = buildSearchIndex(bundle, graph)
 

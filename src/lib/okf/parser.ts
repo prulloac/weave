@@ -1,6 +1,7 @@
 import { promises as fsp } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 
+import { createParseCache, type ParseCache } from './cache'
 import { extractFrontmatter } from './frontmatter'
 import { extractLinks, linkText, resolveLink } from './links'
 import type {
@@ -13,6 +14,17 @@ import type {
 import { invalidConcept, validateConcept } from './validate'
 
 const RESERVED = new Set(['index.md', 'log.md'])
+const MAX_SYMLINK_DEPTH = 1
+const READ_CONCURRENCY = 32
+
+export interface ParseOptions {
+	/** Reuse per-file parse results keyed by path, mtime and size. */
+	cache?: boolean
+	/** Override the cache directory; defaults to WEAVE_CACHE_DIR or the OS temp dir. */
+	cacheDir?: string
+	/** Test/telemetry hook invoked for every file served from cache. */
+	onCacheHit?: (file: string) => void
+}
 
 async function readText(filePath: string): Promise<string> {
 	const buffer = globalThis.Bun?.file
@@ -20,8 +32,6 @@ async function readText(filePath: string): Promise<string> {
 		: await fsp.readFile(filePath)
 	return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
 }
-
-const MAX_SYMLINK_DEPTH = 1
 
 async function walkMarkdown(
 	root: string,
@@ -62,6 +72,25 @@ async function walkMarkdown(
 	return files
 }
 
+async function mapLimit<T, R>(
+	items: T[],
+	limit: number,
+	fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length)
+	let cursor = 0
+
+	const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+		while (cursor < items.length) {
+			const index = cursor
+			cursor += 1
+			results[index] = await fn(items[index] as T)
+		}
+	})
+	await Promise.all(workers)
+	return results
+}
+
 function toPosix(p: string): string {
 	return p.replaceAll('\\', '/')
 }
@@ -85,8 +114,14 @@ function optionalStatus(value: unknown): 'draft' | 'stable' | 'deprecated' | und
 	return undefined
 }
 
-function parseConceptFromRaw(raw: string, filePath: string, bundleRoot: string): OkfConcept {
-	const extracted = extractFrontmatter(raw)
+type ExtractedFrontmatter = NonNullable<ReturnType<typeof extractFrontmatter>>
+
+function parseConceptFromRaw(
+	raw: string,
+	filePath: string,
+	bundleRoot: string,
+	extracted: ExtractedFrontmatter | null = extractFrontmatter(raw),
+): OkfConcept {
 	const frontmatter = extracted?.data ?? {}
 	const body = extracted?.body ?? raw
 
@@ -145,8 +180,7 @@ function parseIndexBody(body: string): IndexEntry[] {
 	}))
 }
 
-async function readIndex(filePath: string): Promise<ParsedIndex> {
-	const raw = await readText(filePath)
+function parseIndexDocument(raw: string): ParsedIndex {
 	const extracted = extractFrontmatter(raw)
 	const data = extracted?.data ?? {}
 	const body = extracted?.body ?? raw
@@ -154,7 +188,105 @@ async function readIndex(filePath: string): Promise<ParsedIndex> {
 	return { index: parseIndexBody(body), version: data.okf_version ?? data.okfVersion }
 }
 
-export async function parseBundle(root: string): Promise<ParsedBundle> {
+type FileOutcome =
+	| { kind: 'root-index'; index: IndexEntry[]; version?: unknown }
+	| { kind: 'index-error'; warning: string }
+	| { kind: 'concept'; concept: OkfConcept }
+	| { kind: 'invalid'; id: string; validation: ConceptValidation }
+	| { kind: 'skip' }
+
+async function readCachedOutcome(
+	file: string,
+	cache: ParseCache | undefined,
+	onCacheHit?: (file: string) => void,
+): Promise<FileOutcome | undefined> {
+	if (!cache) return undefined
+	try {
+		const info = await fsp.stat(file)
+		const cached = await cache.get<FileOutcome>(file, info)
+		if (cached) {
+			onCacheHit?.(file)
+			return cached
+		}
+	} catch {
+		return undefined
+	}
+	return undefined
+}
+
+async function writeCachedOutcome(
+	file: string,
+	cache: ParseCache | undefined,
+	outcome: FileOutcome,
+): Promise<void> {
+	if (!cache) return
+	try {
+		const info = await fsp.stat(file)
+		await cache.set(file, info, outcome)
+	} catch {
+		// Caching is best-effort.
+	}
+}
+
+async function processFile(
+	file: string,
+	absRoot: string,
+	cache: ParseCache | undefined,
+	onCacheHit?: (file: string) => void,
+): Promise<FileOutcome> {
+	const rel = toPosix(relative(absRoot, file))
+	const base = basename(rel)
+
+	if (base === 'index.md') {
+		// Only the bundle-root index.md declares the bundle index and version.
+		// Nested index.md files are reserved directory listings, not concepts.
+		if (rel !== 'index.md') return { kind: 'skip' }
+
+		const cached = await readCachedOutcome(file, cache, onCacheHit)
+		if (cached) return cached
+
+		try {
+			const parsed = parseIndexDocument(await readText(file))
+			const outcome: FileOutcome = {
+				kind: 'root-index',
+				index: parsed.index,
+				version: parsed.version,
+			}
+			await writeCachedOutcome(file, cache, outcome)
+			return outcome
+		} catch (error) {
+			return {
+				kind: 'index-error',
+				warning: `parse error: index.md (${(error as Error).message})`,
+			}
+		}
+	}
+
+	if (RESERVED.has(base)) return { kind: 'skip' }
+
+	const id = conceptId(rel)
+	const cached = await readCachedOutcome(file, cache, onCacheHit)
+	if (cached) return cached
+
+	try {
+		const raw = await readText(file)
+		const extracted = extractFrontmatter(raw)
+		const outcome: FileOutcome =
+			extracted === null
+				? { kind: 'invalid', id, validation: invalidConcept(['missing frontmatter']) }
+				: { kind: 'concept', concept: parseConceptFromRaw(raw, file, absRoot, extracted) }
+		await writeCachedOutcome(file, cache, outcome)
+		return outcome
+	} catch (error) {
+		return {
+			kind: 'invalid',
+			id,
+			validation: invalidConcept([`parse error: ${(error as Error).message}`]),
+		}
+	}
+}
+
+export async function parseBundle(root: string, options: ParseOptions = {}): Promise<ParsedBundle> {
 	const absRoot = resolve(root)
 	const visited = new Set<string>()
 	try {
@@ -163,6 +295,11 @@ export async function parseBundle(root: string): Promise<ParsedBundle> {
 		// The root may not exist; the walk below reports the real error.
 	}
 	const files = (await walkMarkdown(absRoot, visited)).sort()
+	const cache = options.cache ? await createParseCache(absRoot, options.cacheDir) : undefined
+
+	const outcomes = await mapLimit(files, READ_CONCURRENCY, (file) =>
+		processFile(file, absRoot, cache, options.onCacheHit),
+	)
 
 	const concepts = new Map<string, OkfConcept>()
 	const validation = new Map<string, ConceptValidation>()
@@ -170,47 +307,37 @@ export async function parseBundle(root: string): Promise<ParsedBundle> {
 	let index: IndexEntry[] | undefined
 	let okfVersion: '0.2' | undefined
 
-	for (const file of files) {
-		const rel = toPosix(relative(absRoot, file))
-		const base = basename(rel)
-
-		if (base === 'index.md') {
-			// Only the bundle-root index.md declares the bundle index and version.
-			// Nested index.md files are reserved directory listings, not concepts.
-			if (rel !== 'index.md') continue
-			try {
-				const parsed = await readIndex(file)
-				index = parsed.index
-				const declared = String(parsed.version)
+	for (const outcome of outcomes) {
+		switch (outcome.kind) {
+			case 'root-index': {
+				index = outcome.index
+				const declared = String(outcome.version)
 				if (declared === '0.2') {
 					okfVersion = '0.2'
-				} else if (parsed.version !== undefined) {
+				} else if (outcome.version !== undefined) {
 					bundleWarnings.push(`unsupported okf_version: ${declared}`)
 				}
-			} catch (error) {
-				bundleWarnings.push(`parse error: index.md (${(error as Error).message})`)
+				break
 			}
-			continue
-		}
-
-		if (RESERVED.has(base)) continue
-
-		const id = conceptId(rel)
-		try {
-			const raw = await readText(file)
-			if (extractFrontmatter(raw) === null) {
-				validation.set(id, invalidConcept(['missing frontmatter']))
-				continue
-			}
-			concepts.set(id, parseConceptFromRaw(raw, file, absRoot))
-		} catch (error) {
-			validation.set(id, invalidConcept([`parse error: ${(error as Error).message}`]))
+			case 'index-error':
+				bundleWarnings.push(outcome.warning)
+				break
+			case 'concept':
+				concepts.set(outcome.concept.id, outcome.concept)
+				break
+			case 'invalid':
+				validation.set(outcome.id, outcome.validation)
+				break
+			case 'skip':
+				break
 		}
 	}
 
 	for (const concept of concepts.values()) {
 		const warnings: string[] = []
 		for (const link of concept.links) {
+			// Cached concepts may carry a previous run's resolution; rebuild it.
+			link.resolvesInBundle = false
 			if (link.resolved === undefined) continue
 			if (concepts.has(conceptId(link.resolved))) {
 				link.resolvesInBundle = true
@@ -232,6 +359,8 @@ export async function parseBundle(root: string): Promise<ParsedBundle> {
 		concepts: validation,
 		warnings: bundleWarnings,
 	}
+
+	await cache?.save()
 
 	return { root: absRoot, okfVersion, concepts, index, validation: result }
 }
