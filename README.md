@@ -69,13 +69,12 @@ processes.
 
 Weave consumes **OKF bundles**: portable collections of Markdown (`.md`) and YAML flat
 files that follow the [Open Knowledge Format v0.2](docs/knowledge/concepts/okf-bundle.md).
-Concepts are expressed as documents with YAML frontmatter (including a valid kebab-case
-`metadata.id`), and graph edges come from bundle-relative Markdown links:
+Concepts are expressed as documents with YAML frontmatter; a concept's id is its file path
+without the `.md` suffix. Graph edges come from bundle-relative Markdown links:
 
 ```md
 ---
 type: Concept
-id: users
 title: "User Table"
 ---
 See [User Table](/tables/users.md).

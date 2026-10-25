@@ -30,7 +30,7 @@ A portable bundle of OKF-compliant Markdown and YAML flat files. Weave's primary
 | Compliance | Documents follow Open Knowledge Format v0.2 |
 | Graph edges | Expressed via bundle-relative Markdown links (e.g. `[User Table](/tables/users.md)`) |
 | Portability | Static, versionable, transferable without a server |
-| Requirement | YAML frontmatter with valid kebab-case `metadata.id` |
+| Requirement | YAML frontmatter with a non-empty `type`; concept id is the file path minus `.md` |
 
 ## Related Concepts
 
