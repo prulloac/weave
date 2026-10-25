@@ -336,7 +336,7 @@ export async function main(
 }
 
 function requireDirectory(path: string): void {
-	let info
+	let info: ReturnType<typeof statSync>
 	try {
 		info = statSync(path)
 	} catch (error) {
