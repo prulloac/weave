@@ -32,6 +32,27 @@ This report records verified defects in the parser, documentation inconsistencie
 phased plan to fix them. Findings marked **Verified** were reproduced against the current
 code, not inferred from the specification.
 
+## Remediation Status
+
+All phases were implemented on `fix/okf-parsing-hardening` on 2026-10-25.
+
+| Phase | Findings | State |
+| --- | --- | --- |
+| 1 — Correctness hotfixes | F1, F2, F4, F12 | Fixed with regression tests |
+| 2 — Parser robustness | F3, F5, F6 | Fixed with regression tests |
+| 3 — Documentation alignment | F7, F8, F11 | Fixed |
+| 4 — Performance & ingestion | F9, F10 | Benchmark added; disk cache added; live reload remains out of scope |
+| 5 — Feature work | Lens mount integration | Implemented and green (14 E2E scenarios) |
+
+Verification at hand-off: `bun test tests/unit` → 115 pass; `bun run bench` → ~0.04 ms/file
+(~410 ms for 10k files); full Playwright suite → 80 pass; `tsc --noEmit` clean.
+
+The decisions listed at the end of this report were resolved as follows: link anchors are
+dropped from the resolved path (the raw target is preserved); nested `index.md` files are
+ignored as concepts and do not alter bundle metadata; live reload is out of scope and
+`ParseOptions.cache` speeds up repeated CLI reads; the hand-rolled YAML parser was retained
+and made recursive; the 100 ms target was replaced by a measured 5 s regression budget.
+
 ## Scope & Method
 
 - **Commit:** `3b88787` (`docs(spec): define server-rendered lens index in lens shell`)
