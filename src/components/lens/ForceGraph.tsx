@@ -212,24 +212,35 @@ export default function ForceGraph({ graph, width, height }: ForceGraphProps) {
 		const canvas = canvasRef.current
 		if (!canvas) return
 
-		function handleMouseMove(e: MouseEvent) {
+		function nodeAt(e: MouseEvent) {
 			const rect = canvas?.getBoundingClientRect()
-			if (!rect) return
+			if (!rect) return undefined
 			const mx = e.clientX - rect.left
 			const my = e.clientY - rect.top
-			for (const node of nodesRef.current) {
-				const dx = node.x - mx
-				const dy = node.y - my
-				if (Math.sqrt(dx * dx + dy * dy) < 12) {
-					setHoveredId(node.id)
-					return
-				}
-			}
-			setHoveredId(null)
+			return nodesRef.current.find(
+				(node) => Math.sqrt((node.x - mx) ** 2 + (node.y - my) ** 2) < 12,
+			)
+		}
+
+		function handleMouseMove(e: MouseEvent) {
+			setHoveredId(nodeAt(e)?.id ?? null)
+		}
+
+		function handleClick(e: MouseEvent) {
+			const node = nodeAt(e)
+			if (!node) return
+			window.location.href = `/concept/${node.id
+				.split('/')
+				.map((segment) => encodeURIComponent(segment))
+				.join('/')}`
 		}
 
 		canvas.addEventListener('mousemove', handleMouseMove)
-		return () => canvas.removeEventListener('mousemove', handleMouseMove)
+		canvas.addEventListener('click', handleClick)
+		return () => {
+			canvas.removeEventListener('mousemove', handleMouseMove)
+			canvas.removeEventListener('click', handleClick)
+		}
 	}, [])
 
 	const handleReheat = () => {

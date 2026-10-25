@@ -1,10 +1,22 @@
 import { existsSync } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { mkdir, rename, stat, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-import { renderExplorer } from '../src/lib/explorer-render'
+import { renderConceptPage, renderNotFound } from '../src/lib/concept-render'
+import { buildGraph, serializeGraph } from '../src/lib/graph/build'
+import { renderLensShell } from '../src/lib/lens-shell'
 import { parseBundle } from '../src/lib/okf/parser'
+import type { ParsedBundle } from '../src/lib/okf/types'
+import { renderExplorerPage, WEAVE_CSS } from '../src/lib/site-render'
 import { createArtifactLayer, removeArtifacts } from './artifacts'
-import { DEFAULT_PORT, type MountServer, SHUTDOWN_PATH, startServer } from './server'
+import {
+	DEFAULT_PORT,
+	type MountServer,
+	type ServerHandler,
+	SHUTDOWN_PATH,
+	startServer,
+} from './server'
 import { addMount, readRegistry, removeMount, writeRegistry } from './status'
 
 export class CliError extends Error {
@@ -81,7 +93,13 @@ export async function mount(options: MountOptions): Promise<MountResult> {
 		return { port: 0, artifactDir, conceptCount, buildMs, url: '' }
 	}
 
-	const server = await startServer(() => renderExplorer(bundle), requestedPort)
+	const graph = buildGraph(bundle)
+	const serialized = serializeGraph(graph)
+	const assets = await buildSiteAssets(artifactDir)
+	const server = await startServer(
+		createRequestHandler(bundle, graph, serialized, assets),
+		requestedPort,
+	)
 	await addMount({
 		port: server.port,
 		target,
@@ -152,6 +170,98 @@ function registerSignalCleanup(server: MountServer, artifactDir: string, port: n
 	process.on('SIGINT', handler)
 	process.on('SIGTERM', handler)
 	void server.closed.then(() => cleanup(artifactDir, port)).catch(() => undefined)
+}
+
+interface SiteAssets {
+	cssPath: string
+	lensPath?: string
+	buildError?: string
+}
+
+async function buildSiteAssets(artifactDir: string): Promise<SiteAssets> {
+	const assetsDir = join(artifactDir, 'assets')
+	await mkdir(assetsDir, { recursive: true })
+
+	const cssPath = join(assetsDir, 'weave.css')
+	await writeFile(cssPath, WEAVE_CSS)
+
+	const entrypoint = fileURLToPath(new URL('../src/entrypoints/lens-client.tsx', import.meta.url))
+
+	try {
+		const result = await Bun.build({
+			entrypoints: [entrypoint],
+			outdir: assetsDir,
+			target: 'browser',
+			format: 'esm',
+			minify: true,
+		})
+		if (!result.success) {
+			throw new Error(result.logs.map((log) => log.message).join('; ') || 'Bun.build failed')
+		}
+
+		const output = result.outputs.find((candidate) => candidate.path.endsWith('.js'))
+		if (!output?.path) throw new Error('Bun.build produced no JavaScript output')
+
+		const lensPath = join(assetsDir, 'lens.js')
+		await rename(output.path, lensPath)
+		return { cssPath, lensPath }
+	} catch (error) {
+		// The mount still works; /lens degrades to the server-rendered index.
+		return { cssPath, buildError: (error as Error).message }
+	}
+}
+
+function createRequestHandler(
+	bundle: ParsedBundle,
+	graph: ReturnType<typeof buildGraph>,
+	serialized: ReturnType<typeof serializeGraph>,
+	assets: SiteAssets,
+): ServerHandler {
+	return async (request: Request): Promise<Response> => {
+		const pathname = new URL(request.url).pathname
+
+		if (pathname === '/' || pathname === '') return html(renderExplorerPage(bundle))
+		if (pathname === '/lens') {
+			return html(
+				renderLensShell(serialized, {
+					script: assets.lensPath !== undefined,
+					warning: assets.buildError,
+				}),
+			)
+		}
+		if (pathname === '/assets/weave.css') {
+			return serveFile(assets.cssPath, 'text/css; charset=utf-8')
+		}
+		if (pathname === '/assets/lens.js' && assets.lensPath) {
+			return serveFile(assets.lensPath, 'text/javascript; charset=utf-8')
+		}
+		if (pathname.startsWith('/concept/')) {
+			const id = decodeId(pathname.slice('/concept/'.length))
+			if (bundle.concepts.has(id)) return html(renderConceptPage(bundle, graph, id))
+			return html(renderNotFound(bundle, id), 404)
+		}
+
+		return html(renderNotFound(bundle, pathname), 404)
+	}
+}
+
+function decodeId(value: string): string {
+	try {
+		return decodeURIComponent(value)
+	} catch {
+		return value
+	}
+}
+
+function html(body: string, status = 200): Response {
+	return new Response(body, {
+		status,
+		headers: { 'content-type': 'text/html; charset=utf-8' },
+	})
+}
+
+function serveFile(filePath: string, contentType: string): Response {
+	return new Response(Bun.file(filePath), { headers: { 'content-type': contentType } })
 }
 
 function sleep(ms: number): Promise<void> {
