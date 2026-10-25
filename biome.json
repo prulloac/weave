@@ -7,7 +7,9 @@
 			"!**/dist",
 			"!**/.astro",
 			"!**/test-results",
-			"!**/playwright-report"
+			"!**/playwright-report",
+			"!**/contract/v1/golden/expected",
+			"!**/contract/v1/types.ts"
 		]
 	},
 	"formatter": {

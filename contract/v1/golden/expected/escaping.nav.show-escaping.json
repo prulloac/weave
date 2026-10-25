@@ -1,0 +1,16 @@
+{
+  "id": "escaping",
+  "path": "escaping.md",
+  "type": "Concept",
+  "title": "<script>alert(1)</script>",
+  "description": "a \"quoted\" & <tag>",
+  "body": "\n# Escaping\n\n<script>alert('x')</script>\n\n[link](other.md)\n",
+  "links": [
+    {
+      "raw": "[link](other.md)",
+      "target": "other.md",
+      "resolves_in_bundle": true
+    }
+  ],
+  "backlinks": []
+}

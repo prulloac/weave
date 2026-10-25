@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {
+      "id": "a",
+      "title": "Root A",
+      "type": "Concept",
+      "in_degree": 0,
+      "out_degree": 0
+    },
+    {
+      "id": "sub/b",
+      "title": "Nested B",
+      "type": "Concept",
+      "in_degree": 0,
+      "out_degree": 0
+    }
+  ],
+  "edges": []
+}

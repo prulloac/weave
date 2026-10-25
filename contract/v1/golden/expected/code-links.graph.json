@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    {
+      "id": "a",
+      "path": "a.md",
+      "type": "Concept",
+      "title": "Code links",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "id": "b",
+      "path": "b.md",
+      "type": "Concept",
+      "title": "Target",
+      "in_degree": 1,
+      "out_degree": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "b",
+      "source": "link",
+      "raw": "[real](b.md)"
+    }
+  ],
+  "dangling": {}
+}

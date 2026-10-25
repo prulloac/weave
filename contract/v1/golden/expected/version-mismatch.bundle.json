@@ -1,0 +1,41 @@
+{
+  "root": "<root>",
+  "concepts": [
+    {
+      "id": "alpha",
+      "path": "alpha.md",
+      "frontmatter": {
+        "type": "Concept",
+        "title": "Alpha"
+      },
+      "type": "Concept",
+      "title": "Alpha",
+      "body": "\n# Alpha\n\nA best-effort parsed concept.\n",
+      "links": []
+    }
+  ],
+  "index": [
+    {
+      "title": "Alpha",
+      "target": "alpha.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "alpha",
+        "has_frontmatter": true,
+        "has_type": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": [
+      "unsupported okf_version: 1.0"
+    ]
+  }
+}

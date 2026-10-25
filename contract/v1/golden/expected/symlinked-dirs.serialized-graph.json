@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    {
+      "id": "linked/inside",
+      "title": "Inside",
+      "type": "Concept",
+      "in_degree": 0,
+      "out_degree": 0
+    }
+  ],
+  "edges": []
+}

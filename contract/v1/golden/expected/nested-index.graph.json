@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    {
+      "id": "a",
+      "path": "a.md",
+      "type": "Concept",
+      "title": "Root A",
+      "in_degree": 0,
+      "out_degree": 0
+    },
+    {
+      "id": "sub/b",
+      "path": "sub/b.md",
+      "type": "Concept",
+      "title": "Nested B",
+      "in_degree": 0,
+      "out_degree": 0
+    }
+  ],
+  "edges": [],
+  "dangling": {}
+}

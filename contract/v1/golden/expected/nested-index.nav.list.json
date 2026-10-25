@@ -1,0 +1,14 @@
+[
+  {
+    "id": "a",
+    "title": "Root A",
+    "path": "a.md",
+    "type": "Concept"
+  },
+  {
+    "id": "sub/b",
+    "title": "Nested B",
+    "path": "sub/b.md",
+    "type": "Concept"
+  }
+]

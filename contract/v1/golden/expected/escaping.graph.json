@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    {
+      "id": "escaping",
+      "path": "escaping.md",
+      "type": "Concept",
+      "title": "<script>alert(1)</script>",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "id": "other",
+      "path": "other.md",
+      "type": "Concept",
+      "title": "Other",
+      "in_degree": 1,
+      "out_degree": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "escaping",
+      "to": "other",
+      "source": "link",
+      "raw": "[link](other.md)"
+    }
+  ],
+  "dangling": {}
+}

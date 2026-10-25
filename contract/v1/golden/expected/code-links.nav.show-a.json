@@ -1,0 +1,15 @@
+{
+  "id": "a",
+  "path": "a.md",
+  "type": "Concept",
+  "title": "Code links",
+  "body": "\n# Code links\n\n`[inline](b.md)`\n\n```md\n[fenced](b.md)\n```\n\n[real](b.md)\n",
+  "links": [
+    {
+      "raw": "[real](b.md)",
+      "target": "b.md",
+      "resolves_in_bundle": true
+    }
+  ],
+  "backlinks": []
+}

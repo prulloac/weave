@@ -1,0 +1,35 @@
+{
+  "id": "a",
+  "path": "a.md",
+  "type": "Concept",
+  "title": "Reference links",
+  "body": "\n# Reference links\n\n[Full][ref] [Collapsed][] [Shortcut] [Titled](b.md \"Title\") [Angle](<b.md>)\n\n[ref]: b.md\n[collapsed]: b.md\n[shortcut]: b.md\n",
+  "links": [
+    {
+      "raw": "[Full][ref]",
+      "target": "b.md",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[Collapsed][]",
+      "target": "b.md",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[Shortcut]",
+      "target": "b.md",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[Titled](b.md \"Title\")",
+      "target": "b.md",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[Angle](<b.md>)",
+      "target": "b.md",
+      "resolves_in_bundle": true
+    }
+  ],
+  "backlinks": []
+}

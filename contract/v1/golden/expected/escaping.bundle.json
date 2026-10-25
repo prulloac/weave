@@ -1,0 +1,74 @@
+{
+  "root": "<root>",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "escaping",
+      "path": "escaping.md",
+      "frontmatter": {
+        "type": "Concept",
+        "title": "<script>alert(1)</script>",
+        "description": "a \"quoted\" & <tag>"
+      },
+      "type": "Concept",
+      "title": "<script>alert(1)</script>",
+      "description": "a \"quoted\" & <tag>",
+      "body": "\n# Escaping\n\n<script>alert('x')</script>\n\n[link](other.md)\n",
+      "links": [
+        {
+          "raw": "[link](other.md)",
+          "target": "other.md",
+          "resolved": "other.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "path": "other.md",
+      "frontmatter": {
+        "type": "Concept",
+        "title": "Other"
+      },
+      "type": "Concept",
+      "title": "Other",
+      "body": "\n# Other\n\n<img src=x onerror=alert(1)>\n",
+      "links": []
+    }
+  ],
+  "index": [
+    {
+      "title": "Escaping",
+      "target": "escaping.md"
+    },
+    {
+      "title": "Other",
+      "target": "other.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "escaping",
+        "has_frontmatter": true,
+        "has_type": true,
+        "warnings": [
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      },
+      {
+        "id": "other",
+        "has_frontmatter": true,
+        "has_type": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

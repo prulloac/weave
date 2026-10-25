@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    {
+      "id": "nested/deeper/leaf",
+      "path": "nested/deeper/leaf.md",
+      "type": "Concept",
+      "title": "Leaf",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "id": "root",
+      "path": "root.md",
+      "type": "Concept",
+      "title": "Root",
+      "in_degree": 1,
+      "out_degree": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "nested/deeper/leaf",
+      "to": "root",
+      "source": "link",
+      "raw": "[Root](../../root.md)"
+    }
+  ],
+  "dangling": {}
+}

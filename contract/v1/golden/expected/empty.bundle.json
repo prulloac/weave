@@ -1,0 +1,11 @@
+{
+  "root": "<root>",
+  "concepts": [],
+  "validation": {
+    "valid": true,
+    "concepts": [],
+    "warnings": [
+      "empty bundle: no markdown files found"
+    ]
+  }
+}

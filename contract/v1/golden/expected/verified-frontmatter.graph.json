@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {
+      "id": "verified",
+      "path": "verified.md",
+      "type": "Concept",
+      "title": "Verified",
+      "in_degree": 0,
+      "out_degree": 0
+    }
+  ],
+  "edges": [],
+  "dangling": {}
+}

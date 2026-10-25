@@ -30,7 +30,12 @@ async function readText(filePath: string): Promise<string> {
 	const buffer = globalThis.Bun?.file
 		? await (globalThis.Bun.file(filePath) as Blob).arrayBuffer()
 		: await fsp.readFile(filePath)
-	return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+	try {
+		return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
+	} catch {
+		// Keep the message stable for the contract golden corpus and future ports.
+		throw new Error('invalid UTF-8')
+	}
 }
 
 async function walkMarkdown(

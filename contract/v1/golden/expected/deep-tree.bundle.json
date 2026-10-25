@@ -1,0 +1,73 @@
+{
+  "root": "<root>",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "nested/deeper/leaf",
+      "path": "nested/deeper/leaf.md",
+      "frontmatter": {
+        "type": "Concept",
+        "title": "Leaf"
+      },
+      "type": "Concept",
+      "title": "Leaf",
+      "body": "\n# Leaf\n\n[Root](../../root.md)\n",
+      "links": [
+        {
+          "raw": "[Root](../../root.md)",
+          "target": "../../root.md",
+          "resolved": "root.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    },
+    {
+      "id": "root",
+      "path": "root.md",
+      "frontmatter": {
+        "type": "Concept",
+        "title": "Root"
+      },
+      "type": "Concept",
+      "title": "Root",
+      "body": "\n# Root\n",
+      "links": []
+    }
+  ],
+  "index": [
+    {
+      "title": "Leaf",
+      "target": "nested/deeper/leaf.md"
+    },
+    {
+      "title": "Root",
+      "target": "root.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "nested/deeper/leaf",
+        "has_frontmatter": true,
+        "has_type": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      },
+      {
+        "id": "root",
+        "has_frontmatter": true,
+        "has_type": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "a",
+  "path": "a.md",
+  "type": "Concept",
+  "title": "A",
+  "body": "\n# A\n\n[section](b.md#section) [query](b.md?view=1) [local](#top) [external](https://example.com/a#frag)\n",
+  "links": [
+    {
+      "raw": "[section](b.md#section)",
+      "target": "b.md#section",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[query](b.md?view=1)",
+      "target": "b.md?view=1",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[local](#top)",
+      "target": "#top",
+      "resolves_in_bundle": false
+    },
+    {
+      "raw": "[external](https://example.com/a#frag)",
+      "target": "https://example.com/a#frag",
+      "resolves_in_bundle": false
+    }
+  ],
+  "backlinks": [
+    "b"
+  ]
+}

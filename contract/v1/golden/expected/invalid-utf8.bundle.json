@@ -1,0 +1,18 @@
+{
+  "root": "<root>",
+  "concepts": [],
+  "validation": {
+    "valid": false,
+    "concepts": [
+      {
+        "id": "bad",
+        "has_frontmatter": false,
+        "has_type": false,
+        "warnings": [
+          "parse error: invalid UTF-8"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "nodes": [
+    {
+      "id": "concepts/missing-type",
+      "path": "concepts/missing-type.md",
+      "type": "",
+      "title": "Concept without a type",
+      "in_degree": 0,
+      "out_degree": 0
+    },
+    {
+      "id": "concepts/node-graph-engine",
+      "path": "concepts/node-graph-engine.md",
+      "type": "Concept",
+      "title": "Node Graph Engine",
+      "status": "draft",
+      "tags": [
+        "graph"
+      ],
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "id": "concepts/okf-bundle",
+      "path": "concepts/okf-bundle.md",
+      "type": "Concept",
+      "title": "OKF Bundle",
+      "status": "stable",
+      "tags": [
+        "format",
+        "okf"
+      ],
+      "in_degree": 2,
+      "out_degree": 2
+    },
+    {
+      "id": "concepts/search-index",
+      "path": "concepts/search-index.md",
+      "type": "Concept",
+      "title": "Search Index",
+      "status": "deprecated",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "id": "tables/users",
+      "path": "tables/users.md",
+      "type": "Table",
+      "title": "User Table",
+      "in_degree": 1,
+      "out_degree": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "concepts/node-graph-engine",
+      "to": "concepts/search-index",
+      "source": "link",
+      "raw": "[bundle edges](search-index.md)"
+    },
+    {
+      "from": "concepts/okf-bundle",
+      "to": "concepts/node-graph-engine",
+      "source": "link",
+      "raw": "[Node Graph Engine](node-graph-engine.md)"
+    },
+    {
+      "from": "concepts/okf-bundle",
+      "to": "tables/users",
+      "source": "link",
+      "raw": "[User Table](/tables/users.md)"
+    },
+    {
+      "from": "concepts/search-index",
+      "to": "concepts/okf-bundle",
+      "source": "link",
+      "raw": "[OKF Bundle](okf-bundle.md)"
+    },
+    {
+      "from": "tables/users",
+      "to": "concepts/okf-bundle",
+      "source": "link",
+      "raw": "[OKF Bundle](../concepts/okf-bundle.md)"
+    }
+  ],
+  "dangling": {
+    "concepts/node-graph-engine": [
+      {
+        "raw": "[broken links](broken-file.md)",
+        "target": "broken-file.md",
+        "resolved": "concepts/broken-file.md",
+        "resolves_in_bundle": false
+      }
+    ],
+    "concepts/okf-bundle": [
+      {
+        "raw": "[External Reference](https://example.com/okf)",
+        "target": "https://example.com/okf",
+        "resolves_in_bundle": false
+      }
+    ]
+  }
+}

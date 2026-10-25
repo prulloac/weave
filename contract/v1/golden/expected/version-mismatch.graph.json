@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {
+      "id": "alpha",
+      "path": "alpha.md",
+      "type": "Concept",
+      "title": "Alpha",
+      "in_degree": 0,
+      "out_degree": 0
+    }
+  ],
+  "edges": [],
+  "dangling": {}
+}

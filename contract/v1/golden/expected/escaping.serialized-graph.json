@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    {
+      "id": "escaping",
+      "title": "<script>alert(1)</script>",
+      "type": "Concept",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "id": "other",
+      "title": "Other",
+      "type": "Concept",
+      "in_degree": 1,
+      "out_degree": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "escaping",
+      "to": "other",
+      "source": "link"
+    }
+  ]
+}

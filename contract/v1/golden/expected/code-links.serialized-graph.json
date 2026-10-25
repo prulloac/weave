@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    {
+      "id": "a",
+      "title": "Code links",
+      "type": "Concept",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "id": "b",
+      "title": "Target",
+      "type": "Concept",
+      "in_degree": 1,
+      "out_degree": 0
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "b",
+      "source": "link"
+    }
+  ]
+}
