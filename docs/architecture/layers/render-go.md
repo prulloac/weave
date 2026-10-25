@@ -26,7 +26,8 @@ The renderer turns engine results into the mounted site:
 - `/404` — styled not-found page with suggestions.
 
 It owns Markdown-to-HTML conversion, escaping, page chrome and theme. It does not walk the
-filesystem, build graphs, or serve HTTP.
+filesystem, build graphs, or serve HTTP. This layer is presentation only; machine integration
+uses the [CLI layer](cli-go.md), not rendered HTML.
 
 ## Package Layout
 
@@ -290,6 +291,8 @@ type Theme struct {
 
 - [Contract layer](contract.md)
 - [Engine layer](engine-go.md)
+- [Operations layer](operations.md)
+- [CLI layer](cli-go.md)
 - [Lens layer](lens-ts.md)
 - [Mount layer](mount-go.md)
 - [Integration contracts](../integration/contracts.md)

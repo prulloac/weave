@@ -1,7 +1,7 @@
 ---
 type: Layer Specification
 title: "Mount Layer (Go)"
-description: "Go http.Handler, artifact layer, route dispatch, asset serving, registry and embedding recipes for the Weave mount."
+description: "Browser presentation adapter: Go http.Handler, artifact layer, route dispatch, asset serving and registry for the Weave mount."
 tags:
   - "architecture"
   - "mount"
@@ -18,15 +18,20 @@ status: draft
 
 ## Purpose
 
-The mount layer turns an engine instance and a renderer into a local knowledge site and, when
-embedded, into an `http.Handler` that a host Go application can mount anywhere.
+The mount layer is the **browser presentation adapter**. It turns an engine instance and a
+renderer into the human-facing local site: HTML pages, the lens shell and static assets.
+
+It is **not an integration API**. A host that needs machine access uses the
+[CLI layer](cli-go.md) and the [operations layer](operations.md), not these HTTP routes. The
+`http.Handler` exists so a Go host can host the UI if it wants to; it is not the contract for the
+bigger engine.
 
 It owns:
 
 - the artifact layer that exposes a target repository without writing into it,
-- one-time parse and site construction,
-- route dispatch and asset serving,
-- lifecycle hooks (`Close`, shutdown endpoint),
+- one-time parse and site construction for the presentation,
+- route dispatch and asset serving for the browser,
+- lifecycle hooks (`Close`, optional shutdown endpoint),
 - the optional mount registry used by the standalone CLI.
 
 It does not own argument parsing, process exit codes, or signal handling. Those belong to the
@@ -89,7 +94,8 @@ Rules:
 - `Handler` is safe for concurrent requests.
 - `Close` removes the artifact directory and releases resources. It is idempotent.
 - Embedded hosts may ignore the registry and shutdown endpoint entirely.
-- `BasePath` lets a host mount the site under `/weave/` without rewriting templates.
+- `BasePath` lets a host host the presentation under `/weave/` without rewriting templates.
+- This API is for hosting the UI. Machine integration goes through the CLI.
 
 ## Route Table
 
@@ -102,8 +108,9 @@ Rules:
 | GET | `/assets/weave.css` | CSS 200 | Theme stylesheet |
 | GET | `/assets/lens.js` | JS 200 | Lens bundle, if built |
 | POST | `/__weave/shutdown` | text 200 | Only when `EnableShutdown` |
-| GET | `/api/v1/*` | JSON | Optional; see [Integration contracts](../integration/contracts.md) |
 | * | anything else | HTML 404 | Styled not-found page |
+
+There is no JSON API. These routes serve a browser; machine integration uses the CLI.
 
 Path handling:
 
@@ -190,7 +197,10 @@ Rules:
 - It must not be enabled by default for embedded sites.
 - The CLI owns SIGINT/SIGTERM handling: it calls `Site.Close()` and exits cleanly.
 
-## Embedding Recipes
+## Hosting the Presentation
+
+These recipes are for showing the browser UI. They are not the machine integration path; use the
+CLI operations for that.
 
 ### In-process Go handler
 
@@ -209,7 +219,7 @@ Set `BasePath: "/weave/"` so generated links stay under the prefix.
 ### Standalone binary
 
 `cmd/weave mount <path>` creates a site, binds a port, writes the registry and serves until
-shutdown or signal.
+shutdown or signal. This is a human convenience, not a machine contract.
 
 ### Static export
 
@@ -249,7 +259,9 @@ request-driven.
 ## Related Documents
 
 - [Engine layer](engine-go.md)
+- [Operations layer](operations.md)
 - [Render layer](render-go.md)
+- [Lens layer](lens-ts.md)
 - [CLI layer](cli-go.md)
 - [Integration contracts](../integration/contracts.md)
 - [Integration testing](../integration/testing.md)

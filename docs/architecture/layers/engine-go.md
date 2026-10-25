@@ -24,8 +24,9 @@ The engine turns an OKF v0.2 bundle directory into an immutable, queryable in-me
 filesystem → Bundle → Graph → SearchIndex → navigation results
 ```
 
-It is headless and deterministic. It does not render HTML, serve HTTP, read process arguments, or
-know about the lens.
+It is headless and deterministic. It does not render HTML, serve HTTP, read process arguments,
+speak a transport protocol, or know about the lens. The public integration surface is the
+[CLI layer](cli-go.md); the engine API is an optional in-process convenience for Go hosts.
 
 ## Package Layout
 
@@ -106,6 +107,10 @@ Design rules:
 - The host decides whether to call `Open` again after files change.
 - All exported result types come from `contract/v1`; the engine's internal graph and index types
   are not part of the public API.
+- The CLI reaches the engine through the [operations layer](operations.md). The engine API is
+  not the compatibility promise; the CLI contract is.
+- If the engine API is used directly, it is stable within the module's semver policy but is not
+  a cross-language contract.
 
 ## Parsing Pipeline
 
@@ -288,6 +293,12 @@ regressions.
 
 The engine port is complete only when it passes every golden fixture and the race suite.
 
+## Operations Boundary
+
+The engine exposes typed data and query methods. The [operations layer](operations.md) wraps them
+into transport-neutral requests and envelopes. Do not put argv parsing, exit codes, HTTP statuses,
+NDJSON framing or MCP types in the engine.
+
 ## Parity Map from TypeScript
 
 | TypeScript | Go target |
@@ -306,6 +317,8 @@ The engine port is complete only when it passes every golden fixture and the rac
 ## Related Documents
 
 - [Contract layer](contract.md)
+- [Operations layer](operations.md)
+- [CLI layer](cli-go.md)
 - [Render layer](render-go.md)
 - [Mount layer](mount-go.md)
 - [Integration contracts](../integration/contracts.md)

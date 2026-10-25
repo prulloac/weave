@@ -8,26 +8,33 @@ Target architecture and migration plan for splitting Weave into reusable layers,
 headless engine, renderer, mount server and CLI implemented in **Go**, and the browser lens kept
 as **TypeScript-built assets**.
 
+**Integration is CLI-first.** The bigger engine talks to Weave by invoking the `weave` binary and
+reading stdout/stderr/exit codes. The Go package API is available for in-process Go hosts. The
+HTTP mount is a **presentation adapter for humans**, not the integration surface. A TCP MCP
+server is a later transport adapter over the same operations.
+
 ## Target Topology
 
 ```text
 ┌───────────────────────────────────────────────────────────────┐
 │                        Host project                           │
-│            Go service · Go CLI · embedded static site         │
+│         subprocess · stdin/stdout · exit codes                │
 └───────────────────────────────┬───────────────────────────────┘
-                                │ imports / http.Handler
+                                │ CLI I/O (primary)
 ┌───────────────────────────────▼───────────────────────────────┐
-│  weave/mount                                                  │
-│  artifact layer · route dispatch · assets · registry · CLI    │
-├───────────────────────────────────────────────────────────────┤
-│  weave/render                                                 │
-│  html/template shells · goldmark · theme · lens shell         │
+│  cmd/weave + engine/operations                                │
+│  commands · JSON envelopes · NDJSON stdio · exit codes        │
 ├───────────────────────────────────────────────────────────────┤
 │  weave/engine                                                 │
 │  okf parser · graph · BM25 search · navigation · cache        │
 ├───────────────────────────────────────────────────────────────┤
 │  weave/contract                                               │
 │  JSON schemas · Go types · versioning · golden fixtures       │
+└───────────────────────────────┬───────────────────────────────┘
+                                │ optional in-process / UI
+┌───────────────────────────────▼───────────────────────────────┐
+│  weave/render + weave/mount (presentation only)               │
+│  HTML pages · lens shell · artifacts · local browser server   │
 └───────────────────────────────┬───────────────────────────────┘
                                 │ embeds at build time
 ┌───────────────────────────────▼───────────────────────────────┐
@@ -42,22 +49,39 @@ as **TypeScript-built assets**.
 | --- | --- | --- | --- | --- |
 | Contract | JSON Schema + Go | `weave/contract` | Domain types, versions, golden fixtures | — |
 | Engine | Go | `weave/engine` | Parse OKF, build graph, search, navigate | `contract` |
-| Render | Go | `weave/render` | Markdown to HTML, page shells, theme | `contract`, `engine/graph` types |
+| Operations | Go | `weave/engine/operations` | Transport-neutral request/response operations | `engine`, `contract` |
+| CLI | Go | `cmd/weave` | Argv/env/stdin/stdout adapters, exit codes | `operations` |
+| Render | Go | `weave/render` | Markdown to HTML, page shells, theme | `contract`, engine view types |
 | Lens | TypeScript | `lens` (standalone) | Browser canvas UI, asset bundle | Graph payload contract only |
-| Mount | Go | `weave/mount` | Artifacts, HTTP routes, static assets, registry | `engine`, `render`, lens assets |
-| CLI | Go | `cmd/weave` | Argument parsing, exit codes, signals | `mount`, `engine` |
+| Mount | Go | `weave/mount` | Browser presentation: artifacts, routes, assets | `engine`, `render`, lens assets |
+
+## Integration Surfaces
+
+| Surface | Audience | Status | Contract |
+| --- | --- | --- | --- |
+| CLI processes | Any language or runtime | Primary now | argv, stdin/stdout/stderr, exit codes, `weave.cli/v1` |
+| Operations NDJSON | Hosts issuing many requests | Optional now | Same envelope, process-local stdio |
+| Go package API | Go hosts | Optional | Engine and operations packages |
+| Browser presentation | Humans | Presentation only | DOM hooks and HTML routes |
+| TCP MCP server | Future agent integrations | Later | MCP tools over the operations layer |
+
+A host that is not written in Go must use the CLI. A Go host may use the package API, but the
+CLI remains the compatibility promise.
 
 ## Dependency Rules
 
 1. `contract` has no internal dependencies and no runtime dependencies.
 2. `engine` may import `contract`; it must not import `render`, `mount`, `cmd`, or any UI code.
-3. `render` may import `contract` and graph view types; it must not import `mount` or `cmd`.
-4. `mount` may import `engine`, `render`, and embedded lens assets; it must not import `cmd`.
-5. `cmd/weave` is the only package allowed to parse process arguments, set exit codes, install
-   signal handlers, or write the mount registry by default.
-6. The lens bundle must not import the engine, parser, search index, or Node APIs. It consumes
-   only the serialized graph payload.
-7. Every layer boundary is covered by a contract test; no layer depends on another layer's
+3. `operations` may import `engine` and `contract`; it must not import `render`, `mount` or `cmd`.
+4. `cmd/weave` is the only package allowed to parse process arguments, read environment
+   variables, set exit codes, install signal handlers, or write the mount registry by default.
+5. `render` and `mount` are presentation adapters. They may import `engine` and `contract`; they
+   must not import `cmd` or `operations`.
+6. The lens bundle must not import the engine, parser, search index, operations, or Node APIs. It
+   consumes only the serialized graph payload.
+7. The integration boundary is `cmd/weave` plus the operations contract. No host integration may
+   depend on HTML routes except for embedding the human-facing UI.
+8. Every layer boundary is covered by a contract test; no layer depends on another layer's
    internal file layout.
 
 ## Key Decisions
@@ -68,7 +92,12 @@ as **TypeScript-built assets**.
 | Render language | Go (`html/template` + goldmark) |
 | Lens language | TypeScript / Preact, built to static assets |
 | Binary model | Single Go binary with embedded lens assets |
-| Integration model | In-process Go package; optional `http.Handler` |
+| **Integration model** | **CLI I/O (argv/stdin/stdout/stderr/exit codes) first** |
+| Go library | Optional in-process API for Go hosts; not required for integration |
+| HTTP | Presentation only: browser UI, lens shell, local pages |
+| Future transport | TCP MCP adapter over the same operations, added later |
+| CLI output contract | `weave.cli/v1` envelope plus legacy-compatible mode |
+| Operations | One typed operation set shared by CLI and future MCP |
 | Contract | JSON Schema v1 with cross-language golden fixtures |
 | Reference implementation | TypeScript until the Go port passes the full conformance suite |
 | YAML | `gopkg.in/yaml.v3` in Go; required subset fixed by fixtures |
@@ -82,11 +111,12 @@ as **TypeScript-built assets**.
 | [ADR 0001](adr/0001-go-engine-and-ts-lens.md) | Why Go for the engine/render/mount and TypeScript for the lens |
 | [Contract layer](layers/contract.md) | Language-neutral domain model, schemas, semantics and versioning |
 | [Engine layer](layers/engine-go.md) | Go parser, graph, search, navigation, cache and FS adapter |
+| [Operations layer](layers/operations.md) | Transport-neutral requests, responses and error model |
+| [CLI layer](layers/cli-go.md) | Primary integration contract: argv, stdin/stdout, envelopes, exit codes |
 | [Render layer](layers/render-go.md) | Go templates, Markdown rendering, theme, zero-JS routes |
 | [Lens layer](layers/lens-ts.md) | TypeScript asset bundle, DOM contract and build pipeline |
-| [Mount layer](layers/mount-go.md) | `http.Handler`, artifacts, routes, registry and embedding |
-| [CLI layer](layers/cli-go.md) | Command surface, flags, exit codes and signal handling |
-| [Integration contracts](integration/contracts.md) | Go API, HTTP API, DOM, asset and filesystem contracts |
+| [Mount layer](layers/mount-go.md) | Browser presentation adapter: routes, artifacts, assets, registry |
+| [Integration contracts](integration/contracts.md) | CLI, operations, domain, asset and filesystem contracts |
 | [Integration steps](integration/steps.md) | Phased, gated migration from the TypeScript monolith |
 | [Integration testing](integration/testing.md) | Conformance corpus, test pyramid, CI and acceptance gates |
 
@@ -94,11 +124,12 @@ as **TypeScript-built assets**.
 
 1. Decision record and this index.
 2. Contract layer.
-3. Integration contracts.
-4. Engine, render and lens layer docs.
-5. Mount and CLI layer docs.
-6. Integration steps.
-7. Integration testing.
+3. Operations layer.
+4. CLI layer and integration contracts.
+5. Engine layer.
+6. Render, lens and mount layers (presentation only).
+7. Integration steps.
+8. Integration testing.
 
 ## Non-Goals
 
@@ -108,6 +139,8 @@ as **TypeScript-built assets**.
 - A plugin system or dynamic loading of engines.
 - Changing the OKF v0.2 input format or the bundle authoring experience.
 - Rewriting the Astro development site as part of the migration.
+- An HTTP or TCP integration API in v1. HTTP exists only to render the browser UI.
+- A long-running daemon. The optional stdio mode is still process-local CLI I/O.
 
 ## Status
 

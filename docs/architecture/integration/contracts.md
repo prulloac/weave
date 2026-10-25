@@ -1,13 +1,13 @@
 ---
 type: Integration Contract
 title: "Integration Contracts"
-description: "Go package, HTTP, DOM, asset and filesystem contracts between the Weave layers and host projects."
+description: "CLI-first integration contract: process I/O, operations envelopes, optional Go API, presentation DOM and filesystem rules."
 tags:
   - "architecture"
   - "integration"
+  - "cli"
   - "contract"
-  - "http"
-  - "api"
+  - "operations"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-25T00:00:00Z"
@@ -19,79 +19,167 @@ status: draft
 This document defines every boundary a host project or another layer may depend on. Anything not
 listed here is internal and may change.
 
-There are five contracts:
+**The primary integration contract is CLI I/O.** The bigger engine invokes `weave` as a
+subprocess, passes arguments and optionally stdin, and reads stdout, stderr and the exit code.
+HTTP is not an integration contract; it exists only to render the browser presentation.
 
-1. Domain JSON — [Contract layer](../layers/contract.md).
-2. Go package API.
-3. HTTP API.
-4. DOM and asset contract.
-5. Filesystem and input contract.
+There are four contracts:
 
-## Versioning
+1. CLI and operations I/O — primary.
+2. Domain JSON — the payloads carried by the CLI.
+3. Optional Go package API — for in-process Go hosts.
+4. Presentation DOM and filesystem rules — for the browser UI and bundle input.
 
-- Domain contract: `weave.contract/v1`.
-- Go module: semantic versioning; v1 API is stable within a major.
-- HTTP: `/api/v1/*`; HTML routes are unversioned but satisfy the DOM contract.
-- Responses carry `X-Weave-Contract: 1`.
-- Additive changes are allowed in v1. Removals, renames and semantic changes require a new major.
-- Consumers ignore unknown JSON fields and unknown HTML data attributes.
+## 1. CLI and Operations I/O (Primary)
 
-## 1. Go Package API
+### One-shot commands
 
-### Engine
+```sh
+weave contract --json
+weave parse <path> --json
+weave graph <path> --json
+weave find <path> <query> --json
+weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] --json
+weave show <path> <id|file> --json
+weave backlinks <path> <id|file> --json
+weave path <path> <id|file> <id|file> --json
+weave version --json
+```
+
+Guarantees:
+
+- **stdout is machine-readable only** in `--json` mode: exactly one JSON envelope.
+- **stderr is diagnostics** and never required for success.
+- **Exit codes are stable** and documented below.
+- **No network, port, daemon or authentication** is involved.
+- Bundle paths are explicit arguments.
+- Results are deterministic for identical inputs and binary version.
+- No interactive prompts in machine mode.
+
+### Envelope
+
+Success:
+
+```json
+{
+  "contract": "weave.contract/v1",
+  "cli": "weave.cli/v1",
+  "ok": true,
+  "result": {}
+}
+```
+
+Failure:
+
+```json
+{
+  "contract": "weave.contract/v1",
+  "cli": "weave.cli/v1",
+  "ok": false,
+  "error": {
+    "code": "CONCEPT_NOT_FOUND",
+    "message": "concept not found: does-not-exist",
+    "details": {"target": "does-not-exist"}
+  }
+}
+```
+
+Rules:
+
+- Exactly one of `result` or `error` is present.
+- `id` is echoed only in stdio mode.
+- Unknown fields are ignored.
+- The envelope is valid JSON even when the exit code is non-zero.
+- `--legacy-json` exists only for migration and is deprecated; new hosts use `--json`.
+
+### Version discovery
+
+`weave contract --json` returns the contract version, CLI version, binary version, operation
+catalogue and error codes. Hosts call it once per binary version and fail fast on an unsupported
+contract major.
+
+### Stdio mode
+
+```sh
+weave engine --stdio
+```
+
+- NDJSON request per line, NDJSON envelope per line.
+- Requests are processed in order in v1.
+- stdout carries responses only; diagnostics go to stderr.
+- Malformed input returns an `INVALID_REQUEST` envelope.
+- EOF or a `shutdown` request exits the process.
+- This is still process-local CLI I/O; there is no listener.
+
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Success |
+| 1 | Runtime error, parse failure, no matches, unknown concept, disconnected path |
+| 2 | Usage error, invalid root, invalid request |
+| 3 | Permission denied |
+| 4 | Duplicate mount (presentation command) |
+| 5 | Unknown mount port (presentation command) |
+
+### Operation errors
+
+| Code | Meaning |
+| --- | --- |
+| `INVALID_REQUEST` | Missing or unknown operation or field |
+| `INVALID_ROOT` | Path missing or not a directory |
+| `PERMISSION_DENIED` | Filesystem permission failure |
+| `PARSE_ERROR` | Bundle cannot be parsed at all |
+| `CONCEPT_NOT_FOUND` | Unknown concept target |
+| `PATH_NOT_FOUND` | No route between concepts |
+| `INTERNAL` | Unexpected failure |
+
+The detailed request/response model lives in [Operations layer](../layers/operations.md).
+
+## 2. Domain JSON (Payload Contract)
+
+Domain payloads are defined in [Contract layer](../layers/contract.md):
+
+- `Bundle`, `Concept`, `Link`, `IndexEntry`, `Validation`
+- `Graph`, `SerializedGraph`
+- `FindResult`, `ListResult`, `ShowResult`, `BacklinksResult`, `PathResult`
+- `VersionInfo`, `ContractInfo`
+
+Rules:
+
+- JSON uses `snake_case`.
+- Paths are bundle-relative POSIX paths; absolute roots appear only in `Bundle.root`.
+- Concept ids never include `.md`.
+- Arrays are ordered; consumers do not rely on object key order.
+- Unknown JSON fields are ignored.
+- Payloads are identical whether delivered by CLI or by the optional Go API.
+
+## 3. Optional Go Package API
+
+Only for hosts written in Go that want to avoid the process boundary.
 
 ```go
 eng, err := engine.Open(ctx, root, engine.Options{})
 defer eng.Close()
 
-bundle := eng.Bundle()
-graph := eng.Graph()
-hits := eng.Find("okf", search.Options{Limit: 10})
-```
-
-Guarantees:
-
-- `Open` is the only expensive call; queries are read-only and concurrency-safe.
-- Returned structures are immutable after `Open`.
-- Context cancellation aborts `Open`; query methods do not take a context in v1.
-- Errors are typed and do not contain CLI exit codes.
-- The engine does not read environment variables or global configuration.
-
-### Mount
-
-```go
-site, err := mount.NewSite(ctx, target, mount.Options{
-    BasePath: "/weave/",
-})
+site, err := mount.NewSite(ctx, target, mount.Options{BasePath: "/weave/"})
 defer site.Close()
-
-http.Handle("/weave/", http.StripPrefix("/weave", site.Handler()))
 ```
 
 Guarantees:
 
-- `NewSite` does not bind ports, install signals, or write the registry.
-- `Handler` is safe for concurrent use.
-- `Close` is idempotent and removes temporary artifacts.
-- `BasePath` controls generated links and asset URLs.
+- `engine.Open` is the only expensive call; queries are read-only and concurrency-safe.
+- Returned structures are immutable after `Open`.
+- `mount.NewSite` is presentation only; it does not write the registry or install signals.
+- `mount.Site.Handler` is safe for concurrent use and is not the integration API.
 - The host owns lifecycle, auth, TLS and reverse-proxy concerns.
 
-### Render
+The Go API is not required for integration and may evolve within the module's semver policy. The
+CLI contract is the compatibility promise.
 
-```go
-r, err := render.New(render.Options{Theme: theme, Assets: assets, BasePath: "/"})
-html, err := r.Explorer(bundle)
-```
+## 4. Presentation DOM and Filesystem
 
-Guarantees:
-
-- Renderers are pure functions of the bundle, graph and options.
-- No filesystem access at request time.
-- Template and Markdown errors are returned, not panics.
-
-## 2. HTTP API
-
-### HTML Routes
+### Presentation routes (not an integration API)
 
 | Method | Path | Success | Failure | Content type |
 | --- | --- | --- | --- | --- |
@@ -101,152 +189,30 @@ Guarantees:
 | GET | `/assets/weave.css` | 200 | 404 | `text/css; charset=utf-8` |
 | GET | `/assets/lens.js` | 200 | 404 | `text/javascript; charset=utf-8` |
 | POST | `/__weave/shutdown` | 200 | 404/405 | `text/plain; charset=utf-8` |
-| GET | any other | 404 | — | `text/html; charset=utf-8` |
 
-Rules:
+These routes exist for a browser. A host must not treat them as the machine API.
+`POST /__weave/shutdown` is available only when the standalone presentation enables it.
 
-- `{id}` is decoded exactly once and must match a concept id.
-- Unknown concepts return the styled 404 page, not JSON.
-- Every HTML response includes `data-testid="mount-nav"`.
-- Asset routes are allowlisted; no directory listing or traversal.
-- `POST /__weave/shutdown` is available only when `EnableShutdown` is true.
-
-### Optional JSON API
-
-If enabled, the JSON API is served under `/api/v1`. It is optional for v1 but recommended for
-non-Go hosts and debugging.
-
-| Method | Path | Response |
-| --- | --- | --- |
-| GET | `/api/v1/bundle` | `Bundle` |
-| GET | `/api/v1/graph` | `Graph` |
-| GET | `/api/v1/graph/serialized` | `SerializedGraph` |
-| GET | `/api/v1/concepts/{id}` | `ShowResult` |
-| GET | `/api/v1/search?q=&limit=&fields=` | `SearchResult[]` |
-| GET | `/api/v1/backlinks/{id}` | `BacklinksResult` |
-| GET | `/api/v1/path?from=&to=` | `PathResult` |
-
-Examples:
-
-```http
-GET /api/v1/search?q=graph&limit=5
-X-Weave-Contract: 1
-```
-
-```json
-[
-  {
-    "id": "concepts/node-graph-engine",
-    "title": "Node Graph Engine",
-    "path": "concepts/node-graph-engine.md",
-    "type": "Concept",
-    "score": 11.82,
-    "best_field": "title"
-  }
-]
-```
-
-Errors:
-
-```json
-{
-  "error": {
-    "code": "CONCEPT_NOT_FOUND",
-    "message": "concept not found: does-not-exist",
-    "details": {"id": "does-not-exist"}
-  }
-}
-```
-
-Error codes:
-
-| Code | HTTP | Meaning |
-| --- | --- | --- |
-| `INVALID_REQUEST` | 400 | Missing or malformed query parameter |
-| `CONCEPT_NOT_FOUND` | 404 | Unknown concept id |
-| `PATH_NOT_FOUND` | 404 | No route between concepts |
-| `PARSE_ERROR` | 422 | Bundle cannot be parsed at all |
-| `INTERNAL` | 500 | Unexpected failure |
-
-Response headers:
-
-- `X-Weave-Contract: 1`
-- `X-Weave-Version: <semver>`
-- `Cache-Control: no-store` for JSON unless a host adds caching.
-
-## 3. DOM and Asset Contract
-
-### Shared shell
+### DOM hooks
 
 | Hook | Required | Meaning |
 | --- | --- | --- |
-| `data-testid="mount-nav"` | yes | Site header |
+| `data-testid="mount-nav"` | yes | Presentation header |
 | `link[rel="stylesheet"][href$="/assets/weave.css"]` | yes | Theme stylesheet |
 | `main.weave-main` | yes | Main content region |
-| script elements | only `/lens` | No scripts on `/` or `/concept/*` |
+| `#weave-lens-root` | lens only | Preact mount point |
+| `#weave-graph` | lens only | Serialized graph payload |
+| `data-testid="lens-index-entry"` | lens only | Anchor with `data-id` and `href` |
+| `data-testid="force-graph-canvas"` | lens only | Canvas after hydration |
+| `data-testid="legend"` | lens only | Legend after hydration |
+| `data-testid="empty-message"` | lens only | Empty state |
+| `data-testid="concept-page"` | optional | Concept article |
+| `data-testid="not-found"` | optional | Presentation 404 |
 
-### Explorer
+Explorer, concept and lens DOM details are in [Render layer](../layers/render-go.md) and
+[Lens layer](../layers/lens-ts.md). They are presentation contracts, not integration contracts.
 
-| Hook | Meaning |
-| --- | --- |
-| `data-testid="bundle-meta"` | Bundle summary block |
-| `data-testid="bundle-version"` | Declared OKF version |
-| `data-testid="bundle-valid"` | `true`/`false` |
-| `data-testid="bundle-count"` | Concept count |
-| `data-testid="index-entry"` | Root index entry; `data-target` |
-| `data-testid="index-description"` | Optional description |
-| `data-testid="validation-entry"` | Per-concept validation |
-| `data-testid="concept"` | Concept card; `data-id` |
-| `data-testid="status"` | Concept status line |
-| `data-testid="link"` | Link row; `data-target`, `data-resolved`, `data-resolves` |
-
-### Concept page
-
-| Hook | Meaning |
-| --- | --- |
-| `data-testid="concept-page"` | Article; `data-id` |
-| `data-testid="concept-type"` | Type text only |
-| `data-testid="concept-status"` | Status text only |
-| `data-testid="concept-body"` | Rendered Markdown |
-| `data-testid="concept-link"` | Outbound row; `data-resolved` |
-| `data-testid="backlinks"` | Backlinks section |
-| `data-testid="backlink"` | Backlink anchor; `data-id` |
-| `data-testid="not-found"` | 404 view |
-
-### Lens
-
-| Hook | Meaning |
-| --- | --- |
-| `#weave-lens-root` | Preact mount point |
-| `#weave-graph` | JSON payload script |
-| `data-testid="lens-index"` | Server-rendered index container |
-| `data-testid="lens-index-entry"` | Anchor with `data-id`, `href` |
-| `data-testid="force-graph-canvas"` | Canvas after hydration |
-| `data-testid="legend"` | Legend after hydration |
-| `data-testid="empty-message"` | Empty state |
-| `data-testid="lens-warning"` | Optional asset-build warning |
-
-### Asset manifest
-
-```json
-{
-  "name": "lens",
-  "version": "1.0.0",
-  "contract": "weave.contract/v1",
-  "file": "lens.js",
-  "sha256": "…",
-  "bytes": 18234
-}
-```
-
-Rules:
-
-- The Go binary embeds the manifest and asset together.
-- URL cache busting uses the hash (for example `/assets/lens.<hash>.js`).
-- The renderer receives URLs, not filesystem paths.
-- A missing asset disables `/lens` JS but not the server-rendered index.
-
-## 4. Filesystem and Input Contract
+### Filesystem and input
 
 Input is an OKF v0.2 bundle directory.
 
@@ -262,26 +228,29 @@ Input is an OKF v0.2 bundle directory.
 | Writes | Never write to the target bundle |
 | Cache | Optional, outside the target tree |
 
-Host embedding rules:
+Host rules:
 
 - Pass an absolute or resolvable target path.
-- Do not mutate the target during a site's lifetime; reopen the site to observe changes.
+- Do not mutate the target while a process is running; start a new process to observe changes.
 - The host is responsible for file permissions and secret material in the bundle.
-- The artifact layer is temporary and must be removed with `Close`.
+- The artifact layer used by the presentation is temporary and removed on close.
 
 ## Compatibility Matrix
 
-| Component | Engine contract | Lens contract | HTTP API | Notes |
-| --- | --- | --- | --- | --- |
-| Go engine v1 | v1 | n/a | n/a | Reference for ports |
-| Go render v1 | v1 | v1 | HTML | DOM contract |
-| Go mount v1 | v1 | v1 | v1 optional | In-process handler |
-| Lens v1 | n/a | v1 | n/a | Ignores unknown fields |
-| TS reference (frozen) | v1 | v1 | HTML | Used for conformance until cutover |
+| Component | Contract | CLI | Notes |
+| --- | --- | --- | --- |
+| Go engine v1 | v1 | n/a | Internal/optional API |
+| Go operations v1 | v1 | `weave.cli/v1` | Primary machine surface |
+| Go CLI v1 | v1 | `weave.cli/v1` | One-shot and stdio |
+| Go render/mount v1 | v1 | n/a | Presentation only |
+| Lens v1 | v1 | n/a | Presentation only |
+| TS reference (frozen) | v1 | legacy JSON | Conformance reference until cutover |
 
 ## Related Documents
 
 - [Contract layer](../layers/contract.md)
+- [Operations layer](../layers/operations.md)
+- [CLI layer](../layers/cli-go.md)
 - [Engine layer](../layers/engine-go.md)
 - [Render layer](../layers/render-go.md)
 - [Lens layer](../layers/lens-ts.md)

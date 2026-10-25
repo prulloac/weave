@@ -18,7 +18,7 @@ status: draft
 
 ## Strategy
 
-The migration is verified at six levels. Lower levels are fast and exhaustive; higher levels prove
+The migration is verified at seven levels (0–6). Lower levels are fast and exhaustive; higher levels prove
 that the layers actually compose.
 
 | Level | Scope | Tooling | Gate |
@@ -27,8 +27,8 @@ that the layers actually compose.
 | 1 | Semantic conformance | TS exporter vs Go output | Zero unexplained diffs |
 | 2 | Go unit and race | `go test`, `-race`, fuzz | Package coverage and no races |
 | 3 | TS lens unit | `bun test` | Layout, payload, bootstrap |
-| 4 | HTTP integration | `httptest`, `go test` | Routes, statuses, DOM hooks |
-| 5 | Browser E2E | Playwright against Go binary | User journeys pass |
+| 4 | CLI process contract | `exec.Command`, golden files | Envelopes, stderr, exit codes |
+| 5 | Presentation HTTP + browser | `httptest`, Playwright | Routes, DOM hooks, user journeys |
 | 6 | Performance | Benchmarks, size budgets | Budgets met |
 
 ## Conformance Corpus
@@ -160,9 +160,34 @@ Coverage:
 - Bootstrap idempotence and error path.
 - No forbidden imports (engine/parser/search/Node built-ins).
 
-## Level 4 — HTTP Integration
+## Level 4 — CLI Process Contract
 
-Use `httptest` against `mount.NewSite`:
+Build the binary and test it as a black box:
+
+```sh
+go build -o /tmp/weave ./cmd/weave
+/tmp/weave contract --json
+/tmp/weave find contract/v1/golden/bundles/okf-bundle graph --json
+```
+
+Assertions per operation:
+
+- Valid [`weave.cli/v1`](contracts.md) envelope on stdout.
+- Empty stderr on success.
+- Non-zero exit code plus a valid error envelope on failure.
+- Documented exit code for every error class.
+- No color, banner, progress bar or log line on stdout in `--json` mode.
+- Deterministic output across repeated runs.
+- JSON Schema validation of every envelope.
+- `--legacy-json` remains parseable during migration.
+- `weave contract --json` advertises exactly the supported operations.
+- Unknown operations and missing fields return `INVALID_REQUEST` and exit 2.
+- `weave engine --stdio` handles ordered requests, malformed lines, EOF and shutdown.
+- Concurrent one-shot processes do not interfere (cache is optional and safe).
+
+## Level 5 — Presentation HTTP and Browser E2E
+
+First use `httptest` against `mount.NewSite` for presentation-only assertions:
 
 ```go
 site, _ := mount.NewSite(ctx, fixture, mount.Options{})
@@ -182,9 +207,7 @@ Assertions:
 - Concurrent requests do not race (`-race`).
 - `Close` removes the artifact root and is idempotent.
 
-## Level 5 — Browser E2E
-
-Run Playwright against the Go binary:
+Then run Playwright against the Go binary:
 
 ```sh
 go build -o /tmp/weave ./cmd/weave
@@ -247,9 +270,10 @@ in the release notes.
 | Go test | ubuntu, macos, windows | `go test -race ./...` |
 | Go lint | ubuntu | `gofmt -l`, `go vet`, `golangci-lint` |
 | Conformance | ubuntu | TS exporter, Go exporter, diff |
+| CLI contract | ubuntu, windows | process tests, envelope schemas, exit codes |
 | TS unit | ubuntu | `bun test`, `biome check` |
 | Lens build | ubuntu | `bun build`, size budget, manifest check |
-| E2E | ubuntu | Playwright against Go binary |
+| Presentation E2E | ubuntu | Playwright against Go binary |
 | Docs | ubuntu | markdownlint |
 
 Windows is required for symlink and hardlink artifact tests.
@@ -260,10 +284,11 @@ Windows is required for symlink and hardlink artifact tests.
 | --- | --- |
 | Contract | Schemas validate; TS passes goldens |
 | Engine | All bundle/graph/search/nav goldens; race; fuzz corpus clean |
-| Render | DOM contract; zero-JS; XSS; golden HTML |
-| Lens | Unit, payload, E2E, size, no forbidden imports |
-| Mount | Route parity; artifacts; registry; race; E2E |
-| CLI | Exit codes; JSON stability; command E2E |
+| Operations | Envelopes, error codes, stdio framing, determinism |
+| CLI | Envelopes, stdout/stderr, exit codes, contract discovery |
+| Render | DOM contract; zero-JS; XSS; golden HTML (presentation) |
+| Lens | Unit, payload, E2E, size, no forbidden imports (presentation) |
+| Mount | Route parity; artifacts; registry; race; E2E (presentation) |
 | Cutover | Dual-run diff clean; performance; rollback tested |
 
 ## Failure Triage
@@ -272,7 +297,10 @@ Windows is required for symlink and hardlink artifact tests.
   docs/schema first.
 - **Renderer mismatch:** compare the DOM contract table, then the normalized HTML; check
   `html/template` escaping and `BasePath`.
-- **E2E route failure:** reproduce with `httptest`, then with a real mount, then in Playwright.
+- **CLI contract failure:** reproduce with the binary and a fixture; compare the envelope, stderr
+  and exit code against the operation schema.
+- **E2E route failure:** this is presentation-only; reproduce with `httptest`, then with a real
+  mount, then in Playwright.
 - **Lens failure:** verify the payload first, then the DOM hooks, then the client bundle.
 - **Flaky tests:** no retries in CI without a filed issue; fix determinism.
 
@@ -281,6 +309,8 @@ Windows is required for symlink and hardlink artifact tests.
 - [Architecture index](../index.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)
+- [Operations layer](../layers/operations.md)
+- [CLI layer](../layers/cli-go.md)
 - [Render layer](../layers/render-go.md)
 - [Lens layer](../layers/lens-ts.md)
 - [Mount layer](../layers/mount-go.md)

@@ -22,6 +22,9 @@ The lens is the only browser-executed part of Weave. It renders the force-direct
 legend from a serialized graph payload produced by the Go renderer. It contains no engine,
 parser, search or filesystem code.
 
+The lens belongs to the browser presentation. It is not part of the machine integration
+contract; hosts use the [CLI layer](cli-go.md) for that.
+
 It is built independently into a versioned static asset and embedded into the Go binary.
 
 ## Package Layout
@@ -242,6 +245,8 @@ The old files are removed only after the Go mount serves the new asset and the E
 ## Related Documents
 
 - [Contract layer](contract.md)
+- [Operations layer](operations.md)
+- [CLI layer](cli-go.md)
 - [Render layer](render-go.md)
 - [Mount layer](mount-go.md)
 - [Integration contracts](../integration/contracts.md)

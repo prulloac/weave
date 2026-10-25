@@ -47,8 +47,14 @@ rewrite; distribution, runtime fit, and embedding do.
 4. Keep the TypeScript implementation as the **reference implementation** until the Go port
    passes the full conformance suite.
 5. Split the repository into the layers described in [the architecture index](../index.md).
-6. Provide both an in-process Go API and an `http.Handler`; the HTTP route surface remains
-   compatible with the current mount.
+6. Make **CLI I/O the primary integration contract**: argv, stdin/stdout/stderr, exit codes and
+   versioned JSON envelopes.
+7. Keep a thin **operations layer** so the CLI and a future TCP MCP server share the same
+   request/response model.
+8. Keep the Go package API as an optional in-process convenience, not the required integration
+   path.
+9. Treat the HTTP mount as a **presentation adapter for the browser UI**; it is not an
+   integration API.
 
 ## Rationale
 
@@ -63,6 +69,18 @@ rewrite; distribution, runtime fit, and embedding do.
 - `gopkg.in/yaml.v3` and `goldmark` replace the hand-rolled YAML subset and the link regexes with
   maintained parsers.
 - Go is easier for a larger team to contribute to than Rust for this kind of I/O-heavy code.
+
+### Why CLI-first integration
+
+The larger engine needs a narrow, process-boundary contract that works from any language and can
+later be wrapped by an MCP transport without redesigning the domain:
+
+- A subprocess boundary avoids embedding a Go runtime into a non-Go host.
+- stdout/stderr and exit codes are stable, testable and observable.
+- One-shot commands are stateless; the optional stdio mode is still process-local, not a daemon.
+- The operations model maps directly to future MCP tools, so the transport changes but the
+  semantics do not.
+- HTTP remains available only where it is inherent: serving the browser presentation.
 
 ### Why not Rust
 
@@ -83,8 +101,8 @@ outcome.
 A layer split reduces the port to independent, testable surfaces:
 
 - The engine can be ported and verified against golden JSON.
-- The renderer can be verified against golden HTML and the existing E2E assertions.
-- The mount can be verified over HTTP.
+- The CLI can be verified as a process: stdout, stderr, exit codes and envelopes.
+- The renderer and mount can be verified as a presentation surface with golden HTML and E2E.
 - The lens keeps working while the server changes underneath it.
 
 Porting the monolith in one step would make semantic drift and regressions hard to isolate.
@@ -94,7 +112,8 @@ Porting the monolith in one step would make semantic drift and regressions hard 
 ### Positive
 
 - Single-binary distribution, including lens assets.
-- Reusable in any Go host process or alongside any language via HTTP.
+- Reusable from any language through a process boundary, without an HTTP API.
+- A future MCP transport can reuse the operations layer instead of reimplementing behavior.
 - Maintained YAML and Markdown libraries instead of hand-rolled parsers.
 - Clear ownership and dependency direction between layers.
 - Contract tests make future ports (including a possible Rust engine) tractable.
@@ -128,26 +147,31 @@ Porting the monolith in one step would make semantic drift and regressions hard 
 | Port everything to Rust | Rejected: higher cost, no current hard requirement |
 | Go engine only, keep TS render/mount | Rejected: SSR would cross a process boundary or keep a Node runtime |
 | WebAssembly engine | Rejected: adds bundling and I/O constraints without a current use case |
-| Sidecar-only TypeScript engine | Useful fallback for non-Go hosts, but does not give the host in-process reuse |
+| HTTP JSON API as the primary integration surface | Rejected: couples the host to a server, port and lifecycle; CLI I/O is simpler and the MCP transport comes later |
+| TCP service now | Rejected for v1: premature; the operations layer preserves the option |
 | Rewrite the lens in Go/WASM | Rejected: browser UI already works in TypeScript |
 
 ## Follow-Up Decisions
 
 1. Go module path and repository layout (single module versus workspace).
 2. Whether the default binary embeds the lens or loads it from disk.
-3. Whether the HTTP JSON API ships in v1 or only the HTML routes and Go API.
-4. Whether the Astro development site is kept, archived, or used only for lens development.
-5. Long-term ownership of the TypeScript reference implementation after cutover.
+3. Whether the CLI JSON envelope is the only machine mode or a legacy-compatible mode ships
+   alongside it during migration.
+4. Whether the optional stdio mode ships in v1 or after the one-shot CLI is stable.
+5. Whether the Astro development site is kept, archived, or used only for lens development.
+6. Long-term ownership of the TypeScript reference implementation after cutover.
+7. The MCP transport details (bind address, authentication, tool naming) when that work starts.
 
 ## Related Documents
 
 - [Architecture index](../index.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)
+- [Operations layer](../layers/operations.md)
+- [CLI layer](../layers/cli-go.md)
 - [Render layer](../layers/render-go.md)
 - [Lens layer](../layers/lens-ts.md)
 - [Mount layer](../layers/mount-go.md)
-- [CLI layer](../layers/cli-go.md)
 - [Integration contracts](../integration/contracts.md)
 - [Integration steps](../integration/steps.md)
 - [Integration testing](../integration/testing.md)

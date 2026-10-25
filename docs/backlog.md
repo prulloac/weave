@@ -43,7 +43,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Layer Split & Go Port (Go engine/render/mount, TS lens assets) | [architecture/index.md](architecture/index.md) | - | x | - | - | backlog |
+| Layer Split & Go Port (Go engine/render/mount, CLI-first integration, TS lens assets) | [architecture/index.md](architecture/index.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
 

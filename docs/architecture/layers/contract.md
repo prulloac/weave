@@ -283,8 +283,8 @@ The search contract fixes the observable algorithm:
 }
 ```
 
-Error codes are stable and shared by the Go API and HTTP API. CLI exit codes are a separate
-concern documented in [CLI layer](cli-go.md).
+Error codes are stable and shared by the operations layer, the CLI and any future transport
+adapter. CLI exit codes are a separate concern documented in [CLI layer](cli-go.md).
 
 ## Parsing Semantics
 
@@ -350,6 +350,8 @@ The current TypeScript fixtures under `tests/fixtures/okf-bundle` are the seed f
 
 - [Architecture index](../index.md)
 - [Engine layer](engine-go.md)
+- [Operations layer](operations.md)
+- [CLI layer](cli-go.md)
 - [Render layer](render-go.md)
 - [Lens layer](lens-ts.md)
 - [Integration contracts](../integration/contracts.md)
