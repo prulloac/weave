@@ -21,25 +21,42 @@ async function readText(filePath: string): Promise<string> {
 	return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
 }
 
-async function walkMarkdown(root: string, visited = new Set<string>()): Promise<string[]> {
+const MAX_SYMLINK_DEPTH = 1
+
+async function walkMarkdown(
+	root: string,
+	visited = new Set<string>(),
+	symlinkDepth = 0,
+): Promise<string[]> {
 	const files: string[] = []
 	const entries = await fsp.readdir(root, { withFileTypes: true })
+	entries.sort((a, b) => a.name.localeCompare(b.name))
 
 	for (const entry of entries) {
 		if (entry.name === '.git' || entry.name === 'node_modules') continue
 		const abs = join(root, entry.name)
 
-		if (entry.isDirectory()) {
+		let isDirectory = entry.isDirectory()
+		let isFile = entry.isFile()
+		if (entry.isSymbolicLink()) {
+			try {
+				const info = await fsp.stat(abs)
+				isDirectory = info.isDirectory()
+				isFile = info.isFile()
+			} catch {
+				continue
+			}
+			if (isDirectory && symlinkDepth >= MAX_SYMLINK_DEPTH) continue
+		}
+
+		if (isDirectory) {
 			const real = await fsp.realpath(abs)
 			if (visited.has(real)) continue
 			visited.add(real)
-			files.push(...(await walkMarkdown(abs, visited)))
-		} else if (entry.isFile() || entry.isSymbolicLink()) {
-			if (entry.isSymbolicLink()) {
-				const info = await fsp.stat(abs)
-				if (!info.isFile()) continue
-			}
-			if (entry.name.endsWith('.md')) files.push(abs)
+			const depth = symlinkDepth + (entry.isSymbolicLink() ? 1 : 0)
+			files.push(...(await walkMarkdown(abs, visited, depth)))
+		} else if (isFile && entry.name.endsWith('.md')) {
+			files.push(abs)
 		}
 	}
 	return files
@@ -120,7 +137,13 @@ async function readIndex(filePath: string): Promise<ParsedIndex> {
 
 export async function parseBundle(root: string): Promise<ParsedBundle> {
 	const absRoot = resolve(root)
-	const files = (await walkMarkdown(absRoot)).sort()
+	const visited = new Set<string>()
+	try {
+		visited.add(await fsp.realpath(absRoot))
+	} catch {
+		// The root may not exist; the walk below reports the real error.
+	}
+	const files = (await walkMarkdown(absRoot, visited)).sort()
 
 	const concepts = new Map<string, OkfConcept>()
 	const validation = new Map<string, ConceptValidation>()

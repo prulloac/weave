@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -72,6 +72,41 @@ status: stable
 			note: 'value',
 		})
 	})
+
+	test('parses lists of mappings', () => {
+		const result = extractFrontmatter(`---
+type: Concept
+verified:
+  - by: human:developer
+    at: "2026-08-06T00:00:00Z"
+  - by: opencode/big-pickle
+    at: "2026-08-07T00:00:00Z"
+---`)
+		expect(result!.data.verified).toEqual([
+			{ by: 'human:developer', at: '2026-08-06T00:00:00Z' },
+			{ by: 'opencode/big-pickle', at: '2026-08-07T00:00:00Z' },
+		])
+	})
+
+	test('parses mappings nested more than one level deep', () => {
+		const result = extractFrontmatter(`---
+type: Concept
+metadata:
+  owner:
+    team: docs
+    handles:
+      - alpha
+      - beta
+---`)
+		expect(result!.data.metadata).toEqual({
+			owner: { team: 'docs', handles: ['alpha', 'beta'] },
+		})
+	})
+
+	test('parses flow arrays with quoted commas', () => {
+		const result = extractFrontmatter('---\ntags: ["a,b", c]\n---\n')
+		expect(result!.data).toEqual({ tags: ['a,b', 'c'] })
+	})
 })
 
 describe('extractLinks', () => {
@@ -91,6 +126,32 @@ describe('extractLinks', () => {
 		const links = extractLinks('![alt](/img.png) and [Link](real.md)')
 		expect(links).toHaveLength(1)
 		expect(links[0].target).toBe('real.md')
+	})
+
+	test('extracts titled and reference-style links', () => {
+		const body = `[Titled](a.md "Title") [Angle](<b.md>)
+
+[Full][ref] [Collapsed][] [Shortcut]
+
+[ref]: ref.md
+[collapsed]: collapsed.md
+[shortcut]: shortcut.md`
+		const targets = extractLinks(body).map((link) => link.target)
+
+		expect(targets).toEqual(['a.md', 'b.md', 'ref.md', 'collapsed.md', 'shortcut.md'])
+	})
+
+	test('ignores links inside fenced and inline code', () => {
+		const body = `\`[inline](a.md)\`
+
+\`\`\`md
+[fenced](b.md)
+\`\`\`
+
+[real](c.md)`
+		const links = extractLinks(body)
+
+		expect(links.map((link) => link.target)).toEqual(['c.md'])
 	})
 })
 
@@ -247,6 +308,24 @@ describe('parseBundle', () => {
 
 			const warnings = bundle.validation.concepts.get('a')!.warnings
 			expect(warnings.some((warning) => /broken/i.test(warning))).toBe(false)
+		} finally {
+			rmSync(dir, { recursive: true, force: true })
+		}
+	})
+
+	test('follows one level of symlinked directories without cycles', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'okf-symlink-'))
+		try {
+			mkdirSync(join(dir, 'real'))
+			writeFileSync(join(dir, 'real', 'inside.md'), '---\ntype: Concept\n---\n')
+			symlinkSync(join(dir, 'real'), join(dir, 'linked'))
+			symlinkSync(dir, join(dir, 'loop'))
+
+			const bundle = await parseBundle(dir)
+			const ids = [...bundle.concepts.keys()].sort()
+
+			expect(ids).toContain('linked/inside')
+			expect(ids.filter((id) => id.endsWith('inside'))).toHaveLength(1)
 		} finally {
 			rmSync(dir, { recursive: true, force: true })
 		}
