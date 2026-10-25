@@ -62,17 +62,25 @@ func Query(index *Index, query string, options Options) []contractv1.SearchResul
 		candidates[position] = true
 	}
 
+	fieldMatches := make(map[contractv1.SearchField]map[string][]string, len(fields))
+	for _, field := range fields {
+		fieldMatches[field] = make(map[string][]string, len(queryTokens))
+	}
+
 	for _, queryToken := range queryTokens {
 		matching := make(map[int]bool)
 		for _, field := range fields {
+			tokens := make([]string, 0)
 			for indexToken, docSet := range index.Postings[field] {
 				if !strings.HasPrefix(indexToken, queryToken) {
 					continue
 				}
+				tokens = append(tokens, indexToken)
 				for docIndex := range docSet {
 					matching[docIndex] = true
 				}
 			}
+			fieldMatches[field][queryToken] = tokens
 		}
 		for candidate := range candidates {
 			if !matching[candidate] {
@@ -99,8 +107,9 @@ func Query(index *Index, query string, options Options) []contractv1.SearchResul
 
 			for _, queryToken := range queryTokens {
 				bestTermScore := 0.0
-				for indexToken, docSet := range index.Postings[field] {
-					if !docSet[docIndex] || !strings.HasPrefix(indexToken, queryToken) {
+				for _, indexToken := range fieldMatches[field][queryToken] {
+					docSet := index.Postings[field][indexToken]
+					if !docSet[docIndex] {
 						continue
 					}
 					frequency := index.TF[docIndex][field][indexToken]
