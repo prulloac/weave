@@ -39,6 +39,12 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Lens Mount Integration (styled explorer + navigable mount) | [lens-mount-integration.md](specs/lens-mount-integration.md) | - | x | x | x | green |
 | Visual Design Pass (design-system extraction, light/dark theming) | - | - | - | - | - | backlog |
 
+## Tier 4 — Portability
+
+| Feature | Spec | PR | Spec | BDD | TDD | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Layer Split & Go Port (Go engine/render/mount, TS lens assets) | [architecture/index.md](architecture/index.md) | - | x | - | - | backlog |
+
 ## Cross-cutting
 
 - [x] Knowledge corpus: vision + related concepts (`docs/knowledge/`)
