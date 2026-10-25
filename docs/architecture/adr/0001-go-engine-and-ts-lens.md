@@ -155,19 +155,23 @@ Resolved during review: `--legacy-json` and `weave engine --stdio` are **deferre
 The v1 machine contract is the one-shot `--json` envelope only. No legacy output mode and no
 long-lived stdio mode ship in the first Go CLI.
 
+Resolved by [ADR 0002](0002-v1-scope-layout-and-contract.md): the Go module layout, migration
+sequencing, v1 milestone scope, contract generation, CLI cache default and `weave parse` payload.
+
 ## Follow-Up Decisions
 
-1. Go module path and repository layout (single module versus workspace).
-2. Whether the default binary embeds the lens or loads it from disk.
-3. Whether the Astro development site is kept, archived, or used only for lens development.
-4. Long-term ownership of the TypeScript reference implementation after cutover.
-5. When to introduce `--legacy-json` and how long to keep it.
-6. When to introduce `weave engine --stdio` and whether it needs a reload operation.
-7. The MCP transport details (bind address, authentication, tool naming) when that work starts.
+1. Whether the default binary embeds the lens or loads it from disk.
+2. Whether the Astro development site is kept, archived, or used only for lens development.
+3. Long-term ownership of the TypeScript reference implementation after cutover.
+4. When to introduce `--legacy-json` and how long to keep it.
+5. When to introduce `weave engine --stdio` and whether it needs a reload operation.
+6. The MCP transport details (bind address, authentication, tool naming) when that work starts.
+7. The `--no-body` design for large `weave parse` payloads.
 
 ## Related Documents
 
 - [Architecture index](../index.md)
+- [ADR 0002](0002-v1-scope-layout-and-contract.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)
 - [Operations layer](../layers/operations.md)

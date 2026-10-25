@@ -55,6 +55,9 @@ Guarantees:
 - Bundle paths are explicit arguments.
 - Results are deterministic for identical inputs and binary version.
 - No interactive prompts in machine mode.
+- The parse cache is enabled by default; `--no-cache` disables it per invocation and never changes
+  output.
+- `weave parse --json` includes concept bodies; query payloads do not.
 
 ### Envelope
 
@@ -250,6 +253,7 @@ Host rules:
 
 ## Related Documents
 
+- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
 - [Contract layer](../layers/contract.md)
 - [Operations layer](../layers/operations.md)
 - [CLI layer](../layers/cli-go.md)

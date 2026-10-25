@@ -93,6 +93,10 @@ weave status [--prune]
 weave --version | --help
 ```
 
+`weave parse --json` includes each concept's `body` by default. `graph`, `find`, `list`,
+`backlinks` and `path` omit bodies; `show` includes the selected concept's body. A `--no-body`
+flag is deferred post-v1.
+
 ## Output Modes
 
 | Mode | Selected by | stdout | stderr |
@@ -192,7 +196,8 @@ A host should:
 
 - Bundle paths are explicit arguments, never implicit environment state.
 - `weave` does not read a project config file in v1.
-- The optional parse cache is controlled by `WEAVE_CACHE_DIR`; it never changes results.
+- The parse cache is **enabled by default** for machine commands. `WEAVE_CACHE_DIR` sets its
+  location; `--no-cache` disables it for one invocation. It never changes results.
 - Commands are stateless and may be run concurrently. They do not share a daemon.
 - No command prompts interactively in machine mode. If a prompt would be required, the command
   fails with `INVALID_REQUEST` and an explanatory stderr message.
@@ -202,7 +207,7 @@ A host should:
 | Setting | Source | Default |
 | --- | --- | --- |
 | Registry directory | `WEAVE_REGISTRY_DIR` | `os.TempDir()/weave` |
-| Parse cache directory | `WEAVE_CACHE_DIR` | `os.TempDir()/weave-okf-cache` |
+| Parse cache directory | `WEAVE_CACHE_DIR` | `os.TempDir()/weave-okf-cache` (enabled by default) |
 | Default port (mount only) | `WEAVE_PORT` | `4318` |
 | Lens asset | embedded | embedded `dist/lens.js` |
 
@@ -254,12 +259,15 @@ needs machine access uses the operations commands above, not the mount.
    - no color/progress in machine mode,
    - version and contract discovery.
 4. JSON Schema validation of every envelope.
-5. Determinism tests: repeated invocations produce identical envelopes.
-6. Presentation command tests are separate and may use HTTP.
-7. Post-v1: legacy-output and NDJSON tests are added when those modes ship.
+5. Determinism tests: repeated invocations produce identical envelopes, with and without cache.
+6. Cache tests: hit on the second run, invalidation after a file change, `--no-cache` parity,
+   isolated temporary cache directories.
+7. Presentation command tests are separate and may use HTTP.
+8. Post-v1: legacy-output and NDJSON tests are added when those modes ship.
 
 ## Related Documents
 
+- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
 - [Operations layer](operations.md)
 - [Engine layer](engine-go.md)
 - [Mount layer](mount-go.md)

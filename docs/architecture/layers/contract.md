@@ -52,6 +52,18 @@ contract/
 Go consumers import `weave/contract/v1`. TypeScript consumers import generated types from
 `@weave/contract` or consume the JSON schemas directly.
 
+## Authoritative Source
+
+- **JSON Schema is authoritative.** Schemas under `contract/v1/schema` define the wire format.
+- **Go structs are hand-written** with explicit `json` tags and validated against the schemas in
+  CI. No Go code generation is required in v1.
+- **TypeScript types are generated** from the schemas, checked in, and regenerated in CI. A stale
+  generated file fails the build.
+- A contract change follows this order: schema, Go struct, generated TS type, golden fixture,
+  docs.
+- `weave parse --json` includes concept bodies by default; `--no-body` is deferred post-v1.
+  `graph`, `find`, `list`, `backlinks` and `path` payloads do not include bodies; `show` does.
+
 ## Naming and Encoding
 
 - JSON wire format uses `snake_case`.
@@ -349,6 +361,7 @@ The current TypeScript fixtures under `tests/fixtures/okf-bundle` are the seed f
 ## Related Documents
 
 - [Architecture index](../index.md)
+- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
 - [Engine layer](engine-go.md)
 - [Operations layer](operations.md)
 - [CLI layer](cli-go.md)

@@ -241,6 +241,7 @@ No engine, render or operation semantics should need to change for MCP.
 
 ## Related Documents
 
+- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
 - [Contract layer](contract.md)
 - [Engine layer](engine-go.md)
 - [CLI layer](cli-go.md)

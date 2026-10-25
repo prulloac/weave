@@ -181,7 +181,10 @@ Assertions per operation:
 - JSON Schema validation of every envelope.
 - `weave contract --json` advertises exactly the supported operations.
 - Unknown operations and missing fields return `INVALID_REQUEST` and exit 2.
-- Concurrent one-shot processes do not interfere (cache is optional and safe).
+- Concurrent one-shot processes do not interfere (cache is safely shared).
+- `weave parse --json` includes bodies; `graph` and query payloads do not.
+- Cache tests: hit on the second run, invalidation after a change, `--no-cache` parity, isolated
+  temporary cache directory.
 
 `--legacy-json` and `weave engine --stdio` are post-v1; their tests are added when those modes
 ship.
@@ -286,10 +289,10 @@ Windows is required for symlink and hardlink artifact tests.
 | Contract | Schemas validate; TS passes goldens |
 | Engine | All bundle/graph/search/nav goldens; race; fuzz corpus clean |
 | Operations | Envelopes, error codes, determinism |
-| CLI | Envelopes, stdout/stderr, exit codes, contract discovery |
-| Render | DOM contract; zero-JS; XSS; golden HTML (presentation) |
-| Lens | Unit, payload, E2E, size, no forbidden imports (presentation) |
-| Mount | Route parity; artifacts; registry; race; E2E (presentation) |
+| CLI (Milestone A) | Envelopes, stdout/stderr, exit codes, contract discovery, cache |
+| Render (Milestone B) | DOM contract; zero-JS; XSS; golden HTML |
+| Lens (Milestone B) | Unit, payload, E2E, size, no forbidden imports |
+| Mount (Milestone B) | Route parity; artifacts; registry; race; E2E |
 | Cutover | Dual-run diff clean; performance; rollback tested |
 
 ## Failure Triage
@@ -308,6 +311,7 @@ Windows is required for symlink and hardlink artifact tests.
 ## Related Documents
 
 - [Architecture index](../index.md)
+- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)
 - [Operations layer](../layers/operations.md)

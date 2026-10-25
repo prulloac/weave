@@ -32,6 +32,17 @@ status: draft
    until all gates pass.
 7. **Every phase is reversible.** Keep the previous binary or tag deployable.
 
+## Milestone Map
+
+| Milestone | Phases | Outcome |
+| --- | --- | --- |
+| A — Integration | 0, 2, 3, 5A | Bigger engine uses `weave` over CLI |
+| B — Presentation | 4, 5B, 6 | Browser site and lens reach parity |
+| Cutover | 7 | TypeScript reference archived; Go is default |
+
+Phase 1 is skipped by [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md); the numbering is
+kept for traceability.
+
 ## Phase 0 — Freeze the contract
 
 **Goal:** make the observable behavior language-neutral.
@@ -52,27 +63,28 @@ Gate:
 
 Rollback: none needed; this phase is additive.
 
-## Phase 1 — Extract TypeScript layers (interim)
+## Phase 1 — Freeze the reference and export goldens (not package extraction)
 
-**Goal:** prove the package boundaries before changing language.
+**Status:** replaces the earlier extraction plan per ADR 0002 D2. The TypeScript implementation
+stays in its current layout.
+
+**Goal:** keep the reference runnable and make its behavior exportable.
 
 Deliverables:
 
-- `@weave/engine` facade (`openWeave`) over `okf`, `graph`, `search`, `nav`.
-- `@weave/operations` for transport-neutral request/response types.
-- `@weave/render` for the HTML renderers.
-- `@weave/mount` for the handler and artifacts.
-- `@weave/cli` as a thin wrapper.
-- No Astro or CLI imports from the engine.
-- A boundary test that forbids upward imports.
+- `contract:export` script that reads a fixture bundle and writes normalized golden JSON.
+- A manifest mapping fixtures to expected bundle, graph, search and navigation outputs.
+- Baseline notes recording the current TS test results.
+- No new `@weave/*` packages, exports maps or package-boundary work.
 
 Gate:
 
-- Existing unit and E2E suites pass against the extracted packages.
-- The boundary test fails on any engine import of render, mount, CLI or Astro.
-- The CLI uses the facade and parses once per process.
+- `bun test` and the Playwright suite remain green.
+- `bun run contract:export` is deterministic across repeated runs.
+- Every fixture in the corpus has expected output.
+- No new TypeScript package boundaries are introduced.
 
-Rollback: revert the extraction; behavior is unchanged.
+Rollback: remove the exporter; the reference is unchanged.
 
 ## Phase 2 — Scaffold the Go module
 
@@ -150,29 +162,47 @@ Gate:
 
 Rollback: keep the TypeScript renderer behind a flag; the Go renderer is opt-in.
 
-## Phase 5 — Port the CLI and presentation mount
+## Phase 5A — Port the CLI (Milestone A)
 
-**Goal:** ship the CLI contract and keep the browser presentation working.
+**Goal:** ship the machine integration contract.
 
 Deliverables:
 
 - `cmd/weave` machine commands: `contract`, `parse`, `graph`, `find`, `list`, `show`,
   `backlinks`, `path`, `version`.
 - Envelope output (`--json`), stdout/stderr separation and exit codes.
-- `mount.NewSite`, `Handler`, `Close`, artifacts, assets and registry for the presentation.
-- Standalone `mount`, `unmount`, `status` commands with port fallback and optional shutdown.
+- Parse cache enabled by default, `WEAVE_CACHE_DIR`, `--no-cache`.
+- `weave parse --json` includes bodies; `graph`/query payloads do not.
+- `weave contract --json` operation and version discovery.
 
 Gate:
 
 - Every CLI operation passes the process contract tests: valid envelope, empty stderr on success,
   documented exit code on failure, deterministic output.
 - `weave contract --json` advertises the supported operations and versions.
-- Artifact tests prove no writes to the source and correct cleanup.
-- `weave mount`, `status`, `unmount` still pass the browser E2E suite.
+- Cache tests pass: hit, invalidation, `--no-cache` parity, isolated temp directory.
+- Conformance, race and fuzz gates pass.
 - `go test -race ./...` passes.
 
-Rollback: switch the `weave` bin back to the TypeScript implementation. The CLI contract is new;
-the presentation can revert independently.
+Rollback: switch the `weave` bin back to the TypeScript implementation.
+
+## Phase 5B — Port the presentation mount (Milestone B)
+
+**Goal:** keep the browser presentation working on the Go handler.
+
+Deliverables:
+
+- `mount.NewSite`, `Handler`, `Close`, artifacts, assets and registry.
+- Standalone `mount`, `unmount`, `status` commands with port fallback and optional shutdown.
+
+Gate:
+
+- Artifact tests prove no writes to the source and correct cleanup.
+- `weave mount`, `status`, `unmount` pass the browser E2E suite.
+- Route, asset and `BasePath` tests pass.
+- `go test -race ./...` passes.
+
+Rollback: keep the TypeScript presentation; it is independent of the CLI contract.
 
 ## Phase 6 — Lens asset pipeline and embedding
 
@@ -223,8 +253,7 @@ Rollback: deploy the tagged TypeScript binary.
 ## Dependency-Ordered Checklist
 
 - [ ] Contract schemas and golden corpus
-- [ ] TypeScript golden exporter
-- [ ] TypeScript layer extraction and boundary test
+- [ ] TypeScript golden exporter (Phase 1 is skipped; no package extraction)
 - [ ] Go module and CI
 - [ ] Go filesystem and walker
 - [ ] Go frontmatter
@@ -234,9 +263,9 @@ Rollback: deploy the tagged TypeScript binary.
 - [ ] Go search
 - [ ] Go navigation
 - [ ] Go operations and envelopes
+- [ ] Go CLI (one-shot envelope, cache default)
 - [ ] Go renderer
 - [ ] Go mount (presentation)
-- [ ] Go CLI (one-shot envelope)
 - [ ] Lens package and build
 - [ ] Go embed and fallback
 - [ ] Dual-run diff
@@ -258,13 +287,24 @@ Rollback: deploy the tagged TypeScript binary.
 
 ## Definition of Done
 
+### Milestone A — Integration
+
 - The Go engine passes the full contract corpus and race suite.
 - Every CLI operation emits a valid envelope, respects stdout/stderr rules and returns documented
   exit codes.
 - `weave contract --json` is stable and tested.
+- The parse cache is enabled by default, testable and invalidates correctly.
+- `weave parse --json` includes bodies; query payloads do not.
+
+### Milestone B — Presentation
+
 - The Go renderer satisfies the DOM contract and zero-JS rules.
 - The presentation mount serves all routes and embeds the lens asset.
 - The lens package is independent and versioned.
+- Browser E2E passes against the Go binary.
+
+### Cutover
+
 - The TypeScript reference is archived at a tag.
 - Documentation matches the shipped module, CLI and asset versions.
 
@@ -285,6 +325,7 @@ None of these change the v1 CLI envelope contract or the engine semantics.
 ## Related Documents
 
 - [Architecture index](../index.md)
+- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)
 - [Operations layer](../layers/operations.md)

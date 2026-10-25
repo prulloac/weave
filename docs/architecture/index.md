@@ -68,6 +68,18 @@ server is a later transport adapter over the same operations.
 A host that is not written in Go must use the CLI. A Go host may use the package API, but the
 CLI remains the compatibility promise.
 
+## Milestones
+
+| Milestone | Phases | Outcome |
+| --- | --- | --- |
+| A — Integration | 0 contract, 2 Go scaffold, 3 engine/operations, 5A CLI | Bigger engine can use `weave` over CLI |
+| B — Presentation | 4 render, 5B mount, 6 lens assets | Browser site and lens reach parity |
+| Cutover | 7 | TypeScript reference archived; Go is default |
+
+Phase 1 (TypeScript package extraction) is skipped. The numbering is retained for traceability;
+see [ADR 0002](adr/0002-v1-scope-layout-and-contract.md) and
+[Integration steps](integration/steps.md).
+
 ## Dependency Rules
 
 1. `contract` has no internal dependencies and no runtime dependencies.
@@ -92,7 +104,7 @@ CLI remains the compatibility promise.
 | Render language | Go (`html/template` + goldmark) |
 | Lens language | TypeScript / Preact, built to static assets |
 | Binary model | Single Go binary with embedded lens assets |
-| **Integration model** | **CLI I/O (argv/stdin/stdout/stderr/exit codes) first** |
+| **Integration model** | **CLI I/O (argv/stdout/stderr/exit codes) first** |
 | Go library | Optional in-process API for Go hosts; not required for integration |
 | HTTP | Presentation only: browser UI, lens shell, local pages |
 | Future transport | TCP MCP adapter over the same operations, added later |
@@ -104,12 +116,19 @@ CLI remains the compatibility promise.
 | YAML | `gopkg.in/yaml.v3` in Go; required subset fixed by fixtures |
 | Markdown | `goldmark` with GFM; raw HTML disabled |
 | Search | Custom BM25 port, not a search engine dependency |
+| **Repository layout** | **Single Go module at the repo root** (`github.com/prulloac/weave`) |
+| **Migration sequencing** | **Skip TS package extraction**; freeze the reference and export goldens |
+| **v1 scope** | **Milestone A: contract + engine + CLI.** Milestone B: render + mount + lens |
+| **Contract source** | **JSON Schema is authoritative**; generated TS types; hand-written, schema-tested Go structs |
+| **CLI cache** | **Enabled by default**; `WEAVE_CACHE_DIR`, `--no-cache` |
+| **`weave parse` payload** | **Includes concept bodies**; `--no-body` deferred post-v1 |
 
 ## Documents
 
 | Document | Purpose |
 | --- | --- |
 | [ADR 0001](adr/0001-go-engine-and-ts-lens.md) | Why Go for the engine/render/mount and TypeScript for the lens |
+| [ADR 0002](adr/0002-v1-scope-layout-and-contract.md) | Approved v1 layout, sequencing, scope, contract generation, cache and parse payload |
 | [Contract layer](layers/contract.md) | Language-neutral domain model, schemas, semantics and versioning |
 | [Engine layer](layers/engine-go.md) | Go parser, graph, search, navigation, cache and FS adapter |
 | [Operations layer](layers/operations.md) | Transport-neutral requests, responses and error model |
@@ -123,7 +142,7 @@ CLI remains the compatibility promise.
 
 ## Reading Order
 
-1. Decision record and this index.
+1. Decision records and this index.
 2. Contract layer.
 3. Operations layer.
 4. CLI layer and integration contracts.
