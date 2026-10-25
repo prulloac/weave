@@ -17,10 +17,12 @@ export function renderExplorer(bundle: ParsedBundle): string {
 	const validationEntries = [...bundle.validation.concepts.values()]
 
 	const indexList = (bundle.index ?? [])
-		.map(
-			(entry) =>
-				`<li data-testid="index-entry" data-target="${escapeAttr(entry.target)}">${escapeHtml(entry.title)}</li>`,
-		)
+		.map((entry) => {
+			const description = entry.description
+				? ` <span data-testid="index-description">${escapeHtml(entry.description)}</span>`
+				: ''
+			return `<li data-testid="index-entry" data-target="${escapeAttr(entry.target)}">${escapeHtml(entry.title)}${description}</li>`
+		})
 		.join('')
 
 	const validationList = validationEntries

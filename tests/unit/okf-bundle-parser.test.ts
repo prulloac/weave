@@ -313,6 +313,47 @@ describe('parseBundle', () => {
 		}
 	})
 
+	test('parses index entry descriptions', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'okf-index-descriptions-'))
+		try {
+			writeFileSync(
+				join(dir, 'index.md'),
+				'---\nokf_version: "0.2"\n---\n- [A](a.md) - First concept\n- [B](/b.md)\n',
+			)
+			writeFileSync(join(dir, 'a.md'), '---\ntype: Concept\n---\n')
+			writeFileSync(join(dir, 'b.md'), '---\ntype: Concept\n---\n')
+
+			const bundle = await parseBundle(dir)
+
+			expect(bundle.index).toEqual([
+				{ title: 'A', target: 'a.md', description: 'First concept' },
+				{ title: 'B', target: 'b.md' },
+			])
+		} finally {
+			rmSync(dir, { recursive: true, force: true })
+		}
+	})
+
+	test('derives concept identity from the path, not metadata.id', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'okf-identity-'))
+		try {
+			mkdirSync(join(dir, 'sub'))
+			writeFileSync(
+				join(dir, 'sub', 'file.md'),
+				'---\ntype: Concept\nmetadata:\n  id: other-id\n---\n',
+			)
+
+			const bundle = await parseBundle(dir)
+			const concept = bundle.concepts.get('sub/file')!
+
+			expect(concept).toBeDefined()
+			expect(concept.frontmatter.metadata).toEqual({ id: 'other-id' })
+			expect(bundle.concepts.has('other-id')).toBe(false)
+		} finally {
+			rmSync(dir, { recursive: true, force: true })
+		}
+	})
+
 	test('follows one level of symlinked directories without cycles', async () => {
 		const dir = mkdtempSync(join(tmpdir(), 'okf-symlink-'))
 		try {

@@ -121,18 +121,37 @@ interface ParsedIndex {
 	version?: unknown
 }
 
+const INDEX_ENTRY =
+	/^\s*[-*+]\s+\[([^\]]*)\]\(\s*(?:<([^>]+)>|([^()\s]+))(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)\s*(?:[-\u2013\u2014]\s*(.+))?\s*$/
+
+function parseIndexBody(body: string): IndexEntry[] {
+	const entries: IndexEntry[] = []
+	for (const line of body.split(/\r?\n/)) {
+		const match = INDEX_ENTRY.exec(line)
+		if (!match) continue
+		const target = (match[2] ?? match[3] ?? '').replace(/^\//, '')
+		if (!target) continue
+
+		const entry: IndexEntry = { title: match[1] ?? '', target }
+		const description = match[4]?.trim()
+		if (description) entry.description = description
+		entries.push(entry)
+	}
+
+	if (entries.length > 0) return entries
+	return extractLinks(body).map((link) => ({
+		title: linkText(link.raw),
+		target: link.target.startsWith('/') ? link.target.slice(1) : link.target,
+	}))
+}
+
 async function readIndex(filePath: string): Promise<ParsedIndex> {
 	const raw = await readText(filePath)
 	const extracted = extractFrontmatter(raw)
 	const data = extracted?.data ?? {}
 	const body = extracted?.body ?? raw
 
-	const index: IndexEntry[] = extractLinks(body).map((link) => ({
-		title: linkText(link.raw),
-		target: link.target.startsWith('/') ? link.target.slice(1) : link.target,
-	}))
-
-	return { index, version: data.okf_version ?? data.okfVersion }
+	return { index: parseIndexBody(body), version: data.okf_version ?? data.okfVersion }
 }
 
 export async function parseBundle(root: string): Promise<ParsedBundle> {
