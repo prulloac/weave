@@ -285,9 +285,11 @@ type Error struct {
 | Concurrency | 32 reads by default, configurable |
 | Determinism | Identical inputs produce byte-identical JSON after normalization |
 
-Benchmarks live in `engine/okf/bench_test.go` and `engine/search/bench_test.go` with generated
-bundles. CI runs a smoke benchmark with a generous ceiling to catch order-of-magnitude
-regressions.
+Benchmarks live in `engine/bench_test.go` with generated bundles. CI runs a smoke benchmark with
+a generous ceiling to catch order-of-magnitude regressions.
+
+Current Go benchmark on 1,000 generated files (Go 1.27, local x86_64): parse ~47 ms,
+search ~1.3 ms. The 10k budget remains the release gate.
 
 ## Testing
 
