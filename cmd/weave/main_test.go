@@ -127,21 +127,21 @@ func TestGraphJSON(t *testing.T) {
 	}
 }
 
-func TestFindJSONAndHuman(t *testing.T) {
-	code, stdout, stderr := invoke(t, "find", fixturePath(), "graph", "--json")
+func TestSearchJSONAndHuman(t *testing.T) {
+	code, stdout, stderr := invoke(t, "search", fixturePath(), "graph", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
 	envelope := decodeEnvelope(t, stdout)
-	var results []contractv1.FindResult
-	if err := json.Unmarshal(envelope.Result, &results); err != nil {
+	var response contractv1.SearchResponse
+	if err := json.Unmarshal(envelope.Result, &response); err != nil {
 		t.Fatal(err)
 	}
-	if len(results) != 2 || results[0].ID != "concepts/node-graph-engine" {
-		t.Fatalf("unexpected results: %+v", results)
+	if len(response.Hybrid) == 0 || response.Hybrid[0].ID != "concepts/node-graph-engine" {
+		t.Fatalf("unexpected results: %+v", response.Hybrid)
 	}
 
-	code, stdout, stderr = invoke(t, "find", fixturePath(), "graph")
+	code, stdout, stderr = invoke(t, "search", fixturePath(), "graph")
 	if code != 0 || stderr != "" {
 		t.Fatalf("human exit=%d stderr=%q", code, stderr)
 	}
@@ -150,8 +150,45 @@ func TestFindJSONAndHuman(t *testing.T) {
 	}
 }
 
-func TestFindNoMatchesJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "find", fixturePath(), "zzzz", "--json")
+func TestSearchModesAndTopK(t *testing.T) {
+	code, stdout, stderr := invoke(t, "search", fixturePath(), "graph", "--mode", "keyword", "--top-k", "1", "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("exit=%d stderr=%q", code, stderr)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	var response contractv1.SearchResponse
+	if err := json.Unmarshal(envelope.Result, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Mode != contractv1.SearchKeyword || len(response.Keyword) > 1 {
+		t.Fatalf("unexpected keyword response: %+v", response)
+	}
+
+	code, stdout, stderr = invoke(t, "search", fixturePath(), "graph", "--mode", "fuzzy", "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("exit=%d stderr=%q", code, stderr)
+	}
+	envelope = decodeEnvelope(t, stdout)
+	if err := json.Unmarshal(envelope.Result, &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Mode != contractv1.SearchFuzzy {
+		t.Fatalf("unexpected fuzzy response: %+v", response)
+	}
+
+	code, _, stderr = invoke(t, "search", fixturePath(), "graph", "--top-k", "0", "--json")
+	if code != 2 || !strings.Contains(stderr, "top-k") {
+		t.Fatalf("expected top-k usage error, got %d %q", code, stderr)
+	}
+
+	code, _, stderr = invoke(t, "search", fixturePath(), "graph", "--mode", "nope", "--json")
+	if code != 2 || !strings.Contains(stderr, "mode") {
+		t.Fatalf("expected mode usage error, got %d %q", code, stderr)
+	}
+}
+
+func TestSearchNoMatchesJSON(t *testing.T) {
+	code, stdout, stderr := invoke(t, "search", fixturePath(), "zzzz", "--json")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -271,7 +308,7 @@ func TestCacheDefaultAndNoCache(t *testing.T) {
 	cacheDir := t.TempDir()
 	t.Setenv("WEAVE_CACHE_DIR", cacheDir)
 
-	code, _, stderr := invoke(t, "find", fixturePath(), "graph", "--json")
+	code, _, stderr := invoke(t, "search", fixturePath(), "graph", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -285,7 +322,7 @@ func TestCacheDefaultAndNoCache(t *testing.T) {
 
 	noCacheDir := t.TempDir()
 	t.Setenv("WEAVE_CACHE_DIR", noCacheDir)
-	code, _, stderr = invoke(t, "find", fixturePath(), "graph", "--json", "--no-cache")
+	code, _, stderr = invoke(t, "search", fixturePath(), "graph", "--json", "--no-cache")
 	if code != 0 || stderr != "" {
 		t.Fatalf("no-cache exit=%d stderr=%q", code, stderr)
 	}

@@ -100,6 +100,36 @@ func optionalStringSlice(value any) []string {
 	}
 }
 
+func keywords(value any) []string {
+	switch typed := value.(type) {
+	case []any:
+		result := make([]string, 0, len(typed))
+		for _, item := range typed {
+			text, ok := item.(string)
+			if !ok || strings.TrimSpace(text) == "" {
+				return nil
+			}
+			result = append(result, text)
+		}
+		if len(result) == 0 {
+			return nil
+		}
+		return result
+	case []string:
+		if len(typed) == 0 {
+			return nil
+		}
+		for _, text := range typed {
+			if strings.TrimSpace(text) == "" {
+				return nil
+			}
+		}
+		return typed
+	default:
+		return nil
+	}
+}
+
 func optionalStatus(value any) *contractv1.ConceptStatus {
 	text, ok := value.(string)
 	if !ok {

@@ -5,6 +5,10 @@
       "path": "concepts/missing-type.md",
       "type": "",
       "title": "Concept without a type",
+      "keywords": [
+        "missing",
+        "type"
+      ],
       "in_degree": 0,
       "out_degree": 0
     },
@@ -13,6 +17,12 @@
       "path": "concepts/node-graph-engine.md",
       "type": "Concept",
       "title": "Node Graph Engine",
+      "keywords": [
+        "graph",
+        "engine",
+        "nodes",
+        "edges"
+      ],
       "status": "draft",
       "tags": [
         "graph"
@@ -25,6 +35,11 @@
       "path": "concepts/okf-bundle.md",
       "type": "Concept",
       "title": "OKF Bundle",
+      "keywords": [
+        "okf",
+        "bundle",
+        "format"
+      ],
       "status": "stable",
       "tags": [
         "format",
@@ -38,6 +53,12 @@
       "path": "concepts/search-index.md",
       "type": "Concept",
       "title": "Search Index",
+      "keywords": [
+        "search",
+        "index",
+        "keywords",
+        "fuzzy"
+      ],
       "status": "deprecated",
       "in_degree": 1,
       "out_degree": 1
@@ -47,6 +68,11 @@
       "path": "tables/users.md",
       "type": "Table",
       "title": "User Table",
+      "keywords": [
+        "users",
+        "table",
+        "relations"
+      ],
       "in_degree": 1,
       "out_degree": 1
     }

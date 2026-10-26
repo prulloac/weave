@@ -161,7 +161,7 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 	valid := true
 	for _, entry := range validation {
 		validationEntries = append(validationEntries, entry)
-		if !entry.HasFrontmatter || !entry.HasType {
+		if !entry.HasFrontmatter || !entry.HasType || !entry.HasKeywords {
 			valid = false
 		}
 	}
@@ -390,6 +390,7 @@ func parseConceptFile(
 		Path:        rel,
 		Frontmatter: frontmatter,
 		Type:        conceptType(frontmatter["type"]),
+		Keywords:    keywords(frontmatter["keywords"]),
 		Title:       optionalString(frontmatter["title"]),
 		Description: optionalString(frontmatter["description"]),
 		Tags:        optionalStringSlice(frontmatter["tags"]),
@@ -481,6 +482,7 @@ func invalidOutcome(id string, warning string) fileOutcome {
 		ID:             id,
 		HasFrontmatter: false,
 		HasType:        false,
+		HasKeywords:    false,
 		Warnings:       []string{warning},
 	}
 	return fileOutcome{Validation: &validation}
@@ -503,14 +505,19 @@ func conceptID(rel string) string {
 
 func validateConcept(concept contractv1.OkfConcept, warnings []string) contractv1.ConceptValidation {
 	hasType := strings.TrimSpace(concept.Type) != ""
+	hasKeywords := len(concept.Keywords) > 0
 	result := contractv1.ConceptValidation{
 		ID:             concept.ID,
 		HasFrontmatter: true,
 		HasType:        hasType,
+		HasKeywords:    hasKeywords,
 		Warnings:       warnings,
 	}
 	if !hasType {
 		result.Warnings = append(result.Warnings, "missing type")
+	}
+	if !hasKeywords {
+		result.Warnings = append(result.Warnings, "missing keywords")
 	}
 	if concept.Title == nil {
 		result.Warnings = append(result.Warnings, "missing optional field: title")

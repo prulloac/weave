@@ -97,15 +97,18 @@ func TestNavigationOperations(t *testing.T) {
 	ctx := context.Background()
 	path := fixture()
 
-	findResult := successResult(t, exec.Execute(ctx, contractv1.OperationRequest{
-		Op: contractv1.OpFind, Path: path, Query: "graph",
+	searchResult := successResult(t, exec.Execute(ctx, contractv1.OperationRequest{
+		Op: contractv1.OpSearch, Path: path, Query: "graph", Mode: contractv1.SearchHybrid,
 	}))
-	findResults, ok := findResult.([]contractv1.FindResult)
+	response, ok := searchResult.(contractv1.SearchResponse)
 	if !ok {
-		t.Fatalf("expected []FindResult, got %T", findResult)
+		t.Fatalf("expected SearchResponse, got %T", searchResult)
 	}
-	if len(findResults) != 2 {
-		t.Fatalf("expected 2 find results, got %d", len(findResults))
+	if len(response.Hybrid) == 0 {
+		t.Fatal("expected hybrid results")
+	}
+	if response.Hybrid[0].ID != "concepts/node-graph-engine" {
+		t.Fatalf("unexpected top result: %+v", response.Hybrid[0])
 	}
 
 	listResult := successResult(t, exec.Execute(ctx, contractv1.OperationRequest{

@@ -56,8 +56,8 @@ func (e *Engine) Bundle() *contractv1.Bundle { return e.bundle }
 func (e *Engine) Graph() *graph.Graph        { return e.graph }
 func (e *Engine) SearchIndex() *search.Index { return e.search }
 
-func (e *Engine) Find(query string, options search.Options) []contractv1.FindResult {
-	return nav.Find(e.search, query, options)
+func (e *Engine) Search(query string, mode contractv1.SearchMode, topK int) (contractv1.SearchResponse, error) {
+	return search.Search(e.search, query, mode, topK)
 }
 
 func (e *Engine) List(filters nav.ListFilters) []contractv1.ListResult {
@@ -74,10 +74,6 @@ func (e *Engine) Backlinks(target string) (*contractv1.BacklinksResult, bool) {
 
 func (e *Engine) Path(from, to string) (*contractv1.PathResult, bool) {
 	return nav.Path(e.bundle, e.graph, from, to)
-}
-
-func (e *Engine) SerializedGraph() contractv1.SerializedGraph {
-	return graph.Serialize(e.graph)
 }
 
 // Close releases engine resources. The in-memory engine has none.

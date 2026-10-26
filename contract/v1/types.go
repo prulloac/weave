@@ -17,16 +17,20 @@ const (
 	StatusDeprecated ConceptStatus = "deprecated"
 )
 
+type SearchMode string
+
+const (
+	SearchKeyword SearchMode = "keyword"
+	SearchFuzzy   SearchMode = "fuzzy"
+	SearchHybrid  SearchMode = "hybrid"
+)
+
 type SearchField string
 
 const (
 	FieldTitle       SearchField = "title"
-	FieldTags        SearchField = "tags"
 	FieldDescription SearchField = "description"
 	FieldBody        SearchField = "body"
-	FieldPath        SearchField = "path"
-	FieldType        SearchField = "type"
-	FieldFrontmatter SearchField = "frontmatter"
 )
 
 type ErrorCode string
@@ -47,7 +51,7 @@ const (
 	OpContract  OperationName = "contract"
 	OpParse     OperationName = "parse"
 	OpGraph     OperationName = "graph"
-	OpFind      OperationName = "find"
+	OpSearch    OperationName = "search"
 	OpList      OperationName = "list"
 	OpShow      OperationName = "show"
 	OpBacklinks OperationName = "backlinks"
@@ -69,6 +73,7 @@ type OkfConcept struct {
 	Path        string         `json:"path"`
 	Frontmatter map[string]any `json:"frontmatter"`
 	Type        string         `json:"type"`
+	Keywords    []string       `json:"keywords"`
 	Title       *string        `json:"title,omitempty"`
 	Description *string        `json:"description,omitempty"`
 	Tags        []string       `json:"tags,omitempty"`
@@ -89,6 +94,7 @@ type ConceptValidation struct {
 	ID             string   `json:"id"`
 	HasFrontmatter bool     `json:"has_frontmatter"`
 	HasType        bool     `json:"has_type"`
+	HasKeywords    bool     `json:"has_keywords"`
 	Warnings       []string `json:"warnings"`
 }
 
@@ -114,6 +120,7 @@ type GraphNode struct {
 	Path      string         `json:"path"`
 	Type      string         `json:"type"`
 	Title     string         `json:"title"`
+	Keywords  []string       `json:"keywords"`
 	Status    *ConceptStatus `json:"status,omitempty"`
 	Tags      []string       `json:"tags,omitempty"`
 	InDegree  int            `json:"in_degree"`
@@ -135,63 +142,61 @@ type Graph struct {
 	Dangling map[string][]OkfLink `json:"dangling"`
 }
 
-// SerializedGraphNode is the lens-facing node shape.
-type SerializedGraphNode struct {
-	ID        string         `json:"id"`
-	Title     string         `json:"title"`
-	Type      string         `json:"type"`
-	Status    *ConceptStatus `json:"status,omitempty"`
-	Tags      []string       `json:"tags,omitempty"`
-	InDegree  int            `json:"in_degree"`
-	OutDegree int            `json:"out_degree"`
+// KeywordHit is a keyword-dimension search result.
+type KeywordHit struct {
+	ID              string   `json:"id"`
+	Title           string   `json:"title"`
+	Path            string   `json:"path"`
+	Type            string   `json:"type"`
+	Keywords        []string `json:"keywords"`
+	MatchedKeywords []string `json:"matched_keywords"`
+	Score           float64  `json:"score"`
 }
 
-// SerializedGraphEdge is the lens-facing edge shape.
-type SerializedGraphEdge struct {
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Source string `json:"source"`
+// FuzzyHit is a fuzzy-dimension search result.
+type FuzzyHit struct {
+	ID            string        `json:"id"`
+	Title         string        `json:"title"`
+	Path          string        `json:"path"`
+	Type          string        `json:"type"`
+	Score         float64       `json:"score"`
+	MatchedFields []SearchField `json:"matched_fields"`
+	Snippet       *string       `json:"snippet,omitempty"`
 }
 
-// SerializedGraph is the compact graph payload embedded in the lens shell.
-type SerializedGraph struct {
-	Nodes []SerializedGraphNode `json:"nodes"`
-	Edges []SerializedGraphEdge `json:"edges"`
+// HybridHit is a combined search result.
+type HybridHit struct {
+	ID              string        `json:"id"`
+	Title           string        `json:"title"`
+	Path            string        `json:"path"`
+	Type            string        `json:"type"`
+	KeywordScore    float64       `json:"keyword_score"`
+	FuzzyScore      float64       `json:"fuzzy_score"`
+	TotalScore      float64       `json:"total_score"`
+	MatchedKeywords []string      `json:"matched_keywords"`
+	MatchedFields   []SearchField `json:"matched_fields"`
+	Snippet         *string       `json:"snippet,omitempty"`
 }
 
-// SearchResult is one BM25 search hit.
-type SearchResult struct {
-	ID        string      `json:"id"`
-	Title     string      `json:"title"`
-	Path      string      `json:"path"`
-	Type      string      `json:"type"`
-	Score     float64     `json:"score"`
-	BestField SearchField `json:"best_field"`
-	Snippet   *string     `json:"snippet,omitempty"`
+// SearchResponse contains the keyword, fuzzy and hybrid top-K lists.
+type SearchResponse struct {
+	Query   string       `json:"query"`
+	Mode    SearchMode   `json:"mode"`
+	TopK    int          `json:"top_k"`
+	Keyword []KeywordHit `json:"keyword"`
+	Fuzzy   []FuzzyHit   `json:"fuzzy"`
+	Hybrid  []HybridHit  `json:"hybrid"`
 }
-
-type SearchResults []SearchResult
-
-// FindResult is the CLI-facing search hit.
-type FindResult struct {
-	ID      string  `json:"id"`
-	Title   string  `json:"title"`
-	Path    string  `json:"path"`
-	Type    string  `json:"type"`
-	Score   float64 `json:"score"`
-	Snippet *string `json:"snippet,omitempty"`
-}
-
-type FindResults []FindResult
 
 // ListResult is one metadata-filtered concept.
 type ListResult struct {
-	ID     string         `json:"id"`
-	Title  string         `json:"title"`
-	Path   string         `json:"path"`
-	Type   string         `json:"type"`
-	Status *ConceptStatus `json:"status,omitempty"`
-	Tags   []string       `json:"tags,omitempty"`
+	ID       string         `json:"id"`
+	Title    string         `json:"title"`
+	Path     string         `json:"path"`
+	Type     string         `json:"type"`
+	Keywords []string       `json:"keywords"`
+	Status   *ConceptStatus `json:"status,omitempty"`
+	Tags     []string       `json:"tags,omitempty"`
 }
 
 type ListResults []ListResult
@@ -208,6 +213,7 @@ type ShowResult struct {
 	ID          string         `json:"id"`
 	Path        string         `json:"path"`
 	Type        string         `json:"type"`
+	Keywords    []string       `json:"keywords"`
 	Title       *string        `json:"title,omitempty"`
 	Description *string        `json:"description,omitempty"`
 	Tags        []string       `json:"tags,omitempty"`
@@ -265,6 +271,8 @@ type OperationRequest struct {
 	Op     OperationName `json:"op"`
 	Path   string        `json:"path,omitempty"`
 	Query  string        `json:"query,omitempty"`
+	Mode   SearchMode    `json:"mode,omitempty"`
+	TopK   *int          `json:"top_k,omitempty"`
 	Target string        `json:"target,omitempty"`
 	From   string        `json:"from,omitempty"`
 	To     string        `json:"to,omitempty"`
@@ -272,7 +280,6 @@ type OperationRequest struct {
 	Tags   []string      `json:"tags,omitempty"`
 	Status string        `json:"status,omitempty"`
 	Limit  *int          `json:"limit,omitempty"`
-	Fields []SearchField `json:"fields,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

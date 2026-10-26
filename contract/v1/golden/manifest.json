@@ -5,9 +5,8 @@
 		{
 			"name": "okf-bundle",
 			"bundle": "bundles/okf-bundle",
-			"search": [{ "name": "graph", "query": "graph" }],
+			"search": [{ "name": "graph", "query": "graph", "mode": "hybrid", "top_k": 5 }],
 			"nav": [
-				{ "name": "find-graph", "command": "find", "query": "graph" },
 				{ "name": "list", "command": "list" },
 				{ "name": "show-okf-bundle", "command": "show", "target": "concepts/okf-bundle" },
 				{
@@ -26,7 +25,7 @@
 		{
 			"name": "anchors",
 			"bundle": "bundles/anchors",
-			"search": [{ "name": "b", "query": "B" }],
+			"search": [{ "name": "target", "query": "target", "mode": "keyword", "top_k": 5 }],
 			"nav": [{ "name": "show-a", "command": "show", "target": "a" }]
 		},
 		{

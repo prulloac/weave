@@ -5,6 +5,11 @@
       "path": "verified.md",
       "type": "Concept",
       "title": "Verified",
+      "keywords": [
+        "trust",
+        "verified",
+        "metadata"
+      ],
       "in_degree": 0,
       "out_degree": 0
     }

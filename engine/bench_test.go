@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
-	"github.com/prulloac/weave/engine/search"
 )
 
 func makeBenchBundle(b *testing.B, count int) string {
@@ -55,8 +55,11 @@ func BenchmarkSearch(b *testing.B) {
 	b.ResetTimer()
 
 	for index := 0; index < b.N; index++ {
-		results := search.Query(eng.SearchIndex(), "graph", search.Options{Limit: 20})
-		if len(results) == 0 {
+		response, err := eng.Search("graph", contractv1.SearchHybrid, 20)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if len(response.Hybrid) == 0 {
 			b.Fatal("expected results")
 		}
 	}

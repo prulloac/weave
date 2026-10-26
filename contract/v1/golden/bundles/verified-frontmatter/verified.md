@@ -1,4 +1,8 @@
 ---
+keywords:
+  - "trust"
+  - "verified"
+  - "metadata"
 type: Concept
 title: "Verified"
 verified:

@@ -1,14 +1,22 @@
 {
-  "root": "<root>",
+  "root": "\u003croot\u003e",
   "concepts": [
     {
       "id": "alpha",
       "path": "alpha.md",
       "frontmatter": {
-        "type": "Concept",
-        "title": "Alpha"
+        "keywords": [
+          "version",
+          "mismatch"
+        ],
+        "title": "Alpha",
+        "type": "Concept"
       },
       "type": "Concept",
+      "keywords": [
+        "version",
+        "mismatch"
+      ],
       "title": "Alpha",
       "body": "\n# Alpha\n\nA best-effort parsed concept.\n",
       "links": []
@@ -27,6 +35,7 @@
         "id": "alpha",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": [
           "missing optional field: description",
           "missing optional field: tags",

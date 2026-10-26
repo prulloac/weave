@@ -1,0 +1,37 @@
+{
+  "query": "target",
+  "mode": "keyword",
+  "top_k": 5,
+  "keyword": [
+    {
+      "id": "b",
+      "title": "B",
+      "path": "b.md",
+      "type": "Concept",
+      "keywords": [
+        "anchors",
+        "target"
+      ],
+      "matched_keywords": [
+        "target"
+      ],
+      "score": 1
+    }
+  ],
+  "fuzzy": [],
+  "hybrid": [
+    {
+      "id": "b",
+      "title": "B",
+      "path": "b.md",
+      "type": "Concept",
+      "keyword_score": 1,
+      "fuzzy_score": 0,
+      "total_score": 0.5,
+      "matched_keywords": [
+        "target"
+      ],
+      "matched_fields": []
+    }
+  ]
+}

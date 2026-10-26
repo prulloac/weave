@@ -1,4 +1,8 @@
 ---
+keywords:
+  - "users"
+  - "table"
+  - "relations"
 type: Table
 title: "User Table"
 description: "The users relation."

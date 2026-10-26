@@ -5,6 +5,10 @@
       "path": "a.md",
       "type": "Concept",
       "title": "A",
+      "keywords": [
+        "anchors",
+        "links"
+      ],
       "in_degree": 1,
       "out_degree": 1
     },
@@ -13,6 +17,10 @@
       "path": "b.md",
       "type": "Concept",
       "title": "B",
+      "keywords": [
+        "anchors",
+        "target"
+      ],
       "in_degree": 1,
       "out_degree": 1
     }

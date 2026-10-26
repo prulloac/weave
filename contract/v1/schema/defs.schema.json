@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://weave.dev/contract/v1/defs.schema.json",
 	"title": "WeaveContractV1",
-	"description": "Authoritative domain, operations and CLI envelope definitions for Weave contract v1.",
+	"description": "Authoritative document, graph, search and CLI envelope definitions for Weave contract v1.",
 	"type": "object",
 	"additionalProperties": false,
 	"$defs": {
@@ -14,9 +14,13 @@
 			"type": "string",
 			"enum": ["draft", "stable", "deprecated"]
 		},
+		"SearchMode": {
+			"type": "string",
+			"enum": ["keyword", "fuzzy", "hybrid"]
+		},
 		"SearchField": {
 			"type": "string",
-			"enum": ["title", "tags", "description", "body", "path", "type", "frontmatter"]
+			"enum": ["title", "description", "body"]
 		},
 		"ErrorCode": {
 			"type": "string",
@@ -32,73 +36,56 @@
 		},
 		"OperationName": {
 			"type": "string",
-			"enum": ["contract", "parse", "graph", "find", "list", "show", "backlinks", "path", "version"]
+			"enum": [
+				"contract",
+				"parse",
+				"graph",
+				"search",
+				"list",
+				"show",
+				"backlinks",
+				"path",
+				"version"
+			]
 		},
 		"OkfLink": {
 			"type": "object",
 			"additionalProperties": false,
 			"required": ["raw", "target", "resolves_in_bundle"],
 			"properties": {
-				"raw": {
-					"type": "string",
-					"description": "Original Markdown source."
-				},
-				"target": {
-					"type": "string",
-					"description": "Destination as written."
-				},
-				"resolved": {
-					"type": "string",
-					"description": "Bundle-relative path with forward slashes when the target is in-bundle."
-				},
-				"resolves_in_bundle": {
-					"type": "boolean"
-				}
+				"raw": { "type": "string" },
+				"target": { "type": "string" },
+				"resolved": { "type": "string" },
+				"resolves_in_bundle": { "type": "boolean" }
 			}
 		},
 		"OkfConcept": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "path", "frontmatter", "type", "body", "links"],
+			"required": ["id", "path", "frontmatter", "type", "keywords", "body", "links"],
 			"properties": {
-				"id": {
-					"type": "string",
-					"description": "Bundle-relative path minus the .md suffix."
-				},
-				"path": {
-					"type": "string",
-					"description": "Bundle-relative path including the .md suffix."
-				},
+				"id": { "type": "string" },
+				"path": { "type": "string" },
 				"frontmatter": {
 					"type": "object",
 					"additionalProperties": true
 				},
-				"type": {
-					"type": "string"
+				"type": { "type": "string" },
+				"keywords": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 }
 				},
-				"title": {
-					"type": "string"
-				},
-				"description": {
-					"type": "string"
-				},
+				"title": { "type": "string" },
+				"description": { "type": "string" },
 				"tags": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
-				"status": {
-					"$ref": "#/$defs/ConceptStatus"
-				},
-				"body": {
-					"type": "string"
-				},
+				"status": { "$ref": "#/$defs/ConceptStatus" },
+				"body": { "type": "string" },
 				"links": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/OkfLink"
-					}
+					"items": { "$ref": "#/$defs/OkfLink" }
 				}
 			}
 		},
@@ -107,36 +94,23 @@
 			"additionalProperties": false,
 			"required": ["title", "target"],
 			"properties": {
-				"title": {
-					"type": "string"
-				},
-				"target": {
-					"type": "string"
-				},
-				"description": {
-					"type": "string"
-				}
+				"title": { "type": "string" },
+				"target": { "type": "string" },
+				"description": { "type": "string" }
 			}
 		},
 		"ConceptValidation": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "has_frontmatter", "has_type", "warnings"],
+			"required": ["id", "has_frontmatter", "has_type", "has_keywords", "warnings"],
 			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"has_frontmatter": {
-					"type": "boolean"
-				},
-				"has_type": {
-					"type": "boolean"
-				},
+				"id": { "type": "string" },
+				"has_frontmatter": { "type": "boolean" },
+				"has_type": { "type": "boolean" },
+				"has_keywords": { "type": "boolean" },
 				"warnings": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				}
 			}
 		},
@@ -145,20 +119,14 @@
 			"additionalProperties": false,
 			"required": ["valid", "concepts", "warnings"],
 			"properties": {
-				"valid": {
-					"type": "boolean"
-				},
+				"valid": { "type": "boolean" },
 				"concepts": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/ConceptValidation"
-					}
+					"items": { "$ref": "#/$defs/ConceptValidation" }
 				},
 				"warnings": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				}
 			}
 		},
@@ -167,63 +135,39 @@
 			"additionalProperties": false,
 			"required": ["root", "concepts", "validation"],
 			"properties": {
-				"root": {
-					"type": "string"
-				},
-				"okf_version": {
-					"$ref": "#/$defs/OkfVersion"
-				},
+				"root": { "type": "string" },
+				"okf_version": { "$ref": "#/$defs/OkfVersion" },
 				"concepts": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/OkfConcept"
-					}
+					"items": { "$ref": "#/$defs/OkfConcept" }
 				},
 				"index": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/IndexEntry"
-					}
+					"items": { "$ref": "#/$defs/IndexEntry" }
 				},
-				"validation": {
-					"$ref": "#/$defs/Validation"
-				}
+				"validation": { "$ref": "#/$defs/Validation" }
 			}
 		},
 		"GraphNode": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "path", "type", "title", "in_degree", "out_degree"],
+			"required": ["id", "path", "type", "title", "keywords", "in_degree", "out_degree"],
 			"properties": {
-				"id": {
-					"type": "string"
+				"id": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"title": { "type": "string" },
+				"keywords": {
+					"type": "array",
+					"items": { "type": "string" }
 				},
-				"path": {
-					"type": "string"
-				},
-				"type": {
-					"type": "string"
-				},
-				"title": {
-					"type": "string"
-				},
-				"status": {
-					"$ref": "#/$defs/ConceptStatus"
-				},
+				"status": { "$ref": "#/$defs/ConceptStatus" },
 				"tags": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
-				"in_degree": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"out_degree": {
-					"type": "integer",
-					"minimum": 0
-				}
+				"in_degree": { "type": "integer", "minimum": 0 },
+				"out_degree": { "type": "integer", "minimum": 0 }
 			}
 		},
 		"GraphEdge": {
@@ -231,19 +175,10 @@
 			"additionalProperties": false,
 			"required": ["from", "to", "source"],
 			"properties": {
-				"from": {
-					"type": "string"
-				},
-				"to": {
-					"type": "string"
-				},
-				"source": {
-					"type": "string",
-					"enum": ["link", "related"]
-				},
-				"raw": {
-					"type": "string"
-				}
+				"from": { "type": "string" },
+				"to": { "type": "string" },
+				"source": { "type": "string", "enum": ["link", "related"] },
+				"raw": { "type": "string" }
 			}
 		},
 		"Graph": {
@@ -253,254 +188,174 @@
 			"properties": {
 				"nodes": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/GraphNode"
-					}
+					"items": { "$ref": "#/$defs/GraphNode" }
 				},
 				"edges": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/GraphEdge"
-					}
+					"items": { "$ref": "#/$defs/GraphEdge" }
 				},
 				"dangling": {
 					"type": "object",
 					"additionalProperties": {
 						"type": "array",
-						"items": {
-							"$ref": "#/$defs/OkfLink"
-						}
+						"items": { "$ref": "#/$defs/OkfLink" }
 					}
 				}
 			}
 		},
-		"SerializedGraphNode": {
+		"KeywordHit": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "title", "type", "in_degree", "out_degree"],
+			"required": ["id", "title", "path", "type", "keywords", "matched_keywords", "score"],
 			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"title": {
-					"type": "string"
-				},
-				"type": {
-					"type": "string"
-				},
-				"status": {
-					"$ref": "#/$defs/ConceptStatus"
-				},
-				"tags": {
+				"id": { "type": "string" },
+				"title": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"keywords": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
-				"in_degree": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"out_degree": {
-					"type": "integer",
-					"minimum": 0
-				}
-			}
-		},
-		"SerializedGraphEdge": {
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["from", "to", "source"],
-			"properties": {
-				"from": {
-					"type": "string"
-				},
-				"to": {
-					"type": "string"
-				},
-				"source": {
-					"type": "string",
-					"enum": ["link", "related"]
-				}
-			}
-		},
-		"SerializedGraph": {
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["nodes", "edges"],
-			"properties": {
-				"nodes": {
+				"matched_keywords": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/SerializedGraphNode"
-					}
+					"items": { "type": "string" }
 				},
-				"edges": {
+				"score": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
+		"FuzzyHit": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "title", "path", "type", "score", "matched_fields"],
+			"properties": {
+				"id": { "type": "string" },
+				"title": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"matched_fields": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/SerializedGraphEdge"
-					}
-				}
+					"items": { "$ref": "#/$defs/SearchField" }
+				},
+				"snippet": { "type": "string" }
 			}
 		},
-		"SearchResult": {
+		"HybridHit": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "title", "path", "type", "score", "best_field"],
+			"required": [
+				"id",
+				"title",
+				"path",
+				"type",
+				"keyword_score",
+				"fuzzy_score",
+				"total_score",
+				"matched_keywords",
+				"matched_fields"
+			],
 			"properties": {
-				"id": {
-					"type": "string"
+				"id": { "type": "string" },
+				"title": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"keyword_score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"fuzzy_score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"total_score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"matched_keywords": {
+					"type": "array",
+					"items": { "type": "string" }
 				},
-				"title": {
-					"type": "string"
+				"matched_fields": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/SearchField" }
 				},
-				"path": {
-					"type": "string"
-				},
-				"type": {
-					"type": "string"
-				},
-				"score": {
-					"type": "number"
-				},
-				"best_field": {
-					"$ref": "#/$defs/SearchField"
-				},
-				"snippet": {
-					"type": "string"
-				}
+				"snippet": { "type": "string" }
 			}
 		},
-		"SearchResults": {
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/SearchResult"
-			}
-		},
-		"FindResult": {
+		"SearchResponse": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "title", "path", "type", "score"],
+			"required": ["query", "mode", "top_k", "keyword", "fuzzy", "hybrid"],
 			"properties": {
-				"id": {
-					"type": "string"
+				"query": { "type": "string" },
+				"mode": { "$ref": "#/$defs/SearchMode" },
+				"top_k": { "type": "integer", "minimum": 1, "maximum": 100 },
+				"keyword": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/KeywordHit" }
 				},
-				"title": {
-					"type": "string"
+				"fuzzy": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/FuzzyHit" }
 				},
-				"path": {
-					"type": "string"
-				},
-				"type": {
-					"type": "string"
-				},
-				"score": {
-					"type": "number"
-				},
-				"snippet": {
-					"type": "string"
+				"hybrid": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/HybridHit" }
 				}
-			}
-		},
-		"FindResults": {
-			"type": "array",
-			"items": {
-				"$ref": "#/$defs/FindResult"
 			}
 		},
 		"ListResult": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "title", "path", "type"],
+			"required": ["id", "title", "path", "type", "keywords"],
 			"properties": {
-				"id": {
-					"type": "string"
+				"id": { "type": "string" },
+				"title": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"keywords": {
+					"type": "array",
+					"items": { "type": "string" }
 				},
-				"title": {
-					"type": "string"
-				},
-				"path": {
-					"type": "string"
-				},
-				"type": {
-					"type": "string"
-				},
-				"status": {
-					"$ref": "#/$defs/ConceptStatus"
-				},
+				"status": { "$ref": "#/$defs/ConceptStatus" },
 				"tags": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				}
 			}
 		},
 		"ListResults": {
 			"type": "array",
-			"items": {
-				"$ref": "#/$defs/ListResult"
-			}
+			"items": { "$ref": "#/$defs/ListResult" }
 		},
 		"ShowLink": {
 			"type": "object",
 			"additionalProperties": false,
 			"required": ["raw", "target", "resolves_in_bundle"],
 			"properties": {
-				"raw": {
-					"type": "string"
-				},
-				"target": {
-					"type": "string"
-				},
-				"resolves_in_bundle": {
-					"type": "boolean"
-				}
+				"raw": { "type": "string" },
+				"target": { "type": "string" },
+				"resolves_in_bundle": { "type": "boolean" }
 			}
 		},
 		"ShowResult": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["id", "path", "type", "body", "links", "backlinks"],
+			"required": ["id", "path", "type", "keywords", "body", "links", "backlinks"],
 			"properties": {
-				"id": {
-					"type": "string"
+				"id": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"keywords": {
+					"type": "array",
+					"items": { "type": "string" }
 				},
-				"path": {
-					"type": "string"
-				},
-				"type": {
-					"type": "string"
-				},
-				"title": {
-					"type": "string"
-				},
-				"description": {
-					"type": "string"
-				},
+				"title": { "type": "string" },
+				"description": { "type": "string" },
 				"tags": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
-				"status": {
-					"$ref": "#/$defs/ConceptStatus"
-				},
-				"body": {
-					"type": "string"
-				},
+				"status": { "$ref": "#/$defs/ConceptStatus" },
+				"body": { "type": "string" },
 				"links": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/ShowLink"
-					}
+					"items": { "$ref": "#/$defs/ShowLink" }
 				},
 				"backlinks": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				}
 			}
 		},
@@ -509,12 +364,8 @@
 			"additionalProperties": false,
 			"required": ["from", "title"],
 			"properties": {
-				"from": {
-					"type": "string"
-				},
-				"title": {
-					"type": "string"
-				}
+				"from": { "type": "string" },
+				"title": { "type": "string" }
 			}
 		},
 		"BacklinksResult": {
@@ -522,14 +373,10 @@
 			"additionalProperties": false,
 			"required": ["id", "backlinks"],
 			"properties": {
-				"id": {
-					"type": "string"
-				},
+				"id": { "type": "string" },
 				"backlinks": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/Backlink"
-					}
+					"items": { "$ref": "#/$defs/Backlink" }
 				}
 			}
 		},
@@ -538,17 +385,11 @@
 			"additionalProperties": false,
 			"required": ["from", "to", "path"],
 			"properties": {
-				"from": {
-					"type": "string"
-				},
-				"to": {
-					"type": "string"
-				},
+				"from": { "type": "string" },
+				"to": { "type": "string" },
 				"path": {
 					"type": ["array", "null"],
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				}
 			}
 		},
@@ -557,18 +398,12 @@
 			"additionalProperties": false,
 			"required": ["op", "fields", "result"],
 			"properties": {
-				"op": {
-					"$ref": "#/$defs/OperationName"
-				},
+				"op": { "$ref": "#/$defs/OperationName" },
 				"fields": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
-				"result": {
-					"type": "string"
-				}
+				"result": { "type": "string" }
 			}
 		},
 		"ContractInfo": {
@@ -576,28 +411,16 @@
 			"additionalProperties": false,
 			"required": ["contract", "cli", "binary_version", "operations", "errors"],
 			"properties": {
-				"contract": {
-					"type": "string",
-					"const": "weave.contract/v1"
-				},
-				"cli": {
-					"type": "string",
-					"const": "weave.cli/v1"
-				},
-				"binary_version": {
-					"type": "string"
-				},
+				"contract": { "type": "string", "const": "weave.contract/v1" },
+				"cli": { "type": "string", "const": "weave.cli/v1" },
+				"binary_version": { "type": "string" },
 				"operations": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/OperationDescriptor"
-					}
+					"items": { "$ref": "#/$defs/OperationDescriptor" }
 				},
 				"errors": {
 					"type": "array",
-					"items": {
-						"$ref": "#/$defs/ErrorCode"
-					}
+					"items": { "$ref": "#/$defs/ErrorCode" }
 				}
 			}
 		},
@@ -606,17 +429,9 @@
 			"additionalProperties": false,
 			"required": ["binary_version", "contract", "cli"],
 			"properties": {
-				"binary_version": {
-					"type": "string"
-				},
-				"contract": {
-					"type": "string",
-					"const": "weave.contract/v1"
-				},
-				"cli": {
-					"type": "string",
-					"const": "weave.cli/v1"
-				}
+				"binary_version": { "type": "string" },
+				"contract": { "type": "string", "const": "weave.contract/v1" },
+				"cli": { "type": "string", "const": "weave.cli/v1" }
 			}
 		},
 		"OperationRequest": {
@@ -624,52 +439,25 @@
 			"additionalProperties": false,
 			"required": ["op"],
 			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"op": {
-					"$ref": "#/$defs/OperationName"
-				},
-				"path": {
-					"type": "string"
-				},
-				"query": {
-					"type": "string"
-				},
-				"target": {
-					"type": "string"
-				},
-				"from": {
-					"type": "string"
-				},
-				"to": {
-					"type": "string"
-				},
+				"id": { "type": "string" },
+				"op": { "$ref": "#/$defs/OperationName" },
+				"path": { "type": "string" },
+				"query": { "type": "string" },
+				"mode": { "$ref": "#/$defs/SearchMode" },
+				"top_k": { "type": "integer", "minimum": 1, "maximum": 100 },
+				"target": { "type": "string" },
+				"from": { "type": "string" },
+				"to": { "type": "string" },
 				"types": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
 				"tags": {
 					"type": "array",
-					"items": {
-						"type": "string"
-					}
+					"items": { "type": "string" }
 				},
-				"status": {
-					"type": "string"
-				},
-				"limit": {
-					"type": "integer",
-					"minimum": 0
-				},
-				"fields": {
-					"type": "array",
-					"items": {
-						"$ref": "#/$defs/SearchField"
-					}
-				}
+				"status": { "type": "string" },
+				"limit": { "type": "integer", "minimum": 0 }
 			}
 		},
 		"OperationError": {
@@ -677,12 +465,8 @@
 			"additionalProperties": false,
 			"required": ["code", "message"],
 			"properties": {
-				"code": {
-					"$ref": "#/$defs/ErrorCode"
-				},
-				"message": {
-					"type": "string"
-				},
+				"code": { "$ref": "#/$defs/ErrorCode" },
+				"message": { "type": "string" },
 				"details": {
 					"type": "object",
 					"additionalProperties": true
@@ -694,21 +478,10 @@
 			"additionalProperties": false,
 			"required": ["contract", "cli", "ok", "result"],
 			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"contract": {
-					"type": "string",
-					"const": "weave.contract/v1"
-				},
-				"cli": {
-					"type": "string",
-					"const": "weave.cli/v1"
-				},
-				"ok": {
-					"type": "boolean",
-					"const": true
-				},
+				"id": { "type": "string" },
+				"contract": { "type": "string", "const": "weave.contract/v1" },
+				"cli": { "type": "string", "const": "weave.cli/v1" },
+				"ok": { "type": "boolean", "const": true },
 				"result": {}
 			}
 		},
@@ -717,34 +490,17 @@
 			"additionalProperties": false,
 			"required": ["contract", "cli", "ok", "error"],
 			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"contract": {
-					"type": "string",
-					"const": "weave.contract/v1"
-				},
-				"cli": {
-					"type": "string",
-					"const": "weave.cli/v1"
-				},
-				"ok": {
-					"type": "boolean",
-					"const": false
-				},
-				"error": {
-					"$ref": "#/$defs/OperationError"
-				}
+				"id": { "type": "string" },
+				"contract": { "type": "string", "const": "weave.contract/v1" },
+				"cli": { "type": "string", "const": "weave.cli/v1" },
+				"ok": { "type": "boolean", "const": false },
+				"error": { "$ref": "#/$defs/OperationError" }
 			}
 		},
 		"Envelope": {
 			"oneOf": [
-				{
-					"$ref": "#/$defs/SuccessEnvelope"
-				},
-				{
-					"$ref": "#/$defs/FailureEnvelope"
-				}
+				{ "$ref": "#/$defs/SuccessEnvelope" },
+				{ "$ref": "#/$defs/FailureEnvelope" }
 			]
 		}
 	}

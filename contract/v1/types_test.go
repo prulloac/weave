@@ -38,19 +38,16 @@ type expectedFile struct {
 }
 
 var schemaFiles = map[string]string{
-	"bundle":           "bundle.schema.json",
-	"graph":            "graph.schema.json",
-	"serialized-graph": "serialized-graph.schema.json",
-	"search":           "search.schema.json",
-	"find":             "find-results.schema.json",
-	"list":             "list-results.schema.json",
-	"show":             "show.schema.json",
-	"backlinks":        "backlinks.schema.json",
-	"path":             "path.schema.json",
+	"bundle":    "bundle.schema.json",
+	"graph":     "graph.schema.json",
+	"search":    "search.schema.json",
+	"list":      "list-results.schema.json",
+	"show":      "show.schema.json",
+	"backlinks": "backlinks.schema.json",
+	"path":      "path.schema.json",
 }
 
 var navSchema = map[string]string{
-	"find":      "find",
 	"list":      "list",
 	"show":      "show",
 	"backlinks": "backlinks",
@@ -61,7 +58,6 @@ func expectedFiles(golden goldenCase) []expectedFile {
 	files := []expectedFile{
 		{name: golden.Name + ".bundle.json", schema: "bundle"},
 		{name: golden.Name + ".graph.json", schema: "graph"},
-		{name: golden.Name + ".serialized-graph.json", schema: "serialized-graph"},
 	}
 	for _, searchCase := range golden.Search {
 		files = append(files, expectedFile{
@@ -204,15 +200,13 @@ func TestGoldenCorpusRoundTripsThroughStructs(t *testing.T) {
 	manifest := loadManifest(t)
 
 	targets := map[string]func() any{
-		"bundle":           func() any { return new(Bundle) },
-		"graph":            func() any { return new(Graph) },
-		"serialized-graph": func() any { return new(SerializedGraph) },
-		"search":           func() any { return new(SearchResults) },
-		"find":             func() any { return new(FindResults) },
-		"list":             func() any { return new(ListResults) },
-		"show":             func() any { return new(ShowResult) },
-		"backlinks":        func() any { return new(BacklinksResult) },
-		"path":             func() any { return new(PathResult) },
+		"bundle":    func() any { return new(Bundle) },
+		"graph":     func() any { return new(Graph) },
+		"search":    func() any { return new(SearchResponse) },
+		"list":      func() any { return new(ListResults) },
+		"show":      func() any { return new(ShowResult) },
+		"backlinks": func() any { return new(BacklinksResult) },
+		"path":      func() any { return new(PathResult) },
 	}
 
 	for _, golden := range manifest.Cases {
@@ -255,11 +249,13 @@ func TestContractTypesValidate(t *testing.T) {
 	title := "Example"
 	version := OkfVersion02
 	status := StatusStable
-	score := 1.5
+	score := 0.8
 	snippet := "snippet"
 	raw := "[Link](b.md)"
 	resolved := "b.md"
 	indexDescription := "index description"
+	keywords := []string{"example", "graph"}
+	matchedFields := []SearchField{FieldTitle, FieldDescription}
 
 	bundle := Bundle{
 		Root:       "/bundle",
@@ -267,8 +263,9 @@ func TestContractTypesValidate(t *testing.T) {
 		Concepts: []OkfConcept{{
 			ID:          "a",
 			Path:        "a.md",
-			Frontmatter: map[string]any{"type": "Concept"},
+			Frontmatter: map[string]any{"type": "Concept", "keywords": []any{"example", "graph"}},
 			Type:        "Concept",
+			Keywords:    keywords,
 			Title:       &title,
 			Status:      &status,
 			Body:        "# A",
@@ -287,6 +284,7 @@ func TestContractTypesValidate(t *testing.T) {
 				ID:             "a",
 				HasFrontmatter: true,
 				HasType:        true,
+				HasKeywords:    true,
 				Warnings:       []string{},
 			}},
 			Warnings: []string{},
@@ -296,7 +294,7 @@ func TestContractTypesValidate(t *testing.T) {
 
 	graph := Graph{
 		Nodes: []GraphNode{{
-			ID: "a", Path: "a.md", Type: "Concept", Title: "A",
+			ID: "a", Path: "a.md", Type: "Concept", Title: "A", Keywords: keywords,
 			Status: &status, Tags: []string{"tag"}, InDegree: 1, OutDegree: 1,
 		}},
 		Edges:    []GraphEdge{{From: "a", To: "b", Source: "link", Raw: &raw}},
@@ -304,34 +302,35 @@ func TestContractTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "graph.schema.json", graph)
 
-	serialized := SerializedGraph{
-		Nodes: []SerializedGraphNode{{
-			ID: "a", Title: "A", Type: "Concept", Status: &status,
-			Tags: []string{"tag"}, InDegree: 1, OutDegree: 1,
+	searchResponse := SearchResponse{
+		Query: "graph",
+		Mode:  SearchHybrid,
+		TopK:  10,
+		Keyword: []KeywordHit{{
+			ID: "a", Title: "A", Path: "a.md", Type: "Concept",
+			Keywords: keywords, MatchedKeywords: keywords, Score: 1,
 		}},
-		Edges: []SerializedGraphEdge{{From: "a", To: "b", Source: "link"}},
+		Fuzzy: []FuzzyHit{{
+			ID: "a", Title: "A", Path: "a.md", Type: "Concept",
+			Score: score, MatchedFields: matchedFields, Snippet: &snippet,
+		}},
+		Hybrid: []HybridHit{{
+			ID: "a", Title: "A", Path: "a.md", Type: "Concept",
+			KeywordScore: 1, FuzzyScore: score, TotalScore: 1,
+			MatchedKeywords: keywords, MatchedFields: matchedFields, Snippet: &snippet,
+		}},
 	}
-	marshalValidate(t, compiler, "serialized-graph.schema.json", serialized)
-
-	searchResults := SearchResults{{
-		ID: "a", Title: "A", Path: "a.md", Type: "Concept",
-		Score: score, BestField: FieldTitle, Snippet: &snippet,
-	}}
-	marshalValidate(t, compiler, "search.schema.json", searchResults)
-
-	findResults := FindResults{{
-		ID: "a", Title: "A", Path: "a.md", Type: "Concept", Score: score, Snippet: &snippet,
-	}}
-	marshalValidate(t, compiler, "find-results.schema.json", findResults)
+	marshalValidate(t, compiler, "search.schema.json", searchResponse)
 
 	listResults := ListResults{{
-		ID: "a", Title: "A", Path: "a.md", Type: "Concept", Status: &status, Tags: []string{"tag"},
+		ID: "a", Title: "A", Path: "a.md", Type: "Concept", Keywords: keywords,
+		Status: &status, Tags: []string{"tag"},
 	}}
 	marshalValidate(t, compiler, "list-results.schema.json", listResults)
 
 	show := ShowResult{
-		ID: "a", Path: "a.md", Type: "Concept", Title: &title, Status: &status,
-		Body: "# A", Backlinks: []string{"b"},
+		ID: "a", Path: "a.md", Type: "Concept", Keywords: keywords,
+		Title: &title, Status: &status, Body: "# A", Backlinks: []string{"b"},
 		Links: []ShowLink{{Raw: raw, Target: "b.md", ResolvesInBundle: true}},
 	}
 	marshalValidate(t, compiler, "show.schema.json", show)
@@ -370,15 +369,15 @@ func TestContractTypesValidate(t *testing.T) {
 		CLI:           "weave.cli/v1",
 		BinaryVersion: "0.1.0",
 		Operations: []OperationDescriptor{{
-			Op: OpFind, Fields: []string{"path", "query"}, Result: "FindResults",
+			Op: OpSearch, Fields: []string{"path", "query", "mode", "top_k"}, Result: "SearchResponse",
 		}},
 		Errors: []ErrorCode{ErrInvalidRequest, ErrConceptNotFound},
 	}
 	marshalValidate(t, compiler, "cli.schema.json", contractInfo)
 
 	request := OperationRequest{
-		Op: OpFind, Path: "/bundle", Query: "graph", Limit: intPtr(10),
-		Fields: []SearchField{FieldTitle, FieldBody},
+		Op: OpSearch, Path: "/bundle", Query: "graph",
+		Mode: SearchHybrid, TopK: intPtr(10),
 	}
 	marshalValidate(t, compiler, "cli.schema.json", request)
 }

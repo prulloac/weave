@@ -2,6 +2,11 @@
   "id": "concepts/okf-bundle",
   "path": "concepts/okf-bundle.md",
   "type": "Concept",
+  "keywords": [
+    "okf",
+    "bundle",
+    "format"
+  ],
   "title": "OKF Bundle",
   "description": "Portable collection of OKF-compliant Markdown files.",
   "tags": [

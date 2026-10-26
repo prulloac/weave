@@ -1,6 +1,0 @@
-{
-	"$schema": "https://json-schema.org/draft/2020-12/schema",
-	"$id": "https://weave.dev/contract/v1/find-results.schema.json",
-	"title": "FindResults",
-	"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/FindResults"
-}

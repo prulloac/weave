@@ -1,4 +1,7 @@
 ---
+keywords:
+  - "escaping"
+  - "xss"
 type: Concept
 title: "<script>alert(1)</script>"
 description: "a \"quoted\" & <tag>"

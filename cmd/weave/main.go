@@ -92,10 +92,11 @@ type flags struct {
 	noCache     bool
 	help        bool
 	limit       *int
+	topK        *int
+	mode        contractv1.SearchMode
 	types       []string
 	tags        []string
 	status      string
-	fields      []contractv1.SearchField
 	positionals []string
 }
 
@@ -143,22 +144,30 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.status = value
-		case "--fields":
-			value, next, err := flagValue(args, index, "--fields")
+		case "--mode":
+			value, next, err := flagValue(args, index, "--mode")
 			if err != nil {
 				return result, err
 			}
 			index = next
-			for _, part := range strings.Split(value, ",") {
-				if part == "" {
-					continue
-				}
-				field := contractv1.SearchField(part)
-				if !validField(field) {
-					return result, fmt.Errorf("unknown search field: %s", part)
-				}
-				result.fields = append(result.fields, field)
+			mode := contractv1.SearchMode(value)
+			switch mode {
+			case contractv1.SearchKeyword, contractv1.SearchFuzzy, contractv1.SearchHybrid:
+				result.mode = mode
+			default:
+				return result, fmt.Errorf("--mode must be hybrid, keyword or fuzzy")
 			}
+		case "--top-k":
+			value, next, err := flagValue(args, index, "--top-k")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed < 1 || parsed > 100 {
+				return result, fmt.Errorf("--top-k must be between 1 and 100")
+			}
+			result.topK = &parsed
 		case "--":
 			result.positionals = append(result.positionals, args[index+1:]...)
 			return result, nil
@@ -189,23 +198,6 @@ func flagValue(args []string, index int, name string) (string, int, error) {
 	return args[index+1], index + 1, nil
 }
 
-func validField(field contractv1.SearchField) bool {
-	for _, candidate := range []contractv1.SearchField{
-		contractv1.FieldTitle,
-		contractv1.FieldTags,
-		contractv1.FieldDescription,
-		contractv1.FieldBody,
-		contractv1.FieldPath,
-		contractv1.FieldType,
-		contractv1.FieldFrontmatter,
-	} {
-		if candidate == field {
-			return true
-		}
-	}
-	return false
-}
-
 func buildRequest(command string, flags flags) (contractv1.OperationRequest, int, error) {
 	switch command {
 	case "contract", "version":
@@ -221,16 +213,16 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 		return contractv1.OperationRequest{Op: contractv1.OpParse, Path: flags.positional(0)}, 0, requirePositional(command, flags, 1)
 	case "graph":
 		return contractv1.OperationRequest{Op: contractv1.OpGraph, Path: flags.positional(0)}, 0, requirePositional(command, flags, 1)
-	case "find":
+	case "search":
 		if err := requirePositional(command, flags, 2); err != nil {
 			return contractv1.OperationRequest{}, 0, err
 		}
 		return contractv1.OperationRequest{
-			Op:     contractv1.OpFind,
-			Path:   flags.positional(0),
-			Query:  flags.positional(1),
-			Limit:  flags.limit,
-			Fields: flags.fields,
+			Op:    contractv1.OpSearch,
+			Path:  flags.positional(0),
+			Query: flags.positional(1),
+			Mode:  flags.mode,
+			TopK:  flags.topK,
 		}, 0, nil
 	case "list":
 		if err := requirePositional(command, flags, 1); err != nil {
@@ -327,9 +319,19 @@ func exitCodeFor(code contractv1.ErrorCode) int {
 
 func isEmptyResult(op contractv1.OperationName, result any) bool {
 	switch op {
-	case contractv1.OpFind:
-		values, ok := result.([]contractv1.FindResult)
-		return ok && len(values) == 0
+	case contractv1.OpSearch:
+		response, ok := result.(contractv1.SearchResponse)
+		if !ok {
+			return false
+		}
+		switch response.Mode {
+		case contractv1.SearchKeyword:
+			return len(response.Keyword) == 0
+		case contractv1.SearchFuzzy:
+			return len(response.Fuzzy) == 0
+		default:
+			return len(response.Hybrid) == 0
+		}
 	case contractv1.OpList:
 		values, ok := result.([]contractv1.ListResult)
 		return ok && len(values) == 0
@@ -364,14 +366,33 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		graph := result.(contractv1.Graph)
 		fmt.Fprintf(stdout, "%d nodes, %d edges\n", len(graph.Nodes), len(graph.Edges))
 		return 0
-	case contractv1.OpFind:
-		results := result.([]contractv1.FindResult)
-		if len(results) == 0 {
-			fmt.Fprintln(stderr, "weave: no matches")
-			return 1
-		}
-		for _, item := range results {
-			fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.Score, 'f', -1, 64), item.Title, item.Path)
+	case contractv1.OpSearch:
+		response := result.(contractv1.SearchResponse)
+		switch response.Mode {
+		case contractv1.SearchKeyword:
+			if len(response.Keyword) == 0 {
+				fmt.Fprintln(stderr, "weave: no matches")
+				return 1
+			}
+			for _, item := range response.Keyword {
+				fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.Score, 'f', -1, 64), item.Title, strings.Join(item.MatchedKeywords, ", "))
+			}
+		case contractv1.SearchFuzzy:
+			if len(response.Fuzzy) == 0 {
+				fmt.Fprintln(stderr, "weave: no matches")
+				return 1
+			}
+			for _, item := range response.Fuzzy {
+				fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.Score, 'f', -1, 64), item.Title, fieldsText(item.MatchedFields))
+			}
+		default:
+			if len(response.Hybrid) == 0 {
+				fmt.Fprintln(stderr, "weave: no matches")
+				return 1
+			}
+			for _, item := range response.Hybrid {
+				fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.TotalScore, 'f', -1, 64), item.Title, item.Path)
+			}
 		}
 		return 0
 	case contractv1.OpList:
@@ -426,6 +447,14 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 	}
 }
 
+func fieldsText(fields []contractv1.SearchField) string {
+	values := make([]string, len(fields))
+	for index, field := range fields {
+		values[index] = string(field)
+	}
+	return strings.Join(values, ", ")
+}
+
 func titleOrID(title *string, id string) string {
 	if title == nil {
 		return id
@@ -440,7 +469,7 @@ usage:
   weave contract [--json]
   weave parse <path> [--json] [--no-cache]
   weave graph <path> [--json] [--no-cache]
-  weave find <path> <query> [--limit <n>] [--fields <list>] [--json] [--no-cache]
+  weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
   weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
   weave show <path> <id|file> [--json] [--no-cache]
   weave backlinks <path> <id|file> [--json] [--no-cache]

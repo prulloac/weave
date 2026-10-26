@@ -1,4 +1,7 @@
 ---
+keywords:
+  - "missing"
+  - "type"
 title: "Concept without a type"
 ---
 

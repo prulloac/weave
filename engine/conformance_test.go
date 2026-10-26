@@ -3,7 +3,6 @@ package engine_test
 import (
 	"context"
 	"encoding/json"
-	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,7 +12,6 @@ import (
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
-	"github.com/prulloac/weave/engine/search"
 )
 
 const goldenDir = "../contract/v1/golden"
@@ -31,9 +29,10 @@ type manifestCase struct {
 }
 
 type manifestSearch struct {
-	Name  string `json:"name"`
-	Query string `json:"query"`
-	Limit int    `json:"limit"`
+	Name  string                `json:"name"`
+	Query string                `json:"query"`
+	Mode  contractv1.SearchMode `json:"mode"`
+	TopK  int                   `json:"top_k"`
 }
 
 type manifestNav struct {
@@ -84,18 +83,21 @@ func TestConformance(t *testing.T) {
 
 			graphView := *eng.Graph()
 			assertGolden(t, contractGraph(&graphView), testCase.Name+".graph.json")
-			assertGolden(t, eng.SerializedGraph(), testCase.Name+".serialized-graph.json")
 
 			for _, searchCase := range testCase.Search {
-				limit := searchCase.Limit
-				if limit == 0 {
-					limit = 20
+				topK := searchCase.TopK
+				if topK == 0 {
+					topK = 10
 				}
-				results := search.Query(eng.SearchIndex(), searchCase.Query, search.Options{Limit: limit})
-				for position := range results {
-					results[position].Score = round(results[position].Score)
+				mode := searchCase.Mode
+				if mode == "" {
+					mode = contractv1.SearchHybrid
 				}
-				assertGolden(t, results, testCase.Name+".search."+searchCase.Name+".json")
+				response, err := eng.Search(searchCase.Query, mode, topK)
+				if err != nil {
+					t.Fatalf("search %s: %v", searchCase.Name, err)
+				}
+				assertGolden(t, response, testCase.Name+".search."+searchCase.Name+".json")
 			}
 
 			for _, navCase := range testCase.Nav {
@@ -117,8 +119,6 @@ func runNav(t *testing.T, eng *engine.Engine, navCase manifestNav) any {
 	t.Helper()
 
 	switch navCase.Command {
-	case "find":
-		return eng.Find(navCase.Query, search.Options{Limit: navCase.Limit})
 	case "list":
 		return eng.List(nav.ListFilters{
 			Types:  navCase.Types,
@@ -178,8 +178,4 @@ func assertGolden(t *testing.T, actual any, file string) {
 	actualPretty, _ := json.MarshalIndent(actualDoc, "", "  ")
 	expectedPretty, _ := json.MarshalIndent(expectedDoc, "", "  ")
 	t.Errorf("golden mismatch: %s\n--- actual ---\n%s\n--- expected ---\n%s", file, actualPretty, expectedPretty)
-}
-
-func round(score float64) float64 {
-	return math.Round(score*10000) / 10000
 }

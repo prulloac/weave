@@ -2,6 +2,10 @@
   "id": "a",
   "path": "a.md",
   "type": "Concept",
+  "keywords": [
+    "anchors",
+    "links"
+  ],
   "title": "A",
   "body": "\n# A\n\n[section](b.md#section) [query](b.md?view=1) [local](#top) [external](https://example.com/a#frag)\n",
   "links": [

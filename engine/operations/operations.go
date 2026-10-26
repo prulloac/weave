@@ -9,7 +9,6 @@ import (
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
-	"github.com/prulloac/weave/engine/search"
 )
 
 const (
@@ -21,7 +20,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpContract, Fields: []string{}, Result: "ContractInfo"},
 	{Op: contractv1.OpParse, Fields: []string{"path"}, Result: "Bundle"},
 	{Op: contractv1.OpGraph, Fields: []string{"path"}, Result: "Graph"},
-	{Op: contractv1.OpFind, Fields: []string{"path", "query", "limit", "fields"}, Result: "FindResults"},
+	{Op: contractv1.OpSearch, Fields: []string{"path", "query", "mode", "top_k"}, Result: "SearchResponse"},
 	{Op: contractv1.OpList, Fields: []string{"path", "types", "tags", "status", "limit"}, Result: "ListResults"},
 	{Op: contractv1.OpShow, Fields: []string{"path", "target"}, Result: "ShowResult"},
 	{Op: contractv1.OpBacklinks, Fields: []string{"path", "target"}, Result: "BacklinksResult"},
@@ -107,15 +106,24 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			Edges:    graph.SortedEdges(view),
 			Dangling: view.Dangling,
 		})
-	case contractv1.OpFind:
-		limit := 20
-		if request.Limit != nil {
-			limit = *request.Limit
+	case contractv1.OpSearch:
+		topK := 10
+		if request.TopK != nil {
+			topK = *request.TopK
 		}
-		return success(eng.Find(request.Query, search.Options{
-			Limit:  limit,
-			Fields: request.Fields,
-		}))
+		mode := request.Mode
+		if mode == "" {
+			mode = contractv1.SearchHybrid
+		}
+		result, err := eng.Search(request.Query, mode, topK)
+		if err != nil {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+				"query": request.Query,
+				"mode":  mode,
+				"top_k": topK,
+			})
+		}
+		return success(result)
 	case contractv1.OpList:
 		limit := 20
 		if request.Limit != nil {

@@ -2,6 +2,10 @@
   "id": "a",
   "path": "a.md",
   "type": "Concept",
+  "keywords": [
+    "code",
+    "links"
+  ],
   "title": "Code links",
   "body": "\n# Code links\n\n`[inline](b.md)`\n\n```md\n[fenced](b.md)\n```\n\n[real](b.md)\n",
   "links": [

@@ -1,4 +1,9 @@
 ---
+keywords:
+  - "graph"
+  - "engine"
+  - "nodes"
+  - "edges"
 type: Concept
 title: "Node Graph Engine"
 description: "Builds a traversable graph from bundle edges."

@@ -1,15 +1,25 @@
 {
-  "root": "<root>",
+  "root": "\u003croot\u003e",
   "okf_version": "0.2",
   "concepts": [
     {
       "id": "nested/deeper/leaf",
       "path": "nested/deeper/leaf.md",
       "frontmatter": {
-        "type": "Concept",
-        "title": "Leaf"
+        "keywords": [
+          "tree",
+          "leaf",
+          "navigation"
+        ],
+        "title": "Leaf",
+        "type": "Concept"
       },
       "type": "Concept",
+      "keywords": [
+        "tree",
+        "leaf",
+        "navigation"
+      ],
       "title": "Leaf",
       "body": "\n# Leaf\n\n[Root](../../root.md)\n",
       "links": [
@@ -25,10 +35,18 @@
       "id": "root",
       "path": "root.md",
       "frontmatter": {
-        "type": "Concept",
-        "title": "Root"
+        "keywords": [
+          "tree",
+          "root"
+        ],
+        "title": "Root",
+        "type": "Concept"
       },
       "type": "Concept",
+      "keywords": [
+        "tree",
+        "root"
+      ],
       "title": "Root",
       "body": "\n# Root\n",
       "links": []
@@ -51,6 +69,7 @@
         "id": "nested/deeper/leaf",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": [
           "missing optional field: description",
           "missing optional field: tags",
@@ -61,6 +80,7 @@
         "id": "root",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": [
           "missing optional field: description",
           "missing optional field: tags",

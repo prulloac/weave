@@ -1,14 +1,12 @@
 package nav
 
 import (
-	"math"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
-	"github.com/prulloac/weave/engine/search"
 )
 
 // ListFilters filter concepts by metadata.
@@ -58,12 +56,13 @@ func List(bundle *contractv1.Bundle, filters ListFilters) []contractv1.ListResul
 			title = *concept.Title
 		}
 		matches = append(matches, contractv1.ListResult{
-			ID:     concept.ID,
-			Title:  title,
-			Path:   concept.Path,
-			Type:   concept.Type,
-			Status: concept.Status,
-			Tags:   concept.Tags,
+			ID:       concept.ID,
+			Title:    title,
+			Path:     concept.Path,
+			Type:     concept.Type,
+			Keywords: concept.Keywords,
+			Status:   concept.Status,
+			Tags:     concept.Tags,
 		})
 	}
 
@@ -74,30 +73,6 @@ func List(bundle *contractv1.Bundle, filters ListFilters) []contractv1.ListResul
 		matches = matches[:limit]
 	}
 	return matches
-}
-
-// Find ranks search results for CLI output.
-func Find(index *search.Index, query string, options search.Options) []contractv1.FindResult {
-	if strings.TrimSpace(query) == "" {
-		return []contractv1.FindResult{}
-	}
-	if options.Limit <= 0 {
-		options.Limit = 20
-	}
-
-	results := search.Query(index, query, options)
-	findResults := make([]contractv1.FindResult, 0, len(results))
-	for _, result := range results {
-		findResults = append(findResults, contractv1.FindResult{
-			ID:      result.ID,
-			Title:   result.Title,
-			Path:    result.Path,
-			Type:    result.Type,
-			Score:   RoundScore(result.Score),
-			Snippet: result.Snippet,
-		})
-	}
-	return findResults
 }
 
 // Show returns the detailed concept view.
@@ -141,6 +116,7 @@ func Show(bundle *contractv1.Bundle, nodeGraph *graph.Graph, target string) (*co
 		ID:          concept.ID,
 		Path:        concept.Path,
 		Type:        concept.Type,
+		Keywords:    concept.Keywords,
 		Title:       concept.Title,
 		Description: concept.Description,
 		Tags:        concept.Tags,
@@ -220,11 +196,6 @@ func NormalizeTarget(bundle *contractv1.Bundle, input string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// RoundScore rounds a relevance score to four decimals.
-func RoundScore(score float64) float64 {
-	return math.Round(score*10000) / 10000
 }
 
 func contains(values []string, target string) bool {

@@ -5,6 +5,10 @@
       "path": "alpha.md",
       "type": "Concept",
       "title": "Alpha",
+      "keywords": [
+        "version",
+        "mismatch"
+      ],
       "in_degree": 0,
       "out_degree": 0
     }

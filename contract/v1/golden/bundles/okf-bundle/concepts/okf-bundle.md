@@ -1,4 +1,8 @@
 ---
+keywords:
+  - "okf"
+  - "bundle"
+  - "format"
 type: Concept
 title: "OKF Bundle"
 description: "Portable collection of OKF-compliant Markdown files."

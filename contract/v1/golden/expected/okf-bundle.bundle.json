@@ -1,14 +1,22 @@
 {
-  "root": "<root>",
+  "root": "\u003croot\u003e",
   "okf_version": "0.2",
   "concepts": [
     {
       "id": "concepts/missing-type",
       "path": "concepts/missing-type.md",
       "frontmatter": {
+        "keywords": [
+          "missing",
+          "type"
+        ],
         "title": "Concept without a type"
       },
       "type": "",
+      "keywords": [
+        "missing",
+        "type"
+      ],
       "title": "Concept without a type",
       "body": "\n# Missing Type\n\nThis file has frontmatter but no `type` key.\n",
       "links": []
@@ -17,15 +25,27 @@
       "id": "concepts/node-graph-engine",
       "path": "concepts/node-graph-engine.md",
       "frontmatter": {
-        "type": "Concept",
-        "title": "Node Graph Engine",
         "description": "Builds a traversable graph from bundle edges.",
+        "keywords": [
+          "graph",
+          "engine",
+          "nodes",
+          "edges"
+        ],
+        "status": "draft",
         "tags": [
           "graph"
         ],
-        "status": "draft"
+        "title": "Node Graph Engine",
+        "type": "Concept"
       },
       "type": "Concept",
+      "keywords": [
+        "graph",
+        "engine",
+        "nodes",
+        "edges"
+      ],
       "title": "Node Graph Engine",
       "description": "Builds a traversable graph from bundle edges.",
       "tags": [
@@ -52,16 +72,26 @@
       "id": "concepts/okf-bundle",
       "path": "concepts/okf-bundle.md",
       "frontmatter": {
-        "type": "Concept",
-        "title": "OKF Bundle",
         "description": "Portable collection of OKF-compliant Markdown files.",
+        "keywords": [
+          "okf",
+          "bundle",
+          "format"
+        ],
+        "status": "stable",
         "tags": [
           "format",
           "okf"
         ],
-        "status": "stable"
+        "title": "OKF Bundle",
+        "type": "Concept"
       },
       "type": "Concept",
+      "keywords": [
+        "okf",
+        "bundle",
+        "format"
+      ],
       "title": "OKF Bundle",
       "description": "Portable collection of OKF-compliant Markdown files.",
       "tags": [
@@ -94,12 +124,24 @@
       "id": "concepts/search-index",
       "path": "concepts/search-index.md",
       "frontmatter": {
-        "type": "Concept",
-        "title": "Search Index",
         "description": "Full-text search over the bundle corpus.",
-        "status": "deprecated"
+        "keywords": [
+          "search",
+          "index",
+          "keywords",
+          "fuzzy"
+        ],
+        "status": "deprecated",
+        "title": "Search Index",
+        "type": "Concept"
       },
       "type": "Concept",
+      "keywords": [
+        "search",
+        "index",
+        "keywords",
+        "fuzzy"
+      ],
       "title": "Search Index",
       "description": "Full-text search over the bundle corpus.",
       "status": "deprecated",
@@ -117,11 +159,21 @@
       "id": "tables/users",
       "path": "tables/users.md",
       "frontmatter": {
-        "type": "Table",
+        "description": "The users relation.",
+        "keywords": [
+          "users",
+          "table",
+          "relations"
+        ],
         "title": "User Table",
-        "description": "The users relation."
+        "type": "Table"
       },
       "type": "Table",
+      "keywords": [
+        "users",
+        "table",
+        "relations"
+      ],
       "title": "User Table",
       "description": "The users relation.",
       "body": "\n# User Table\n\n- [OKF Bundle](../concepts/okf-bundle.md)\n",
@@ -160,6 +212,7 @@
         "id": "concepts/missing-type",
         "has_frontmatter": true,
         "has_type": false,
+        "has_keywords": true,
         "warnings": [
           "missing type",
           "missing optional field: description",
@@ -171,6 +224,7 @@
         "id": "concepts/node-graph-engine",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": [
           "broken link: broken-file.md"
         ]
@@ -179,12 +233,14 @@
         "id": "concepts/okf-bundle",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": []
       },
       {
         "id": "concepts/search-index",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": [
           "missing optional field: tags"
         ]
@@ -193,6 +249,7 @@
         "id": "loose-notes",
         "has_frontmatter": false,
         "has_type": false,
+        "has_keywords": false,
         "warnings": [
           "missing frontmatter"
         ]
@@ -201,6 +258,7 @@
         "id": "tables/users",
         "has_frontmatter": true,
         "has_type": true,
+        "has_keywords": true,
         "warnings": [
           "missing optional field: tags",
           "missing optional field: status"

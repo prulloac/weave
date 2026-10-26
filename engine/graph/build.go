@@ -34,6 +34,7 @@ func Build(bundle *contractv1.Bundle) *Graph {
 			Path:      concept.Path,
 			Type:      concept.Type,
 			Title:     title,
+			Keywords:  concept.Keywords,
 			Status:    concept.Status,
 			Tags:      concept.Tags,
 			InDegree:  0,
@@ -174,34 +175,4 @@ func SortedEdges(graph *Graph) []contractv1.GraphEdge {
 		return edges[i].Source < edges[j].Source
 	})
 	return edges
-}
-
-// Serialize returns the compact lens payload.
-func Serialize(graph *Graph) contractv1.SerializedGraph {
-	nodes := SortedNodes(graph)
-	serializedNodes := make([]contractv1.SerializedGraphNode, 0, len(nodes))
-	for _, node := range nodes {
-		serializedNodes = append(serializedNodes, contractv1.SerializedGraphNode{
-			ID:        node.ID,
-			Title:     node.Title,
-			Type:      node.Type,
-			Status:    node.Status,
-			Tags:      node.Tags,
-			InDegree:  node.InDegree,
-			OutDegree: node.OutDegree,
-		})
-	}
-
-	serializedEdges := make([]contractv1.SerializedGraphEdge, 0)
-	for _, node := range nodes {
-		for _, edge := range graph.Outgoing[node.ID] {
-			serializedEdges = append(serializedEdges, contractv1.SerializedGraphEdge{
-				From:   edge.From,
-				To:     edge.To,
-				Source: edge.Source,
-			})
-		}
-	}
-
-	return contractv1.SerializedGraph{Nodes: serializedNodes, Edges: serializedEdges}
 }

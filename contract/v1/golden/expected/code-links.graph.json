@@ -5,6 +5,10 @@
       "path": "a.md",
       "type": "Concept",
       "title": "Code links",
+      "keywords": [
+        "code",
+        "links"
+      ],
       "in_degree": 0,
       "out_degree": 1
     },
@@ -13,6 +17,9 @@
       "path": "b.md",
       "type": "Concept",
       "title": "Target",
+      "keywords": [
+        "target"
+      ],
       "in_degree": 1,
       "out_degree": 0
     }

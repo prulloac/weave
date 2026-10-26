@@ -2,8 +2,12 @@
   "id": "a",
   "path": "a.md",
   "type": "Concept",
+  "keywords": [
+    "references",
+    "links"
+  ],
   "title": "Reference links",
-  "body": "\n# Reference links\n\n[Full][ref] [Collapsed][] [Shortcut] [Titled](b.md \"Title\") [Angle](<b.md>)\n\n[ref]: b.md\n[collapsed]: b.md\n[shortcut]: b.md\n",
+  "body": "\n# Reference links\n\n[Full][ref] [Collapsed][] [Shortcut] [Titled](b.md \"Title\") [Angle](\u003cb.md\u003e)\n\n[ref]: b.md\n[collapsed]: b.md\n[shortcut]: b.md\n",
   "links": [
     {
       "raw": "[Full][ref]",
@@ -26,7 +30,7 @@
       "resolves_in_bundle": true
     },
     {
-      "raw": "[Angle](<b.md>)",
+      "raw": "[Angle](\u003cb.md\u003e)",
       "target": "b.md",
       "resolves_in_bundle": true
     }

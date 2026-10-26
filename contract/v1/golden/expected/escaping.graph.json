@@ -4,7 +4,11 @@
       "id": "escaping",
       "path": "escaping.md",
       "type": "Concept",
-      "title": "<script>alert(1)</script>",
+      "title": "\u003cscript\u003ealert(1)\u003c/script\u003e",
+      "keywords": [
+        "escaping",
+        "xss"
+      ],
       "in_degree": 0,
       "out_degree": 1
     },
@@ -13,6 +17,10 @@
       "path": "other.md",
       "type": "Concept",
       "title": "Other",
+      "keywords": [
+        "other",
+        "html"
+      ],
       "in_degree": 1,
       "out_degree": 0
     }

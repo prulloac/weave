@@ -1,20 +1,83 @@
-[
-  {
-    "id": "concepts/node-graph-engine",
-    "title": "Node Graph Engine",
-    "path": "concepts/node-graph-engine.md",
-    "type": "Concept",
-    "score": 34.4384,
-    "best_field": "title",
-    "snippet": "\nNode Graph Engine\n\nConsumes bundle edges and broken links.\n"
-  },
-  {
-    "id": "concepts/okf-bundle",
-    "title": "OKF Bundle",
-    "path": "concepts/okf-bundle.md",
-    "type": "Concept",
-    "score": 6.7788,
-    "best_field": "body",
-    "snippet": "…ndle of OKF-compliant Markdown files.\n\nGraph Edges\n\n- User Table\n- Node Graph Engine\n- External Reference\n"
-  }
-]
+{
+  "query": "graph",
+  "mode": "hybrid",
+  "top_k": 5,
+  "keyword": [
+    {
+      "id": "concepts/node-graph-engine",
+      "title": "Node Graph Engine",
+      "path": "concepts/node-graph-engine.md",
+      "type": "Concept",
+      "keywords": [
+        "graph",
+        "engine",
+        "nodes",
+        "edges"
+      ],
+      "matched_keywords": [
+        "graph"
+      ],
+      "score": 1
+    }
+  ],
+  "fuzzy": [
+    {
+      "id": "concepts/node-graph-engine",
+      "title": "Node Graph Engine",
+      "path": "concepts/node-graph-engine.md",
+      "type": "Concept",
+      "score": 1,
+      "matched_fields": [
+        "body",
+        "description",
+        "title"
+      ],
+      "snippet": "\nNode Graph Engine\n\nConsumes bundle edges and broken links.\n"
+    },
+    {
+      "id": "concepts/okf-bundle",
+      "title": "OKF Bundle",
+      "path": "concepts/okf-bundle.md",
+      "type": "Concept",
+      "score": 0.1579,
+      "matched_fields": [
+        "body"
+      ],
+      "snippet": "…ndle of OKF-compliant Markdown files.\n\nGraph Edges\n\n- User Table\n- Node Graph Engine\n- External Reference\n"
+    }
+  ],
+  "hybrid": [
+    {
+      "id": "concepts/node-graph-engine",
+      "title": "Node Graph Engine",
+      "path": "concepts/node-graph-engine.md",
+      "type": "Concept",
+      "keyword_score": 1,
+      "fuzzy_score": 1,
+      "total_score": 1,
+      "matched_keywords": [
+        "graph"
+      ],
+      "matched_fields": [
+        "body",
+        "description",
+        "title"
+      ],
+      "snippet": "\nNode Graph Engine\n\nConsumes bundle edges and broken links.\n"
+    },
+    {
+      "id": "concepts/okf-bundle",
+      "title": "OKF Bundle",
+      "path": "concepts/okf-bundle.md",
+      "type": "Concept",
+      "keyword_score": 0,
+      "fuzzy_score": 0.1579,
+      "total_score": 0.079,
+      "matched_keywords": [],
+      "matched_fields": [
+        "body"
+      ],
+      "snippet": "…ndle of OKF-compliant Markdown files.\n\nGraph Edges\n\n- User Table\n- Node Graph Engine\n- External Reference\n"
+    }
+  ]
+}

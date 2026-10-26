@@ -3,12 +3,20 @@
     "id": "a",
     "title": "Root A",
     "path": "a.md",
-    "type": "Concept"
+    "type": "Concept",
+    "keywords": [
+      "nested",
+      "root"
+    ]
   },
   {
     "id": "sub/b",
     "title": "Nested B",
     "path": "sub/b.md",
-    "type": "Concept"
+    "type": "Concept",
+    "keywords": [
+      "nested",
+      "child"
+    ]
   }
 ]
