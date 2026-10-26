@@ -2,10 +2,11 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"command": "./node_modules/.bin/astro dev",
-			"name": "Development server",
+			"name": "Run weave",
+			"type": "go",
 			"request": "launch",
-			"type": "node-terminal"
+			"mode": "auto",
+			"program": "${workspaceFolder}/cmd/weave"
 		}
 	]
 }

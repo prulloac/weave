@@ -3,19 +3,17 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-bun run contract:types
-bun run contract:export
-bun run contract:check
-bun test ./tests/unit
-bun run typecheck
-bun run lint:md
-
+go run ./cmd/contract-export
 go test -race ./...
 go vet ./...
 go build -o /tmp/weave-verify ./cmd/weave
 rm -f /tmp/weave-verify
 
-unformatted="$(gofmt -l cmd contract engine mount render)"
+if command -v bun >/dev/null 2>&1; then
+	bun run lint:md
+fi
+
+unformatted="$(gofmt -l cmd contract engine)"
 if [ -n "$unformatted" ]; then
 	echo "gofmt needed:"
 	echo "$unformatted"
