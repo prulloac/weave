@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 const cacheVersion = 1
@@ -22,6 +23,7 @@ type cacheManifest struct {
 }
 
 type parseCache struct {
+	mu       sync.Mutex
 	path     string
 	manifest cacheManifest
 	seen     map[string]bool
@@ -63,6 +65,9 @@ func openParseCache(root, directory string) (*parseCache, error) {
 }
 
 func (cache *parseCache) get(path string, info FileInfo) (fileOutcome, bool) {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+
 	entry, ok := cache.manifest.Files[path]
 	if !ok {
 		return fileOutcome{}, false
@@ -75,6 +80,9 @@ func (cache *parseCache) get(path string, info FileInfo) (fileOutcome, bool) {
 }
 
 func (cache *parseCache) set(path string, info FileInfo, outcome fileOutcome) {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+
 	cache.seen[path] = true
 	cache.manifest.Files[path] = cacheEntry{
 		MTime:   info.ModTime.UnixNano(),
@@ -85,6 +93,9 @@ func (cache *parseCache) set(path string, info FileInfo, outcome fileOutcome) {
 }
 
 func (cache *parseCache) save() error {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+
 	if !cache.dirty {
 		return nil
 	}
