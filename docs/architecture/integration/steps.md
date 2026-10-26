@@ -16,6 +16,11 @@ status: draft
 
 # Integration Steps
 
+> **Superseded in part by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md).**
+> Phases 4 (render), 5B (mount) and 6 (lens assets) are cancelled. The new work is the
+> [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md). The historical migration
+> steps below remain for traceability only.
+
 ## Principles
 
 1. **Contract first.** No implementation code is written until the contract schemas and golden

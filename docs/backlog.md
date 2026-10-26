@@ -28,22 +28,23 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Node Graph Engine | [node-graph-engine.md](specs/node-graph-engine.md) | - | x | x | x | green |
-| Search Index | [search-index.md](specs/search-index.md) | - | x | x | x | green |
-| Weave CLI Find & Navigate | [weave-cli-navigation.md](specs/weave-cli-navigation.md) | - | x | x | x | green |
+| Keyword + Fuzzy Search (new v1) | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | in-progress |
+| Weave CLI Search & Navigate | [weave-cli-navigation.md](specs/weave-cli-navigation.md) | - | x | x | x | green |
 
-## Tier 3 — Lens
+## Tier 3 — Search v1
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Visualization Lens (physics-based map) | [visualization-lens.md](specs/visualization-lens.md) | [#9](https://github.com/prulloac/weave/pull/9) / [#10](https://github.com/prulloac/weave/pull/10) / [#11](https://github.com/prulloac/weave/pull/11) | x | x | x | done |
-| Lens Mount Integration (styled explorer + navigable mount) | [lens-mount-integration.md](specs/lens-mount-integration.md) | - | x | x | x | green |
-| Visual Design Pass (design-system extraction, light/dark theming) | - | - | - | - | - | backlog |
+| Mandatory keywords, fuzzy scoring, hybrid top-K and calibration | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | in-progress |
+| Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | backlog |
+| Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | backlog |
+| UI and old TypeScript cleanup | [ADR 0003](architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | - | x | - | - | backlog |
 
 ## Tier 4 — Portability
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Layer Split & Go Port (Go engine/render/mount, CLI-first integration, TS lens assets) | [architecture/index.md](architecture/index.md) | - | x | - | - | in-progress |
+| Go engine + CLI base (UI retired) | [architecture/index.md](architecture/index.md) | - | x | - | - | done |
 
 ## Cross-cutting
 
@@ -61,6 +62,10 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Go module scaffold, contract structs, schema round-trip tests and CI (Phase 2)
 - [x] Go engine port: parser, graph, search, navigation and operations (Phase 3)
 - [x] Go machine CLI: commands, envelopes, exit codes and cache defaults (Phase 5A / Milestone A)
+- [x] ADR 0003: keyword + fuzzy search and UI retirement
+- [x] Keyword + Fuzzy Search specification
+- [ ] UI, Astro, Preact, Playwright and old TypeScript cleanup (ADR 0003)
+- [ ] Search calibration corpus and baseline report
 
 ## Maintenance
 

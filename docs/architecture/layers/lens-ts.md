@@ -11,10 +11,13 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-25T00:00:00Z"
-status: draft
+status: deprecated
 ---
 
 # Lens Layer (TypeScript Assets)
+
+> **Retired by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md).** The lens and
+> browser presentation are cancelled. This document is historical only.
 
 ## Purpose
 

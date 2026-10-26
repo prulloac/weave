@@ -11,10 +11,14 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-25T00:00:00Z"
-status: draft
+status: deprecated
 ---
 
 # Render Layer (Go)
+
+> **Retired by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md).** Weave no longer
+> has a browser UI. This document is kept only as historical design context and must not guide new
+> work.
 
 ## Purpose
 

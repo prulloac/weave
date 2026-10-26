@@ -1,12 +1,13 @@
 ---
 type: Concept
 title: "Weave Vision"
-description: "Core vision of Weave: a portable, CLI-driven visualization engine that unlocks latent structure within OKF bundles by weaving flat files into a living universe of knowledge."
+description: "Core vision of Weave: an in-memory related-document database that weaves flat OKF bundles into a searchable, navigable knowledge graph."
 tags:
   - "vision"
   - "architecture"
   - "cli"
   - "okf"
+  - "search"
   - "knowledge-management"
   - "local-first"
 generated:
@@ -15,7 +16,7 @@ generated:
 verified:
   - by: "human:developer"
     at: "2026-08-06T00:00:00Z"
-status: stable
+status: draft
 ---
 
 # Weave Vision
@@ -24,45 +25,44 @@ status: stable
 
 ## Summary
 
-Weave is a portable, CLI-driven visualization engine designed to unlock the latent structure within Open Knowledge Format (OKF) bundles. It bridges the gap between static, portable file formats and interactive data exploration, letting individuals parse, query, and map deeply interconnected Markdown and YAML structures directly from their terminal.
+Weave is an in-memory related-document database for Open Knowledge Format (OKF) bundles. It loads
+flat Markdown and YAML files, builds concept nodes and link edges, and answers keyword and
+weighted fuzzy searches with top-K results. It is CLI-first, local, and has no browser UI.
 
 ## Details & Contracts
 
 ### The Purpose
 
-Weave bridges static file formats and interactive exploration. Core contract:
+Weave turns a static bundle into a queryable document store:
 
-- Input: OKF bundles composed of Markdown and YAML flat files.
-- Operation: parse, query, and map deeply interconnected structures.
-- Surface: CLI-driven, portable, no GUI required.
-- Output: node graph and search index exposing latent structure.
+- Input: OKF bundles of Markdown and YAML flat files.
+- Relationships: Markdown links and `related` entries become graph edges.
+- Retrieval: mandatory frontmatter keywords plus weighted fuzzy search.
+- Surface: Go CLI, local-first, machine-readable envelopes.
+- Output: ranked top-K results and a traversable graph.
 
-### The Architecture
+### Search Contract
 
-Weave acts as a dynamic visual lens that mounts over any local Git repository without polluting underlying data.
-
-| Contract | Guarantee |
+| Dimension | Guarantee |
 | --- | --- |
-| Mount strategy | Single command wraps target directory with high-performance static engine |
-| Pollution-free | No mutation of underlying repository data |
-| Graph construction | Temporary symlinks + build-time metadata validation |
-| Performance | Fully traversable node graph + search index generated in milliseconds |
-| Operational mode | Strictly offline, local file system only |
+| Keywords | Mandatory frontmatter field; exact token plus prefix matching |
+| Fuzzy fields | Title highest, description second, body last |
+| Results | Keyword, fuzzy and hybrid top-K lists |
+| Default mode | Hybrid |
+| Default top-K | 10 |
+| Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
+| Operational mode | In-memory, offline, deterministic |
 
-### The User Experience
+### What Weave Is Not
 
-Engineered for deep focus, reclaiming knowledge exploration from sluggish web interfaces.
-
-| Contract | Guarantee |
-| --- | --- |
-| Environment | Local-first, low-latency |
-| Input flow | Write Markdown locally, run Weave command |
-| Interaction | Frictionless, keyboard-only, never leaves terminal |
-| Output | Macro-level, physics-based map of personal knowledge ecosystem |
+- Not a browser visualization or lens product.
+- Not a mount server or static site generator.
+- Not an embedding or natural-language question-answering system in v1.
 
 ## Related Concepts
 
 - Depends on [OKF Specification](./okf-bundle.md)
 - Related to [Node Graph Engine](./node-graph-engine.md)
 - Related to [Search Index](./search-index.md)
-- Depends on [Git Repository Mount](./git-repository-mount.md)
+- Supersedes the retired [Git Repository Mount](./git-repository-mount.md)
+- Implemented by [ADR 0003](../../architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)

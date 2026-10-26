@@ -38,5 +38,5 @@ High-performance static engine that turns OKF bundles into a fully traversable n
 
 - Consumes [OKF Bundle](./okf-bundle.md)
 - Feeds [Search Index](./search-index.md)
-- Runs inside [Git Repository Mount](./git-repository-mount.md)
+- Consumed by the Go CLI (the mount concept is retired)
 - Implements [Weave Vision](./weave-vision.md)

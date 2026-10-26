@@ -13,10 +13,14 @@ generated:
 verified:
   - by: "human:developer"
     at: "2026-08-06T00:00:00Z"
-status: stable
+status: deprecated
 ---
 
 # Git Repository Mount
+
+> **Retired by [ADR 0003](../../architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md).**
+> Weave no longer mounts or serves a browser presentation. The CLI reads bundles directly. This
+> concept is kept as historical context.
 
 ## Summary
 
