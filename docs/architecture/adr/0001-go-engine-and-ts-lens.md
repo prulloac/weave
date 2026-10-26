@@ -18,7 +18,8 @@ status: draft
 
 ## Status
 
-Proposed.
+Superseded in part by [ADR 0003](0003-keyword-fuzzy-search-and-ui-retirement.md): the UI, renderer,
+lens and mount decisions below are historical and no longer guide new work.
 
 ## Context
 
@@ -176,9 +177,8 @@ sequencing, v1 milestone scope, contract generation, CLI cache default and `weav
 - [Engine layer](../layers/engine-go.md)
 - [Operations layer](../layers/operations.md)
 - [CLI layer](../layers/cli-go.md)
-- [Render layer](../layers/render-go.md)
-- [Lens layer](../layers/lens-ts.md)
-- [Mount layer](../layers/mount-go.md)
+- [ADR 0003](0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md)
 - [Integration contracts](../integration/contracts.md)
 - [Integration steps](../integration/steps.md)
 - [Integration testing](../integration/testing.md)

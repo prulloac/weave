@@ -10,4 +10,3 @@ okf_version: "0.2"
 - [OKF Bundle](concepts/okf-bundle.md) - Portable collection of OKF-compliant Markdown and YAML flat files; Weave's input format.
 - [Node Graph Engine](concepts/node-graph-engine.md) - Static engine building a fully traversable node graph.
 - [Search Index](concepts/search-index.md) - Keyword and weighted fuzzy search returning top-K results.
-- [Git Repository Mount](concepts/git-repository-mount.md) - Retired by ADR 0003; historical mount concept.

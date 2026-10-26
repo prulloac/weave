@@ -1,13 +1,14 @@
 ---
 type: Layer Specification
 title: "Engine Layer (Go)"
-description: "Go package layout, public API, parsing pipeline, parity requirements and testing strategy for the headless Weave engine."
+description: "Go bundle parser, graph, in-memory keyword/fuzzy search, navigation and cache for the related-document database."
 tags:
   - "architecture"
   - "engine"
   - "go"
   - "parser"
   - "search"
+  - "fuzzy"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-25T00:00:00Z"
@@ -18,317 +19,128 @@ status: draft
 
 ## Purpose
 
-The engine turns an OKF v0.2 bundle directory into an immutable, queryable in-memory model:
+The engine turns an OKF bundle into an in-memory related-document database:
 
 ```text
-filesystem → Bundle → Graph → SearchIndex → navigation results
+filesystem -> Bundle -> Graph -> Search Index -> navigation/search results
 ```
 
-It is headless and deterministic. It does not render HTML, serve HTTP, read process arguments,
-speak a transport protocol, or know about the lens. The public integration surface is the
-[CLI layer](cli-go.md); the engine API is an optional in-process convenience for Go hosts.
+It is headless, deterministic and transport-free. The CLI is the only product surface; the Go API
+is an optional in-process convenience.
 
 ## Package Layout
 
 ```text
 engine/
-├── engine.go            # public facade: Open, accessors, query methods
-├── options.go           # Options, defaults
-├── errors.go            # typed errors and codes
+├── engine.go            # Open, Bundle, Graph, Search, navigation methods
 ├── okf/
-│   ├── fs.go            # FileSystem interface + OS adapter
-│   ├── walk.go          # deterministic tree walk, symlink guard
-│   ├── frontmatter.go   # yaml.v3 decoding + normalization
-│   ├── links.go         # source-preserving Markdown link scanner and resolution
-│   ├── parse.go         # per-file and bundle assembly
-│   ├── validate.go      # conformance validation
-│   └── cache.go         # optional per-file parse cache
+│   ├── fs.go            # FileSystem adapter
+│   ├── parse.go         # walk, parse, validate, concurrency
+│   ├── frontmatter.go   # YAML frontmatter and keyword extraction
+│   ├── links.go         # source-preserving link scanner
+│   └── cache.go         # optional per-file cache
 ├── graph/
-│   ├── build.go
-│   ├── traverse.go
-│   └── types.go
+│   ├── build.go         # nodes, edges, dangling links
+│   └── traverse.go      # BFS, neighbors, orphans
 ├── search/
-│   ├── build.go
-│   ├── query.go
-│   ├── tokenize.go
-│   └── types.go
-└── nav/
-    ├── find.go
-    ├── list.go
-    ├── show.go
-    ├── backlinks.go
-    └── path.go
+│   ├── build.go         # documents, keyword postings, field/trigram indexes
+│   ├── query.go         # keyword, fuzzy and hybrid top-K
+│   ├── similarity.go    # Levenshtein, trigram Dice, rounding
+│   └── tokenize.go      # tokenization and markdown stripping
+├── nav/
+│   └── nav.go           # normalize, list, show, backlinks, path
+└── operations/          # transport-neutral envelopes
 ```
-
-`contract/v1` is a sibling package and the only shared dependency.
 
 ## Public API
 
 ```go
-package engine
-
 type Options struct {
-    // Cache enables the per-file parse cache. Default false.
-    Cache bool
-    // CacheDir overrides the cache location. Empty means WEAVE_CACHE_DIR or os.TempDir.
-    CacheDir string
-    // Concurrency bounds concurrent file reads. Default 32.
+    Cache       bool
+    CacheDir    string
     Concurrency int
-    // FS overrides the filesystem adapter. Default is the OS adapter.
-    FS okf.FileSystem
+    FS          okf.FileSystem
+    OnCacheHit  func(path string)
 }
 
-type Engine struct {
-    // unexported fields
-}
+func Open(ctx context.Context, root string, options Options) (*Engine, error)
 
-func Open(ctx context.Context, root string, opts Options) (*Engine, error)
-
-func (e *Engine) Root() string
-func (e *Engine) Bundle() *contract.Bundle
+func (e *Engine) Bundle() *contractv1.Bundle
 func (e *Engine) Graph() *graph.Graph
 func (e *Engine) SearchIndex() *search.Index
-
-func (e *Engine) Find(query string, opts search.Options) []contract.FindResult
-func (e *Engine) List(filters nav.ListFilters) []contract.ListResult
-func (e *Engine) Show(target string) (*contract.ShowResult, bool)
-func (e *Engine) Backlinks(target string) (*contract.BacklinksResult, bool)
-func (e *Engine) Path(from, to string) (*contract.PathResult, bool)
-
-func (e *Engine) Close() error
+func (e *Engine) Search(query string, mode contractv1.SearchMode, topK int) (contractv1.SearchResponse, error)
+func (e *Engine) List(filters nav.ListFilters) []contractv1.ListResult
+func (e *Engine) Show(target string) (*contractv1.ShowResult, bool)
+func (e *Engine) Backlinks(target string) (*contractv1.BacklinksResult, bool)
+func (e *Engine) Path(from, to string) (*contractv1.PathResult, bool)
 ```
 
-Design rules:
+## Parsing
 
-- `Open` performs the full parse, graph build and index build once. Query methods are read-only
-  and safe for concurrent use after `Open` returns.
-- `Open` honors `context.Context` cancellation during walking and reading.
-- The engine never caches across roots implicitly. Reopening is the only way to observe changes.
-- The host decides whether to call `Open` again after files change.
-- All exported result types come from `contract/v1`; the engine's internal graph and index types
-  are not part of the public API.
-- The CLI reaches the engine through the [operations layer](operations.md). The engine API is
-  not the compatibility promise; the CLI contract is.
-- If the engine API is used directly, it is stable within the module's semver policy but is not
-  a cross-language contract.
-
-## Parsing Pipeline
-
-1. **Walk** the bundle root deterministically.
-2. **Read** files with bounded concurrency.
-3. **Extract frontmatter** with `yaml.v3`.
-4. **Extract links** with the source-preserving Markdown scanner.
-5. **Resolve** link targets against the final concept set.
-6. **Validate** per concept and per bundle.
-7. **Build graph** from resolved links and the `related` frontmatter array.
-8. **Build search index** from concept fields plus graph degree.
-9. **Return** the immutable model.
-
-The order matters because link resolution needs the complete concept set, and the search degree
-boost needs the graph.
-
-## Filesystem Adapter
-
-```go
-package okf
-
-type DirEntry struct {
-    Name  string
-    IsDir bool
-    IsLink bool
-}
-
-type FileInfo struct {
-    Size    int64
-    ModTime time.Time
-    IsDir   bool
-    IsFile  bool
-}
-
-type FileSystem interface {
-    Walk(ctx context.Context, root string) ([]string, error)
-    ReadFile(ctx context.Context, path string) ([]byte, error)
-    Stat(ctx context.Context, path string) (FileInfo, error)
-    RealPath(ctx context.Context, path string) (string, error)
-}
-```
-
-The OS adapter wraps `os`, `filepath` and `io/fs`. Tests use an in-memory adapter for
-deterministic fixtures and error injection. The adapter must:
-
-- return POSIX-style relative paths to the caller,
-- skip `.git` and `node_modules`,
-- follow one level of directory symlinks,
-- guard cycles with resolved real paths.
-
-## Frontmatter and YAML
-
-Go uses `gopkg.in/yaml.v3` and accepts the full YAML 1.2 document, which is a superset of the
-current TypeScript subset. The contract fixtures define the required observable subset:
-
-- scalars, booleans, numbers, null,
-- quoted and unquoted strings, URLs with fragments,
-- flow and block sequences,
-- nested maps,
-- lists of mappings (`verified`),
-- comments.
-
-Normalization rules:
-
-| Frontmatter value | Contract field |
-| --- | --- |
-| `type` must be a non-empty string | `Concept.Type` |
-| `title`, `description` | stringified when present |
-| `tags` string or list | `[]string` |
-| `status` one of `draft`, `stable`, `deprecated` | `Concept.Status`; other values ignored |
-| everything else | preserved in `Concept.Frontmatter` |
-
-Do not reject unknown keys or unknown types. Do not require `metadata.id`.
-
-## Link Extraction
-
-Links are extracted with a small source-preserving scanner rather than the goldmark AST. Goldmark
-is reserved for HTML rendering in the presentation layer. The scanner is used because the
-contract's `raw` field must preserve the exact source form (`[x](<b.md>)`, `[x](b.md "title")`,
-`[x][ref]`, `[x][]`, `[x]`), which inline AST nodes do not expose.
-
-The scanner:
-
-- strips fenced code blocks and inline code spans,
-- collects reference definitions and resolves full, collapsed and shortcut references,
-- handles inline, titled and angle-bracket destinations,
-- skips image embeds,
-- excludes autolinks in v1,
-- returns source slices in document order.
-
-This behavior is pinned by the `anchors`, `reference-links` and `code-links` golden cases.
-
-Resolution:
-
-```go
-func Resolve(rawTarget, conceptDir string) (resolved string, external bool)
-```
-
-1. If the target has a URL scheme, mark external.
-2. Strip `#fragment` and `?query`.
-3. If the remainder is empty, leave unresolved.
-4. Leading `/` means bundle root; otherwise clean `path.Join(conceptDir, target)`.
-5. Convert to POSIX separators and trim a trailing `.md` only for graph node ids, not for
-   `resolved`.
-
-`resolves_in_bundle` is set only after the full concept set is known.
-
-## Graph
-
-- One node per concept, keyed by id.
-- Edges from resolved links (`source: link`) and `related` frontmatter entries
-  (`source: related`).
-- Deduplicate identical `(from, to, source)` edges.
-- Compute `in_degree` and `out_degree` during assembly.
-- Broken and external links go to `dangling`, keyed by source id.
-- Serialize nodes and edges in id order for deterministic output and lens payloads.
-
-Navigation:
-
-- `findPath` is BFS over directed edges, returning the shortest hop sequence.
-- `neighbors`, `connectedComponents` and `orphanNodes` are optional helpers for hosts and tests.
+- Walk deterministically, skipping `.git` and `node_modules`.
+- Follow one level of directory symlinks with a realpath cycle guard.
+- Read concurrently with a bounded worker pool (default 32).
+- Decode UTF-8 strictly; invalid files become per-file parse errors.
+- Extract frontmatter with `yaml.v3`; preserve unknown keys.
+- Required fields: non-empty `type` and a non-empty `keywords` list.
+- Missing/invalid keywords make the document invalid, but it remains available for graph and
+  fuzzy search and is excluded from the keyword index.
+- Extract links with a source-preserving scanner so `raw` keeps the exact Markdown form.
+- Resolve fragments/queries away before graph resolution.
+- Record broken links as unresolved edges and validation warnings.
+- Cache per-file outcomes keyed by absolute path, mtime, size and parser version.
 
 ## Search
 
-Port the current BM25 semantics exactly; see [Contract layer](contract.md) for constants.
+The full contract is in [Keyword + Fuzzy Search](../../specs/keyword-fuzzy-search.md).
 
-Implementation notes:
+- **Keyword index:** normalized keyword token -> documents.
+- **Fuzzy index:** per-field token postings and trigram index.
+- **Keyword score:** exact `1.0`, prefix `0.75`, AND across query tokens.
+- **Fuzzy score:** max of normalized Levenshtein and trigram Dice per token; field weights
+  `title 1.00`, `description 0.60`, `body 0.30`; normalized by `1.90`.
+- **Hybrid score:** `0.50 * keyword + 0.50 * fuzzy`.
+- **Top-K:** default 10, maximum 100.
+- Results contain keyword, fuzzy and hybrid lists with component scores and match metadata.
+- Ranking is deterministic with id tie-breaks.
+- Calibration lives in `engine/search/testdata/calibration.json` and is guarded by
+  `TestCalibration`.
 
-- Build an inverted index per field: `map[Field]map[token][]docIndex`.
-- Store term frequency per document and field.
-- Store field lengths and averages.
-- Apply a prefix match (`strings.HasPrefix(indexToken, queryToken)`).
-- Require every query token to match across the selected fields.
-- Sort by score descending, then id ascending.
-- Keep snippets only for body matches.
-- Use `unicode`-aware splitting equivalent to `[^\p{L}\p{N}]+`.
-- Keep the same field weights and BM25 constants; do not upgrade to a different ranking model in
-  v1.
+## Graph
 
-## Cache
+- One node per concept, keyed by id, with keywords, type, title, status and tags.
+- Edges from resolved Markdown links (`link`) and frontmatter `related` (`related`).
+- Deduplicate identical edges and compute in/out degree.
+- Keep dangling/external targets per source concept.
+- BFS shortest path, neighbors and orphan detection.
 
-The cache is opt-in and mirrors the current TypeScript design:
+## Cache and Concurrency
 
-- Key: bundle root hash.
-- Entry: absolute file path plus `(mtime, size)`.
-- Value: per-file parse outcome (concept, validation, index result).
-- Version constant invalidates all entries on parser changes.
-- Writes are best-effort and atomic (`.tmp` plus rename).
+- Cache is opt-in at the engine API and enabled by the CLI.
+- Cache writes are best-effort and concurrency-safe.
 - Cache failures never fail a parse.
+- Parsing is deterministic regardless of worker scheduling.
+- Queries are read-only and safe for concurrent use after `Open`.
 
-## Errors
+## Performance
 
-```go
-type Error struct {
-    Code  string // e.g. PARSE_ERROR, INVALID_ROOT, CACHE_ERROR
-    Path  string
-    Err   error
-}
-```
-
-- `Open` returns an error for an unreadable root or a cancelled context.
-- Per-file failures are recorded in `Bundle.Validation`, not returned as a fatal error.
-- CLI exit codes and HTTP statuses are mapped by the outer layers, never by the engine.
-
-## Performance Targets
-
-| Metric | Target |
-| --- | --- |
-| 10k small files | Under 500 ms on local SSD, no cache |
-| Per file | ~0.04 ms or better |
-| Memory | O(total parsed content); bodies retained unless a future option says otherwise |
-| Concurrency | 32 reads by default, configurable |
-| Determinism | Identical inputs produce byte-identical JSON after normalization |
-
-Benchmarks live in `engine/bench_test.go` with generated bundles. CI runs a smoke benchmark with
-a generous ceiling to catch order-of-magnitude regressions.
-
-Current Go benchmark on 1,000 generated files (Go 1.27, local x86_64): parse ~47 ms,
-search ~1.3 ms. The 10k budget remains the release gate.
+Go benchmark on 1,000 generated files (local x86_64): parse ~47 ms. Search latency is measured by
+the calibration/benchmark suite; the 10k-file budgets in the spec remain the release gate.
 
 ## Testing
 
-1. **Unit tests** per package, table-driven.
-2. **Golden tests** against `contract/v1/golden` for `Bundle`, `Graph`, `Search` and nav results.
-3. **Filesystem adapter tests** including symlink cycles and Windows hardlink fallback.
-4. **Fuzz tests** for frontmatter, link targets and path normalization.
-5. **Race tests** with `go test -race ./...`.
-6. **Benchmarks** for parse and search.
-
-The engine port is complete only when it passes every golden fixture and the race suite.
-
-## Operations Boundary
-
-The engine exposes typed data and query methods. The [operations layer](operations.md) wraps them
-into transport-neutral requests and envelopes. Do not put argv parsing, exit codes, HTTP statuses,
-NDJSON framing or MCP types in the engine.
-
-## Parity Map from TypeScript
-
-| TypeScript | Go target |
-| --- | --- |
-| `src/lib/okf/frontmatter.ts` | `engine/okf/frontmatter.go` |
-| `src/lib/okf/links.ts` | `engine/okf/links.go` |
-| `src/lib/okf/parser.ts` | `engine/okf/parse.go`, `walk.go` |
-| `src/lib/okf/validate.ts` | `engine/okf/validate.go` |
-| `src/lib/okf/cache.ts` | `engine/okf/cache.go` |
-| `src/lib/graph/build.ts` | `engine/graph/build.go` |
-| `src/lib/graph/traverse.ts` | `engine/graph/traverse.go` |
-| `src/lib/search/*` | `engine/search/*` |
-| `cli/find.ts`, `list.ts`, `show.ts`, `path.ts` | `engine/nav/*` |
-| `cli/resolve.ts` | `engine/nav/resolve.go` |
+- Contract schema round-trip tests.
+- Golden conformance for bundle, graph and search.
+- Calibration corpus with NDCG@K and MRR@K baselines.
+- Cache hit/invalidation and race tests.
+- CLI process tests.
+- Fuzz tests for frontmatter, links and ids (planned).
 
 ## Related Documents
 
+- [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md)
 - [Contract layer](contract.md)
 - [Operations layer](operations.md)
 - [CLI layer](cli-go.md)
-- [Render layer](render-go.md)
-- [Mount layer](mount-go.md)
-- [Integration contracts](../integration/contracts.md)
+- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Integration testing](../integration/testing.md)

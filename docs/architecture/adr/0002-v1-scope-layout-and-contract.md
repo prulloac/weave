@@ -19,8 +19,9 @@ status: accepted
 
 ## Status
 
-Accepted on 2026-10-25. This record resolves the layout, sequencing, scope and contract
-questions that ADR 0001 left open. It does not change the CLI-first integration decision.
+Superseded in part by [ADR 0003](0003-keyword-fuzzy-search-and-ui-retirement.md): the UI and
+presentation milestones are cancelled, and the contract v1 it describes has been replaced in
+place. The repository, module and CLI-first decisions remain valid.
 
 ## Context
 

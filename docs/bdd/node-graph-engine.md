@@ -1,9 +1,9 @@
 # BDD: Node Graph Engine
 
-Human-readable behavior test cases for the Node Graph Engine (`buildGraph`, traversal, serialization).
+Human-readable behavior test cases for the Node Graph Engine (build, traversal, pathfinding).
 
 **Spec reference:** [node-graph-engine.md](../specs/node-graph-engine.md)
-**Playwright spec:** `tests/e2e/node-graph-engine.spec.ts`
+**Go tests:** `engine/graph`, `engine/conformance_test.go`
 
 ---
 

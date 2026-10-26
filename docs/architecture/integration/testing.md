@@ -1,12 +1,12 @@
 ---
 type: Test Strategy
 title: "Integration Testing"
-description: "Conformance corpus, test pyramid, CI matrix, commands and acceptance gates for the Go engine/render/mount and TypeScript lens."
+description: "Go unit, conformance, calibration, cache, CLI process and race tests for the related-document database."
 tags:
   - "architecture"
   - "testing"
   - "conformance"
-  - "ci"
+  - "calibration"
   - "go"
 generated:
   by: opencode/deepseek-v4.1-flash
@@ -18,306 +18,106 @@ status: draft
 
 ## Strategy
 
-The migration is verified at seven levels (0–6). Lower levels are fast and exhaustive; higher levels prove
-that the layers actually compose.
-
 | Level | Scope | Tooling | Gate |
 | --- | --- | --- | --- |
-| 0 | Schema validity | JSON Schema validators | Every golden file validates |
-| 1 | Semantic conformance | TS exporter vs Go output | Zero unexplained diffs |
-| 2 | Go unit and race | `go test`, `-race`, fuzz | Package coverage and no races |
-| 3 | TS lens unit | `bun test` | Layout, payload, bootstrap |
-| 4 | CLI process contract | `exec.Command`, golden files | Envelopes, stderr, exit codes |
-| 5 | Presentation HTTP + browser | `httptest`, Playwright | Routes, DOM hooks, user journeys |
-| 6 | Performance | Benchmarks, size budgets | Budgets met |
+| 1 | Contract schemas | `go test ./contract/v1` | Goldens validate and round-trip |
+| 2 | Engine unit/race | `go test -race ./...` | No races; package tests pass |
+| 3 | Golden conformance | `engine/conformance_test.go` | Bundle, graph and search match goldens |
+| 4 | Calibration | `engine/search/calibration_test.go` | NDCG@K and MRR@K meet baseline |
+| 5 | CLI process | `cmd/weave/main_test.go` | Envelopes, stderr, exit codes, cache |
+| 6 | Performance | Go benchmarks | Budgets documented |
+
+No browser, HTTP or Playwright tests exist.
 
 ## Conformance Corpus
 
 Location: `contract/v1/golden`.
 
-```text
-contract/v1/golden/
-├── manifest.json
-├── bundles/
-│   ├── okf-bundle/            # cross-links, index, validation
-│   ├── anchors/               # #fragment and ?query links
-│   ├── nested-index/          # sub/index.md must not replace root metadata
-│   ├── verified-frontmatter/  # YAML list-of-mappings
-│   ├── reference-links/       # [x][ref], [x][], titled, angle destinations
-│   ├── code-links/            # links inside fences and inline code are ignored
-│   ├── symlinked-dirs/        # one-level symlink follow and cycle guard
-│   ├── invalid-utf8/          # per-file parse error, skipped
-│   ├── empty/                 # valid empty bundle plus warning
-│   ├── version-mismatch/      # warning, best-effort parse
-│   ├── deep-tree/             # nested directories and parent-relative links
-│   ├── escaping/              # HTML/script payloads in text and frontmatter
-│   └── large/                 # generated or checked-in medium bundle
-└── expected/
-    ├── <case>.bundle.json
-    ├── <case>.graph.json
-    ├── <case>.search-<query>.json
-    └── <case>.nav-<command>.json
-```
+- Fixtures include mandatory keywords.
+- Each case exports bundle, graph and search expectations.
+- Search cases declare query, mode and top-K.
+- Navigation cases cover list, show, backlinks and path.
+- `find` cases are gone.
 
-Each case is listed in `manifest.json`:
-
-```json
-{
-  "contract": "weave.contract/v1",
-  "cases": [
-    {
-      "name": "anchors",
-      "bundle": "bundles/anchors",
-      "expect": {
-        "bundle": "expected/anchors.bundle.json",
-        "graph": "expected/anchors.graph.json"
-      }
-    }
-  ]
-}
-```
-
-Normalization rules:
-
-- Sort concept, node, edge and result arrays by id (or preserve documented order where the
-  contract requires it, such as index entries).
-- Remove absolute roots or replace them with `"<root>"`.
-- Pretty-print with two spaces.
-- Normalize path separators to `/`.
-- Do not normalize scores, snippets, warnings or validation flags.
-
-## Level 0 — Schema Validation
-
-- Validate every expected JSON file against its schema.
-- Validate HTTP JSON responses against the same schemas.
-- Validate the lens payload as `SerializedGraph`.
-- Reject additional fields only where the contract says they are invalid; otherwise allow them.
-
-## Level 1 — Semantic Conformance
-
-The TypeScript implementation is the reference until cutover.
-
-Harness:
-
-1. A TypeScript exporter reads a fixture bundle and writes normalized JSON for bundle, graph,
-   search and navigation.
-2. The Go conformance test reads the same fixture and writes the same normalized JSON.
-3. A differ compares them and prints the first N differences with JSON pointers.
-4. The test fails on any difference not listed in `manifest.json` as an accepted, documented
-   divergence.
-
-Example commands:
+Commands:
 
 ```sh
-bun run contract:export -- contract/v1/golden/bundles/okf-bundle /tmp/ts
-go test ./contract/v1 -run TestConformance -args --root contract/v1/golden --actual /tmp/go
-bun run contract:diff /tmp/ts /tmp/go
+go run ./cmd/contract-export
+go test ./contract/v1
+go test ./engine/...
 ```
 
-Accepted divergences must be explicit and versioned, for example a documented YAML superset
-behavior that the fixtures do not exercise.
+## Calibration
 
-## Level 2 — Go Unit, Race and Fuzz
+Location: `engine/search/testdata/calibration.json`.
 
-```sh
-go test ./...
-go test -race ./...
-go vet ./...
-golangci-lint run ./...
-```
+Cases cover:
 
-Coverage targets:
+- exact keywords,
+- keyword prefixes,
+- multi-keyword AND queries,
+- typos,
+- title vs description vs body weighting,
+- missing-keyword documents,
+- empty queries.
 
-- `engine/okf`: walk, frontmatter, links, parsing, validation, cache.
-- `engine/graph`: edge dedupe, degrees, BFS, components.
-- `engine/search`: tokenization, BM25 constants, prefix matching, snippets, tie-breaking.
-- `engine/nav`: target normalization, filters, backlinks, path.
-- `render`: templates, escaping, Markdown, test IDs, zero-JS.
-- `mount`: routes, assets, artifacts, registry, handler lifecycle.
+Metrics:
 
-Fuzz targets:
+- NDCG@K (primary)
+- MRR@K
+- precision@K (reported)
+- recall@K (reported)
 
-- `FuzzFrontmatter` — YAML bombs, deeply nested maps, invalid UTF-8, comments.
-- `FuzzLinkTarget` — schemes, fragments, traversal, encoded slashes.
-- `FuzzConceptID` — traversal, empty segments, Windows separators.
+CI fails if the averages drop below the committed baseline. Current baseline:
+**NDCG@10 >= 0.75, MRR@10 >= 0.70**. Measured at implementation time: NDCG@10 ≈ 0.974,
+MRR@10 = 1.0.
 
-Fuzz failures become regression fixtures.
+## CLI Tests
 
-## Level 3 — TypeScript Lens Unit
+- Every command: `contract`, `parse`, `graph`, `search`, `list`, `show`, `backlinks`, `path`,
+  `version`.
+- Envelope validity and stdout purity.
+- Human output.
+- Exit codes: 0/1/2/3.
+- Search modes and top-K boundaries.
+- Empty results still emit a success envelope but exit 1.
+- Cache default, `--no-cache`, hit and invalidation.
+- Determinism.
 
-```sh
-cd lens
-bun test
-```
+## Race and Cache
 
-Coverage:
+- `go test -race ./...` is required in CI and `scripts/verify.sh`.
+- Cache tests cover hit, invalidation, concurrency safety and no-cache parity.
 
-- Layout math and viewport bounds.
-- Empty graph, single node, many nodes.
-- Degraded threshold above 1000 nodes.
-- Payload parsing with unknown fields.
-- Node hit-testing and URL segment encoding.
-- Bootstrap idempotence and error path.
-- No forbidden imports (engine/parser/search/Node built-ins).
+## Performance
 
-## Level 4 — CLI Process Contract
+Targets for 10,000 documents:
 
-Build the binary and test it as a black box:
-
-```sh
-go build -o /tmp/weave ./cmd/weave
-/tmp/weave contract --json
-/tmp/weave find contract/v1/golden/bundles/okf-bundle graph --json
-```
-
-Assertions per operation:
-
-- Valid [`weave.cli/v1`](contracts.md) envelope on stdout.
-- Empty stderr on success.
-- Non-zero exit code plus a valid error envelope on failure.
-- Documented exit code for every error class.
-- No color, banner, progress bar or log line on stdout in `--json` mode.
-- Deterministic output across repeated runs.
-- JSON Schema validation of every envelope.
-- `weave contract --json` advertises exactly the supported operations.
-- Unknown operations and missing fields return `INVALID_REQUEST` and exit 2.
-- Concurrent one-shot processes do not interfere (cache is safely shared).
-- `weave parse --json` includes bodies; `graph` and query payloads do not.
-- Cache tests: hit on the second run, invalidation after a change, `--no-cache` parity, isolated
-  temporary cache directory.
-
-`--legacy-json` and `weave engine --stdio` are post-v1; their tests are added when those modes
-ship.
-
-## Level 5 — Presentation HTTP and Browser E2E
-
-First use `httptest` against `mount.NewSite` for presentation-only assertions:
-
-```go
-site, _ := mount.NewSite(ctx, fixture, mount.Options{})
-defer site.Close()
-srv := httptest.NewServer(site.Handler())
-defer srv.Close()
-```
-
-Assertions:
-
-- Every route status and content type.
-- `/concept/unknown` returns 404 and `data-testid="not-found"`.
-- `/` and `/concept/*` contain zero `<script>`.
-- `/lens` contains the JSON payload and the module script when the asset is built.
-- Missing lens asset yields the server index, empty/no script and `lens-warning`.
-- `BasePath` rewriting works for every generated link and asset.
-- Concurrent requests do not race (`-race`).
-- `Close` removes the artifact root and is idempotent.
-
-Then run Playwright against the Go binary:
-
-```sh
-go build -o /tmp/weave ./cmd/weave
-/tmp/weave mount contract/v1/golden/bundles/okf-bundle --port 4322
-bunx playwright test
-```
-
-Required scenarios:
-
-- Styled overview preserves the explorer contract.
-- Shared stylesheet is linked on every route; body background is themed.
-- Navigation header reaches `/lens`.
-- Zero-JS routes contain no scripts.
-- Lens renders canvas and legend.
-- Lens index lists every concept and links to concept pages.
-- Clicking an index entry reaches the concept page.
-- Concept page shows title, type, status, description and body.
-- Resolved and dangling links are distinguishable.
-- Backlinks list incoming concepts.
-- Body links navigate.
-- Unknown concept renders 404 with nav.
-- Concept pages contain no scripts.
-- Empty bundle shows the empty state.
-- Embedded subpath deployment (`BasePath`) works.
-
-The current `tests/e2e/lens-mount-integration.spec.ts` is the starting point.
-
-## Level 6 — Performance and Size
-
-```sh
-go test ./engine/... -bench . -benchmem -run '^$'
-```
-
-Budgets:
-
-| Metric | Budget |
+| Query | Target |
 | --- | --- |
-| 10k small files, no cache | Under 500 ms local SSD |
-| Search, 10k docs, common query | Under 20 ms |
-| Lens asset | Under 150 KB uncompressed |
-| Site memory | Documented baseline, no regression per release |
-| Binary | Documented baseline including embedded assets |
+| Keyword top-10 | < 20 ms |
+| Fuzzy top-10 | < 50 ms |
+| Hybrid top-10 | < 50 ms |
 
-CI runs a smoke benchmark with a generous ceiling. Release branches record the measured numbers
-in the release notes.
+Benchmarks live in `engine/bench_test.go`.
 
-## Golden Update Procedure
+## CI
 
-1. Run the conformance suite and inspect the diff.
-2. Decide whether the difference is a bug or an intended contract change.
-3. For intended changes, update the schema and docs first.
-4. Regenerate goldens explicitly with `UPDATE_GOLDEN=1`.
-5. Review the golden diff in the pull request.
-6. Never auto-accept goldens in CI; a red conformance gate blocks merge.
+`go` job:
 
-## CI Matrix
+- regenerate goldens and fail on drift,
+- `go test -race ./...`,
+- `go vet ./...`,
+- gofmt check,
+- `go build ./cmd/weave`.
 
-| Job | OS | Commands |
-| --- | --- | --- |
-| Go test | ubuntu, macos, windows | `go test -race ./...` |
-| Go lint | ubuntu | `gofmt -l`, `go vet`, `golangci-lint` |
-| Conformance | ubuntu | TS exporter, Go exporter, diff |
-| CLI contract | ubuntu, windows | process tests, envelope schemas, exit codes |
-| TS unit | ubuntu | `bun test`, `biome check` |
-| Lens build | ubuntu | `bun build`, size budget, manifest check |
-| Presentation E2E | ubuntu | Playwright against Go binary |
-| Docs | ubuntu | markdownlint |
-
-Windows is required for symlink and hardlink artifact tests.
-
-## Acceptance Gates per Layer
-
-| Layer | Must pass before next phase |
-| --- | --- |
-| Contract | Schemas validate; TS passes goldens |
-| Engine | All bundle/graph/search/nav goldens; race; fuzz corpus clean |
-| Operations | Envelopes, error codes, determinism |
-| CLI (Milestone A) | Envelopes, stdout/stderr, exit codes, contract discovery, cache |
-| Render (Milestone B) | DOM contract; zero-JS; XSS; golden HTML |
-| Lens (Milestone B) | Unit, payload, E2E, size, no forbidden imports |
-| Mount (Milestone B) | Route parity; artifacts; registry; race; E2E |
-| Cutover | Dual-run diff clean; performance; rollback tested |
-
-## Failure Triage
-
-- **Golden diff:** identify the JSON pointer, classify as bug or intended change, fix or update
-  docs/schema first.
-- **Renderer mismatch:** compare the DOM contract table, then the normalized HTML; check
-  `html/template` escaping and `BasePath`.
-- **CLI contract failure:** reproduce with the binary and a fixture; compare the envelope, stderr
-  and exit code against the operation schema.
-- **E2E route failure:** this is presentation-only; reproduce with `httptest`, then with a real
-  mount, then in Playwright.
-- **Lens failure:** verify the payload first, then the DOM hooks, then the client bundle.
-- **Flaky tests:** no retries in CI without a filed issue; fix determinism.
+`docs` job: markdownlint.
 
 ## Related Documents
 
-- [Architecture index](../index.md)
-- [ADR 0002](../adr/0002-v1-scope-layout-and-contract.md)
+- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)
-- [Operations layer](../layers/operations.md)
 - [CLI layer](../layers/cli-go.md)
-- [Render layer](../layers/render-go.md)
-- [Lens layer](../layers/lens-ts.md)
-- [Mount layer](../layers/mount-go.md)
 - [Integration contracts](contracts.md)
-- [Integration steps](steps.md)

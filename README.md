@@ -2,130 +2,121 @@
 
 > To weave flat files into a living universe of knowledge.
 
-Weave is a portable, CLI-driven visualization engine that unlocks the latent structure
-inside [Open Knowledge Format (OKF)](#okf-bundles) bundles. Point it at a local directory
-or Git repository and it parses the Markdown and YAML flat files into a traversable node
-graph and search index — served instantly on `localhost`, strictly offline, with zero
-pollution of your data.
+Weave is an **in-memory related-document database** for
+[Open Knowledge Format (OKF)](#okf-bundles) bundles. It loads Markdown/YAML documents, builds
+concept nodes and link edges, and answers keyword and weighted fuzzy searches with top-K results.
+
+Weave is CLI-first, local and offline. It has **no browser UI**.
 
 ## Features
 
-- **One-command mount** — `weave mount <path>` builds the graph and serves it locally.
-- **Pollution-free** — the target is wrapped in a temporary symlink layer; no copies, no
-  writes into the repository. `git status` and file `mtime`s stay untouched.
-- **Instant** — a fully traversable node graph and search index are generated in
-  milliseconds.
-- **Offline** — no network calls anywhere in the parse/build/serve path.
-- **Local-first** — engineered for deep focus; everything runs on your filesystem.
+- **Keyword search** over mandatory frontmatter keywords.
+- **Weighted fuzzy search** over title, description and body.
+- **Hybrid top-K results** with component scores and match metadata.
+- **Graph navigation**: show, backlinks and shortest path.
+- **In-memory** indexes; no external database.
+- **Deterministic** JSON envelopes for machine integration.
+- **Calibrated ranking** against a labeled query corpus.
 
 ## Requirements
 
-- [Bun](https://bun.sh) (runtime for the CLI and development tooling)
-- Node `>=22.12`
+- Go 1.27+
+- Optional: [Bun](https://bun.sh) for Markdown linting
 
-## Installation
-
-```sh
-bun install
-```
-
-To use the `weave` binary globally, link the package:
+## Build
 
 ```sh
-bun link
+go build -o weave ./cmd/weave
 ```
 
 ## Usage
 
-```text
-weave mount <path> [--port <port>] [--build-only]
-weave unmount <port>
-weave status [--prune]
-weave --version | --help
+```sh
+weave contract --json
+weave parse <path> --json
+weave graph <path> --json
+weave search <path> <query> --mode hybrid --top-k 10 --json
+weave list <path> --type Concept --tag security --json
+weave show <path> <id|file> --json
+weave backlinks <path> <id|file> --json
+weave path <path> <from> <to> --json
+weave version --json
 ```
 
-### `weave mount <path>`
+- `--json` emits one `weave.cli/v1` envelope on stdout.
+- diagnostics go to stderr.
+- exit codes: `0` success, `1` runtime/no match, `2` usage/invalid parameters, `3` permission.
+- the parse cache is enabled by default; `--no-cache` disables it.
 
-Parse the OKF bundle at `<path>`, build the node graph and search index, and serve the
-explorer at `http://localhost:4318` (or the first free port).
+### Search modes
 
 ```sh
-weave mount ~/notes
+weave search ~/notes "oauth tokn" --mode fuzzy --top-k 5
+weave search ~/notes "security" --mode keyword
+weave search ~/notes "token rotation" --mode hybrid   # default
 ```
 
-- `--port <port>` — request a specific port (falls back to the next free port if busy).
-- `--build-only` — build the graph and index without starting a server.
-
-### `weave unmount <port>`
-
-Stop the server on `<port>` and remove all temporary artifacts.
-
-### `weave status [--prune]`
-
-List active mounts. `--prune` removes orphaned artifact directories left by crashed
-processes.
+Fuzzy field weights: **title 1.00, description 0.60, body 0.30**. Hybrid combines keyword and
+fuzzy scores at 50/50 (calibrated).
 
 ## OKF Bundles
 
-Weave consumes **OKF bundles**: portable collections of Markdown (`.md`) and YAML flat
-files that follow the [Open Knowledge Format v0.2](docs/knowledge/concepts/okf-bundle.md).
-Concepts are expressed as documents with YAML frontmatter; a concept's id is its file path
-without the `.md` suffix. Graph edges come from bundle-relative Markdown links:
+Weave consumes OKF v0.2 bundles. The Weave profile requires:
 
 ```md
 ---
 type: Concept
-title: "User Table"
+keywords:
+  - authentication
+  - oauth
+  - token-rotation
+title: "OAuth Token Rotation"
+description: "How tokens rotate."
 ---
-See [User Table](/tables/users.md).
+
+See [Token Storage](./token-storage.md).
 ```
+
+- `type` and `keywords` are required.
+- Missing keywords make the document invalid for keyword search, but it remains available for
+  graph navigation and fuzzy search.
+- Graph edges come from bundle-relative Markdown links and the `related` frontmatter array.
+
+## Development
+
+```sh
+go test ./...
+go test -race ./...
+go vet ./...
+go build ./cmd/weave
+./scripts/verify.sh
+```
+
+Regenerate the contract goldens:
+
+```sh
+go run ./cmd/contract-export
+```
+
+Calibration corpus: `engine/search/testdata/calibration.json`.
 
 ## Project Structure
 
 ```text
-/
-├── cli/                    # Standalone Weave CLI (Bun)
-│   ├── index.ts            #   argument parsing + dispatch
-│   ├── mount.ts            #   mount lifecycle
-│   ├── artifacts.ts        #   temporary symlink layer
-│   ├── server.ts           #   local static server
-│   └── status.ts           #   mount registry
-├── src/                    # Astro site
-│   ├── lib/okf/            #   OKF bundle parser
-│   │   ├── parser.ts       #     bundle walking + concept extraction
-│   │   ├── frontmatter.ts  #     YAML frontmatter parsing
-│   │   ├── links.ts        #     link extraction + resolution
-│   │   ├── validate.ts     #     concept validation
-│   │   └── types.ts
-│   ├── lib/explorer-render.ts  # static HTML explorer renderer
-│   └── pages/              #   Astro pages
-├── docs/
-│   ├── specs/              #   SDD specifications
-│   └── knowledge/          #   OKF knowledge corpus
-├── tests/
-│   ├── unit/               #   bun test suites
-│   └── e2e/                #   Playwright behavior tests
-└── package.json
+cmd/weave/              CLI
+cmd/contract-export/    golden corpus generator
+contract/v1/            schemas, Go types, fixtures
+engine/okf/             bundle parser, links, validation, cache
+engine/graph/           nodes, edges, traversal
+engine/search/          keyword, fuzzy and hybrid ranking
+engine/nav/             list, show, backlinks, path
+engine/operations/      transport-neutral envelopes
+docs/                   architecture, specs, knowledge
 ```
 
-The CLI lives outside `src/` because `src/` is reserved for the Astro site — the CLI is a
-standalone runtime tool that only imports the shared parser from `src/lib/okf/`.
+## Documentation
 
-## Development
-
-| Command              | Action                                           |
-| :------------------- | :----------------------------------------------- |
-| `bun dev`            | Start the Astro dev server at `localhost:4321`   |
-| `bun build`          | Build the production site to `./dist/`           |
-| `bun preview`        | Preview the production build locally             |
-| `bun test`           | Run unit tests (`bun test tests/unit`)           |
-| `bun test:e2e`       | Run Playwright e2e behavior tests                |
-| `bun run typecheck`  | Type-check the project (`tsc --noEmit`)          |
-| `bun cli --help`     | Run the CLI from source                          |
-
-## Roadmap
-
-See [docs/backlog.md](docs/backlog.md) for the tracked feature pipeline
-(Tier 1 foundation → Tier 2 engine → Tier 3 lens), and
-[docs/knowledge/index.md](docs/knowledge/index.md) for the vision and architecture
-concepts.
+- [Architecture](docs/architecture/index.md)
+- [Keyword + Fuzzy Search spec](docs/specs/keyword-fuzzy-search.md)
+- [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [Backlog](docs/backlog.md)

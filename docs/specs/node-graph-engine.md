@@ -17,14 +17,16 @@ status: draft
 
 ## 1. Overview
 
-Pure, offline, synchronous TypeScript module that turns a validated `ParsedBundle` (from [OKF Bundle Parser](./okf-bundle-parser.md)) into a **bidirectional `NodeGraph`**. Each concept becomes a node; edges are derived from resolved bundle-relative Markdown links plus a conventional frontmatter `related` array. The engine computes backlinks (reverse edges) at build time, making the graph fully traversable in both directions — the "living" structure Weave promises.
-
-The graph is the connective tissue of the vision: it feeds backlink-aware rendering in the explorer, degree-aware ranking in the [Search Index](./search-index.md), and the physics-based [Visualization Lens](../knowledge/concepts/node-graph-engine.md) (Tier 3) via a lossless JSON serialization.
+Pure, offline Go package that turns a validated `Bundle` (from the OKF parser) into a
+**bidirectional graph**. Each concept becomes a node with keywords; edges are derived from resolved
+bundle-relative Markdown links plus the frontmatter `related` array. The graph is fully traversable
+in both directions and is consumed by the CLI navigation operations and by
+[Keyword + Fuzzy Search](./keyword-fuzzy-search.md).
 
 ## 2. Module Structure & Execution Context
 
 - **Library Root:** `src/lib/graph/`
-- **No hydration / no client JS.** Runs in the Astro server runtime and CLI only. Zero browser bundle.
+- **No UI / no client JS.** Runs in the Go engine and CLI only. Zero browser bundle.
 - **Synchronous and dependency-free.** The engine consumes an already-parsed in-memory bundle, so it builds without I/O and without third-party libraries. Uses native `Map`-based adjacency, aligned with the parser's zero-dependency ethos.
 - **Runtime:** Bun-first; plain TypeScript, no Node polyfills required.
 
@@ -140,9 +142,9 @@ export function orphanNodes(graph: NodeGraph): string[];
 - Deduplicate edges: a single `from → to` pair appears at most once per `source`; `raw` keeps the first occurrence.
 - Build `incoming` by inverting `outgoing` (backlinks), so `incoming[id]` answers "what references this concept?".
 - Compute `inDegree`/`outDegree` per node from the adjacency maps.
-- `serializeGraph` emits a compact JSON graph (id/title/type only, no bodies) for the Tier 3 lens and the explorer's embed path.
-- Explorer consumption: render backlinks per concept and graph stats (node/edge counts, orphan list) using `data-testid` hooks for behavior tests.
-- Implements contract from [Node Graph Engine](../knowledge/concepts/node-graph-engine.md); feeds [Search Index](./search-index.md) and the Visualization Lens (Tier 3).
+- No UI serialization exists. The graph is consumed by the CLI list/show/backlinks/path operations.
+- Implements [Node Graph Engine](../knowledge/concepts/node-graph-engine.md); feeds
+  [Keyword + Fuzzy Search](./keyword-fuzzy-search.md).
 
 ## 5. Performance, Edge Cases & Errors
 
@@ -160,7 +162,6 @@ export function orphanNodes(graph: NodeGraph): string[];
 
 - Depends on [OKF Bundle Parser](./okf-bundle-parser.md)
 - Depends on [OKF Bundle](../knowledge/concepts/okf-bundle.md)
-- Feeds [Search Index](./search-index.md)
-- Feeds [Visualization Lens](../knowledge/concepts/node-graph-engine.md) (Tier 3)
-- Runs inside [Git Repository Mount](../knowledge/concepts/git-repository-mount.md)
+- Feeds [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
+- Consumed by the Go CLI navigation operations
 - Implements [Node Graph Engine](../knowledge/concepts/node-graph-engine.md)

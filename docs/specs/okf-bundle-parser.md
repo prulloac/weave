@@ -16,14 +16,19 @@ status: draft
 
 ## 1. Overview
 
-Pure, offline TypeScript module that turns an OKF v0.2 bundle (a directory tree of Markdown files with YAML frontmatter) into validated `ParsedBundle` structures. It is the foundation for both the [Node Graph Engine](./node-graph-engine.md) and [Search Index](./search-index.md); every downstream engine consumes its output.
+Pure, offline Go package that turns an OKF v0.2 bundle (a directory tree of Markdown files with
+YAML frontmatter) into validated `contractv1.Bundle` structures. It is the foundation for both the
+[Node Graph Engine](./node-graph-engine.md) and [Keyword + Fuzzy Search](./keyword-fuzzy-search.md);
+every downstream engine consumes its output.
 
-Conformance follows the permissive OKF v0.2 rules: a bundle is valid if every non-reserved `.md` file has parseable frontmatter with a non-empty `type`; unknown keys, unknown types, broken links, and missing optional fields are tolerated, never rejected.
+Conformance follows the permissive OKF v0.2 rules plus the Weave profile: every non-reserved `.md`
+file needs parseable frontmatter with a non-empty `type` and a non-empty `keywords` list; unknown
+keys, unknown types, broken links, and missing optional fields are tolerated, never rejected.
 
 ## 2. Module Structure & Execution Context
 
 - **Library Root:** `src/lib/okf/`
-- **No hydration / no client JS.** Runs in the Astro server runtime and CLI only. Zero browser bundle.
+- **No UI / no client JS.** Runs in the Go engine and CLI only. Zero browser bundle.
 - **Runtime:** Bun-first; uses native `Bun.file`, `Bun.glob`, and Node-compatible `fs/promises` fallbacks. No third-party YAML parser — hand-rolled minimal frontmatter + YAML-subset parser keeps the dependency tree empty and the build static.
 
 **Files:**
@@ -137,7 +142,7 @@ export function extractLinks(body: string): OkfLink[];
 - Skip reserved filenames `index.md` and `log.md` from concept mapping (index.md is parsed into `index`; log.md is ignored by the parser).
 - Per file: split frontmatter (`---` delimited), parse YAML subset, validate `type`, extract links from body.
 - Resolve links to bundle-relative paths; mark `resolvesInBundle` against the concept map.
-- Targets: build graph ([Node Graph Engine](./node-graph-engine.md)) and corpus ([Search Index](./search-index.md)) directly from `ParsedBundle`.
+- Targets: build graph ([Node Graph Engine](./node-graph-engine.md)) and corpus ([Keyword + Fuzzy Search](./keyword-fuzzy-search.md)) directly from `ParsedBundle`.
 - Implements contract from [OKF Bundle](../knowledge/concepts/okf-bundle.md).
 
 ## 5. Performance, Edge Cases & Errors
@@ -156,5 +161,5 @@ export function extractLinks(body: string): OkfLink[];
 
 - Depends on [OKF Bundle](../knowledge/concepts/okf-bundle.md)
 - Feeds [Node Graph Engine](../knowledge/concepts/node-graph-engine.md)
-- Feeds [Search Index](../knowledge/concepts/search-index.md)
-- Runs inside [Git Repository Mount](../knowledge/concepts/git-repository-mount.md)
+- Feeds [Keyword + Fuzzy Search](../knowledge/concepts/search-index.md)
+- Loaded by the Go CLI

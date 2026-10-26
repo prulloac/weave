@@ -64,5 +64,4 @@ Weave turns a static bundle into a queryable document store:
 - Depends on [OKF Specification](./okf-bundle.md)
 - Related to [Node Graph Engine](./node-graph-engine.md)
 - Related to [Search Index](./search-index.md)
-- Supersedes the retired [Git Repository Mount](./git-repository-mount.md)
 - Implemented by [ADR 0003](../../architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)

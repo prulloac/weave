@@ -21,24 +21,24 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | OKF Bundle Parser | [okf-bundle-parser.md](specs/okf-bundle-parser.md) | [#1](https://github.com/prulloac/weave/pull/1) | x | x | x | done |
-| Weave CLI Mount | [weave-cli.md](specs/weave-cli.md) | [#2](https://github.com/prulloac/weave/pull/2) / [#8](https://github.com/prulloac/weave/pull/8) | x | x | x | done |
+| Design-system / UI work | — | — | — | — | — | cancelled (ADR 0003) |
 
 ## Tier 2 — Engine
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Node Graph Engine | [node-graph-engine.md](specs/node-graph-engine.md) | - | x | x | x | green |
-| Keyword + Fuzzy Search (new v1) | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | in-progress |
-| Weave CLI Search & Navigate | [weave-cli-navigation.md](specs/weave-cli-navigation.md) | - | x | x | x | green |
+| Keyword + Fuzzy Search (new v1) | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
+| Weave CLI Search & Navigate | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 
 ## Tier 3 — Search v1
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Mandatory keywords, fuzzy scoring, hybrid top-K and calibration | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | in-progress |
-| Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | backlog |
-| Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | backlog |
-| UI and old TypeScript cleanup | [ADR 0003](architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | - | x | - | - | backlog |
+| Mandatory keywords, fuzzy scoring, hybrid top-K and calibration | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
+| Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
+| Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
+| UI and old TypeScript cleanup | [ADR 0003](architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | - | x | x | x | green |
 
 ## Tier 4 — Portability
 
@@ -51,11 +51,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Knowledge corpus: vision + related concepts (`docs/knowledge/`)
 - [x] okf-generator skill aligned to OKF v0.2
 - [x] spec-writer skill actor convention aligned to OKF v0.2
-- [x] Test infrastructure: `tests/e2e/` (Playwright), `tests/unit/` (bun test)
-- [x] CI workflow (lint + unit + e2e on stack PRs)
-- [x] `package.json` scripts: `weave` bin, `test`, `test:e2e`
-- [x] CI workflow: lint (Biome) + typecheck + unit + e2e on PRs/main (`.github/workflows/ci.yml`)
-- [x] BDD test case documentation: `docs/bdd/` with Given/When/Then scenarios
+- [x] Go test infrastructure: unit, conformance, calibration, CLI process tests
+- [x] CI workflow: contract export diff, `go test -race`, vet, gofmt, build, docs lint
+- [x] `scripts/verify.sh` full local gate
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)
@@ -64,8 +62,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Go machine CLI: commands, envelopes, exit codes and cache defaults (Phase 5A / Milestone A)
 - [x] ADR 0003: keyword + fuzzy search and UI retirement
 - [x] Keyword + Fuzzy Search specification
-- [ ] UI, Astro, Preact, Playwright and old TypeScript cleanup (ADR 0003)
-- [ ] Search calibration corpus and baseline report
+- [x] UI, Astro, Preact, Playwright and old TypeScript cleanup (ADR 0003)
+- [x] Search calibration corpus and baseline report
 
 ## Maintenance
 
