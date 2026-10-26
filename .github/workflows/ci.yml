@@ -74,6 +74,7 @@ jobs:
           cache: true
       - run: go test -race ./...
       - run: go vet ./...
+      - run: go build -o /tmp/weave ./cmd/weave
       - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
 
   e2e:
