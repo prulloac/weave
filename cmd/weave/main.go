@@ -1,49 +1,457 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"strconv"
+	"strings"
+
+	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/operations"
 )
 
-const version = "dev"
+var version = "dev"
 
 const contractVersion = "weave.contract/v1"
 
 func main() {
-	if len(os.Args) < 2 {
-		printHelp()
-		return
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdout io.Writer, stderr io.Writer) int {
+	if len(args) == 0 {
+		printHelp(stdout)
+		return 0
 	}
 
-	switch os.Args[1] {
-	case "--version", "-v", "version":
-		fmt.Printf("weave %s (contract 1)\n", version)
-	case "--help", "-h", "help":
-		printHelp()
+	if args[0] == "--help" || args[0] == "-h" || args[0] == "help" {
+		printHelp(stdout)
+		return 0
+	}
+	if args[0] == "--version" || args[0] == "-v" {
+		fmt.Fprintf(stdout, "weave %s (contract 1)\n", version)
+		return 0
+	}
+
+	command := args[0]
+	jsonMode := contains(args[1:], "--json")
+	flags, err := parseFlags(args[1:])
+	if err != nil {
+		return usageError(stdout, stderr, jsonMode || flags.json, err.Error())
+	}
+	if flags.help {
+		printCommandHelp(stdout, command)
+		return 0
+	}
+
+	request, exitCode, err := buildRequest(command, flags)
+	if err != nil {
+		return usageError(stdout, stderr, flags.json, err.Error())
+	}
+	if exitCode != 0 {
+		return exitCode
+	}
+
+	executor := operations.New(version, engine.Options{Cache: !flags.noCache})
+	value := executor.Execute(context.Background(), request)
+
+	switch envelope := value.(type) {
+	case contractv1.SuccessEnvelope:
+		if flags.json {
+			if err := writeJSON(stdout, envelope); err != nil {
+				fmt.Fprintf(stderr, "weave: %v\n", err)
+				return 1
+			}
+			if isEmptyResult(request.Op, envelope.Result) {
+				fmt.Fprintln(stderr, "weave: no matches")
+				return 1
+			}
+			return 0
+		}
+		return printHuman(stdout, stderr, request.Op, envelope.Result)
+	case contractv1.FailureEnvelope:
+		if flags.json {
+			if err := writeJSON(stdout, envelope); err != nil {
+				fmt.Fprintf(stderr, "weave: %v\n", err)
+			}
+		}
+		fmt.Fprintf(stderr, "weave: %s\n", envelope.Error.Message)
+		return exitCodeFor(envelope.Error.Code)
 	default:
-		fmt.Fprintf(os.Stderr, "weave: command not implemented yet: %s\n", os.Args[1])
-		os.Exit(2)
+		fmt.Fprintln(stderr, "weave: internal error")
+		return 1
 	}
 }
 
-func printHelp() {
-	fmt.Printf(`weave — mount OKF bundles locally
+type flags struct {
+	json        bool
+	noCache     bool
+	help        bool
+	limit       *int
+	types       []string
+	tags        []string
+	status      string
+	fields      []contractv1.SearchField
+	positionals []string
+}
+
+func parseFlags(args []string) (flags, error) {
+	var result flags
+
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		switch arg {
+		case "--json":
+			result.json = true
+		case "--no-cache":
+			result.noCache = true
+		case "--help", "-h":
+			result.help = true
+		case "--limit":
+			value, next, err := flagValue(args, index, "--limit")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed < 0 {
+				return result, fmt.Errorf("--limit requires a non-negative number")
+			}
+			result.limit = &parsed
+		case "--type":
+			value, next, err := flagValue(args, index, "--type")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.types = append(result.types, value)
+		case "--tag":
+			value, next, err := flagValue(args, index, "--tag")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.tags = append(result.tags, value)
+		case "--status":
+			value, next, err := flagValue(args, index, "--status")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.status = value
+		case "--fields":
+			value, next, err := flagValue(args, index, "--fields")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			for _, part := range strings.Split(value, ",") {
+				if part == "" {
+					continue
+				}
+				field := contractv1.SearchField(part)
+				if !validField(field) {
+					return result, fmt.Errorf("unknown search field: %s", part)
+				}
+				result.fields = append(result.fields, field)
+			}
+		case "--":
+			result.positionals = append(result.positionals, args[index+1:]...)
+			return result, nil
+		default:
+			if strings.HasPrefix(arg, "-") {
+				return result, fmt.Errorf("unknown option: %s", arg)
+			}
+			result.positionals = append(result.positionals, arg)
+		}
+	}
+
+	return result, nil
+}
+
+func contains(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+func flagValue(args []string, index int, name string) (string, int, error) {
+	if index+1 >= len(args) {
+		return "", index, fmt.Errorf("%s requires a value", name)
+	}
+	return args[index+1], index + 1, nil
+}
+
+func validField(field contractv1.SearchField) bool {
+	for _, candidate := range []contractv1.SearchField{
+		contractv1.FieldTitle,
+		contractv1.FieldTags,
+		contractv1.FieldDescription,
+		contractv1.FieldBody,
+		contractv1.FieldPath,
+		contractv1.FieldType,
+		contractv1.FieldFrontmatter,
+	} {
+		if candidate == field {
+			return true
+		}
+	}
+	return false
+}
+
+func buildRequest(command string, flags flags) (contractv1.OperationRequest, int, error) {
+	switch command {
+	case "contract", "version":
+		if len(flags.positionals) != 0 {
+			return contractv1.OperationRequest{}, 0, fmt.Errorf("%s does not take positional arguments", command)
+		}
+		op := contractv1.OpContract
+		if command == "version" {
+			op = contractv1.OpVersion
+		}
+		return contractv1.OperationRequest{Op: op}, 0, nil
+	case "parse":
+		return contractv1.OperationRequest{Op: contractv1.OpParse, Path: flags.positional(0)}, 0, requirePositional(command, flags, 1)
+	case "graph":
+		return contractv1.OperationRequest{Op: contractv1.OpGraph, Path: flags.positional(0)}, 0, requirePositional(command, flags, 1)
+	case "find":
+		if err := requirePositional(command, flags, 2); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:     contractv1.OpFind,
+			Path:   flags.positional(0),
+			Query:  flags.positional(1),
+			Limit:  flags.limit,
+			Fields: flags.fields,
+		}, 0, nil
+	case "list":
+		if err := requirePositional(command, flags, 1); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:     contractv1.OpList,
+			Path:   flags.positional(0),
+			Types:  flags.types,
+			Tags:   flags.tags,
+			Status: flags.status,
+			Limit:  flags.limit,
+		}, 0, nil
+	case "show", "backlinks":
+		if err := requirePositional(command, flags, 2); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		op := contractv1.OpShow
+		if command == "backlinks" {
+			op = contractv1.OpBacklinks
+		}
+		return contractv1.OperationRequest{
+			Op:     op,
+			Path:   flags.positional(0),
+			Target: flags.positional(1),
+		}, 0, nil
+	case "path":
+		if err := requirePositional(command, flags, 3); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:   contractv1.OpPath,
+			Path: flags.positional(0),
+			From: flags.positional(1),
+			To:   flags.positional(2),
+		}, 0, nil
+	case "mount", "unmount", "status":
+		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
+	default:
+		return contractv1.OperationRequest{}, 2, fmt.Errorf("unknown command: %s", command)
+	}
+}
+
+func (f flags) positional(index int) string {
+	if index < 0 || index >= len(f.positionals) {
+		return ""
+	}
+	return f.positionals[index]
+}
+
+func requirePositional(command string, f flags, count int) error {
+	if len(f.positionals) != count {
+		return fmt.Errorf("%s requires %d positional argument(s)", command, count)
+	}
+	return nil
+}
+
+func usageError(stdout io.Writer, stderr io.Writer, jsonMode bool, message string) int {
+	if jsonMode {
+		envelope := contractv1.FailureEnvelope{
+			Contract: operations.ContractVersion,
+			CLI:      operations.CLIVersion,
+			OK:       false,
+			Error: contractv1.OperationError{
+				Code:    contractv1.ErrInvalidRequest,
+				Message: message,
+			},
+		}
+		_ = writeJSON(stdout, envelope)
+	}
+	fmt.Fprintf(stderr, "weave: %s\n", message)
+	return 2
+}
+
+func writeJSON(writer io.Writer, value any) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(writer, "%s\n", data)
+	return err
+}
+
+func exitCodeFor(code contractv1.ErrorCode) int {
+	switch code {
+	case contractv1.ErrInvalidRequest, contractv1.ErrInvalidRoot:
+		return 2
+	case contractv1.ErrPermissionDenied:
+		return 3
+	default:
+		return 1
+	}
+}
+
+func isEmptyResult(op contractv1.OperationName, result any) bool {
+	switch op {
+	case contractv1.OpFind:
+		values, ok := result.([]contractv1.FindResult)
+		return ok && len(values) == 0
+	case contractv1.OpList:
+		values, ok := result.([]contractv1.ListResult)
+		return ok && len(values) == 0
+	default:
+		return false
+	}
+}
+
+func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName, result any) int {
+	switch op {
+	case contractv1.OpContract:
+		info := result.(contractv1.ContractInfo)
+		fmt.Fprintf(stdout, "contract: %s\ncli: %s\nbinary: %s\n", info.Contract, info.CLI, info.BinaryVersion)
+		fmt.Fprintln(stdout, "operations:")
+		for _, operation := range info.Operations {
+			fmt.Fprintf(stdout, "  %s (%s)\n", operation.Op, operation.Result)
+		}
+		return 0
+	case contractv1.OpVersion:
+		info := result.(contractv1.VersionInfo)
+		fmt.Fprintf(stdout, "weave %s (contract 1)\n", info.BinaryVersion)
+		return 0
+	case contractv1.OpParse:
+		bundle := result.(*contractv1.Bundle)
+		version := "unknown"
+		if bundle.OkfVersion != nil {
+			version = string(*bundle.OkfVersion)
+		}
+		fmt.Fprintf(stdout, "%d concepts, okf_version %s, valid=%t\n", len(bundle.Concepts), version, bundle.Validation.Valid)
+		return 0
+	case contractv1.OpGraph:
+		graph := result.(contractv1.Graph)
+		fmt.Fprintf(stdout, "%d nodes, %d edges\n", len(graph.Nodes), len(graph.Edges))
+		return 0
+	case contractv1.OpFind:
+		results := result.([]contractv1.FindResult)
+		if len(results) == 0 {
+			fmt.Fprintln(stderr, "weave: no matches")
+			return 1
+		}
+		for _, item := range results {
+			fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.Score, 'f', -1, 64), item.Title, item.Path)
+		}
+		return 0
+	case contractv1.OpList:
+		results := result.([]contractv1.ListResult)
+		if len(results) == 0 {
+			fmt.Fprintln(stderr, "weave: no concepts match the given filters")
+			return 1
+		}
+		for _, item := range results {
+			fmt.Fprintf(stdout, "%s [%s]\n", item.Title, item.Path)
+		}
+		return 0
+	case contractv1.OpShow:
+		show := result.(*contractv1.ShowResult)
+		fmt.Fprintf(stdout, "# %s\nType: %s\n", titleOrID(show.Title, show.ID), show.Type)
+		if show.Status != nil {
+			fmt.Fprintf(stdout, "Status: %s\n", *show.Status)
+		}
+		if len(show.Tags) > 0 {
+			fmt.Fprintf(stdout, "Tags: %s\n", strings.Join(show.Tags, ", "))
+		}
+		if show.Description != nil {
+			fmt.Fprintf(stdout, "Description: %s\n", *show.Description)
+		}
+		fmt.Fprintf(stdout, "Backlinks: %d\nLinks:\n", len(show.Backlinks))
+		if len(show.Links) == 0 {
+			fmt.Fprintln(stdout, "- none")
+		} else {
+			for _, link := range show.Links {
+				fmt.Fprintf(stdout, "- %s -> %s\n", link.Raw, link.Target)
+			}
+		}
+		fmt.Fprintf(stdout, "\n%s", show.Body)
+		return 0
+	case contractv1.OpBacklinks:
+		backlinks := result.(*contractv1.BacklinksResult)
+		if len(backlinks.Backlinks) == 0 {
+			fmt.Fprintf(stdout, "weave: no backlinks for %s\n", backlinks.ID)
+			return 0
+		}
+		for _, entry := range backlinks.Backlinks {
+			fmt.Fprintf(stdout, "- %s: %s\n", entry.From, entry.Title)
+		}
+		return 0
+	case contractv1.OpPath:
+		route := result.(*contractv1.PathResult)
+		fmt.Fprintln(stdout, strings.Join(route.Path, " → "))
+		return 0
+	default:
+		fmt.Fprintln(stderr, "weave: unsupported operation")
+		return 1
+	}
+}
+
+func titleOrID(title *string, id string) string {
+	if title == nil {
+		return id
+	}
+	return *title
+}
+
+func printHelp(writer io.Writer) {
+	fmt.Fprintf(writer, `weave — mount OKF bundles locally
 
 usage:
   weave contract [--json]
-  weave parse <path> [--json]
-  weave graph <path> [--json]
-  weave find <path> <query> [--json]
-  weave list <path> [--json]
-  weave show <path> <id|file> [--json]
-  weave backlinks <path> <id|file> [--json]
-  weave path <path> <id|file> <id|file> [--json]
+  weave parse <path> [--json] [--no-cache]
+  weave graph <path> [--json] [--no-cache]
+  weave find <path> <query> [--limit <n>] [--fields <list>] [--json] [--no-cache]
+  weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
+  weave show <path> <id|file> [--json] [--no-cache]
+  weave backlinks <path> <id|file> [--json] [--no-cache]
+  weave path <path> <id|file> <id|file> [--json] [--no-cache]
   weave version [--json]
-  weave mount <path> [--port <port>] [--build-only]
-  weave unmount <port>
-  weave status [--prune]
   weave --version | --help
 
 contract: %s
 `, contractVersion)
+}
+
+func printCommandHelp(writer io.Writer, command string) {
+	fmt.Fprintf(writer, "weave %s: see `weave --help` for usage\n", command)
 }
