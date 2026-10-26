@@ -164,9 +164,10 @@ see [ADR 0002](adr/0002-v1-scope-layout-and-contract.md) and
 
 ## Status
 
-Proposal, `draft`. **Phase 0 is complete:** contract v1 schemas, generated TypeScript types, the
-golden corpus and the exporter exist under `contract/v1`. **Phase 2 scaffold is complete**, and
-**Phase 3 (engine + operations) is complete:** the Go parser, graph, BM25 search, navigation and
-operation envelopes pass the full golden corpus. The machine CLI, renderer, mount and lens asset
-pipeline are still pending. The TypeScript implementation remains the reference for presentation
-until Milestone B passes.
+Proposal, `draft`. **Milestone A is complete:** contract v1 schemas and golden corpus, Go engine
+(parser, graph, BM25 search, navigation), operations envelopes and the machine CLI all pass their
+gates. The Go CLI supports `contract`, `parse`, `graph`, `find`, `list`, `show`, `backlinks`,
+`path` and `version` with `weave.cli/v1` envelopes, cache defaults and documented exit codes.
+
+**Milestone B is pending:** the Go renderer, presentation mount and TypeScript lens asset pipeline.
+The TypeScript implementation remains the reference for presentation until Milestone B passes.

@@ -172,6 +172,9 @@ Rollback: keep the TypeScript renderer behind a flag; the Go renderer is opt-in.
 
 ## Phase 5A — Port the CLI (Milestone A)
 
+**Status:** complete (machine commands, envelopes, human output, exit codes, cache defaults and
+process tests).
+
 **Goal:** ship the machine integration contract.
 
 Deliverables:

@@ -60,6 +60,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)
 - [x] Go module scaffold, contract structs, schema round-trip tests and CI (Phase 2)
 - [x] Go engine port: parser, graph, search, navigation and operations (Phase 3)
+- [x] Go machine CLI: commands, envelopes, exit codes and cache defaults (Phase 5A / Milestone A)
 
 ## Maintenance
 
