@@ -66,6 +66,14 @@ const (
 	AuditKeyUnavailable        AuditFindingCode = "KEY_UNAVAILABLE"
 )
 
+type RelateDirection string
+
+const (
+	RelateOut  RelateDirection = "out"
+	RelateIn   RelateDirection = "in"
+	RelateBoth RelateDirection = "both"
+)
+
 type ErrorCode string
 
 const (
@@ -91,6 +99,7 @@ const (
 	OpPath      OperationName = "path"
 	OpVersion   OperationName = "version"
 	OpAudit     OperationName = "audit"
+	OpRelate    OperationName = "relate"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -307,6 +316,24 @@ type AuditReport struct {
 	Findings []AuditFinding `json:"findings"`
 }
 
+// RelateEdge is a traversed graph edge annotated with its hop depth.
+type RelateEdge struct {
+	From   string  `json:"from"`
+	To     string  `json:"to"`
+	Source string  `json:"source"`
+	Raw    *string `json:"raw,omitempty"`
+	Depth  int     `json:"depth"`
+}
+
+// RelateResult is the bounded graph neighborhood returned by `weave relate`.
+type RelateResult struct {
+	Root      string          `json:"root"`
+	Direction RelateDirection `json:"direction"`
+	Depth     int             `json:"depth"`
+	Nodes     []GraphNode     `json:"nodes"`
+	Edges     []RelateEdge    `json:"edges"`
+}
+
 // OperationDescriptor describes one machine operation for discovery.
 type OperationDescriptor struct {
 	Op     OperationName `json:"op"`
@@ -332,21 +359,23 @@ type VersionInfo struct {
 
 // OperationRequest is the transport-neutral request shape for stdio/MCP.
 type OperationRequest struct {
-	ID         string        `json:"id,omitempty"`
-	Op         OperationName `json:"op"`
-	Path       string        `json:"path,omitempty"`
-	Query      string        `json:"query,omitempty"`
-	Mode       SearchMode    `json:"mode,omitempty"`
-	TopK       *int          `json:"top_k,omitempty"`
-	Target     string        `json:"target,omitempty"`
-	From       string        `json:"from,omitempty"`
-	To         string        `json:"to,omitempty"`
-	Types      []string      `json:"types,omitempty"`
-	Tags       []string      `json:"tags,omitempty"`
-	Status     string        `json:"status,omitempty"`
-	Limit      *int          `json:"limit,omitempty"`
-	FailOn     AuditFailOn   `json:"fail_on,omitempty"`
-	VerifyKeys bool          `json:"verify_keys,omitempty"`
+	ID         string          `json:"id,omitempty"`
+	Op         OperationName   `json:"op"`
+	Path       string          `json:"path,omitempty"`
+	Query      string          `json:"query,omitempty"`
+	Mode       SearchMode      `json:"mode,omitempty"`
+	TopK       *int            `json:"top_k,omitempty"`
+	Target     string          `json:"target,omitempty"`
+	From       string          `json:"from,omitempty"`
+	To         string          `json:"to,omitempty"`
+	Types      []string        `json:"types,omitempty"`
+	Tags       []string        `json:"tags,omitempty"`
+	Status     string          `json:"status,omitempty"`
+	Limit      *int            `json:"limit,omitempty"`
+	FailOn     AuditFailOn     `json:"fail_on,omitempty"`
+	VerifyKeys bool            `json:"verify_keys,omitempty"`
+	Depth      *int            `json:"depth,omitempty"`
+	Direction  RelateDirection `json:"direction,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

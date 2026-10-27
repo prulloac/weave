@@ -47,6 +47,10 @@
 				"KEY_UNAVAILABLE"
 			]
 		},
+		"RelateDirection": {
+			"type": "string",
+			"enum": ["out", "in", "both"]
+		},
 		"ErrorCode": {
 			"type": "string",
 			"enum": [
@@ -71,7 +75,8 @@
 				"backlinks",
 				"path",
 				"version",
-				"audit"
+				"audit",
+				"relate"
 			]
 		},
 		"OkfLink": {
@@ -471,6 +476,36 @@
 				}
 			}
 		},
+		"RelateEdge": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["from", "to", "source", "depth"],
+			"properties": {
+				"from": { "type": "string" },
+				"to": { "type": "string" },
+				"source": { "type": "string", "enum": ["link", "related"] },
+				"raw": { "type": "string" },
+				"depth": { "type": "integer", "minimum": 0, "maximum": 5 }
+			}
+		},
+		"RelateResult": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["root", "direction", "depth", "nodes", "edges"],
+			"properties": {
+				"root": { "type": "string" },
+				"direction": { "$ref": "#/$defs/RelateDirection" },
+				"depth": { "type": "integer", "minimum": 0, "maximum": 5 },
+				"nodes": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/GraphNode" }
+				},
+				"edges": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/RelateEdge" }
+				}
+			}
+		},
 		"OperationDescriptor": {
 			"type": "object",
 			"additionalProperties": false,
@@ -537,7 +572,9 @@
 				"status": { "type": "string" },
 				"limit": { "type": "integer", "minimum": 0 },
 				"fail_on": { "$ref": "#/$defs/AuditFailOn" },
-				"verify_keys": { "type": "boolean" }
+				"verify_keys": { "type": "boolean" },
+				"depth": { "type": "integer", "minimum": 0, "maximum": 5 },
+				"direction": { "$ref": "#/$defs/RelateDirection" }
 			}
 		},
 		"OperationError": {

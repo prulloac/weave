@@ -19,6 +19,7 @@ contract/v1/
 │   ├── backlinks.schema.json
 │   ├── path.schema.json
 │   ├── audit.schema.json
+│   ├── relate.schema.json
 │   ├── error.schema.json
 │   ├── envelope.schema.json
 │   └── cli.schema.json

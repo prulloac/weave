@@ -10,6 +10,7 @@ import (
 	"github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
+	"github.com/prulloac/weave/engine/relate"
 )
 
 const (
@@ -28,6 +29,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpPath, Fields: []string{"path", "from", "to"}, Result: "PathResult"},
 	{Op: contractv1.OpVersion, Fields: []string{}, Result: "VersionInfo"},
 	{Op: contractv1.OpAudit, Fields: []string{"path", "fail_on", "verify_keys"}, Result: "AuditReport"},
+	{Op: contractv1.OpRelate, Fields: []string{"path", "target", "depth", "direction"}, Result: "RelateResult"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -177,6 +179,39 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			FailOn:     failOn,
 			VerifyKeys: request.VerifyKeys,
 		}))
+	case contractv1.OpRelate:
+		id, ok := nav.NormalizeTarget(eng.Bundle(), request.Target)
+		if !ok {
+			return failure(contractv1.ErrConceptNotFound, "concept not found: "+request.Target, map[string]any{
+				"target": request.Target,
+			})
+		}
+		depth := 1
+		if request.Depth != nil {
+			depth = *request.Depth
+		}
+		direction := request.Direction
+		if direction == "" {
+			direction = contractv1.RelateBoth
+		}
+		result, err := relate.Build(eng.Graph(), id, direction, depth)
+		if err != nil {
+			switch {
+			case errors.Is(err, relate.ErrInvalidDepth), errors.Is(err, relate.ErrInvalidDirection):
+				return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+					"target":    id,
+					"depth":     depth,
+					"direction": direction,
+				})
+			case errors.Is(err, relate.ErrRootNotFound):
+				return failure(contractv1.ErrConceptNotFound, "concept not found: "+request.Target, map[string]any{
+					"target": request.Target,
+				})
+			default:
+				return failure(contractv1.ErrInternal, err.Error(), map[string]any{"target": id})
+			}
+		}
+		return success(result)
 	default:
 		return failure(contractv1.ErrInvalidRequest, "unknown operation: "+string(request.Op), map[string]any{
 			"op": request.Op,

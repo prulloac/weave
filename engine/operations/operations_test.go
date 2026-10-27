@@ -53,8 +53,8 @@ func TestContractDiscovery(t *testing.T) {
 	if info.Contract != operations.ContractVersion || info.CLI != operations.CLIVersion {
 		t.Fatalf("unexpected versions: %+v", info)
 	}
-	if len(info.Operations) != 10 {
-		t.Fatalf("expected 10 operations, got %d", len(info.Operations))
+	if len(info.Operations) != 11 {
+		t.Fatalf("expected 11 operations, got %d", len(info.Operations))
 	}
 	if len(info.Errors) == 0 {
 		t.Fatal("expected error codes")
@@ -85,6 +85,27 @@ func TestAudit(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("expected MISSING_TYPE, got %+v", report.Findings)
+	}
+}
+
+func TestRelate(t *testing.T) {
+	depth := 2
+	result := successResult(t, executor().Execute(context.Background(), contractv1.OperationRequest{
+		Op:        contractv1.OpRelate,
+		Path:      filepath.Join("..", "..", "cmd/weave/testdata/relate/chain"),
+		Target:    "concepts/x",
+		Depth:     &depth,
+		Direction: contractv1.RelateBoth,
+	}))
+	relate, ok := result.(contractv1.RelateResult)
+	if !ok {
+		t.Fatalf("expected RelateResult, got %T", result)
+	}
+	if relate.Root != "concepts/x" || relate.Depth != 2 || relate.Direction != contractv1.RelateBoth {
+		t.Fatalf("unexpected header: %+v", relate)
+	}
+	if len(relate.Nodes) != 3 {
+		t.Fatalf("expected 3 nodes, got %d", len(relate.Nodes))
 	}
 }
 

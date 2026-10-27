@@ -359,6 +359,20 @@ func TestContractTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "audit.schema.json", auditReport)
 
+	relate := RelateResult{
+		Root:      "a",
+		Direction: RelateBoth,
+		Depth:     1,
+		Nodes: []GraphNode{{
+			ID: "a", Path: "a.md", Type: "Concept", Title: "A", Keywords: keywords,
+			Status: &status, Tags: []string{"tag"}, InDegree: 1, OutDegree: 1,
+		}},
+		Edges: []RelateEdge{{
+			From: "a", To: "b", Source: "link", Raw: &raw, Depth: 1,
+		}},
+	}
+	marshalValidate(t, compiler, "relate.schema.json", relate)
+
 	success := SuccessEnvelope{
 		Contract: "weave.contract/v1",
 		CLI:      "weave.cli/v1",
