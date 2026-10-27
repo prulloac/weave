@@ -125,8 +125,20 @@ Compute SHA-256 of file content
 - **Index Memory (Postings):** When building in-memory postings for transient runs (`--no-cache`), document IDs are delta-encoded using standard Variable-Byte (`varint`) encoding, reducing index RAM usage by ~80%.
 - **Body Blobs:** Markdown bodies in `documents.body_compressed` are compressed using **LZ4** for high-throughput decompression. Raw bodies are never decompressed during `weave search` unless snippets are explicitly requested.
 
+### 4.1 Compression Contract
+
+- Default body codec: LZ4 frame format.
+- Optional codec: Zstandard; stored in a `body_codec` column for forward compatibility.
+- Bodies below 1 KiB are stored uncompressed.
+- Ciphertext bodies are stored as-is; do not double-compress encrypted content.
+- Decompression errors fall back to an empty body plus a validation warning; they never crash a query.
+- Compression is deterministic for a given codec/version.
+
 ## Related Documents
 
+- [Permissive Ingestion](./permissive-ingestion.md)
+- [Watch Mode](./watch-mode.md)
+- [BM25 Ranking](./bm25-ranking.md)
 - [Privacy & Extensions](./privacy-and-extensions.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
 - [MCP Server](./mcp-server.md)

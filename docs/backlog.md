@@ -53,12 +53,16 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Persistent SQLite storage | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
-| Incremental sync and watch | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
-| Permissive Markdown ingestion | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
-| BM25 lexical ranking | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | backlog |
+| Incremental sync | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
+| Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | - | - | backlog |
+| Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | - | - | backlog |
+| BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
+| Calibration v2 (BM25/privacy) | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
 | Memory/body compression | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
 | Privacy directives | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| External crypto providers | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
 | Extension subprocess IPC | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| AI enrichment/reranking plugin | [weave-ai-plugin.md](specs/weave-ai-plugin.md) | - | x | - | - | backlog |
 
 ## Tier 6 — MCP
 

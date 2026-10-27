@@ -136,8 +136,12 @@ remains the compatibility promise.
 | [Weave Audit spec](../../docs/specs/weave-audit.md) | Bundle and graph quality gate |
 | [Weave Relate spec](../../docs/specs/weave-relate.md) | Graph neighborhood command |
 | [Weave Explain spec](../../docs/specs/weave-explain.md) | Ranking breakdown command |
+| [Permissive Ingestion spec](../../docs/specs/permissive-ingestion.md) | Markdown-tree ingestion with warnings |
 | [V2 Storage & Sync spec](../../docs/specs/v2-storage-and-sync.md) | Persistent SQLite and incremental sync |
+| [Watch Mode spec](../../docs/specs/watch-mode.md) | Live filesystem sync |
+| [BM25 Ranking spec](../../docs/specs/bm25-ranking.md) | FTS5 lexical ranking |
 | [Privacy & Extensions spec](../../docs/specs/privacy-and-extensions.md) | Privacy directives and extension IPC |
+| [Weave AI Extension spec](../../docs/specs/weave-ai-plugin.md) | Optional enrichment and reranking plugin |
 | [MCP Server spec](../../docs/specs/mcp-server.md) | TCP MCP roadmap and contract |
 | [Roadmap](../../ROADMAP.md) | Current capabilities and roadmap |
 

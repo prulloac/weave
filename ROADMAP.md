@@ -279,7 +279,7 @@ not prerequisites for the critical path.
 - Permissive ingestion mode: warn instead of fail on dirty Markdown trees.
 
 Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
-[explain](docs/specs/weave-explain.md).
+[explain](docs/specs/weave-explain.md), [permissive ingestion](docs/specs/permissive-ingestion.md).
 
 ### Phase 3 — Persistent storage and sync (v2)
 
@@ -289,7 +289,8 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 - `fsnotify` watch mode.
 - Varint/delta postings and compressed body storage.
 
-Spec: [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md).
+Specs: [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md),
+[Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md).
 
 ### Phase 4 — Privacy primitives (v2)
 
@@ -307,7 +308,8 @@ Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
 - Optional `weave-ai` plugin for local/cloud keyword extraction and embeddings.
 - External crypto providers (Age, Vault, KMS).
 
-Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+Specs: [Privacy & Extensions](docs/specs/privacy-and-extensions.md),
+[Weave AI Extension](docs/specs/weave-ai-plugin.md).
 
 ### Phase 6 — MCP server
 
@@ -371,8 +373,12 @@ needed.
 - [Weave Audit](docs/specs/weave-audit.md)
 - [Weave Relate](docs/specs/weave-relate.md)
 - [Weave Explain](docs/specs/weave-explain.md)
+- [Permissive Ingestion](docs/specs/permissive-ingestion.md)
 - [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md)
+- [Watch Mode](docs/specs/watch-mode.md)
+- [BM25 Ranking](docs/specs/bm25-ranking.md)
 - [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
+- [Weave AI Extension](docs/specs/weave-ai-plugin.md)
 - [MCP Server](docs/specs/mcp-server.md)
 - [Architecture](docs/architecture/index.md)
 - [Backlog](docs/backlog.md)

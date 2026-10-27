@@ -191,6 +191,7 @@ Exit lines:
 - [Keyword + Fuzzy Search spec](./keyword-fuzzy-search.md)
 - [Node Graph Engine spec](./node-graph-engine.md)
 - [Privacy & Extensions](./privacy-and-extensions.md)
+- [Permissive Ingestion](./permissive-ingestion.md)
 - [CLI layer](../architecture/layers/cli-go.md)
 - [Integration contracts](../architecture/integration/contracts.md)
 - [ROADMAP](../../ROADMAP.md)

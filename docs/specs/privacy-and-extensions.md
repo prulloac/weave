@@ -157,9 +157,24 @@ Fired during `weave search <query> --rerank <name>`:
 - If an extension fails or exits non-zero, Weave falls back to the deterministic core search score and logs a diagnostic warning to `stderr`.
 - Extensions do not have write access to `.weave/index.db`; all persistence is mediated strictly by Weave core transactions.
 
+### 2.3 External Crypto Providers
+
+Crypto providers may be supplied as extensions (`weave-crypto-age`, `weave-crypto-vault`,
+`weave-crypto-kms`) using the same subprocess IPC.
+
+- Provider input: operation (`encrypt`, `decrypt`, `hash`, `tokenize`), key id, plaintext/ciphertext.
+- Provider output: ciphertext/digest/pseudonym plus provider metadata.
+- Keys never enter Weave core logs or the SQLite database.
+- Missing/failed providers fall back to `KEY_UNAVAILABLE`; encrypted reads require an explicit
+  provider and key.
+- Provider implementations are opt-in and never required for core operation.
+
+The optional AI extension is specified separately: [Weave AI Extension](./weave-ai-plugin.md).
+
 ## Related Documents
 
 - [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Weave AI Extension](./weave-ai-plugin.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
 - [Weave Audit](./weave-audit.md)
 - [MCP Server](./mcp-server.md)

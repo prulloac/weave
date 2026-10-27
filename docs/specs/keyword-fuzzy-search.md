@@ -417,3 +417,10 @@ The store is immutable after load. Queries do not mutate indexes.
 - Calibration metrics meet or exceed the committed baseline.
 - UI code, tests and dependencies are gone.
 - `go test -race ./...` and the calibration suite pass.
+
+## Related Documents
+
+- [BM25 Ranking (v2)](./bm25-ranking.md)
+- [Permissive Ingestion (v2)](./permissive-ingestion.md)
+- [Weave Explain](./weave-explain.md)
+- [ROADMAP](../../ROADMAP.md)
