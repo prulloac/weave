@@ -21,6 +21,7 @@ func main() {
 
 	files := []string{
 		filepath.Join(root, "README.md"),
+		filepath.Join(root, "ROADMAP.md"),
 		filepath.Join(root, "CONTRIBUTING.md"),
 		filepath.Join(root, "AGENTS.md"),
 	}

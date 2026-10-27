@@ -77,7 +77,8 @@ remains the compatibility promise.
 | A — Base engine | contract, parser, graph, operations, machine CLI | Complete |
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
-| D — MCP | future transport over operations | Later |
+| D — Introspection | `weave audit`, `weave relate`, `weave explain` | Next |
+| E — MCP | TCP MCP transport over operations | Later |
 
 ## Dependency Rules
 
@@ -127,6 +128,11 @@ remains the compatibility promise.
 | [Integration contracts](integration/contracts.md) | CLI, operations and filesystem contracts |
 | [Integration steps](integration/steps.md) | Completed search v1 implementation phases |
 | [Integration testing](integration/testing.md) | Conformance and test strategy |
+| [Weave Audit spec](../../docs/specs/weave-audit.md) | Bundle and graph quality gate |
+| [Weave Relate spec](../../docs/specs/weave-relate.md) | Graph neighborhood command |
+| [Weave Explain spec](../../docs/specs/weave-explain.md) | Ranking breakdown command |
+| [MCP Server spec](../../docs/specs/mcp-server.md) | TCP MCP roadmap and contract |
+| [Roadmap](../../ROADMAP.md) | Current capabilities and roadmap |
 
 ## Reading Order
 

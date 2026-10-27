@@ -37,12 +37,17 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Mandatory keywords, fuzzy scoring, hybrid top-K and calibration | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
+| `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |
+| `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | - | - | backlog |
+| `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | - | - | backlog |
 
 ## Tier 4 — Portability
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Go engine + CLI base | [architecture/index.md](architecture/index.md) | - | x | - | - | done |
+| MCP server over operations | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| Roadmap: current capabilities and MCP path | [ROADMAP.md](../ROADMAP.md) | - | x | - | - | done |
 
 ## Cross-cutting
 

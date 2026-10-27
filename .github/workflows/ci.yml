@@ -40,5 +40,6 @@ jobs:
           globs: |
             docs/**/*.md
             README.md
+            ROADMAP.md
             CONTRIBUTING.md
             AGENTS.md

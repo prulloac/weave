@@ -10,5 +10,5 @@
 		"MD036": false,
 		"MD041": false
 	},
-	"globs": ["docs/**/*.md", "README.md", "CONTRIBUTING.md", "AGENTS.md"]
+	"globs": ["docs/**/*.md", "README.md", "ROADMAP.md", "CONTRIBUTING.md", "AGENTS.md"]
 }

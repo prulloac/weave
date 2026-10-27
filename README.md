@@ -116,6 +116,7 @@ docs/                   architecture, specs, knowledge
 
 ## Documentation
 
+- [Roadmap](ROADMAP.md)
 - [Architecture](docs/architecture/index.md)
 - [Keyword + Fuzzy Search spec](docs/specs/keyword-fuzzy-search.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
