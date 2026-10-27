@@ -6,7 +6,6 @@ browser UI.
 ## Prerequisites
 
 - Go 1.27+
-- Optional: [Bun](https://bun.sh) for Markdown linting
 - [GitHub CLI](https://cli.github.com/) with the [`gh stack`](https://github.com/dolmen/gh-stack)
   extension for stacked PRs
 
@@ -51,7 +50,7 @@ never write tests before the specification.
 | `go build ./cmd/weave` | Build the CLI |
 | `go run ./cmd/contract-export` | Regenerate golden output |
 | `go test ./engine/search -run TestCalibration -v` | Ranking calibration |
-| `bun run lint:md` | Markdown lint |
+| `go run ./cmd/docs-lint` | Check relative Markdown links |
 | `./scripts/verify.sh` | Full local gate |
 
 ## Code Style

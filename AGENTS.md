@@ -2,8 +2,8 @@
 
 ## Topology
 
-Go · Bun (docs lint only) · GitHub (`gh stack`). Weave is an in-memory related-document database
-with a CLI-first surface and no UI.
+Go · GitHub Actions · GitHub (`gh stack`). Weave is an in-memory related-document database with a
+CLI-first surface and no UI.
 
 ## Commands
 
@@ -13,7 +13,8 @@ with a CLI-first surface and no UI.
 - Vet: `go vet ./...`
 - Regenerate goldens: `go run ./cmd/contract-export`
 - Calibration: `go test ./engine/search -run TestCalibration -v`
-- Markdown lint: `bun run lint:md` (optional Bun)
+- Docs link check: `go run ./cmd/docs-lint`
+- Markdown lint (CI): `DavidAnson/markdownlint-cli2-action`
 - Full gate: `./scripts/verify.sh`
 
 ## Architectural Invariants

@@ -1,165 +1,153 @@
 ---
 type: specification
 title: "OKF Bundle Parser Specification"
-description: "Contract for parsing OKF v0.2 bundles into validated, traversable concept documents with extracted graph edges."
+description: "Contract for parsing OKF v0.2 bundles into validated Go contract types with mandatory type and keywords, extracted graph edges and cache support."
 tags:
   - "okf"
   - "parser"
+  - "go"
   - "specification"
 generated:
-  by: opencode/big-pickle
-  at: "2026-08-06T00:00:00Z"
-status: draft
+  by: opencode/deepseek-v4.1-flash
+  at: "2026-10-26T00:00:00Z"
+status: stable
 ---
 
 # Specification: OKF Bundle Parser
 
 ## 1. Overview
 
-Pure, offline Go package that turns an OKF v0.2 bundle (a directory tree of Markdown files with
-YAML frontmatter) into validated `contractv1.Bundle` structures. It is the foundation for both the
-[Node Graph Engine](./node-graph-engine.md) and [Keyword + Fuzzy Search](./keyword-fuzzy-search.md);
-every downstream engine consumes its output.
+Pure, offline Go package that turns an OKF v0.2 bundle into validated `contractv1.Bundle`
+structures. It is the foundation for the graph, keyword/fuzzy search and CLI.
 
-Conformance follows the permissive OKF v0.2 rules plus the Weave profile: every non-reserved `.md`
-file needs parseable frontmatter with a non-empty `type` and a non-empty `keywords` list; unknown
-keys, unknown types, broken links, and missing optional fields are tolerated, never rejected.
+The Weave profile requires both `type` and `keywords` in frontmatter. Unknown keys/types, broken
+links and missing optional fields are tolerated.
 
-## 2. Module Structure & Execution Context
+## 2. Package Structure
 
-- **Library Root:** `src/lib/okf/`
-- **No UI / no client JS.** Runs in the Go engine and CLI only. Zero browser bundle.
-- **Runtime:** Bun-first; uses native `Bun.file`, `Bun.glob`, and Node-compatible `fs/promises` fallbacks. No third-party YAML parser — hand-rolled minimal frontmatter + YAML-subset parser keeps the dependency tree empty and the build static.
+```text
+engine/okf/
+├── fs.go            # FileSystem interface + OS adapter
+├── parse.go         # walk, concurrency, parsing, assembly, validation
+├── frontmatter.go   # delimiter splitting, yaml.v3 decode, keyword extraction
+├── links.go         # source-preserving Markdown link scanner and resolution
+└── cache.go         # optional per-file cache
+```
 
-**Files:**
+The public data model lives in `contract/v1/types.go`.
 
-- `src/lib/okf/types.ts` — shared interfaces and enums.
-- `src/lib/okf/frontmatter.ts` — YAML frontmatter block extraction and parsing.
-- `src/lib/okf/links.ts` — Markdown link extraction (both `(/abs)` and `(rel.md)` forms).
-- `src/lib/okf/parser.ts` — bundle walker + concept assembly.
-- `src/lib/okf/cache.ts` — optional per-file parse cache keyed by path, mtime and size.
-- `src/lib/okf/validate.ts` — conformance validation.
-
-## 3. Component Contracts
+## 3. Contracts
 
 ### 3.1 Concept
 
-```typescript
-export interface OkfConcept {
-  /** Concept ID = file path within bundle, minus .md */
-  id: string;
-  /** Bundle-relative path, e.g. "concepts/okf-bundle.md" */
-  path: string;
-  /** Raw frontmatter record; unknown keys preserved */
-  frontmatter: Record<string, unknown>;
-  /** Required by OKF v0.2; non-empty string */
-  type: string;
-  /** Optional display name */
-  title?: string;
-  /** Optional one-line summary */
-  description?: string;
-  /** Optional cross-cutting tags */
-  tags?: string[];
-  /** Optional lifecycle status: draft | stable | deprecated */
-  status?: 'draft' | 'stable' | 'deprecated';
-  /** Body text after frontmatter */
-  body: string;
-  /** Outgoing edges: resolved link targets */
-  links: OkfLink[];
-}
+`contractv1.OkfConcept`:
 
-export interface OkfLink {
-  /** Raw markdown link text */
-  raw: string;
-  /** Bundle-relative target with .md, or absolute URL */
-  target: string;
-  /** Resolved path relative to bundle root; null for external URLs */
-  resolved?: string;
-  /** True if target file exists within bundle */
-  resolvesInBundle: boolean;
-}
-```
+- `id`: bundle-relative path minus `.md`
+- `path`: bundle-relative path including `.md`
+- `type`: required non-empty string
+- `keywords`: required non-empty list of non-empty strings
+- `title`, `description`, `tags`, `status`: optional
+- `frontmatter`: raw parsed map, unknown keys preserved
+- `body`: text after the closing delimiter
+- `links`: source-preserving links with resolution metadata
 
 ### 3.2 Bundle
 
-```typescript
-export interface ParsedBundle {
-  /** Absolute root path of the bundle */
-  root: string;
-  /** Declared version from root index.md frontmatter, if present */
-  okfVersion?: '0.2';
-  /** All concepts keyed by concept ID */
-  concepts: Map<string, OkfConcept>;
-  /** Root index.md listing, parsed into entries */
-  index?: IndexEntry[];
-  /** Validation result */
-  validation: ValidationResult;
-}
+`contractv1.Bundle`:
 
-export interface IndexEntry {
-  title: string;
-  /** Bundle-relative target */
-  target: string;
-  description?: string;
-}
+- `root`: absolute bundle root
+- `okf_version`: only from the root `index.md`
+- `concepts`: sorted by id
+- `index`: root index entries
+- `validation`: bundle validity, per-concept validation and warnings
 
-export interface ValidationResult {
-  valid: boolean;
-  concepts: Map<string, ConceptValidation>;
-}
+### 3.3 Validation
 
-export interface ConceptValidation {
-  /** Parseable YAML frontmatter present */
-  hasFrontmatter: boolean;
-  /** Non-empty type present */
-  hasType: boolean;
-  /** Warnings only — never reject: missing optional fields, broken links */
-  warnings: string[];
+`contractv1.ConceptValidation` includes `has_frontmatter`, `has_type`, `has_keywords` and
+`warnings`. A bundle is valid only when every concept has all three.
+
+Missing keywords:
+
+- parse and keep the concept,
+- mark `has_keywords: false`,
+- exclude it from the keyword index,
+- keep it available for graph navigation and fuzzy search.
+
+### 3.4 API
+
+```go
+func ParseBundle(ctx context.Context, root string, options Options) (*contractv1.Bundle, error)
+
+type Options struct {
+    Cache       bool
+    CacheDir    string
+    Concurrency int
+    FS          FileSystem
+    OnCacheHit  func(path string)
 }
 ```
 
-### 3.3 Parser API
+## 4. Data Flow
 
-```typescript
-export interface ParseOptions {
-  /** Reuse per-file parse results keyed by path, mtime and size. */
-  cache?: boolean;
-  /** Override the cache directory; defaults to WEAVE_CACHE_DIR or the OS temp dir. */
-  cacheDir?: string;
-  /** Telemetry hook invoked for every file served from cache. */
-  onCacheHit?: (file: string) => void;
-}
+1. Resolve the absolute root.
+2. Walk deterministically, skipping `.git` and `node_modules`.
+3. Follow one level of directory symlinks with a realpath cycle guard.
+4. Read files concurrently with a bounded worker pool (default 32).
+5. Split frontmatter with `---` delimiters.
+6. Decode YAML with `yaml.v3`; normalize maps and preserve unknown keys.
+7. Extract keywords and validate `type`/`keywords`.
+8. Extract links with the source-preserving scanner.
+9. Resolve link targets; broken targets remain unresolved.
+10. Assemble concepts, index, validation and warnings deterministically.
+11. Optionally save the per-file cache.
 
-export function parseBundle(root: string, options?: ParseOptions): Promise<ParsedBundle>;
-export function parseConcept(filePath: string, bundleRoot: string): Promise<OkfConcept>;
-export function extractFrontmatter(raw: string): { data: Record<string, unknown>; body: string } | null;
-export function extractLinks(body: string): OkfLink[];
-```
+## 5. Link Semantics
 
-## 4. Data Flow & Dependencies
+- Inline, titled, angle-bracket, full-reference, collapsed-reference and shortcut-reference links
+  are supported.
+- Images are skipped.
+- Links inside fenced code and inline code are ignored.
+- Autolinks are excluded in v1.
+- `#fragment` and `?query` are stripped before resolution.
+- Leading `/` is bundle-root-relative; otherwise relative to the concept directory.
+- External schemes are never resolved.
+- `raw` preserves the exact Markdown source.
 
-- Walk bundle tree recursively with `fs/promises.readdir`, reading up to 32 files concurrently, following at most one level of directory symlinks with a realpath cycle guard.
-- Skip reserved filenames `index.md` and `log.md` from concept mapping (index.md is parsed into `index`; log.md is ignored by the parser).
-- Per file: split frontmatter (`---` delimited), parse YAML subset, validate `type`, extract links from body.
-- Resolve links to bundle-relative paths; mark `resolvesInBundle` against the concept map.
-- Targets: build graph ([Node Graph Engine](./node-graph-engine.md)) and corpus ([Keyword + Fuzzy Search](./keyword-fuzzy-search.md)) directly from `ParsedBundle`.
-- Implements contract from [OKF Bundle](../knowledge/concepts/okf-bundle.md).
+## 6. Cache
 
-## 5. Performance, Edge Cases & Errors
+- Opt-in; CLI enables it by default.
+- Key: absolute path plus `(mtime, size)` and parser version.
+- Value: per-file outcome (concept, validation, index data).
+- Writes are best-effort and concurrency-safe.
+- Cache failures never fail a parse.
 
-- **Performance:** `bun run bench` parses a synthetic 10k-file bundle in about 0.04 ms/file (~410 ms total) on WSL ext4 with bounded-concurrency reads (32 in flight). The committed smoke budget is 5 s, chosen to catch order-of-magnitude regressions rather than to assert the vision's "milliseconds" claim; re-measure before tightening. CLI commands opt into the on-disk parse cache (`ParseOptions.cache`), while mounts parse once at startup.
-- **Missing/broken frontmatter:** file excluded from `concepts`, recorded with `hasFrontmatter: false`; never throws.
-- **Missing `type`:** concept included, flagged `hasType: false`; consumers decide routing.
-- **Broken links:** kept as edges with `resolvesInBundle: false`; graph consumers MUST tolerate.
-- **Unknown keys/types:** preserved and ignored; MUST NOT reject.
-- **Non-UTF-8 or binary `.md`:** treated as parse error, recorded, skipped.
-- **Symlinked directories:** followed at most one level deep; cycles guarded with a visited-set.
-- **Empty bundle / no `.md` files:** valid bundle, empty `concepts`, warning emitted.
-- **`okf_version` mismatch (e.g. `"1.0"`):** warning, best-effort parse per spec §12.
+## 7. Edge Cases
+
+- Missing frontmatter: exclude concept, record `missing frontmatter`.
+- Missing `type`: include concept, `has_type: false`.
+- Missing keywords: include concept, `has_keywords: false`.
+- Broken links: keep as unresolved edges and warnings.
+- Invalid UTF-8: per-file parse error, skipped.
+- Empty bundle: valid, warning emitted.
+- Unsupported `okf_version`: warning, best-effort parse.
+- Root vs nested `index.md`: only the root sets index/version.
+- Symlink cycles: guarded by realpath visited-set.
+
+## 8. Performance
+
+Go benchmark on 1,000 generated files: ~47 ms parse. The 10k-file target remains 500 ms on a local
+SSD.
+
+## 9. Testing
+
+- Contract golden conformance (`engine/conformance_test.go`).
+- Cache hit/invalidation tests.
+- Race suite.
+- Frontmatter/link fuzz tests (planned).
 
 ## Related Concepts
 
-- Depends on [OKF Bundle](../knowledge/concepts/okf-bundle.md)
-- Feeds [Node Graph Engine](../knowledge/concepts/node-graph-engine.md)
-- Feeds [Keyword + Fuzzy Search](../knowledge/concepts/search-index.md)
-- Loaded by the Go CLI
+- Implements [OKF Bundle](../knowledge/concepts/okf-bundle.md)
+- Feeds [Node Graph Engine](./node-graph-engine.md)
+- Feeds [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
+- Consumed by the Go CLI

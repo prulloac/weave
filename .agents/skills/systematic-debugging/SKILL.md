@@ -1,20 +1,28 @@
 ---
 name: systematic-debugging
-description: Enforces a structured, diagnostic debugging workflow before making code changes when tests fail.
+description: Enforces a structured, diagnostic debugging workflow before making code changes when Go tests or builds fail.
 ---
 
 # Systematic Debugging Protocol
 
-When a test (`bun test` or Playwright) fails or an exception occurs:
+When a Go test, build, contract export, or CLI process test fails:
 
 1. **Root Cause Analysis (Do NOT edit code yet):**
-   - Read the exact stack trace and failure output.
-   - Formulate a single hypothesis on *why* it failed.
+   - Read the exact failure output, stack trace, golden diff or exit code.
+   - Formulate a single hypothesis for why it failed.
 2. **Isolate:**
-   - Run only the specific failing test case (`bun test -t "test name"`).
-   - Log or inspect inputs/outputs at the exact failure boundary.
+   - Run only the failing package or test:
+     ```sh
+     go test ./engine/search -run TestCalibration -v
+     go test ./cmd/weave -run TestSearch -v
+     ```
+   - Inspect the smallest input/output boundary.
 3. **Minimal Fix:**
-   - Apply the smallest fix directly addressing the root cause.
-   - Re-run the isolated test.
+   - Apply the smallest change that addresses the root cause.
+   - Do not weaken tests or calibration baselines.
 4. **Regression Verification:**
-   - Run the entire test suite to ensure no collateral damage was introduced.
+   ```sh
+   go test ./...
+   go test -race ./...
+   ./scripts/verify.sh
+   ```

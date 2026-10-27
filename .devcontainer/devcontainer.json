@@ -4,7 +4,7 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-  "postCreateCommand": "go mod download && bun install",
+  "postCreateCommand": "go mod download",
   "customizations": {
     "vscode": {
       "extensions": [

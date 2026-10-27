@@ -16,6 +16,9 @@ status: draft
 
 # OKF Parsing & Ingestion Assessment
 
+> **Historical.** This report describes the TypeScript/Bun implementation that was removed in the
+> Go-only search v1 rewrite. See [ADR 0003](../architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md).
+
 ## Summary
 
 The OKF parsing core is implemented, tested, and integrated. All 23 parser unit tests and
@@ -474,7 +477,6 @@ Targeted new tests to add:
 ## Related Documents
 
 - [OKF Bundle Parser Specification](../specs/okf-bundle-parser.md)
-- [OKF Bundle Explorer BDD](../bdd/okf-bundle-explorer.md)
 - [OKF Bundle Concept](../knowledge/concepts/okf-bundle.md)
-- [Lens Mount Integration Specification](../specs/lens-mount-integration.md)
 - [Weave Backlog](../backlog.md)
+- [ADR 0003](../architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)

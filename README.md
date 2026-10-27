@@ -21,7 +21,6 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 ## Requirements
 
 - Go 1.27+
-- Optional: [Bun](https://bun.sh) for Markdown linting
 
 ## Build
 
@@ -89,6 +88,7 @@ go test ./...
 go test -race ./...
 go vet ./...
 go build ./cmd/weave
+go run ./cmd/docs-lint
 ./scripts/verify.sh
 ```
 

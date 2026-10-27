@@ -28,7 +28,7 @@ in both directions and is consumed by the CLI navigation operations and by
 - **Library Root:** `src/lib/graph/`
 - **No UI / no client JS.** Runs in the Go engine and CLI only. Zero browser bundle.
 - **Synchronous and dependency-free.** The engine consumes an already-parsed in-memory bundle, so it builds without I/O and without third-party libraries. Uses native `Map`-based adjacency, aligned with the parser's zero-dependency ethos.
-- **Runtime:** Bun-first; plain TypeScript, no Node polyfills required.
+- **Runtime:** Go standard library; no Node or Bun runtime.
 
 **Files:**
 

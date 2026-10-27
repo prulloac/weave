@@ -9,9 +9,7 @@ go vet ./...
 go build -o /tmp/weave-verify ./cmd/weave
 rm -f /tmp/weave-verify
 
-if command -v bun >/dev/null 2>&1; then
-	bun run lint:md
-fi
+go run ./cmd/docs-lint
 
 unformatted="$(gofmt -l cmd contract engine)"
 if [ -n "$unformatted" ]; then

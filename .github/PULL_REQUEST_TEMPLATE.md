@@ -21,7 +21,7 @@
 - [ ] `go test -race ./...` passes
 - [ ] `go vet ./...` and `gofmt` are clean
 - [ ] `go run ./cmd/contract-export` produces no diff
-- [ ] `bun run lint:md` passes (if docs changed)
+- [ ] `go run ./cmd/docs-lint` passes (if docs changed)
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
 - [ ] Changes are scoped — no unrelated modifications
 

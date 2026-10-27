@@ -31,14 +31,18 @@ jobs:
       - run: go vet ./...
       - run: test -z "$(gofmt -l cmd contract engine)" || (gofmt -l cmd contract engine && exit 1)
       - run: go build -o /tmp/weave ./cmd/weave
+      - run: go run ./cmd/docs-lint
 
   docs:
     name: Docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: DavidAnson/markdownlint-cli2-action@v25
         with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bun run lint:md
+          config: .markdownlint-cli2.jsonc
+          globs: |
+            docs/**/*.md
+            README.md
+            CONTRIBUTING.md
+            AGENTS.md
