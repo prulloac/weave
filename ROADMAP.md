@@ -164,6 +164,105 @@ Frontmatter    Varint postings Extension runner
 
 ## 8. Phased Roadmap
 
+### Feature Dependency Map
+
+The phases below are not arbitrary; they follow this dependency graph.
+
+| Feature | Hard dependencies | Enables |
+| --- | --- | --- |
+| Contract types for introspection | `contract/v1`, operations | audit, relate, explain, MCP tool schemas |
+| `weave relate` | graph, contract | graph workflows, MCP relate |
+| `weave audit` | parser validation, graph, root index, contract | CI docs gate, MCP audit, v2 key checks |
+| `weave explain` | search scoring internals, contract | ranking debugging, calibration, MCP explain |
+| Permissive ingestion | parser/validation | v2 ingest of dirty Markdown trees |
+| SQLite storage | parser, graph, contract | sync, BM25, compression, privacy storage, MCP v2 |
+| Incremental sync | storage, parser, graph | watch, enrichment, MCP v2 |
+| Watch mode | incremental sync | live MCP reload |
+| BM25 lexical ranking | storage/FTS5, search contract, calibration | hybrid v2 ranking |
+| Compression | storage | memory/body budgets |
+| Privacy directives | parser, storage, search, CLI, contract, key resolver | decrypt, audit key checks, sensitive MCP, crypto plugins |
+| Extension runner | operations/contract | enrichment, rerank, AI and crypto plugins |
+| Enrichment extension | sync + extension runner | v2 metadata |
+| Rerank extension | search + extension runner | optional ranking |
+| AI plugin | extension runner | inferred keywords, embeddings |
+| External crypto plugins | privacy + extension runner | Age, Vault, KMS |
+| MCP v1 | operations + relate/audit/explain | in-memory agent retrieval |
+| MCP v2 | MCP v1 + storage/sync/watch/privacy | persistent, sensitive-aware MCP |
+
+```text
+contract/v1
+  ├── okf parser ──┬── graph ──┬── relate
+  │                │           ├── audit
+  │                │           └── path/show/backlinks
+  │                ├── permissive ingestion
+  │                └── storage/sqlite ──┬── sync ──┬── watch
+  │                                      │          └── enrichment
+  │                                      ├── BM25
+  │                                      └── compression
+  ├── search (keyword/fuzzy/hybrid) ──┬── explain
+  │                                   ├── privacy search rules
+  │                                   └── rerank
+  └── operations ──┬── CLI
+                   ├── MCP v1
+                   └── extension runner ──┬── AI plugin
+                                          └── external crypto
+privacy directives ──┬── show --decrypt
+                     ├── audit --verify-keys
+                     ├── sensitive MCP
+                     └── crypto plugins
+```
+
+### Topological Execution Order
+
+**Wave 0 — shipped:** parser, graph, keyword/fuzzy search, CLI, calibration.
+
+**Wave 1 — introspection and adoption (parallel):**
+
+- contract types for audit/relate/explain,
+- `weave relate`,
+- `weave audit`,
+- `weave explain`,
+- permissive ingestion.
+
+**Wave 2 — storage foundation:**
+
+- SQLite storage.
+
+**Wave 3 — storage consumers (parallel):**
+
+- incremental sync,
+- BM25 lexical ranking,
+- compression,
+- MCP v1 (independent of v2; can be pulled earlier if desired).
+
+**Wave 4 — lifecycle and privacy:**
+
+- watch mode (after sync),
+- privacy directives (after storage + search),
+- `show --decrypt` and `audit --verify-keys`.
+
+**Wave 5 — extensions:**
+
+- extension runner,
+- enrichment (after sync),
+- rerank (after search),
+- sensitive MCP policies.
+
+**Wave 6 — ecosystem and persistent MCP:**
+
+- AI plugin,
+- external crypto plugins,
+- MCP v2 with storage/watch/privacy.
+
+**Critical path:**
+
+```text
+contract/v1 -> parser/graph/search -> storage/sqlite -> sync -> BM25 -> privacy -> extension runner -> MCP v2
+```
+
+`audit`, `relate`, `explain`, permissive ingestion, compression and MCP v1 are parallel tracks,
+not prerequisites for the critical path.
+
 ### Phase 1 — Search v1 (shipped)
 
 - Mandatory keywords validation.

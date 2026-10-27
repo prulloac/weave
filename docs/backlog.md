@@ -86,6 +86,22 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] v2 storage/sync and privacy/extension specifications placed under `docs/specs/`
 - [x] Extended roadmap integrated into `ROADMAP.md`
 
+## Dependency Order
+
+The full feature DAG lives in [ROADMAP.md § Feature Dependency Map](../ROADMAP.md#feature-dependency-map).
+
+Execution waves:
+
+1. Shipped: parser, graph, search, CLI, calibration.
+2. Parallel: introspection contract types, `audit`, `relate`, `explain`, permissive ingestion.
+3. Storage: SQLite.
+4. Parallel: sync, BM25, compression, MCP v1.
+5. Watch and privacy directives.
+6. Extension runner, enrichment, rerank, sensitive MCP.
+7. AI plugin, external crypto, MCP v2.
+
+Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP v2`.
+
 ## Maintenance
 
 Keep this file updated as pipeline phases advance. Checkboxes in the phase columns are toggled per feature as they complete.
