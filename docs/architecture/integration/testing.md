@@ -77,7 +77,8 @@ MRR@10 = 1.0.
 - Every command: `contract`, `parse`, `graph`, `search`, `list`, `show`, `backlinks`, `path`,
   `version`, `audit`.
 - Behavior suites: `cmd/weave/audit_bdd_test.go` covers `weave audit` report codes, ordering,
-  `--fail-on`, human output, invalid roots and bundle immutability.
+  `--fail-on`, human output, invalid roots and bundle immutability. `cmd/weave/relate_bdd_test.go`
+  covers relate depth, direction, cycles, related edges, ordering and human output.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
