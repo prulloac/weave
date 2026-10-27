@@ -56,7 +56,7 @@ The detailed contract and algorithms are in
 | OKF | Go | `engine/okf` | Parse bundles, frontmatter, links, validation, cache |
 | Graph | Go | `engine/graph` | Nodes, edges, degrees, traversal |
 | Search | Go | `engine/search` | In-memory catalog, keyword index, fuzzy index, ranking |
-| Operations | Go | `engine/operations` | Transport-neutral search, navigation and audit requests |
+| Operations | Go | `engine/operations` | Transport-neutral search, navigation, audit and relate requests |
 | CLI | Go | `cmd/weave` | Argv, stdout/stderr, envelopes, exit codes |
 
 ## Integration Surfaces
@@ -109,6 +109,7 @@ remains the compatibility promise.
 | Fuzzy fields | Title 1.00, description 0.60, body 0.30 |
 | Fuzzy similarity | Normalized Levenshtein and trigram Dice, max |
 | Search output | Keyword, fuzzy and hybrid top-K lists |
+| Graph neighborhood | v1.0 `weave relate`, bounded BFS depth 0..5 across out/in/both |
 | Default mode | Hybrid |
 | Default top-K | 10; max 100 |
 | Contract version | New v1 replaces the previous v1 in place |
@@ -170,11 +171,12 @@ remains the compatibility promise.
 
 ## Status
 
-The core v1 engine and `weave audit` are implemented. The Go engine parses mandatory keywords,
-builds keyword and fuzzy indexes, returns keyword/fuzzy/hybrid top-K results, exposes the `search`
-CLI command and audits bundles for conformance and graph quality. Calibration passes its baseline.
-The UI and old TypeScript stack are removed.
+The core v1 engine, `weave audit` and `weave relate` are implemented. The Go engine parses
+mandatory keywords, builds keyword and fuzzy indexes, returns keyword/fuzzy/hybrid top-K results,
+exposes the `search` CLI command, audits bundles for conformance and graph quality, and returns
+bounded graph neighborhoods. Calibration passes its baseline. The UI and old TypeScript stack are
+removed.
 
-The remaining v1.0 scope — relate, explain, persistent storage and sync, BM25, privacy, extensions
-and MCP — is specified but not implemented. The operations layer keeps MCP independently
-schedulable within v1.0.
+The remaining v1.0 scope — explain, persistent storage and sync, BM25, privacy, extensions and
+MCP — is specified but not implemented. The operations layer keeps MCP independently schedulable
+within v1.0.

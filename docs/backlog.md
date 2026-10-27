@@ -41,7 +41,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | x | x | green |
-| `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | x | - | red |
+| `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | x | x | green |
 | `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | - | - | backlog |
 | Introspection contract types (audit/relate/explain) | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |
 
@@ -98,6 +98,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] v1.0 storage/sync and privacy/extension specifications placed under `docs/specs/`
 - [x] Extended roadmap integrated into `ROADMAP.md`
 - [x] Audit contract, engine and CLI behavior suite (`weave audit`)
+- [x] Relate contract, engine and CLI behavior suite (`weave relate`)
 
 ## Dependency Order
 
@@ -109,7 +110,7 @@ one row here and one row there.
 Execution waves:
 
 1. Shipped: parser, graph, search, CLI, calibration.
-2. Parallel: introspection contract types, `audit` (done), `relate`, `explain`, permissive ingestion.
+2. Parallel: introspection contract types, `audit` (done), `relate` (done), `explain`, permissive ingestion.
 3. Storage: SQLite.
 4. Parallel: sync, BM25, compression, MCP in-memory.
 5. Watch and privacy directives.

@@ -10,8 +10,8 @@ Status: **v1 in progress.** The core engine is shipped on `main`; the full v1.0 
 Weave is a **local-first, related-document knowledge database**:
 
 - **v1 core (shipped):** ingest OKF/Markdown bundles into memory, build a graph, search by mandatory
-  keywords and weighted fuzzy similarity, navigate with `show`, `backlinks` and `path`, and audit
-  bundle quality with `weave audit`.
+  keywords and weighted fuzzy similarity, navigate with `show`, `backlinks` and `path`, audit bundle
+  quality with `weave audit`, and explore graph neighborhoods with `weave relate`.
 - **v1.0 platform (in progress):** persist and incrementally sync bundles into SQLite, add lexical
   BM25, support permissive Markdown ingestion, protect sensitive content with explicit privacy
   directives, and run external enrichment/reranking and crypto extensions.
@@ -41,6 +41,7 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Calibration | Shipped | NDCG@K and MRR@K baselines |
 | Conformance | Shipped | Bundle, graph and search goldens |
 | Bundle audit | Shipped | Stable finding codes, `--fail-on` gate, JSON and human reports |
+| Graph relate | Shipped | Bounded depth/direction graph neighborhoods |
 
 ## 3. v1.0 Scope (in progress)
 
@@ -59,7 +60,7 @@ waves, not product versions.
 | External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
 | Explainable search | v1.0 | Per-token/per-field `weave explain` |
 | Bundle audit | v1.0 | Shipped: stable finding codes, `--fail-on` gate, JSON and human reports |
-| Relate and explain | v1.0 | Graph neighborhoods and ranking breakdowns |
+| Graph relate | v1.0 | Shipped: bounded depth/direction subgraphs |
 | MCP server | v1.0 | TCP MCP over the operations layer, optional sensitive access |
 
 ## 4. CLI Surface
@@ -76,13 +77,13 @@ weave show <path> <id|file> --json
 weave backlinks <path> <id|file> --json
 weave path <path> <id|file> <id|file> --json
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
+weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] --json
 weave version --json
 ```
 
 ### Planned v1.0 — introspection
 
 ```sh
-weave relate <path> <id|file> [--depth <n>] [--direction in|out|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] --json
 ```
 
@@ -140,13 +141,16 @@ Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md). Ext
 
 ```text
 cmd/weave + engine/operations
-  search · parse · graph · list · show · backlinks · path · audit · version
+  search · parse · graph · list · show · backlinks · path · audit · relate · version
         |
 engine/search
   documents · keyword postings · fuzzy/trigram indexes · ranking
         |
 engine/audit
   conformance · links · index coverage · orphans
+        |
+engine/relate
+  bounded BFS · depth · direction · subgraphs
         |
 engine/graph + engine/okf
   nodes · edges · traversal · parser · validation · cache
@@ -186,7 +190,7 @@ is the completeness check: no feature is considered planned until it appears her
 | # | Feature | Authoritative spec | Backlog | Depends on | Wave / gate | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Introspection contract types | [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md), [explain](docs/specs/weave-explain.md) | Tier 3 | `contract/v1`, operations | 1 / Phase 2 | partial |
-| 2 | `weave relate` | [weave-relate.md](docs/specs/weave-relate.md) | Tier 3 | graph, contract | 1 / Phase 2 | planned |
+| 2 | `weave relate` | [weave-relate.md](docs/specs/weave-relate.md) | Tier 3 | graph, contract | 1 / Phase 2 | shipped |
 | 3 | `weave audit` | [weave-audit.md](docs/specs/weave-audit.md) | Tier 3 | parser, graph, root index, contract | 1 / Phase 2 | shipped |
 | 4 | `weave explain` | [weave-explain.md](docs/specs/weave-explain.md) | Tier 3 | search scoring, contract | 1 / Phase 2 | planned |
 | 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 | planned |
@@ -222,8 +226,8 @@ The phases below are not arbitrary; they follow this dependency graph.
 
 | Feature | Hard dependencies | Enables |
 | --- | --- | --- |
-| Contract types for introspection | `contract/v1`, operations | audit, relate, explain, MCP tool schemas |
-| `weave relate` | graph, contract | graph workflows, MCP relate |
+| Introspection contract types | `contract/v1`, operations | audit, relate, explain, MCP tool schemas |
+| `weave relate` (shipped) | graph, contract | graph workflows, MCP relate |
 | `weave audit` (shipped) | parser validation, graph, root index, contract | CI docs gate, MCP audit, privacy key checks |
 | `weave explain` | search scoring internals, contract | ranking debugging, calibration, MCP explain |
 | Permissive ingestion | parser/validation | ingestion of dirty Markdown trees |
@@ -326,7 +330,7 @@ tracks, not prerequisites for the critical path.
 ### Phase 2 — Introspection and adoption (in progress)
 
 - `weave audit` (shipped): bundle conformance, graph validation, keyword/index consistency.
-- `weave relate`: bounded graph neighborhoods by depth and direction.
+- `weave relate` (shipped): bounded graph neighborhoods by depth and direction.
 - `weave explain`: per-token, per-field score decomposition.
 - Permissive ingestion mode: warn instead of fail on dirty Markdown trees.
 
