@@ -1,9 +1,6 @@
 {
   "name": "Weave",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "postCreateCommand": "go mod download",
   "customizations": {
     "vscode": {

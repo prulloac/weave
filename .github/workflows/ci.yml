@@ -2,14 +2,8 @@ name: CI
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
   push:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,8 +19,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - run: go mod tidy
+      - run: git diff --exit-code -- go.mod go.sum
       - run: go run ./cmd/contract-export
-      - run: git diff --exit-code -- contract/v1/golden/expected
+      - run: test -z "$(git status --porcelain -- contract/v1/golden/expected)"
       - run: go test -race ./...
       - run: go vet ./...
       - run: test -z "$(gofmt -l cmd contract engine)" || (gofmt -l cmd contract engine && exit 1)
