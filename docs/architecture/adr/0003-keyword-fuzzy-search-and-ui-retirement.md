@@ -19,8 +19,8 @@ status: accepted
 
 ## Status
 
-Accepted on 2026-10-25. This ADR overrides the UI and search decisions in ADR 0001 and ADR 0002
-where they conflict. The Go engine, contract, operations and CLI remain the foundation.
+Accepted on 2026-10-25. This ADR supersedes the earlier UI and search direction. The Go engine,
+contract, operations and CLI remain the foundation.
 
 ## Context
 
@@ -408,7 +408,5 @@ Deferred: `--stdio` and the TCP MCP transport.
 ## Related Documents
 
 - [Architecture index](../index.md)
-- [ADR 0001](0001-go-engine-and-ts-lens.md)
-- [ADR 0002](0002-v1-scope-layout-and-contract.md)
 - [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md)
 - [Weave backlog](../../backlog.md)

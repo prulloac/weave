@@ -127,8 +127,6 @@ remains the compatibility promise.
 | [Integration contracts](integration/contracts.md) | CLI, operations and filesystem contracts |
 | [Integration steps](integration/steps.md) | Completed search v1 implementation phases |
 | [Integration testing](integration/testing.md) | Conformance and test strategy |
-| [ADR 0001](adr/0001-go-engine-and-ts-lens.md) | Historical language decision |
-| [ADR 0002](adr/0002-v1-scope-layout-and-contract.md) | Historical v1 layout decision |
 
 ## Reading Order
 

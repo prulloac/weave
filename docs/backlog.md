@@ -21,7 +21,6 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | OKF Bundle Parser | [okf-bundle-parser.md](specs/okf-bundle-parser.md) | [#1](https://github.com/prulloac/weave/pull/1) | x | x | x | done |
-| Design-system / UI work | — | — | — | — | — | cancelled (ADR 0003) |
 
 ## Tier 2 — Engine
 
@@ -38,13 +37,12 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Mandatory keywords, fuzzy scoring, hybrid top-K and calibration | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
-| UI and old TypeScript cleanup | [ADR 0003](architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | - | x | x | x | green |
 
 ## Tier 4 — Portability
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Go engine + CLI base (UI retired) | [architecture/index.md](architecture/index.md) | - | x | - | - | done |
+| Go engine + CLI base | [architecture/index.md](architecture/index.md) | - | x | - | - | done |
 
 ## Cross-cutting
 
@@ -60,9 +58,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Go module scaffold, contract structs, schema round-trip tests and CI (Phase 2)
 - [x] Go engine port: parser, graph, search, navigation and operations (Phase 3)
 - [x] Go machine CLI: commands, envelopes, exit codes and cache defaults (Phase 5A / Milestone A)
-- [x] ADR 0003: keyword + fuzzy search and UI retirement
+- [x] ADR 0003: keyword + fuzzy search
 - [x] Keyword + Fuzzy Search specification
-- [x] UI, Astro, Preact, Playwright and old TypeScript cleanup (ADR 0003)
 - [x] Search calibration corpus and baseline report
 
 ## Maintenance
