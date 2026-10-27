@@ -28,7 +28,8 @@ engine/operations
 ```
 
 The first target is a **TCP MCP server** started explicitly by the operator. Stdio may be added as
-a local convenience, but it is not the primary plan.
+a local convenience, but it is not the primary plan. The server can wrap either the v1 in-memory
+engine or the v2 persistent store; the operations and tool schemas stay the same.
 
 ## 2. Goals and Non-Goals
 
@@ -53,12 +54,15 @@ a local convenience, but it is not the primary plan.
 ## 3. Process Model
 
 ```sh
-weave mcp --bundle <path> [--listen 127.0.0.1:7331] [--token <token>] [--top-k-default 10]
+weave mcp --bundle <path> [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--token <token>] [--top-k-default 10] [--allow-sensitive]
 ```
 
 - `--bundle` is required and fixed for the process lifetime.
 - `--listen` defaults to `127.0.0.1:7331`.
 - `--token` is required for non-loopback binding. For loopback, a token is optional but recommended.
+- `--db` uses the v2 persistent SQLite store; without it, the v1 in-memory engine is used.
+- `--watch` enables v2 watch-based reload.
+- `--allow-sensitive` is required to expose encrypted/tokenized fields in tool results.
 - The server loads the bundle once at startup and exits on SIGINT/SIGTERM.
 - No request may choose a different bundle path.
 
@@ -113,6 +117,7 @@ Resources are read-only and may be deferred until tools are stable.
 - No arbitrary paths, shell commands or writes.
 - Limit tool output size; `top_k` and `relate` depth are bounded.
 - Log connection and tool metadata, never document bodies by default.
+- Encrypted fields require `--allow-sensitive`; tokenized/hashed fields follow the privacy spec.
 - Graceful shutdown on SIGINT/SIGTERM.
 
 ## 8. Roadmap
@@ -139,6 +144,7 @@ Resources are read-only and may be deferred until tools are stable.
 ### M3 — TCP MCP server
 
 - `weave mcp --bundle <path> --listen 127.0.0.1:7331 --token <token>`.
+- Optional v2 `--db`/`--watch` binding to persistent storage.
 - Token auth, lifecycle, concurrency and reconnect tests.
 - MCP client integration tests.
 - Documentation for Claude/agent clients.
@@ -173,6 +179,8 @@ Resources are read-only and may be deferred until tools are stable.
 - [Operations layer](../architecture/layers/operations.md)
 - [CLI layer](../architecture/layers/cli-go.md)
 - [Keyword + Fuzzy Search spec](./keyword-fuzzy-search.md)
+- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Privacy & Extensions](./privacy-and-extensions.md)
 - [Weave Audit spec](./weave-audit.md)
 - [Weave Relate spec](./weave-relate.md)
 - [Weave Explain spec](./weave-explain.md)

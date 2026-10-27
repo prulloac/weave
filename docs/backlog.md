@@ -46,8 +46,25 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | Go engine + CLI base | [architecture/index.md](architecture/index.md) | - | x | - | - | done |
-| MCP server over operations | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
-| Roadmap: current capabilities and MCP path | [ROADMAP.md](../ROADMAP.md) | - | x | - | - | done |
+| Roadmap: current capabilities and v2 path | [ROADMAP.md](../ROADMAP.md) | - | x | - | - | done |
+
+## Tier 5 — v2 Platform
+
+| Feature | Spec | PR | Spec | BDD | TDD | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Persistent SQLite storage | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
+| Incremental sync and watch | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
+| Permissive Markdown ingestion | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
+| BM25 lexical ranking | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | - | - | backlog |
+| Memory/body compression | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
+| Privacy directives | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| Extension subprocess IPC | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+
+## Tier 6 — MCP
+
+| Feature | Spec | PR | Spec | BDD | TDD | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| TCP MCP server over operations | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
 
@@ -66,6 +83,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] ADR 0003: keyword + fuzzy search
 - [x] Keyword + Fuzzy Search specification
 - [x] Search calibration corpus and baseline report
+- [x] v2 storage/sync and privacy/extension specifications placed under `docs/specs/`
+- [x] Extended roadmap integrated into `ROADMAP.md`
 
 ## Maintenance
 

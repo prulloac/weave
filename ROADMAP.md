@@ -2,45 +2,60 @@
 
 > Weave loads OKF bundles into memory, relates documents as a graph, and answers calibrated keyword and fuzzy top-K searches through a Go CLI.
 
-Status: **search v1 implemented and on `main`**. Roadmap items below are proposals until their specs are approved.
+Status: **v1 shipped on `main`**. The v2 platform below is proposed and specified but not implemented.
 
 ## 1. What Weave Is
 
-Weave is an **in-memory related-document database for OKF bundles**:
+Weave is a **local-first, related-document knowledge database**:
 
-- load a bundle into memory,
-- build concept nodes and link/`related` edges,
-- search by mandatory frontmatter keywords and weighted fuzzy similarity,
-- return keyword, fuzzy and hybrid top-K results,
-- navigate the graph with `show`, `backlinks` and `path`.
+- **v1 (shipped):** ingest OKF/Markdown bundles into memory, build a graph, search by mandatory
+  keywords and weighted fuzzy similarity, and navigate with `show`, `backlinks` and `path`.
+- **v2 (proposed):** persist and incrementally sync bundles into SQLite, add lexical BM25, support
+  permissive Markdown ingestion, protect sensitive content with explicit privacy directives, and
+  run external enrichment/reranking extensions.
+- **Later:** expose the same operations through an MCP server.
 
-It is **CLI-first**, local, offline and has **no UI**.
+It is **CLI-first**, local, offline-capable, and has **no UI**.
 
-## 2. Current Capabilities
-
-### 2.1 Engine
+## 2. Current Capabilities (v1)
 
 | Capability | Status | Notes |
 | --- | --- | --- |
 | OKF bundle parsing | Shipped | Go, `yaml.v3`, UTF-8 strict, recursive directories |
-| Mandatory `keywords` | Shipped | Documents without keywords are invalid but remain in graph/fuzzy |
+| Mandatory `keywords` | Shipped | Missing keywords invalidate the document; kept for graph/fuzzy |
 | Link extraction | Shipped | Inline, titled, angle, reference, collapsed and shortcut links |
 | Link resolution | Shipped | Fragments/queries stripped; bundle-relative and external targets |
 | Symlink handling | Shipped | One directory level with realpath cycle guard |
 | Node/edge graph | Shipped | `link` and `related` edges, dangling targets, degrees |
 | BFS pathfinding | Shipped | `weave path` |
-| Keyword index | Shipped | Exact + prefix, AND across query tokens |
+| Keyword index | Shipped | Exact + prefix, AND semantics |
 | Fuzzy index | Shipped | Field token postings + trigram index |
 | Levenshtein + trigram Dice | Shipped | Max of both, threshold `0.55` |
 | Weighted fields | Shipped | Title `1.00`, description `0.60`, body `0.30` |
 | Hybrid ranking | Shipped | `0.50 * keyword + 0.50 * fuzzy` |
 | Top-K | Shipped | Default 10, max 100 |
-| Explainable scores | Partial | Aggregate component scores shipped; per-token explain pending |
 | Parse cache | Shipped | Opt-in engine, enabled by CLI, concurrency-safe |
-| Calibration | Shipped | Labeled corpus, NDCG@K and MRR@K baselines |
+| Calibration | Shipped | NDCG@K and MRR@K baselines |
 | Conformance | Shipped | Bundle, graph and search goldens |
 
-### 2.2 CLI
+## 3. Proposed v2 Platform
+
+| Capability | Target | Notes |
+| --- | --- | --- |
+| Persistent SQLite storage | v2 | Pure-Go `modernc.org/sqlite`, WAL, fast cold reads |
+| Incremental sync & watch | v2 | `sha256` content-hash upserts, cascading edge updates, `fsnotify` |
+| Permissive ingestion | v2 | Index dirty/non-OKF Markdown trees with warnings |
+| BM25 lexical ranking | v2 | SQLite FTS5 BM25 replaces strict AND for multi-token queries |
+| Memory/body compression | v2 | Varint/delta postings, LZ4/Zstandard body blobs |
+| Privacy directives | v2 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
+| Extension runner | v2 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
+| Explainable search | v1.1 | Per-token/per-field `weave explain` |
+| Audit and relate | v1.1 | Bundle quality gate and graph neighborhoods |
+| MCP server | post-v2 | TCP MCP over the operations layer, optional sensitive access |
+
+## 4. CLI Surface
+
+### v1 shipped
 
 ```sh
 weave contract --json
@@ -54,38 +69,64 @@ weave path <path> <id|file> <id|file> --json
 weave version --json
 ```
 
-- `--json` emits one `weave.cli/v1` envelope.
-- stdout is payload only; stderr is diagnostics.
-- Exit codes: `0` success, `1` runtime/no match, `2` usage, `3` permission.
-- Cache enabled by default; `--no-cache` disables it.
+### v1.1 introspection (specified)
 
-### 2.3 Search Semantics
+```sh
+weave audit <path> [--fail-on error|warning|none] --json
+weave relate <path> <id|file> [--depth <n>] [--direction in|out|both] --json
+weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] --json
+```
 
-- **Keyword:** exact token `1.0`, prefix `0.75`, every query token must match.
-- **Fuzzy:** max of normalized Levenshtein and trigram Dice.
+### v2 persistence and extensions (proposed)
+
+```sh
+weave ingest <path> [--db <file>] [--permissive] --json
+weave sync <path> [--watch] [--with-enricher <ext>] --json
+weave rebuild <path> --json
+weave search <path> <query> [--rerank <ext>] --json
+weave show <path> <id|file> [--decrypt] --json
+weave audit <path> [--verify-keys] --json
+```
+
+## 5. Search Semantics
+
+### v1 (shipped)
+
+- **Keyword:** exact token `1.0`, prefix `0.75`, AND across query tokens.
+- **Fuzzy:** max of normalized Levenshtein and trigram Dice, threshold `0.55`.
 - **Field weights:** title `1.00`, description `0.60`, body `0.30`.
-- **Hybrid:** 50% keyword, 50% fuzzy.
+- **Hybrid:** `0.50 * keyword + 0.50 * fuzzy`.
 - **Top-K:** default 10, max 100.
-- Results contain keyword, fuzzy and hybrid lists with component scores and match metadata.
 
-### 2.4 Quality Gates
+### v2 target
 
-- `go test -race ./...`
-- `go vet ./...`
-- `gofmt`
-- contract goldens regenerate with no drift
-- `TestCalibration` baseline: NDCG@10 ≥ 0.75, MRR@10 ≥ 0.70
-- `go run ./cmd/docs-lint`
-- Markdown lint in CI
+- **Lexical:** SQLite FTS5 BM25 with term coordination; replaces strict AND for multi-token
+  queries.
+- **Fuzzy:** unchanged.
+- **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; initial a/b remain 0.50/0.50.
+- **Extensions:** optional rerankers may adjust ranking after core scoring.
 
-### 2.5 Runtime and Packaging
+## 6. Privacy Semantics (v2 proposed)
 
-- Go 1.27 module at the repository root.
-- Single CLI binary: `go build -o weave ./cmd/weave`.
-- No Bun, Node, Astro, Preact, Playwright or UI dependencies.
-- Contract v1 is authoritative.
+Privacy is **explicitly declared**, never heuristic.
 
-## 3. Architecture at a Glance
+| Directive | Storage | Search behavior |
+| --- | --- | --- |
+| `encrypt` | AES-256-GCM ciphertext | Excluded from index; masked snippets; restored only with key |
+| `tokenize` | Pseudonym | Indexed and searchable as the pseudonym |
+| `hash` | HMAC-SHA256 digest | Exact digest match only; fuzzy/trigram bypassed |
+
+- Frontmatter file-level policy: `privacy.policy: encrypt`.
+- Inline block directives: `<!-- weave:encrypt -->`, `<!-- weave:tokenize -->`,
+  `<!-- weave:hash -->`.
+- Keys resolve from `WEAVE_KEY_<ID>` and `.weave/security.yaml`.
+- Missing keys are audit warnings; `show --decrypt` fails with exit `3`.
+
+Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+
+## 7. Architecture
+
+### v1 current
 
 ```text
 cmd/weave + engine/operations
@@ -101,102 +142,123 @@ contract/v1
   schemas · Go types · goldens
 ```
 
-## 4. Limitations and Non-Goals
+### v2 target
 
-- In-memory; not an enterprise-scale search cluster.
-- No semantic/vector search. Fuzzy handles typos and partial words, not conceptual similarity.
+```text
+cmd/weave (CLI) / cmd/weave-mcp (daemon)
+                  |
+          engine/operations
+ ingest · sync · search · audit · relate · explain
+                  |
+   ┌──────────────┼──────────────┐
+engine/okf     engine/search   engine/crypto
+Goldmark AST   SQLite FTS5     AES / HMAC
+Links          BM25 + trigram  Key resolver
+Frontmatter    Varint postings Extension runner
+   └──────────────┼──────────────┘
+                  |
+           storage/sqlite
+    WAL · modernc.org/sqlite
+    docs · edges · fts · enrichments
+```
+
+## 8. Phased Roadmap
+
+### Phase 1 — Search v1 (shipped)
+
+- Mandatory keywords validation.
+- In-memory keyword/fuzzy/hybrid top-K search.
+- Link resolution and BFS pathfinding.
+- Calibration suite (NDCG@10 ≥ 0.75, MRR@10 ≥ 0.70).
+- Pure Go CLI with contract goldens.
+
+### Phase 2 — Introspection and adoption (next)
+
+- `weave audit`: bundle conformance, graph validation, keyword/index consistency.
+- `weave relate`: bounded graph neighborhoods by depth and direction.
+- `weave explain`: per-token, per-field score decomposition.
+- Permissive ingestion mode: warn instead of fail on dirty Markdown trees.
+
+Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
+[explain](docs/specs/weave-explain.md).
+
+### Phase 3 — Persistent storage and sync (v2)
+
+- Pure-Go SQLite (`modernc.org/sqlite`) in WAL mode.
+- `weave ingest` and `weave sync` with `sha256` content-hash upserts.
+- Cascading graph updates for edits/deletes.
+- `fsnotify` watch mode.
+- Varint/delta postings and compressed body storage.
+
+Spec: [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md).
+
+### Phase 4 — Privacy primitives (v2)
+
+- Standard-library `aes-256-gcm`, `sha256`, `hmac-sha256`.
+- Frontmatter and inline privacy directives.
+- Key resolution via environment and `.weave/security.yaml`.
+- Audit key-availability checks.
+
+Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+
+### Phase 5 — Extension architecture (v2)
+
+- `weave-<name>` subprocess plugins over `weave.cli/v1` stdio.
+- Enrichment during sync; reranking during search.
+- Optional `weave-ai` plugin for local/cloud keyword extraction and embeddings.
+- External crypto providers (Age, Vault, KMS).
+
+Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+
+### Phase 6 — MCP server
+
+- TCP MCP server over operations.
+- Bind to persistent storage and support watch-based reload in v2.
+- Tools: `weave_search`, `weave_explain`, `weave_relate`, `weave_audit`, `weave_show`,
+  `weave_path`.
+- Strict sensitive-data boundary; encrypted fields require explicit opt-in.
+
+Spec: [MCP Server](docs/specs/mcp-server.md).
+
+The operations layer makes MCP transport-independent; it can be pulled earlier than Phase 6 if
+needed.
+
+## 9. Quality Gates and Runtime
+
+### Quality gates
+
+- `go test -race ./...`
+- `go vet ./...`
+- `gofmt`
+- contract goldens regenerate with zero drift
+- `TestCalibration` baseline
+- `go run ./cmd/docs-lint`
+- Markdown lint in CI
+
+### Runtime and packaging
+
+- Go 1.27 module.
+- Pure Go binary: `go build -o weave ./cmd/weave`.
+- Zero CGO in core and planned SQLite (`modernc.org/sqlite`).
+- No Node, Bun, Python or UI runtime dependencies.
+- `weave.cli/v1` is authoritative across CLI, MCP and extensions.
+
+## 10. Limitations and Non-Goals
+
+- v1 is in-memory; not an enterprise search cluster.
+- No semantic/vector search in core. Fuzzy handles typos, not meaning.
 - No synonyms/stemming yet.
-- No PDF/HTML/web ingestion; input is OKF Markdown/YAML.
-- No writes, transactions or multiuser persistence.
+- No PDF/HTML/web ingestion.
+- No writes to source bundles.
 - No HTTP REST API.
 - No browser UI, mount server, renderer or lens.
-- No remote multi-tenant MCP hosting in the near term.
+- No multi-tenant remote MCP hosting.
 
-## 5. Roadmap
-
-### Now — search v1
-
-Shipped:
-
-- mandatory keywords,
-- keyword/fuzzy/hybrid top-K,
-- `weave search`,
-- calibration,
-- contract/goldens,
-- Go-only cleanup.
-
-### Next — introspection commands
-
-These are specified but not implemented yet:
-
-| Command | Purpose | Spec | Status |
-| --- | --- | --- | --- |
-| `weave audit` | Bundle conformance, graph quality, keyword coverage, index consistency | [spec](docs/specs/weave-audit.md) | proposed |
-| `weave relate` | Bounded graph neighborhood by depth and direction | [spec](docs/specs/weave-relate.md) | proposed |
-| `weave explain` | Per-token/per-field ranking explanation | [spec](docs/specs/weave-explain.md) | proposed |
-
-These three commands turn Weave from “search” into “inspect and trust the knowledge base.”
-
-### Later — MCP server
-
-Spec: [MCP Server](docs/specs/mcp-server.md)
-
-The MCP server wraps the same operations layer:
-
-| Phase | Scope |
-| --- | --- |
-| M0 | Stabilize operations for audit/relate/explain |
-| M1 | MCP tool schemas and in-process harness |
-| M2 | Optional stdio transport for local agents |
-| M3 | TCP MCP server with token auth, lifecycle and concurrency |
-| M4 | Resources, limits, metrics and packaging |
-
-Planned MCP tools:
-
-- `weave_search`
-- `weave_explain`
-- `weave_relate`
-- `weave_audit`
-- `weave_show`
-- `weave_backlinks`
-- `weave_path`
-- `weave_contract`
-
-Design constraints:
-
-- one bundle per server process,
-- read-only,
-- localhost by default,
-- token required for non-loopback binding,
-- no arbitrary filesystem access,
-- same scoring and payloads as the CLI.
-
-### Future candidates
-
-Not committed; requires specs and calibration:
-
-- Synonyms and stemming.
-- Keyword aliases / controlled vocabularies.
-- Query analytics and zero-result reporting.
-- Multi-bundle namespaces.
-- Incremental reload/watch mode.
-- Semantic/vector hybrid as an optional dimension.
-- Concept validation profiles beyond `type`/`keywords`.
-
-## 6. Success Metrics
-
-- Search quality: NDCG@K and MRR@K above the committed baseline.
-- Determinism: identical inputs produce identical top-K order and goldens.
-- Explainability: every ranked result can be decomposed into keyword/fuzzy contributions.
-- Auditability: `weave audit` can gate documentation quality in CI.
-- Integration: CLI and MCP return the same payloads for the same operations.
-- Performance: 10k documents within the documented parse/search budgets.
-
-## 7. Useful Applications
+## 11. Use Cases
 
 - Documentation reliability gates.
 - Service catalogs, ownership and runbooks.
-- Incident response knowledge under degraded conditions.
+- Incident response under degraded conditions.
 - Compliance/policy/control mapping.
 - Data catalogs and lineage.
 - ADR/architecture knowledge.
@@ -204,12 +266,14 @@ Not committed; requires specs and calibration:
 - Curriculum/prerequisite graphs.
 - Local retrieval for agents and MCP clients.
 
-## 8. Documentation
+## 12. Specifications
 
+- [Keyword + Fuzzy Search](docs/specs/keyword-fuzzy-search.md)
+- [Weave Audit](docs/specs/weave-audit.md)
+- [Weave Relate](docs/specs/weave-relate.md)
+- [Weave Explain](docs/specs/weave-explain.md)
+- [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md)
+- [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
+- [MCP Server](docs/specs/mcp-server.md)
 - [Architecture](docs/architecture/index.md)
-- [Keyword + Fuzzy Search spec](docs/specs/keyword-fuzzy-search.md)
-- [Weave Audit spec](docs/specs/weave-audit.md)
-- [Weave Relate spec](docs/specs/weave-relate.md)
-- [Weave Explain spec](docs/specs/weave-explain.md)
-- [MCP Server spec](docs/specs/mcp-server.md)
 - [Backlog](docs/backlog.md)

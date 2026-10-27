@@ -22,7 +22,7 @@ status: draft
 conformance failures and graph-quality issues so the bundle can be fixed in CI or locally.
 
 ```sh
-weave audit <path> [--fail-on error|warning|none] [--json] [--no-cache]
+weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
 ```
 
 ## 2. Goals and Non-Goals
@@ -44,10 +44,14 @@ weave audit <path> [--fail-on error|warning|none] [--json] [--no-cache]
 ## 3. Command Contract
 
 ```text
-weave audit <path> [--fail-on error|warning|none] [--json] [--no-cache]
+weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
 ```
 
 - `--fail-on` defaults to `error`.
+- `--verify-keys` is a v2 privacy check: report unavailable keys for documents that use
+  encryption/tokenization/hashing. It is a no-op without privacy directives.
+- `--permissive` (v2 ingestion mode) downgrades missing frontmatter/keywords from errors to
+  warnings so dirty Markdown trees can be audited without failing.
 - `--json` emits one `weave.cli/v1` envelope.
 - Exit codes:
   - `0` — audit completed and no finding met the failure threshold.
@@ -114,6 +118,7 @@ uses a success envelope containing the report, even when the process exits `1`.
 | `UNSUPPORTED_OKF_VERSION` | warning | Root index declares an unsupported version |
 | `EMPTY_BUNDLE` | warning | No Markdown files |
 | `DANGLING_EXTERNAL` | info | External/dangling link; informational only |
+| `KEY_UNAVAILABLE` | warning | Privacy directive references a missing key (v2, `--verify-keys`) |
 
 Severity ordering: `error` > `warning` > `info`.
 
@@ -185,6 +190,7 @@ Exit lines:
 
 - [Keyword + Fuzzy Search spec](./keyword-fuzzy-search.md)
 - [Node Graph Engine spec](./node-graph-engine.md)
+- [Privacy & Extensions](./privacy-and-extensions.md)
 - [CLI layer](../architecture/layers/cli-go.md)
 - [Integration contracts](../architecture/integration/contracts.md)
 - [ROADMAP](../../ROADMAP.md)

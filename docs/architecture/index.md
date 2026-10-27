@@ -78,7 +78,9 @@ remains the compatibility promise.
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Next |
-| E — MCP | TCP MCP transport over operations | Later |
+| E — Storage & sync | SQLite persistence, incremental sync, watch | Proposed v2 |
+| F — Privacy & extensions | Explicit privacy directives and subprocess plugins | Proposed v2 |
+| G — MCP | TCP MCP transport over operations | Later |
 
 ## Dependency Rules
 
@@ -111,7 +113,10 @@ remains the compatibility promise.
 | Contract version | New v1 replaces the previous v1 in place |
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
-| Storage | In-memory; no external database |
+| Storage | v1 in-memory; v2 SQLite (proposed) |
+| Ranking | v1 keyword + fuzzy; v2 BM25 lexical target |
+| Privacy | v2 explicit encrypt/tokenize/hash directives |
+| Extensions | v2 subprocess IPC over `weave.cli/v1` |
 | Integration | CLI first; Go package optional; MCP later |
 | Presentation | Cancelled and removed |
 
@@ -131,6 +136,8 @@ remains the compatibility promise.
 | [Weave Audit spec](../../docs/specs/weave-audit.md) | Bundle and graph quality gate |
 | [Weave Relate spec](../../docs/specs/weave-relate.md) | Graph neighborhood command |
 | [Weave Explain spec](../../docs/specs/weave-explain.md) | Ranking breakdown command |
+| [V2 Storage & Sync spec](../../docs/specs/v2-storage-and-sync.md) | Persistent SQLite and incremental sync |
+| [Privacy & Extensions spec](../../docs/specs/privacy-and-extensions.md) | Privacy directives and extension IPC |
 | [MCP Server spec](../../docs/specs/mcp-server.md) | TCP MCP roadmap and contract |
 | [Roadmap](../../ROADMAP.md) | Current capabilities and roadmap |
 
@@ -158,5 +165,8 @@ remains the compatibility promise.
 
 The new v1 is implemented. The Go engine parses mandatory keywords, builds keyword and fuzzy
 indexes, returns keyword/fuzzy/hybrid top-K results, and exposes the `search` CLI command.
-Calibration passes its baseline. The UI, TypeScript implementation, Astro, Preact, Playwright and
-presentation dependencies have been removed. The remaining deferred work is stdio and MCP.
+Calibration passes its baseline. The UI and old TypeScript stack are removed.
+
+The v1.1 introspection commands and the v2 persistent/privacy/extension platform are specified but
+not implemented. MCP follows the v2 platform in the roadmap, though the operations layer keeps it
+independently schedulable.
