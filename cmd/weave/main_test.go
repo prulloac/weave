@@ -87,8 +87,8 @@ func TestContractJSON(t *testing.T) {
 	if err := json.Unmarshal(envelope.Result, &info); err != nil {
 		t.Fatal(err)
 	}
-	if len(info.Operations) != 9 {
-		t.Fatalf("expected 9 operations, got %d", len(info.Operations))
+	if len(info.Operations) != 10 {
+		t.Fatalf("expected 10 operations, got %d", len(info.Operations))
 	}
 }
 

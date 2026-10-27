@@ -11,6 +11,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/operations"
 )
 
@@ -66,6 +67,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 				fmt.Fprintf(stderr, "weave: %v\n", err)
 				return 1
 			}
+			if exit := successExitCode(request.Op, envelope.Result); exit != 0 {
+				return exit
+			}
 			if isEmptyResult(request.Op, envelope.Result) {
 				fmt.Fprintln(stderr, "weave: no matches")
 				return 1
@@ -97,6 +101,8 @@ type flags struct {
 	types       []string
 	tags        []string
 	status      string
+	failOn      contractv1.AuditFailOn
+	verifyKeys  bool
 	positionals []string
 }
 
@@ -168,6 +174,21 @@ func parseFlags(args []string) (flags, error) {
 				return result, fmt.Errorf("--top-k must be between 1 and 100")
 			}
 			result.topK = &parsed
+		case "--fail-on":
+			value, next, err := flagValue(args, index, "--fail-on")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			failOn := contractv1.AuditFailOn(value)
+			switch failOn {
+			case contractv1.AuditFailOnError, contractv1.AuditFailOnWarning, contractv1.AuditFailOnNone:
+				result.failOn = failOn
+			default:
+				return result, fmt.Errorf("--fail-on must be error, warning or none")
+			}
+		case "--verify-keys":
+			result.verifyKeys = true
 		case "--":
 			result.positionals = append(result.positionals, args[index+1:]...)
 			return result, nil
@@ -259,6 +280,20 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			From: flags.positional(1),
 			To:   flags.positional(2),
 		}, 0, nil
+	case "audit":
+		if err := requirePositional(command, flags, 1); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		failOn := flags.failOn
+		if failOn == "" {
+			failOn = contractv1.AuditFailOnError
+		}
+		return contractv1.OperationRequest{
+			Op:         contractv1.OpAudit,
+			Path:       flags.positional(0),
+			FailOn:     failOn,
+			VerifyKeys: flags.verifyKeys,
+		}, 0, nil
 	case "mount", "unmount", "status":
 		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
 	default:
@@ -315,6 +350,20 @@ func exitCodeFor(code contractv1.ErrorCode) int {
 	default:
 		return 1
 	}
+}
+
+func successExitCode(op contractv1.OperationName, result any) int {
+	if op != contractv1.OpAudit {
+		return 0
+	}
+	report, ok := result.(contractv1.AuditReport)
+	if !ok {
+		return 0
+	}
+	if audit.Failed(report) {
+		return 1
+	}
+	return 0
 }
 
 func isEmptyResult(op contractv1.OperationName, result any) bool {
@@ -441,10 +490,81 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		route := result.(*contractv1.PathResult)
 		fmt.Fprintln(stdout, strings.Join(route.Path, " → "))
 		return 0
+	case contractv1.OpAudit:
+		report := result.(contractv1.AuditReport)
+		printAuditHuman(stdout, report)
+		if audit.Failed(report) {
+			return 1
+		}
+		return 0
 	default:
 		fmt.Fprintln(stderr, "weave: unsupported operation")
 		return 1
 	}
+}
+
+func printAuditHuman(stdout io.Writer, report contractv1.AuditReport) {
+	fmt.Fprintf(stdout, "weave audit: %s\n", report.Path)
+	fmt.Fprintf(stdout, "  %d concepts · %d edges · %d orphans\n",
+		report.Summary.Concepts, report.Summary.Edges, report.Summary.Orphans)
+	fmt.Fprintf(stdout, "  %d missing keywords · %d broken links\n",
+		report.Summary.MissingKeywords, report.Summary.BrokenLinks)
+
+	errors, warnings, _ := countSeverities(report.Findings)
+	printAuditSection(stdout, "errors", contractv1.AuditSeverityError, report.Findings)
+	printAuditSection(stdout, "warnings", contractv1.AuditSeverityWarning, report.Findings)
+	printAuditSection(stdout, "info", contractv1.AuditSeverityInfo, report.Findings)
+
+	if audit.Failed(report) {
+		fmt.Fprintf(stdout, "\naudit: failed (%d errors, %d warnings)\n", errors, warnings)
+		return
+	}
+	fmt.Fprintln(stdout, "\naudit: ok")
+}
+
+func printAuditSection(
+	stdout io.Writer,
+	title string,
+	severity contractv1.AuditSeverity,
+	findings []contractv1.AuditFinding,
+) {
+	printedHeader := false
+	for _, finding := range findings {
+		if finding.Severity != severity {
+			continue
+		}
+		if !printedHeader {
+			fmt.Fprintf(stdout, "\n%s\n", title)
+			printedHeader = true
+		}
+		key := finding.Concept
+		if key == "" {
+			key = finding.Source
+		}
+		if key == "" {
+			key = "-"
+		}
+		detail := finding.Target
+		if detail == "" {
+			detail = finding.Message
+		}
+		fmt.Fprintf(stdout, "  %s  %s  %s\n", key, finding.Code, detail)
+	}
+}
+
+func countSeverities(findings []contractv1.AuditFinding) (int, int, int) {
+	errors, warnings, infos := 0, 0, 0
+	for _, finding := range findings {
+		switch finding.Severity {
+		case contractv1.AuditSeverityError:
+			errors++
+		case contractv1.AuditSeverityWarning:
+			warnings++
+		case contractv1.AuditSeverityInfo:
+			infos++
+		}
+	}
+	return errors, warnings, infos
 }
 
 func fieldsText(fields []contractv1.SearchField) string {
@@ -474,6 +594,7 @@ usage:
   weave show <path> <id|file> [--json] [--no-cache]
   weave backlinks <path> <id|file> [--json] [--no-cache]
   weave path <path> <id|file> <id|file> [--json] [--no-cache]
+  weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
   weave version [--json]
   weave --version | --help
 

@@ -14,9 +14,8 @@ import (
 // These are behavior-level tests for the audit command. They intentionally use
 // the same CLI entrypoint as a user: no engine internals, no direct graph calls.
 //
-// The suite is expected to fail until `weave audit` is implemented. `--permissive`
-// is specified with permissive ingestion and is covered by that feature's BDD
-// suite; audit must not duplicate parser mode semantics.
+// `--permissive` is specified with permissive ingestion and is covered by that
+// feature's BDD suite; audit must not duplicate parser mode semantics.
 
 type bddAuditReport struct {
 	Path    string `json:"path"`
