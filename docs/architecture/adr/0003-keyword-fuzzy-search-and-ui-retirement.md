@@ -390,16 +390,20 @@ Fuzzy search runs over three fields with these starting weights:
 - Removing UI and the TS reference is a large cleanup.
 - Keyword AND semantics may be too strict for exploratory queries; `--mode fuzzy` remains available.
 
-## Follow-Up Work
+## Implementation Status
 
-1. Write the detailed search spec (`docs/specs/keyword-fuzzy-search.md`).
-2. Replace contract v1 schemas, types and goldens.
-3. Implement the in-memory store, keyword index, fuzzy index and hybrid ranking.
-4. Replace `find` with `search` in operations and CLI.
-5. Build the calibration corpus and baseline report.
-6. Remove UI, mount, renderer, lens, Astro, Preact and UI tests.
-7. Retire the old TypeScript engine/search with the UI cleanup.
-8. Update architecture docs and backlog to remove the UI roadmaps.
+Complete:
+
+1. [x] Detailed search spec (`docs/specs/keyword-fuzzy-search.md`).
+2. [x] Contract v1 schemas, Go types and goldens replaced.
+3. [x] In-memory keyword index, fuzzy index and hybrid ranking.
+4. [x] `find` replaced by `search` in operations and CLI.
+5. [x] Calibration corpus and baseline report (NDCG@10 ≈ 0.974, MRR@10 = 1.0).
+6. [x] UI, mount, renderer, lens, Astro, Preact and UI tests removed.
+7. [x] Old TypeScript engine/search retired with the cleanup.
+8. [x] Architecture docs and backlog updated.
+
+Deferred: `--stdio` and the TCP MCP transport.
 
 ## Related Documents
 

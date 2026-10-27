@@ -120,12 +120,12 @@ remains the compatibility promise.
 | --- | --- |
 | [ADR 0003](adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | New purpose, keywords, fuzzy search and UI retirement |
 | [Keyword + Fuzzy Search spec](../specs/keyword-fuzzy-search.md) | Detailed data model, algorithms, CLI and calibration |
-| [Contract layer](layers/contract.md) | Domain model and versioning (to be updated for the new v1) |
+| [Contract layer](layers/contract.md) | Documents, keywords, graph and search contract |
 | [Engine layer](layers/engine-go.md) | Parser, graph, search and navigation |
 | [Operations layer](layers/operations.md) | Transport-neutral requests and envelopes |
 | [CLI layer](layers/cli-go.md) | CLI commands, output modes and exit codes |
 | [Integration contracts](integration/contracts.md) | CLI, operations and filesystem contracts |
-| [Integration steps](integration/steps.md) | Historical migration plan; UI phases cancelled |
+| [Integration steps](integration/steps.md) | Completed search v1 implementation phases |
 | [Integration testing](integration/testing.md) | Conformance and test strategy |
 | [ADR 0001](adr/0001-go-engine-and-ts-lens.md) | Historical language decision |
 | [ADR 0002](adr/0002-v1-scope-layout-and-contract.md) | Historical v1 layout decision |

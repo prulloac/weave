@@ -116,14 +116,14 @@ As a developer, I want pathfinding and component queries over the graph.
 
 ---
 
-## Feature: Deterministic Serialization for the Lens
+## Feature: Deterministic Graph Output
 
-As the Visualization Lens, I need a stable compact JSON graph.
+As a CLI user, I need stable graph ordering so navigation and goldens are reproducible.
 
-### Scenario: Serialized graph is compact and deterministic
+### Scenario: Graph output is deterministic
 
 - **Given** a built graph from the standard fixture bundle
-- **When** I call `serializeGraph(graph)` twice
+- **When** I call `SortedNodes` and `SortedEdges` twice
 - **Then** both outputs are deep-equal
-- **And** nodes carry only `id/title/type/status/tags/inDegree/outDegree` — no bodies
-- **And** node order follows the bundle's sorted concept order
+- **And** nodes are ordered by id
+- **And** edges are ordered by `from`, `to`, `source`
