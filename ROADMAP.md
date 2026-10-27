@@ -49,6 +49,7 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Memory/body compression | v2 | Varint/delta postings, LZ4/Zstandard body blobs |
 | Privacy directives | v2 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
 | Extension runner | v2 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
+| External crypto providers | v2 | Age, HashiCorp Vault and cloud KMS over provider IPC |
 | Explainable search | v1.1 | Per-token/per-field `weave explain` |
 | Audit and relate | v1.1 | Bundle quality gate and graph neighborhoods |
 | MCP server | post-v2 | TCP MCP over the operations layer, optional sensitive access |
@@ -122,7 +123,8 @@ Privacy is **explicitly declared**, never heuristic.
 - Keys resolve from `WEAVE_KEY_<ID>` and `.weave/security.yaml`.
 - Missing keys are audit warnings; `show --decrypt` fails with exit `3`.
 
-Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md). External key stores:
+[External Crypto Providers](docs/specs/external-crypto-providers.md).
 
 ## 7. Architecture
 
@@ -163,6 +165,45 @@ Frontmatter    Varint postings Extension runner
 ```
 
 ## 8. Phased Roadmap
+
+### Feature Register
+
+Every undelivered roadmap feature has exactly one authoritative spec and exactly one backlog row.
+This register is the completeness check: no feature is considered planned until it appears here and
+in [`docs/backlog.md`](docs/backlog.md).
+
+| # | Feature | Authoritative spec | Backlog | Depends on | Wave / gate |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Introspection contract types | [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md), [explain](docs/specs/weave-explain.md) | Tier 3 | `contract/v1`, operations | 1 / Phase 2 |
+| 2 | `weave relate` | [weave-relate.md](docs/specs/weave-relate.md) | Tier 3 | graph, contract | 1 / Phase 2 |
+| 3 | `weave audit` | [weave-audit.md](docs/specs/weave-audit.md) | Tier 3 | parser, graph, root index, contract | 1 / Phase 2 |
+| 4 | `weave explain` | [weave-explain.md](docs/specs/weave-explain.md) | Tier 3 | search scoring, contract | 1 / Phase 2 |
+| 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 |
+| 6 | SQLite storage | [v2-storage-and-sync.md](docs/specs/v2-storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 |
+| 7 | Incremental sync | [v2-storage-and-sync.md](docs/specs/v2-storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 |
+| 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 |
+| 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 |
+| 10 | Calibration v2 (BM25/privacy) | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 |
+| 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 |
+| 12 | Privacy directives | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 |
+| 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 |
+| 14 | Enrichment extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | sync, extension runner | 5 / Phase 5 |
+| 15 | Rerank extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | search, extension runner | 5 / Phase 5 |
+| 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 |
+| 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 |
+| 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP v1 | 5 / Phase 6 |
+| 19 | MCP v1 (in-memory) | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) |
+| 20 | MCP v2 (persistent) | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP v1, storage, sync, watch, privacy | 6 / Phase 6 |
+
+Rules:
+
+- A feature may have several specs only when the behavior is genuinely shared (introspection types,
+  sensitive MCP); the first listed spec owns the contract.
+- A spec may own several features only when they share one delivery boundary (storage/sync,
+  extension runner, MCP v1/v2).
+- If a feature is added to the roadmap without a spec and backlog row, the register is incomplete.
+- Delivery gate means the phase in which the feature's acceptance criteria must pass before the
+  phase is considered done.
 
 ### Feature Dependency Map
 
@@ -290,7 +331,8 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 - Varint/delta postings and compressed body storage.
 
 Specs: [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md),
-[Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md).
+[Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),
+[Compression](docs/specs/compression.md).
 
 ### Phase 4 — Privacy primitives (v2)
 
@@ -309,7 +351,8 @@ Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
 - External crypto providers (Age, Vault, KMS).
 
 Specs: [Privacy & Extensions](docs/specs/privacy-and-extensions.md),
-[Weave AI Extension](docs/specs/weave-ai-plugin.md).
+[Weave AI Extension](docs/specs/weave-ai-plugin.md),
+[External Crypto Providers](docs/specs/external-crypto-providers.md).
 
 ### Phase 6 — MCP server
 
@@ -377,7 +420,9 @@ needed.
 - [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md)
 - [Watch Mode](docs/specs/watch-mode.md)
 - [BM25 Ranking](docs/specs/bm25-ranking.md)
+- [Compression](docs/specs/compression.md)
 - [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
+- [External Crypto Providers](docs/specs/external-crypto-providers.md)
 - [Weave AI Extension](docs/specs/weave-ai-plugin.md)
 - [MCP Server](docs/specs/mcp-server.md)
 - [Architecture](docs/architecture/index.md)

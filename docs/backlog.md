@@ -40,6 +40,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |
 | `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | - | - | backlog |
 | `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | - | - | backlog |
+| Introspection contract types (audit/relate/explain) | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |
 
 ## Tier 4 — Portability
 
@@ -58,17 +59,21 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | - | - | backlog |
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
 | Calibration v2 (BM25/privacy) | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
-| Memory/body compression | [v2-storage-and-sync.md](specs/v2-storage-and-sync.md) | - | x | - | - | backlog |
+| Memory/body compression | [compression.md](specs/compression.md) | - | x | - | - | backlog |
 | Privacy directives | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
-| External crypto providers | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | - | - | backlog |
 | Extension subprocess IPC | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| Enrichment extension | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| Rerank extension | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
 | AI enrichment/reranking plugin | [weave-ai-plugin.md](specs/weave-ai-plugin.md) | - | x | - | - | backlog |
 
 ## Tier 6 — MCP
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| TCP MCP server over operations | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| MCP v1 over operations (in-memory) | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| MCP v2 persistent + watch reload | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
 
@@ -93,6 +98,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 ## Dependency Order
 
 The full feature DAG lives in [ROADMAP.md § Feature Dependency Map](../ROADMAP.md#feature-dependency-map).
+The authoritative feature-to-spec mapping is
+[ROADMAP.md § Feature Register](../ROADMAP.md#feature-register); every undelivered feature must have
+one row here and one row there.
 
 Execution waves:
 
