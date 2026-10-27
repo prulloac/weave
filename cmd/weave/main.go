@@ -103,6 +103,8 @@ type flags struct {
 	status      string
 	failOn      contractv1.AuditFailOn
 	verifyKeys  bool
+	depth       *int
+	direction   contractv1.RelateDirection
 	positionals []string
 }
 
@@ -189,6 +191,30 @@ func parseFlags(args []string) (flags, error) {
 			}
 		case "--verify-keys":
 			result.verifyKeys = true
+		case "--depth":
+			value, next, err := flagValue(args, index, "--depth")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed < 0 || parsed > 5 {
+				return result, fmt.Errorf("--depth must be between 0 and 5")
+			}
+			result.depth = &parsed
+		case "--direction":
+			value, next, err := flagValue(args, index, "--direction")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			direction := contractv1.RelateDirection(value)
+			switch direction {
+			case contractv1.RelateOut, contractv1.RelateIn, contractv1.RelateBoth:
+				result.direction = direction
+			default:
+				return result, fmt.Errorf("--direction must be out, in or both")
+			}
 		case "--":
 			result.positionals = append(result.positionals, args[index+1:]...)
 			return result, nil
@@ -293,6 +319,26 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Path:       flags.positional(0),
 			FailOn:     failOn,
 			VerifyKeys: flags.verifyKeys,
+		}, 0, nil
+	case "relate":
+		if err := requirePositional(command, flags, 2); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		depth := flags.depth
+		if depth == nil {
+			value := 1
+			depth = &value
+		}
+		direction := flags.direction
+		if direction == "" {
+			direction = contractv1.RelateBoth
+		}
+		return contractv1.OperationRequest{
+			Op:        contractv1.OpRelate,
+			Path:      flags.positional(0),
+			Target:    flags.positional(1),
+			Depth:     depth,
+			Direction: direction,
 		}, 0, nil
 	case "mount", "unmount", "status":
 		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
@@ -497,9 +543,67 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 			return 1
 		}
 		return 0
+	case contractv1.OpRelate:
+		printRelateHuman(stdout, result.(contractv1.RelateResult))
+		return 0
 	default:
 		fmt.Fprintln(stderr, "weave: unsupported operation")
 		return 1
+	}
+}
+
+func printRelateHuman(stdout io.Writer, result contractv1.RelateResult) {
+	hopWord := "hops"
+	if result.Depth == 1 {
+		hopWord = "hop"
+	}
+	fmt.Fprintf(stdout, "%s  (%d %s, %s)\n", result.Root, result.Depth, hopWord, result.Direction)
+	if len(result.Edges) == 0 {
+		return
+	}
+
+	if result.Depth <= 1 {
+		printRelateDepthOne(stdout, result)
+		return
+	}
+	for hop := 1; hop <= result.Depth; hop++ {
+		printed := false
+		for _, edge := range result.Edges {
+			if edge.Depth != hop {
+				continue
+			}
+			if !printed {
+				fmt.Fprintf(stdout, "hop %d\n", hop)
+				printed = true
+			}
+			fmt.Fprintf(stdout, "  %s → %s (%s)\n", edge.From, edge.To, edge.Source)
+		}
+	}
+}
+
+func printRelateDepthOne(stdout io.Writer, result contractv1.RelateResult) {
+	outbound := make([]contractv1.RelateEdge, 0)
+	inbound := make([]contractv1.RelateEdge, 0)
+	for _, edge := range result.Edges {
+		switch {
+		case edge.From == result.Root:
+			outbound = append(outbound, edge)
+		case edge.To == result.Root:
+			inbound = append(inbound, edge)
+		}
+	}
+
+	if len(outbound) > 0 {
+		fmt.Fprintln(stdout, "  outbound")
+		for _, edge := range outbound {
+			fmt.Fprintf(stdout, "    %s → %s\n", edge.Source, edge.To)
+		}
+	}
+	if len(inbound) > 0 {
+		fmt.Fprintln(stdout, "  inbound")
+		for _, edge := range inbound {
+			fmt.Fprintf(stdout, "    %s\n", edge.From)
+		}
 	}
 }
 
@@ -595,6 +699,7 @@ usage:
   weave backlinks <path> <id|file> [--json] [--no-cache]
   weave path <path> <id|file> <id|file> [--json] [--no-cache]
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
+  weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
   weave version [--json]
   weave --version | --help
 
