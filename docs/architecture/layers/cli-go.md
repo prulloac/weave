@@ -41,6 +41,7 @@ weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json]
 weave show <path> <id|file> [--json] [--no-cache]
 weave backlinks <path> <id|file> [--json] [--no-cache]
 weave path <path> <id|file> <id|file> [--json] [--no-cache]
+weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
 weave version [--json]
 weave --version | --help
 ```

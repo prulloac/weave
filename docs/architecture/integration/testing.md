@@ -75,7 +75,7 @@ MRR@10 = 1.0.
 ## CLI Tests
 
 - Every command: `contract`, `parse`, `graph`, `search`, `list`, `show`, `backlinks`, `path`,
-  `version`.
+  `version`, `audit`.
 - Behavior suites: `cmd/weave/audit_bdd_test.go` covers `weave audit` report codes, ordering,
   `--fail-on`, human output, invalid roots and bundle immutability.
 - Envelope validity and stdout purity.

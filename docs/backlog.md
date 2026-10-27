@@ -40,7 +40,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Mandatory keywords, fuzzy scoring, hybrid top-K and calibration | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Remove `find`; add `weave search` | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
-| `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | x | - | red |
+| `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | x | x | green |
 | `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | - | - | backlog |
 | `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | - | - | backlog |
 | Introspection contract types (audit/relate/explain) | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |

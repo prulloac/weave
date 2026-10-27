@@ -39,6 +39,7 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Parse cache | Shipped | Opt-in engine, enabled by CLI, concurrency-safe |
 | Calibration | Shipped | NDCG@K and MRR@K baselines |
 | Conformance | Shipped | Bundle, graph and search goldens |
+| Bundle audit | Shipped | Stable finding codes, `--fail-on` gate, JSON and human reports |
 
 ## 3. v1.0 Scope (in progress)
 
@@ -72,13 +73,13 @@ weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] --json
 weave show <path> <id|file> --json
 weave backlinks <path> <id|file> --json
 weave path <path> <id|file> <id|file> --json
+weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
 weave version --json
 ```
 
 ### Planned v1.0 — introspection
 
 ```sh
-weave audit <path> [--fail-on error|warning|none] --json
 weave relate <path> <id|file> [--depth <n>] [--direction in|out|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] --json
 ```
@@ -173,9 +174,9 @@ Frontmatter    Varint postings Extension runner
 
 ### Feature Register
 
-Every undelivered roadmap feature has exactly one authoritative spec and exactly one backlog row.
-This register is the completeness check: no feature is considered planned until it appears here and
-in [`docs/backlog.md`](docs/backlog.md).
+Every roadmap feature has exactly one authoritative spec and exactly one backlog row. This register
+is the completeness check: no feature is considered planned until it appears here and in
+[`docs/backlog.md`](docs/backlog.md). Delivery status lives in the backlog.
 
 | # | Feature | Authoritative spec | Backlog | Depends on | Wave / gate |
 | --- | --- | --- | --- | --- | --- |
@@ -317,9 +318,9 @@ tracks, not prerequisites for the critical path.
 - Calibration suite (NDCG@10 ≥ 0.75, MRR@10 ≥ 0.70).
 - Pure Go CLI with contract goldens.
 
-### Phase 2 — Introspection and adoption (next)
+### Phase 2 — Introspection and adoption (in progress)
 
-- `weave audit`: bundle conformance, graph validation, keyword/index consistency.
+- `weave audit` (shipped): bundle conformance, graph validation, keyword/index consistency.
 - `weave relate`: bounded graph neighborhoods by depth and direction.
 - `weave explain`: per-token, per-field score decomposition.
 - Permissive ingestion mode: warn instead of fail on dirty Markdown trees.
