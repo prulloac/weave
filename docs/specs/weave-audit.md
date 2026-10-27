@@ -16,6 +16,8 @@ status: stable
 
 # Specification: Weave Audit
 
+Status: **Implemented** for v1.0. `--permissive` is reserved for the permissive-ingestion feature.
+
 ## 1. Overview
 
 `weave audit` evaluates a bundle as a knowledge base, not just as a parser input. It reports
@@ -51,7 +53,8 @@ weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no
 - `--verify-keys` is a v1.0 privacy check: report unavailable keys for documents that use
   encryption/tokenization/hashing. It is a no-op without privacy directives.
 - `--permissive` (v1.0 ingestion mode) downgrades missing frontmatter/keywords from errors to
-  warnings so dirty Markdown trees can be audited without failing.
+  warnings so dirty Markdown trees can be audited without failing. It is delivered with
+  [Permissive Ingestion](./permissive-ingestion.md), not by the initial audit implementation.
 - `--json` emits one `weave.cli/v1` envelope.
 - Exit codes:
   - `0` — audit completed and no finding met the failure threshold.

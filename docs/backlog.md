@@ -97,6 +97,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Search calibration corpus and baseline report
 - [x] v1.0 storage/sync and privacy/extension specifications placed under `docs/specs/`
 - [x] Extended roadmap integrated into `ROADMAP.md`
+- [x] Audit contract, engine and CLI behavior suite (`weave audit`)
 
 ## Dependency Order
 
@@ -108,7 +109,7 @@ one row here and one row there.
 Execution waves:
 
 1. Shipped: parser, graph, search, CLI, calibration.
-2. Parallel: introspection contract types, `audit`, `relate`, `explain`, permissive ingestion.
+2. Parallel: introspection contract types, `audit` (done), `relate`, `explain`, permissive ingestion.
 3. Storage: SQLite.
 4. Parallel: sync, BM25, compression, MCP in-memory.
 5. Watch and privacy directives.

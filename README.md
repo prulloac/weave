@@ -283,6 +283,7 @@ contract/v1/            schemas, Go types, fixtures
 engine/okf/             bundle parser, links, validation, cache
 engine/graph/           nodes, edges, traversal
 engine/search/          keyword, fuzzy and hybrid ranking
+engine/audit/           bundle conformance, graph and index-quality findings
 engine/nav/             list, show, backlinks, path
 engine/operations/      transport-neutral envelopes
 docs/                   architecture, specs, knowledge
@@ -293,5 +294,6 @@ docs/                   architecture, specs, knowledge
 - [Roadmap](ROADMAP.md)
 - [Architecture](docs/architecture/index.md)
 - [Keyword + Fuzzy Search spec](docs/specs/keyword-fuzzy-search.md)
+- [Weave Audit spec](docs/specs/weave-audit.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Backlog](docs/backlog.md)
