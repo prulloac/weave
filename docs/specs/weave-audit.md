@@ -48,9 +48,9 @@ weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no
 ```
 
 - `--fail-on` defaults to `error`.
-- `--verify-keys` is a v2 privacy check: report unavailable keys for documents that use
+- `--verify-keys` is a v1.0 privacy check: report unavailable keys for documents that use
   encryption/tokenization/hashing. It is a no-op without privacy directives.
-- `--permissive` (v2 ingestion mode) downgrades missing frontmatter/keywords from errors to
+- `--permissive` (v1.0 ingestion mode) downgrades missing frontmatter/keywords from errors to
   warnings so dirty Markdown trees can be audited without failing.
 - `--json` emits one `weave.cli/v1` envelope.
 - Exit codes:
@@ -118,7 +118,7 @@ uses a success envelope containing the report, even when the process exits `1`.
 | `UNSUPPORTED_OKF_VERSION` | warning | Root index declares an unsupported version |
 | `EMPTY_BUNDLE` | warning | No Markdown files |
 | `DANGLING_EXTERNAL` | info | External/dangling link; informational only |
-| `KEY_UNAVAILABLE` | warning | Privacy directive references a missing key (v2, `--verify-keys`) |
+| `KEY_UNAVAILABLE` | warning | Privacy directive references a missing key (v1.0, `--verify-keys`) |
 
 Severity ordering: `error` > `warning` > `info`.
 

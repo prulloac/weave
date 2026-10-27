@@ -28,8 +28,8 @@ engine/operations
 ```
 
 The first target is a **TCP MCP server** started explicitly by the operator. Stdio may be added as
-a local convenience, but it is not the primary plan. The server can wrap either the v1 in-memory
-engine or the v2 persistent store; the operations and tool schemas stay the same.
+a local convenience, but it is not the primary plan. The server can wrap either the in-memory
+engine or the persistent store; the operations and tool schemas stay the same.
 
 ## 2. Goals and Non-Goals
 
@@ -60,8 +60,8 @@ weave mcp --bundle <path> [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--t
 - `--bundle` is required and fixed for the process lifetime.
 - `--listen` defaults to `127.0.0.1:7331`.
 - `--token` is required for non-loopback binding. For loopback, a token is optional but recommended.
-- `--db` uses the v2 persistent SQLite store; without it, the v1 in-memory engine is used.
-- `--watch` enables v2 watch-based reload.
+- `--db` uses the persistent SQLite store; without it, the in-memory engine is used.
+- `--watch` enables watch-based reload.
 - `--allow-sensitive` is required to expose encrypted/tokenized fields in tool results.
 - The server loads the bundle once at startup and exits on SIGINT/SIGTERM.
 - No request may choose a different bundle path.
@@ -144,7 +144,7 @@ Resources are read-only and may be deferred until tools are stable.
 ### M3 — TCP MCP server
 
 - `weave mcp --bundle <path> --listen 127.0.0.1:7331 --token <token>`.
-- Optional v2 `--db`/`--watch` binding to persistent storage.
+- Optional `--db`/`--watch` binding to persistent storage.
 - Token auth, lifecycle, concurrency and reconnect tests.
 - MCP client integration tests.
 - Documentation for Claude/agent clients.
@@ -179,7 +179,7 @@ Resources are read-only and may be deferred until tools are stable.
 - [Operations layer](../architecture/layers/operations.md)
 - [CLI layer](../architecture/layers/cli-go.md)
 - [Keyword + Fuzzy Search spec](./keyword-fuzzy-search.md)
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [Privacy & Extensions](./privacy-and-extensions.md)
 - [Weave Audit spec](./weave-audit.md)
 - [Weave Relate spec](./weave-relate.md)

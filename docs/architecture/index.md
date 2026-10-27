@@ -4,8 +4,9 @@ okf_version: "0.2"
 
 # Weave Architecture
 
-Weave is an **in-memory related-document database**. It loads OKF bundles, builds concept nodes
-and link edges, and answers keyword and weighted fuzzy searches with top-K results.
+Weave is a **local-first related-document database**. The core loads OKF bundles, builds concept
+nodes and link edges, and answers keyword and weighted fuzzy searches with top-K results. v1.0 adds
+optional SQLite persistence, BM25 ranking, privacy directives, extensions and MCP.
 
 **The UI is retired.** Browser visualization, renderer, mount, lens and Astro are cancelled by
 [ADR 0003](adr/0003-keyword-fuzzy-search-and-ui-retirement.md). The Go engine and CLI are the only
@@ -77,10 +78,10 @@ remains the compatibility promise.
 | A — Base engine | contract, parser, graph, operations, machine CLI | Complete |
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
-| D — Introspection | `weave audit`, `weave relate`, `weave explain` | Next |
-| E — Storage & sync | SQLite persistence, incremental sync, watch | Proposed v2 |
-| F — Privacy & extensions | Explicit privacy directives and subprocess plugins | Proposed v2 |
-| G — MCP | TCP MCP transport over operations | Later |
+| D — Introspection | `weave audit`, `weave relate`, `weave explain` | v1.0 next |
+| E — Storage & sync | SQLite persistence, incremental sync, watch | v1.0 planned |
+| F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
+| G — MCP | TCP MCP transport over operations | v1.0 planned |
 
 ## Dependency Rules
 
@@ -113,11 +114,11 @@ remains the compatibility promise.
 | Contract version | New v1 replaces the previous v1 in place |
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
-| Storage | v1 in-memory; v2 SQLite (proposed) |
-| Ranking | v1 keyword + fuzzy; v2 BM25 lexical target |
-| Privacy | v2 explicit encrypt/tokenize/hash directives |
-| Extensions | v2 subprocess IPC over `weave.cli/v1` |
-| Integration | CLI first; Go package optional; MCP later |
+| Storage | In-memory core; v1.0 adds SQLite persistence |
+| Ranking | Keyword + fuzzy core; v1.0 adds BM25 lexical ranking |
+| Privacy | v1.0 explicit encrypt/tokenize/hash directives |
+| Extensions | v1.0 subprocess IPC over `weave.cli/v1` |
+| Integration | CLI first; Go package optional; MCP server in v1.0 |
 | Presentation | Cancelled and removed |
 
 ## Documents
@@ -137,7 +138,7 @@ remains the compatibility promise.
 | [Weave Relate spec](../../docs/specs/weave-relate.md) | Graph neighborhood command |
 | [Weave Explain spec](../../docs/specs/weave-explain.md) | Ranking breakdown command |
 | [Permissive Ingestion spec](../../docs/specs/permissive-ingestion.md) | Markdown-tree ingestion with warnings |
-| [V2 Storage & Sync spec](../../docs/specs/v2-storage-and-sync.md) | Persistent SQLite and incremental sync |
+| [Storage & Sync spec](../../docs/specs/storage-and-sync.md) | Persistent SQLite and incremental sync |
 | [Watch Mode spec](../../docs/specs/watch-mode.md) | Live filesystem sync |
 | [BM25 Ranking spec](../../docs/specs/bm25-ranking.md) | FTS5 lexical ranking |
 | [Compression spec](../../docs/specs/compression.md) | Body and posting compression contract |
@@ -160,19 +161,19 @@ remains the compatibility promise.
 ## Non-Goals
 
 - Any browser UI, renderer, mount, lens, Astro or Preact work.
-- Synonyms, stemming or embeddings in v1.
+- Synonyms, stemming or embeddings in the core engine.
 - Cross-bundle federated search.
-- Persistent indexes or a query daemon.
+- A query daemon separate from the CLI.
 - An HTTP integration API.
 - Natural-language question answering.
-- MCP transport in the current milestone.
+- Remote multi-tenant MCP hosting.
 
 ## Status
 
-The new v1 is implemented. The Go engine parses mandatory keywords, builds keyword and fuzzy
-indexes, returns keyword/fuzzy/hybrid top-K results, and exposes the `search` CLI command.
+The core v1 engine is implemented. The Go engine parses mandatory keywords, builds keyword and
+fuzzy indexes, returns keyword/fuzzy/hybrid top-K results, and exposes the `search` CLI command.
 Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The v1.1 introspection commands and the v2 persistent/privacy/extension platform are specified but
-not implemented. MCP follows the v2 platform in the roadmap, though the operations layer keeps it
-independently schedulable.
+The remaining v1.0 scope — introspection, persistent storage and sync, BM25, privacy, extensions
+and MCP — is specified but not implemented. The operations layer keeps MCP independently
+schedulable within v1.0.

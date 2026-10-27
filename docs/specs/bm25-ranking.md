@@ -1,13 +1,13 @@
 ---
 type: specification
 title: "BM25 Lexical Ranking Specification"
-description: "V2 SQLite FTS5 lexical ranking, field weights, hybrid normalization, explain diagnostics and calibration."
+description: "v1.0 SQLite FTS5 lexical ranking, field weights, hybrid normalization, explain diagnostics and calibration."
 tags:
   - "specification"
   - "search"
   - "bm25"
   - "sqlite"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -18,8 +18,9 @@ status: draft
 
 ## 1. Overview
 
-V1 uses exact/prefix keyword matching with strict AND semantics. V2 adds **BM25 lexical ranking**
-through SQLite FTS5 so multi-token queries do not drop documents that match only some terms.
+The shipped core uses exact/prefix keyword matching with strict AND semantics. v1.0 adds **BM25
+lexical ranking** through SQLite FTS5 so multi-token queries do not drop documents that match only
+some terms.
 
 ```sh
 weave search <path> <query> --mode bm25 --json
@@ -48,14 +49,14 @@ weave explain <path> <query> --mode bm25 --id <id> --json
 
 | Mode | Semantics |
 | --- | --- |
-| `exact` | V1 exact/prefix keyword matching, AND across query tokens |
+| `exact` | Exact/prefix keyword matching, AND across query tokens |
 | `bm25` | SQLite FTS5 BM25 lexical ranking |
 | `fuzzy` | Weighted Levenshtein + trigram similarity |
 | `hybrid` | Normalized BM25 + fuzzy |
 
-- `keyword` is a v1 alias for `exact` during migration; v2 documentation prefers `exact`.
+- `keyword` is an alias for `exact` during the v1.0 transition; new documentation prefers `exact`.
 - Default mode remains `hybrid`.
-- `--mode bm25` is additive; it does not change v1 contract behavior until contract v2 ships.
+- `--mode bm25` is additive; it does not change existing `keyword` or `fuzzy` results.
 
 ## 4. FTS5 Index
 
@@ -150,15 +151,15 @@ Extend `engine/search/testdata/calibration.json` with:
 Baseline metrics:
 
 - NDCG@10 and MRR@10 must be recorded for BM25 and hybrid.
-- Hybrid must not regress the v1 baseline.
+- Hybrid must not regress the existing calibration baseline.
 - Changes to field weights require a calibration diff.
 
 ## 10. Migration and Compatibility
 
-- V1 exact/prefix keyword search remains available as `--mode exact`.
-- `keyword` remains an alias during migration.
-- Contract v2 adds mode `bm25`, optional raw lexical scores and per-term diagnostics.
-- v1 goldens are retained only until v2 cutover; v2 gets its own calibration corpus.
+- Exact/prefix keyword search remains available as `--mode exact`.
+- `keyword` remains an alias during the v1.0 transition.
+- The v1 contract adds mode `bm25`, optional raw lexical scores and per-term diagnostics.
+- Existing goldens are retained until the BM25 cutover; BM25 gets its own calibration corpus.
 
 ## 11. Testing
 
@@ -177,13 +178,13 @@ Baseline metrics:
 - BM25 ranking is deterministic and reproducible.
 - Hybrid normalization is bounded and calibrated.
 - `explain` exposes lexical contributions.
-- Exact mode preserves v1 behavior.
+- Exact mode preserves existing behavior.
 - Calibration meets or exceeds the committed baseline.
 
 ## Related Documents
 
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [Weave Explain](./weave-explain.md)
 - [Permissive Ingestion](./permissive-ingestion.md)
 - [ROADMAP](../../ROADMAP.md)

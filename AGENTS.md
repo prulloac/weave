@@ -2,8 +2,8 @@
 
 ## Topology
 
-Go · GitHub Actions · GitHub (`gh stack`). Weave is an in-memory related-document database with a
-CLI-first surface and no UI.
+Go · GitHub Actions · GitHub (`gh stack`). Weave is a local-first related-document database with a
+CLI-first surface and no UI. The core is in-memory; v1.0 adds optional SQLite persistence.
 
 ## Commands
 
@@ -26,8 +26,9 @@ CLI-first surface and no UI.
 3. **CLI-first:** `cmd/weave` is the integration boundary. No HTTP, daemon, mount or browser UI.
 4. **Data contract:** `contract/v1` is authoritative. Documents require `type` and `keywords`.
    JSON Schema drives hand-written Go structs and goldens.
-5. **Search:** keyword (exact + prefix, AND), weighted fuzzy (title 1.00, description 0.60, body
-   0.30), hybrid top-K. `search` replaces `find`. Default K=10.
+5. **Search:** shipped keyword (exact + prefix, AND), weighted fuzzy (title 1.00, description 0.60,
+   body 0.30), hybrid top-K. v1.0 adds BM25 and explain diagnostics. `search` replaces `find`.
+   Default K=10.
 6. **Calibration:** ranking changes must update or pass the labeled corpus and baseline.
 7. **Go-native:** favor the standard library and Go idioms; use `yaml.v3` and `goldmark` only where
    specified. No UI dependencies.

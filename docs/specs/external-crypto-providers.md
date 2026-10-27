@@ -1,13 +1,13 @@
 ---
 type: specification
 title: "External Crypto Providers Specification"
-description: "V2 crypto provider contract for external keys and extensions: Age, HashiCorp Vault, cloud KMS, key isolation and failure behavior."
+description: "v1.0 crypto provider contract for external keys and extensions: Age, HashiCorp Vault, cloud KMS, key isolation and failure behavior."
 tags:
   - "specification"
   - "privacy"
   - "crypto"
   - "keys"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -46,7 +46,7 @@ External providers are opt-in. Without one, Weave uses the built-in local provid
 - Automatic key discovery or heuristic secret detection.
 - Key rotation orchestration.
 - Transparent encryption of the whole database.
-- Changing v1 plaintext behavior.
+- Changing existing plaintext behavior.
 
 ## 3. Provider Kinds
 
@@ -222,6 +222,6 @@ providers:
 ## Related Documents
 
 - [Privacy & Extensions](./privacy-and-extensions.md)
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [Weave Audit](./weave-audit.md)
 - [ROADMAP](../../ROADMAP.md)

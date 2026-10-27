@@ -82,4 +82,5 @@ Golden updates are reviewed like code. CI fails on drift.
 
 - Domain: `weave.contract/v1` (new in-place v1 with keywords and search).
 - CLI envelope: `weave.cli/v1`.
-- Breaking changes require `contract/v2`.
+- Until v1.0.0 GA, `contract/v1` may evolve in place. After GA, breaking changes require
+  `contract/v2`.

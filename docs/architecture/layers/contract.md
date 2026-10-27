@@ -170,7 +170,8 @@ The operation catalogue contains `search`, not `find`.
 
 - `weave.contract/v1` is the new in-place version.
 - `weave.cli/v1` remains the envelope version.
-- Breaking changes require a future v2; no compatibility mode for the old v1 is provided.
+- Until v1.0.0 GA, breaking changes may land in place. After GA, breaking changes require
+  `contract/v2`; no compatibility mode for the old v1 is provided.
 
 ## Related Documents
 

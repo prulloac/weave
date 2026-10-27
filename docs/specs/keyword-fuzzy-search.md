@@ -1,7 +1,7 @@
 ---
 type: specification
 title: "Keyword + Fuzzy Search Specification"
-description: "Contract and algorithms for Weave's in-memory related-document database: mandatory keywords, weighted fuzzy search, hybrid top-K results and evaluation."
+description: "Contract and algorithms for Weave's in-memory core: mandatory keywords, weighted fuzzy search, hybrid top-K results and evaluation."
 tags:
   - "search"
   - "fuzzy"
@@ -38,14 +38,14 @@ The UI is out of scope. The Go CLI is the integration surface.
 - Explicit component scores and matched metadata.
 - Configurable top-K, default 10.
 - Measurable calibration against a labeled query corpus.
-- In-memory operation with no external database.
+- In-memory operation without requiring an external database.
 
 ### Non-Goals
 
 - Browser UI, mount, renderer, lens or Astro.
-- Synonyms, stemming or embeddings in v1.
+- Synonyms, stemming or embeddings in the core engine.
 - Cross-bundle federated search.
-- Persistent indexes or query servers.
+- Persistent indexes in this in-memory engine; v1.0 persistence is specified separately.
 - Natural-language question answering.
 - MCP transport in this milestone.
 
@@ -223,8 +223,8 @@ The 50/50 weights are calibration parameters.
 ### 8.3 Candidate Set
 
 The hybrid list is computed from the union of the keyword top-K and fuzzy top-K candidate sets.
-This is an explicit performance trade-off for v1. If a document is outside both component
-top-K lists, it is not considered for the hybrid list.
+This is an explicit performance trade-off for the in-memory engine. If a document is outside both
+component top-K lists, it is not considered for the hybrid list.
 
 ### 8.4 Sorting
 
@@ -420,7 +420,7 @@ The store is immutable after load. Queries do not mutate indexes.
 
 ## Related Documents
 
-- [BM25 Ranking (v2)](./bm25-ranking.md)
-- [Permissive Ingestion (v2)](./permissive-ingestion.md)
+- [BM25 Ranking (v1.0)](./bm25-ranking.md)
+- [Permissive Ingestion (v1.0)](./permissive-ingestion.md)
 - [Weave Explain](./weave-explain.md)
 - [ROADMAP](../../ROADMAP.md)

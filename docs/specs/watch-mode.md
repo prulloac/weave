@@ -1,12 +1,12 @@
 ---
 type: specification
 title: "Watch Mode Specification"
-description: "V2 filesystem watch mode for incremental sync and live MCP reload."
+description: "v1.0 filesystem watch mode for incremental sync and live MCP reload."
 tags:
   - "specification"
   - "watch"
   - "sync"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -17,7 +17,7 @@ status: draft
 
 ## 1. Overview
 
-Watch mode keeps a v2 persistent index current while files change. It is built on the incremental
+Watch mode keeps a v1.0 persistent index current while files change. It is built on the incremental
 sync engine and is used by both `weave sync --watch` and `weave mcp --watch`.
 
 ```sh
@@ -67,7 +67,7 @@ weave mcp --bundle <path> --db .weave/index.db --watch
 
 ## 5. Sync Semantics
 
-Watch mode delegates to the v2 sync workflow:
+Watch mode delegates to the v1.0 sync workflow:
 
 1. Hash changed files with SHA-256.
 2. Skip unchanged hashes.
@@ -126,7 +126,7 @@ Optional event:
 
 ## Related Documents
 
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [MCP Server](./mcp-server.md)
 - [Permissive Ingestion](./permissive-ingestion.md)
 - [ROADMAP](../../ROADMAP.md)

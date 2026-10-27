@@ -1,29 +1,29 @@
 ---
 type: specification
-title: "V2 Storage, Persistence & Incremental Sync"
+title: "Storage, Persistence & Incremental Sync"
 description: "Persistent SQLite storage, sha256 incremental sync, cascading graph updates and compressed in-memory indexes."
 tags:
   - "specification"
   - "storage"
   - "sqlite"
   - "sync"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
 status: draft
 ---
 
-# Weave V2: Storage, Persistence & Incremental Sync Specification
+# Weave: Storage, Persistence & Incremental Sync Specification
 
 Status: **Proposed**  
-Target: **v2.0**
+Target: **v1.0**
 
 ---
 
 ## 1. Overview
 
-Weave v2 transitions the storage engine from a transient, in-memory parser to an incremental, persistent SQLite database. The goals are:
+Weave v1.0 transitions the storage engine from a transient, in-memory parser to an incremental, persistent SQLite database. The goals are:
 
 1. **Sub-10ms CLI cold starts:** Querying a 10,000-document repository without re-parsing files.
 2. **Zero-CGO static compilation:** Utilizing pure-Go SQLite (`modernc.org/sqlite`).
@@ -35,6 +35,10 @@ Weave v2 transitions the storage engine from a transient, in-memory parser to an
 ## 2. SQLite Schema Design
 
 The SQLite database lives at `.weave/index.db`. It is configured with `PRAGMA journal_mode=WAL;` and `PRAGMA foreign_keys=ON;`.
+
+The database records its own schema version with `PRAGMA user_version` (starting at `1`). Schema
+migrations bump this number independently of the product version and `weave.contract/v1`; a binary
+refuses to open a database with a newer `user_version`.
 
 ```sql
 -- 1. Document Registry

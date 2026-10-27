@@ -1,12 +1,12 @@
 ---
 type: specification
 title: "Compression Specification"
-description: "V2 body and posting compression contract: LZ4/Zstandard codecs, thresholds, storage schema and failure behavior."
+description: "v1.0 body and posting compression contract: LZ4/Zstandard codecs, thresholds, storage schema and failure behavior."
 tags:
   - "specification"
   - "compression"
   - "storage"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -17,7 +17,7 @@ status: draft
 
 ## 1. Overview
 
-V2 stores document bodies and inverted postings compactly. Compression is an internal storage
+v1.0 stores document bodies and inverted postings compactly. Compression is an internal storage
 contract, not a new CLI surface.
 
 ## 2. Goals and Non-Goals
@@ -34,7 +34,7 @@ contract, not a new CLI surface.
 - Compressing ciphertext twice.
 - User-configurable compression at query time.
 - Lossy compression.
-- Custom codecs in v1.
+- Custom codecs in v1.0.
 
 ## 3. Body Compression
 
@@ -71,7 +71,7 @@ Transient in-memory postings (`--no-cache`):
 
 - Output is deterministic for a given codec and version.
 - Record the codec version in configuration/manifest for migrations.
-- Targets are measured on the v2 benchmark corpus; regressions require a threshold review.
+- Targets are measured on the v1.0 benchmark corpus; regressions require a threshold review.
 
 ## 6. Failure and Recovery
 
@@ -101,6 +101,6 @@ Transient in-memory postings (`--no-cache`):
 
 ## Related Documents
 
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [Privacy & Extensions](./privacy-and-extensions.md)
 - [ROADMAP](../../ROADMAP.md)

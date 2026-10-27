@@ -7,7 +7,7 @@ tags:
   - "privacy"
   - "crypto"
   - "extensions"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -17,7 +17,7 @@ status: draft
 # Weave: Privacy Directives & Extension Architecture Specification
 
 Status: **Proposed**  
-Target: **v2.0**
+Target: **v1.0**
 
 ---
 
@@ -171,7 +171,7 @@ The optional AI extension is specified separately: [Weave AI Extension](./weave-
 
 ## Related Documents
 
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [External Crypto Providers](./external-crypto-providers.md)
 - [Weave AI Extension](./weave-ai-plugin.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)

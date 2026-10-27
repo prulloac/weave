@@ -7,7 +7,7 @@ tags:
   - "extension"
   - "ai"
   - "enrichment"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -139,5 +139,5 @@ timeout: 5s
 
 - [Privacy & Extensions](./privacy-and-extensions.md)
 - [BM25 Ranking](./bm25-ranking.md)
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [ROADMAP](../../ROADMAP.md)

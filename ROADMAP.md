@@ -1,23 +1,25 @@
 # Weave Roadmap
 
-> Weave loads OKF bundles into memory, relates documents as a graph, and answers calibrated keyword and fuzzy top-K searches through a Go CLI.
+> Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
-Status: **v1 shipped on `main`**. The v2 platform below is proposed and specified but not implemented.
+Status: **v1 in progress.** The core engine is shipped on `main`; the full v1.0 scope
+(persistence, privacy, extensions and MCP) is specified but not yet implemented.
 
 ## 1. What Weave Is
 
 Weave is a **local-first, related-document knowledge database**:
 
-- **v1 (shipped):** ingest OKF/Markdown bundles into memory, build a graph, search by mandatory
+- **v1 core (shipped):** ingest OKF/Markdown bundles into memory, build a graph, search by mandatory
   keywords and weighted fuzzy similarity, and navigate with `show`, `backlinks` and `path`.
-- **v2 (proposed):** persist and incrementally sync bundles into SQLite, add lexical BM25, support
-  permissive Markdown ingestion, protect sensitive content with explicit privacy directives, and
-  run external enrichment/reranking extensions.
-- **Later:** expose the same operations through an MCP server.
+- **v1.0 platform (in progress):** persist and incrementally sync bundles into SQLite, add lexical
+  BM25, support permissive Markdown ingestion, protect sensitive content with explicit privacy
+  directives, and run external enrichment/reranking and crypto extensions.
+- **v1.0 MCP (in progress):** expose the same operations through an in-memory and then a
+  persistent, sensitive-aware MCP server.
 
 It is **CLI-first**, local, offline-capable, and has **no UI**.
 
-## 2. Current Capabilities (v1)
+## 2. Current Capabilities (shipped v1 core)
 
 | Capability | Status | Notes |
 | --- | --- | --- |
@@ -38,25 +40,28 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Calibration | Shipped | NDCG@K and MRR@K baselines |
 | Conformance | Shipped | Bundle, graph and search goldens |
 
-## 3. Proposed v2 Platform
+## 3. v1.0 Scope (in progress)
+
+Everything below is part of v1.0. There is no separate v2 platform; phases are internal delivery
+waves, not product versions.
 
 | Capability | Target | Notes |
 | --- | --- | --- |
-| Persistent SQLite storage | v2 | Pure-Go `modernc.org/sqlite`, WAL, fast cold reads |
-| Incremental sync & watch | v2 | `sha256` content-hash upserts, cascading edge updates, `fsnotify` |
-| Permissive ingestion | v2 | Index dirty/non-OKF Markdown trees with warnings |
-| BM25 lexical ranking | v2 | SQLite FTS5 BM25 replaces strict AND for multi-token queries |
-| Memory/body compression | v2 | Varint/delta postings, LZ4/Zstandard body blobs |
-| Privacy directives | v2 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
-| Extension runner | v2 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
-| External crypto providers | v2 | Age, HashiCorp Vault and cloud KMS over provider IPC |
-| Explainable search | v1.1 | Per-token/per-field `weave explain` |
-| Audit and relate | v1.1 | Bundle quality gate and graph neighborhoods |
-| MCP server | post-v2 | TCP MCP over the operations layer, optional sensitive access |
+| Persistent SQLite storage | v1.0 | Pure-Go `modernc.org/sqlite`, WAL, fast cold reads |
+| Incremental sync & watch | v1.0 | `sha256` content-hash upserts, cascading edge updates, `fsnotify` |
+| Permissive ingestion | v1.0 | Index dirty/non-OKF Markdown trees with warnings |
+| BM25 lexical ranking | v1.0 | SQLite FTS5 BM25 replaces strict AND for multi-token queries |
+| Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
+| Privacy directives | v1.0 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
+| Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
+| External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
+| Explainable search | v1.0 | Per-token/per-field `weave explain` |
+| Audit and relate | v1.0 | Bundle quality gate and graph neighborhoods |
+| MCP server | v1.0 | TCP MCP over the operations layer, optional sensitive access |
 
 ## 4. CLI Surface
 
-### v1 shipped
+### Shipped
 
 ```sh
 weave contract --json
@@ -70,7 +75,7 @@ weave path <path> <id|file> <id|file> --json
 weave version --json
 ```
 
-### v1.1 introspection (specified)
+### Planned v1.0 — introspection
 
 ```sh
 weave audit <path> [--fail-on error|warning|none] --json
@@ -78,7 +83,7 @@ weave relate <path> <id|file> [--depth <n>] [--direction in|out|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] --json
 ```
 
-### v2 persistence and extensions (proposed)
+### Planned v1.0 — persistence and extensions
 
 ```sh
 weave ingest <path> [--db <file>] [--permissive] --json
@@ -91,7 +96,7 @@ weave audit <path> [--verify-keys] --json
 
 ## 5. Search Semantics
 
-### v1 (shipped)
+### Shipped
 
 - **Keyword:** exact token `1.0`, prefix `0.75`, AND across query tokens.
 - **Fuzzy:** max of normalized Levenshtein and trigram Dice, threshold `0.55`.
@@ -99,7 +104,7 @@ weave audit <path> [--verify-keys] --json
 - **Hybrid:** `0.50 * keyword + 0.50 * fuzzy`.
 - **Top-K:** default 10, max 100.
 
-### v2 target
+### v1.0 target
 
 - **Lexical:** SQLite FTS5 BM25 with term coordination; replaces strict AND for multi-token
   queries.
@@ -107,7 +112,7 @@ weave audit <path> [--verify-keys] --json
 - **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; initial a/b remain 0.50/0.50.
 - **Extensions:** optional rerankers may adjust ranking after core scoring.
 
-## 6. Privacy Semantics (v2 proposed)
+## 6. Privacy Semantics (v1.0 target)
 
 Privacy is **explicitly declared**, never heuristic.
 
@@ -128,7 +133,7 @@ Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md). Ext
 
 ## 7. Architecture
 
-### v1 current
+### Current
 
 ```text
 cmd/weave + engine/operations
@@ -144,7 +149,7 @@ contract/v1
   schemas · Go types · goldens
 ```
 
-### v2 target
+### v1.0 target
 
 ```text
 cmd/weave (CLI) / cmd/weave-mcp (daemon)
@@ -179,11 +184,11 @@ in [`docs/backlog.md`](docs/backlog.md).
 | 3 | `weave audit` | [weave-audit.md](docs/specs/weave-audit.md) | Tier 3 | parser, graph, root index, contract | 1 / Phase 2 |
 | 4 | `weave explain` | [weave-explain.md](docs/specs/weave-explain.md) | Tier 3 | search scoring, contract | 1 / Phase 2 |
 | 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 |
-| 6 | SQLite storage | [v2-storage-and-sync.md](docs/specs/v2-storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 |
-| 7 | Incremental sync | [v2-storage-and-sync.md](docs/specs/v2-storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 |
+| 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 |
+| 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 |
 | 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 |
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 |
-| 10 | Calibration v2 (BM25/privacy) | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 |
+| 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 |
 | 12 | Privacy directives | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 |
 | 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 |
@@ -191,16 +196,16 @@ in [`docs/backlog.md`](docs/backlog.md).
 | 15 | Rerank extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | search, extension runner | 5 / Phase 5 |
 | 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 |
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 |
-| 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP v1 | 5 / Phase 6 |
-| 19 | MCP v1 (in-memory) | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) |
-| 20 | MCP v2 (persistent) | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP v1, storage, sync, watch, privacy | 6 / Phase 6 |
+| 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 |
+| 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) |
+| 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 |
 
 Rules:
 
 - A feature may have several specs only when the behavior is genuinely shared (introspection types,
   sensitive MCP); the first listed spec owns the contract.
 - A spec may own several features only when they share one delivery boundary (storage/sync,
-  extension runner, MCP v1/v2).
+  extension runner, MCP in-memory/persistent).
 - If a feature is added to the roadmap without a spec and backlog row, the register is incomplete.
 - Delivery gate means the phase in which the feature's acceptance criteria must pass before the
   phase is considered done.
@@ -213,22 +218,22 @@ The phases below are not arbitrary; they follow this dependency graph.
 | --- | --- | --- |
 | Contract types for introspection | `contract/v1`, operations | audit, relate, explain, MCP tool schemas |
 | `weave relate` | graph, contract | graph workflows, MCP relate |
-| `weave audit` | parser validation, graph, root index, contract | CI docs gate, MCP audit, v2 key checks |
+| `weave audit` | parser validation, graph, root index, contract | CI docs gate, MCP audit, privacy key checks |
 | `weave explain` | search scoring internals, contract | ranking debugging, calibration, MCP explain |
-| Permissive ingestion | parser/validation | v2 ingest of dirty Markdown trees |
-| SQLite storage | parser, graph, contract | sync, BM25, compression, privacy storage, MCP v2 |
-| Incremental sync | storage, parser, graph | watch, enrichment, MCP v2 |
+| Permissive ingestion | parser/validation | ingestion of dirty Markdown trees |
+| SQLite storage | parser, graph, contract | sync, BM25, compression, privacy storage, MCP persistent |
+| Incremental sync | storage, parser, graph | watch, enrichment, MCP persistent |
 | Watch mode | incremental sync | live MCP reload |
-| BM25 lexical ranking | storage/FTS5, search contract, calibration | hybrid v2 ranking |
+| BM25 lexical ranking | storage/FTS5, search contract, calibration | BM25 hybrid ranking |
 | Compression | storage | memory/body budgets |
 | Privacy directives | parser, storage, search, CLI, contract, key resolver | decrypt, audit key checks, sensitive MCP, crypto plugins |
 | Extension runner | operations/contract | enrichment, rerank, AI and crypto plugins |
-| Enrichment extension | sync + extension runner | v2 metadata |
+| Enrichment extension | sync + extension runner | persisted enrichment metadata |
 | Rerank extension | search + extension runner | optional ranking |
 | AI plugin | extension runner | inferred keywords, embeddings |
 | External crypto plugins | privacy + extension runner | Age, Vault, KMS |
-| MCP v1 | operations + relate/audit/explain | in-memory agent retrieval |
-| MCP v2 | MCP v1 + storage/sync/watch/privacy | persistent, sensitive-aware MCP |
+| MCP in-memory | operations + relate/audit/explain | in-memory agent retrieval |
+| MCP persistent | MCP in-memory + storage/sync/watch/privacy | persistent, sensitive-aware MCP |
 
 ```text
 contract/v1
@@ -244,7 +249,7 @@ contract/v1
   │                                   ├── privacy search rules
   │                                   └── rerank
   └── operations ──┬── CLI
-                   ├── MCP v1
+                   ├── MCP in-memory
                    └── extension runner ──┬── AI plugin
                                           └── external crypto
 privacy directives ──┬── show --decrypt
@@ -274,7 +279,7 @@ privacy directives ──┬── show --decrypt
 - incremental sync,
 - BM25 lexical ranking,
 - compression,
-- MCP v1 (independent of v2; can be pulled earlier if desired).
+- MCP in-memory (independent of persistence; can be pulled earlier if desired).
 
 **Wave 4 — lifecycle and privacy:**
 
@@ -293,18 +298,18 @@ privacy directives ──┬── show --decrypt
 
 - AI plugin,
 - external crypto plugins,
-- MCP v2 with storage/watch/privacy.
+- MCP persistent with storage/watch/privacy.
 
 **Critical path:**
 
 ```text
-contract/v1 -> parser/graph/search -> storage/sqlite -> sync -> BM25 -> privacy -> extension runner -> MCP v2
+contract/v1 -> parser/graph/search -> storage/sqlite -> sync -> BM25 -> privacy -> extension runner -> MCP persistent
 ```
 
-`audit`, `relate`, `explain`, permissive ingestion, compression and MCP v1 are parallel tracks,
-not prerequisites for the critical path.
+`audit`, `relate`, `explain`, permissive ingestion, compression and MCP in-memory are parallel
+tracks, not prerequisites for the critical path.
 
-### Phase 1 — Search v1 (shipped)
+### Phase 1 — Core search (shipped)
 
 - Mandatory keywords validation.
 - In-memory keyword/fuzzy/hybrid top-K search.
@@ -322,7 +327,7 @@ not prerequisites for the critical path.
 Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 [explain](docs/specs/weave-explain.md), [permissive ingestion](docs/specs/permissive-ingestion.md).
 
-### Phase 3 — Persistent storage and sync (v2)
+### Phase 3 — Persistent storage and sync (v1.0)
 
 - Pure-Go SQLite (`modernc.org/sqlite`) in WAL mode.
 - `weave ingest` and `weave sync` with `sha256` content-hash upserts.
@@ -330,11 +335,11 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 - `fsnotify` watch mode.
 - Varint/delta postings and compressed body storage.
 
-Specs: [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md),
+Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 [Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),
 [Compression](docs/specs/compression.md).
 
-### Phase 4 — Privacy primitives (v2)
+### Phase 4 — Privacy primitives (v1.0)
 
 - Standard-library `aes-256-gcm`, `sha256`, `hmac-sha256`.
 - Frontmatter and inline privacy directives.
@@ -343,7 +348,7 @@ Specs: [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md),
 
 Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
 
-### Phase 5 — Extension architecture (v2)
+### Phase 5 — Extension architecture (v1.0)
 
 - `weave-<name>` subprocess plugins over `weave.cli/v1` stdio.
 - Enrichment during sync; reranking during search.
@@ -354,10 +359,10 @@ Specs: [Privacy & Extensions](docs/specs/privacy-and-extensions.md),
 [Weave AI Extension](docs/specs/weave-ai-plugin.md),
 [External Crypto Providers](docs/specs/external-crypto-providers.md).
 
-### Phase 6 — MCP server
+### Phase 6 — MCP server (v1.0)
 
 - TCP MCP server over operations.
-- Bind to persistent storage and support watch-based reload in v2.
+- Bind to persistent storage and support watch-based reload.
 - Tools: `weave_search`, `weave_explain`, `weave_relate`, `weave_audit`, `weave_show`,
   `weave_path`.
 - Strict sensitive-data boundary; encrypted fields require explicit opt-in.
@@ -368,6 +373,19 @@ The operations layer makes MCP transport-independent; it can be pulled earlier t
 needed.
 
 ## 9. Quality Gates and Runtime
+
+### Versioning Policy
+
+- **Product:** v1.0 is the single full-scope release. Every feature in the register gates v1.0;
+  phases are internal delivery waves, not separate releases.
+- **Contract:** `weave.contract/v1` is authoritative. Until v1.0.0 GA it may evolve in place; after
+  GA, breaking changes require `contract/v2`.
+- **CLI and extensions:** `weave.cli/v1` is authoritative. Additive messages and fields are allowed
+  before and after GA; breaking changes after GA require `weave.cli/v2`.
+- **Storage:** the SQLite schema uses `PRAGMA user_version` with explicit migrations, independent of
+  the product and contract versions.
+- **Feature status:** roadmap and backlog use `shipped`, `planned` and pipeline states; there are no
+  v1.1 or v2 feature labels.
 
 ### Quality gates
 
@@ -389,7 +407,8 @@ needed.
 
 ## 10. Limitations and Non-Goals
 
-- v1 is in-memory; not an enterprise search cluster.
+- The shipped core is in-memory; v1.0 adds optional SQLite persistence. It is not an enterprise
+  search cluster.
 - No semantic/vector search in core. Fuzzy handles typos, not meaning.
 - No synonyms/stemming yet.
 - No PDF/HTML/web ingestion.
@@ -417,7 +436,7 @@ needed.
 - [Weave Relate](docs/specs/weave-relate.md)
 - [Weave Explain](docs/specs/weave-explain.md)
 - [Permissive Ingestion](docs/specs/permissive-ingestion.md)
-- [V2 Storage & Sync](docs/specs/v2-storage-and-sync.md)
+- [Storage & Sync](docs/specs/storage-and-sync.md)
 - [Watch Mode](docs/specs/watch-mode.md)
 - [BM25 Ranking](docs/specs/bm25-ranking.md)
 - [Compression](docs/specs/compression.md)

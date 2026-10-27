@@ -2,9 +2,10 @@
 
 > To weave flat files into a living universe of knowledge.
 
-Weave is an **in-memory related-document database** for
-[Open Knowledge Format (OKF)](#okf-bundles) bundles. It loads Markdown/YAML documents, builds
+Weave is a **local-first related-document database** for
+[Open Knowledge Format (OKF)](#okf-bundles) bundles. The core loads Markdown/YAML documents, builds
 concept nodes and link edges, and answers keyword and weighted fuzzy searches with top-K results.
+v1.0 adds optional SQLite persistence, BM25 ranking, privacy directives, extensions and MCP.
 
 Weave is CLI-first, local and offline. It has **no browser UI**.
 
@@ -14,7 +15,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Weighted fuzzy search** over title, description and body.
 - **Hybrid top-K results** with component scores and match metadata.
 - **Graph navigation**: show, backlinks and shortest path.
-- **In-memory** indexes; no external database.
+- **In-memory** indexes; v1.0 adds optional SQLite persistence.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 

@@ -1,7 +1,7 @@
 ---
 type: Concept
 title: "Weave Vision"
-description: "Core vision of Weave: an in-memory related-document database that weaves flat OKF bundles into a searchable, navigable knowledge graph."
+description: "Core vision of Weave: a local-first related-document database that weaves flat OKF bundles into a searchable, navigable knowledge graph."
 tags:
   - "vision"
   - "architecture"
@@ -25,9 +25,10 @@ status: draft
 
 ## Summary
 
-Weave is an in-memory related-document database for Open Knowledge Format (OKF) bundles. It loads
-flat Markdown and YAML files, builds concept nodes and link edges, and answers keyword and
-weighted fuzzy searches with top-K results. It is CLI-first, local, and has no browser UI.
+Weave is a local-first related-document database for Open Knowledge Format (OKF) bundles. The core
+loads flat Markdown and YAML files into memory, builds concept nodes and link edges, and answers
+keyword and weighted fuzzy searches with top-K results. v1.0 adds optional SQLite persistence, BM25
+ranking, privacy directives, extensions and MCP. It is CLI-first, local, and has no browser UI.
 
 ## Details & Contracts
 
@@ -51,13 +52,13 @@ Weave turns a static bundle into a queryable document store:
 | Default mode | Hybrid |
 | Default top-K | 10 |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
-| Operational mode | In-memory, offline, deterministic |
+| Operational mode | Offline, deterministic; in-memory core with optional v1.0 SQLite persistence |
 
 ### What Weave Is Not
 
 - Not a browser visualization or lens product.
 - Not a mount server or static site generator.
-- Not an embedding or natural-language question-answering system in v1.
+- Not an embedding or natural-language question-answering system in the core engine.
 
 ## Related Concepts
 

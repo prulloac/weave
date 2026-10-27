@@ -1,12 +1,12 @@
 ---
 type: specification
 title: "Permissive Ingestion Specification"
-description: "V2 ingestion mode for indexing arbitrary Markdown trees with warnings instead of hard validation failures."
+description: "v1.0 ingestion mode for indexing arbitrary Markdown trees with warnings instead of hard validation failures."
 tags:
   - "specification"
   - "ingestion"
   - "markdown"
-  - "v2"
+  - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
@@ -17,8 +17,8 @@ status: draft
 
 ## 1. Overview
 
-Strict v1 parsing accepts only OKF documents with `type` and `keywords`. Permissive ingestion lets
-v2 index arbitrary Markdown trees while preserving warnings. It is opt-in and never changes the
+Strict parsing accepts only OKF documents with `type` and `keywords`. Permissive ingestion lets
+v1.0 index arbitrary Markdown trees while preserving warnings. It is opt-in and never changes the
 meaning of strict mode.
 
 ```sh
@@ -52,7 +52,7 @@ weave audit <path> --permissive --json
 | `weave parse`, `graph`, `search` | strict/v1 behavior | no change |
 
 - `--permissive` and `--strict` are mutually exclusive.
-- The mode is stored with the v2 database so later syncs are consistent.
+- The mode is stored with the v1.0 database so later syncs are consistent.
 - `--strict` on a permissive database reports documents that would be invalid.
 
 ## 4. Synthetic Documents
@@ -140,7 +140,7 @@ The audit report remains the source of detailed per-document findings.
 
 ## Related Documents
 
-- [V2 Storage & Sync](./v2-storage-and-sync.md)
+- [Storage & Sync](./storage-and-sync.md)
 - [BM25 Ranking](./bm25-ranking.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
 - [Weave Audit](./weave-audit.md)

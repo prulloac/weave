@@ -106,7 +106,7 @@ Failure:
 
 ## Volume and One-Shot Behavior
 
-v1 ships one process per operation. The optional stdio mode remains deferred post-v1. The
+The shipped CLI uses one process per operation. Optional stdio mode remains outside v1.0. The
 operations model is stable enough to add it without changing semantics.
 
 ## Error Codes
