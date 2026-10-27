@@ -1,0 +1,87 @@
+{
+	"contract": "weave.contract/v1",
+	"description": "Golden corpus for the Weave contract v1. Generated with `bun run contract:export`; reviewed diffs only.",
+	"cases": [
+		{
+			"name": "okf-bundle",
+			"bundle": "bundles/okf-bundle",
+			"search": [{ "name": "graph", "query": "graph", "mode": "hybrid", "top_k": 5 }],
+			"nav": [
+				{ "name": "list", "command": "list" },
+				{ "name": "show-okf-bundle", "command": "show", "target": "concepts/okf-bundle" },
+				{
+					"name": "backlinks-search-index",
+					"command": "backlinks",
+					"target": "concepts/search-index"
+				},
+				{
+					"name": "path-okf-bundle-users",
+					"command": "path",
+					"from": "concepts/okf-bundle",
+					"to": "tables/users"
+				}
+			]
+		},
+		{
+			"name": "anchors",
+			"bundle": "bundles/anchors",
+			"search": [{ "name": "target", "query": "target", "mode": "keyword", "top_k": 5 }],
+			"nav": [{ "name": "show-a", "command": "show", "target": "a" }]
+		},
+		{
+			"name": "nested-index",
+			"bundle": "bundles/nested-index",
+			"nav": [{ "name": "list", "command": "list" }]
+		},
+		{
+			"name": "verified-frontmatter",
+			"bundle": "bundles/verified-frontmatter",
+			"nav": [{ "name": "show-verified", "command": "show", "target": "verified" }]
+		},
+		{
+			"name": "reference-links",
+			"bundle": "bundles/reference-links",
+			"nav": [{ "name": "show-a", "command": "show", "target": "a" }]
+		},
+		{
+			"name": "code-links",
+			"bundle": "bundles/code-links",
+			"nav": [{ "name": "show-a", "command": "show", "target": "a" }]
+		},
+		{
+			"name": "deep-tree",
+			"bundle": "bundles/deep-tree",
+			"nav": [
+				{
+					"name": "path-leaf-root",
+					"command": "path",
+					"from": "nested/deeper/leaf",
+					"to": "root"
+				}
+			]
+		},
+		{
+			"name": "escaping",
+			"bundle": "bundles/escaping",
+			"nav": [{ "name": "show-escaping", "command": "show", "target": "escaping" }]
+		},
+		{
+			"name": "empty",
+			"bundle": "bundles/empty"
+		},
+		{
+			"name": "invalid-utf8",
+			"bundle": "bundles/invalid-utf8"
+		},
+		{
+			"name": "symlinked-dirs",
+			"bundle": "bundles/symlinked-dirs",
+			"nav": [{ "name": "list", "command": "list" }]
+		},
+		{
+			"name": "version-mismatch",
+			"bundle": "bundles/version-mismatch",
+			"nav": [{ "name": "list", "command": "list" }]
+		}
+	]
+}

@@ -1,0 +1,11 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/contract/v1/navigation.schema.json",
+	"title": "NavigationResult",
+	"oneOf": [
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ListResult" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ShowResult" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/BacklinksResult" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/PathResult" }
+	]
+}

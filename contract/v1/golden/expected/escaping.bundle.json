@@ -1,0 +1,92 @@
+{
+  "root": "\u003croot\u003e",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "escaping",
+      "path": "escaping.md",
+      "frontmatter": {
+        "description": "a \"quoted\" \u0026 \u003ctag\u003e",
+        "keywords": [
+          "escaping",
+          "xss"
+        ],
+        "title": "\u003cscript\u003ealert(1)\u003c/script\u003e",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "escaping",
+        "xss"
+      ],
+      "title": "\u003cscript\u003ealert(1)\u003c/script\u003e",
+      "description": "a \"quoted\" \u0026 \u003ctag\u003e",
+      "body": "\n# Escaping\n\n\u003cscript\u003ealert('x')\u003c/script\u003e\n\n[link](other.md)\n",
+      "links": [
+        {
+          "raw": "[link](other.md)",
+          "target": "other.md",
+          "resolved": "other.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "path": "other.md",
+      "frontmatter": {
+        "keywords": [
+          "other",
+          "html"
+        ],
+        "title": "Other",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "other",
+        "html"
+      ],
+      "title": "Other",
+      "body": "\n# Other\n\n\u003cimg src=x onerror=alert(1)\u003e\n",
+      "links": []
+    }
+  ],
+  "index": [
+    {
+      "title": "Escaping",
+      "target": "escaping.md"
+    },
+    {
+      "title": "Other",
+      "target": "other.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "escaping",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      },
+      {
+        "id": "other",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

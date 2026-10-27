@@ -1,0 +1,14 @@
+{
+  "id": "verified",
+  "path": "verified.md",
+  "type": "Concept",
+  "keywords": [
+    "trust",
+    "verified",
+    "metadata"
+  ],
+  "title": "Verified",
+  "body": "\n# Verified\n\nTrust metadata is nested.\n",
+  "links": [],
+  "backlinks": []
+}

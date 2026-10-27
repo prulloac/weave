@@ -1,0 +1,20 @@
+{
+  "id": "escaping",
+  "path": "escaping.md",
+  "type": "Concept",
+  "keywords": [
+    "escaping",
+    "xss"
+  ],
+  "title": "\u003cscript\u003ealert(1)\u003c/script\u003e",
+  "description": "a \"quoted\" \u0026 \u003ctag\u003e",
+  "body": "\n# Escaping\n\n\u003cscript\u003ealert('x')\u003c/script\u003e\n\n[link](other.md)\n",
+  "links": [
+    {
+      "raw": "[link](other.md)",
+      "target": "other.md",
+      "resolves_in_bundle": true
+    }
+  ],
+  "backlinks": []
+}

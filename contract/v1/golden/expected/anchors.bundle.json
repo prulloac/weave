@@ -1,0 +1,114 @@
+{
+  "root": "\u003croot\u003e",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "a",
+      "path": "a.md",
+      "frontmatter": {
+        "keywords": [
+          "anchors",
+          "links"
+        ],
+        "title": "A",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "anchors",
+        "links"
+      ],
+      "title": "A",
+      "body": "\n# A\n\n[section](b.md#section) [query](b.md?view=1) [local](#top) [external](https://example.com/a#frag)\n",
+      "links": [
+        {
+          "raw": "[section](b.md#section)",
+          "target": "b.md#section",
+          "resolved": "b.md",
+          "resolves_in_bundle": true
+        },
+        {
+          "raw": "[query](b.md?view=1)",
+          "target": "b.md?view=1",
+          "resolved": "b.md",
+          "resolves_in_bundle": true
+        },
+        {
+          "raw": "[local](#top)",
+          "target": "#top",
+          "resolves_in_bundle": false
+        },
+        {
+          "raw": "[external](https://example.com/a#frag)",
+          "target": "https://example.com/a#frag",
+          "resolves_in_bundle": false
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "path": "b.md",
+      "frontmatter": {
+        "keywords": [
+          "anchors",
+          "target"
+        ],
+        "title": "B",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "anchors",
+        "target"
+      ],
+      "title": "B",
+      "body": "\n# B\n\n## Section\n\n[back](a.md)\n",
+      "links": [
+        {
+          "raw": "[back](a.md)",
+          "target": "a.md",
+          "resolved": "a.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    }
+  ],
+  "index": [
+    {
+      "title": "A",
+      "target": "a.md"
+    },
+    {
+      "title": "B",
+      "target": "b.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "a",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      },
+      {
+        "id": "b",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

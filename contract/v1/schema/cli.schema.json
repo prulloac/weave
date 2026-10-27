@@ -1,0 +1,10 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/contract/v1/cli.schema.json",
+	"title": "CliContract",
+	"oneOf": [
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ContractInfo" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/VersionInfo" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/OperationRequest" }
+	]
+}

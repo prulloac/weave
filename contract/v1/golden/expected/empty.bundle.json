@@ -1,0 +1,11 @@
+{
+  "root": "\u003croot\u003e",
+  "concepts": [],
+  "validation": {
+    "valid": true,
+    "concepts": [],
+    "warnings": [
+      "empty bundle: no markdown files found"
+    ]
+  }
+}

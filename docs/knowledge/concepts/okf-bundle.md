@@ -30,11 +30,11 @@ A portable bundle of OKF-compliant Markdown and YAML flat files. Weave's primary
 | Compliance | Documents follow Open Knowledge Format v0.2 |
 | Graph edges | Expressed via bundle-relative Markdown links (e.g. `[User Table](/tables/users.md)`) |
 | Portability | Static, versionable, transferable without a server |
-| Requirement | YAML frontmatter with valid kebab-case `metadata.id` |
+| Requirement | OKF: non-empty `type`. Weave profile: additionally a non-empty `keywords` list. Concept id is the file path minus `.md` |
 
 ## Related Concepts
 
 - Feeds [Node Graph Engine](./node-graph-engine.md)
 - Consumed by [Search Index](./search-index.md)
-- Found within [Git Repository Mount](./git-repository-mount.md)
+- Loaded by the Go CLI (the mount concept is retired)
 - Enables [Weave Vision](./weave-vision.md)

@@ -1,9 +1,9 @@
 # BDD: Node Graph Engine
 
-Human-readable behavior test cases for the Node Graph Engine (`buildGraph`, traversal, serialization).
+Human-readable behavior test cases for the Node Graph Engine (build, traversal, pathfinding).
 
 **Spec reference:** [node-graph-engine.md](../specs/node-graph-engine.md)
-**Playwright spec:** `tests/e2e/node-graph-engine.spec.ts`
+**Go tests:** `engine/graph`, `engine/conformance_test.go`
 
 ---
 
@@ -116,14 +116,14 @@ As a developer, I want pathfinding and component queries over the graph.
 
 ---
 
-## Feature: Deterministic Serialization for the Lens
+## Feature: Deterministic Graph Output
 
-As the Visualization Lens, I need a stable compact JSON graph.
+As a CLI user, I need stable graph ordering so navigation and goldens are reproducible.
 
-### Scenario: Serialized graph is compact and deterministic
+### Scenario: Graph output is deterministic
 
 - **Given** a built graph from the standard fixture bundle
-- **When** I call `serializeGraph(graph)` twice
+- **When** I call `SortedNodes` and `SortedEdges` twice
 - **Then** both outputs are deep-equal
-- **And** nodes carry only `id/title/type/status/tags/inDegree/outDegree` — no bodies
-- **And** node order follows the bundle's sorted concept order
+- **And** nodes are ordered by id
+- **And** edges are ordered by `from`, `to`, `source`

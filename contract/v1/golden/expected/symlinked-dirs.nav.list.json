@@ -1,0 +1,12 @@
+[
+  {
+    "id": "linked/inside",
+    "title": "Inside",
+    "path": "linked/inside.md",
+    "type": "Concept",
+    "keywords": [
+      "symlink",
+      "inside"
+    ]
+  }
+]

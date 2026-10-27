@@ -1,40 +1,73 @@
 ---
 name: tdd-coder
-description: Executes Test-Driven Development (TDD) using Bun Test to write unit tests, followed by the minimal Astro/TypeScript code needed to pass all suites.
+description: Executes Test-Driven Development in Go using the standard testing package, contract goldens, CLI process tests and search calibration.
 ---
 
 # Test-Driven Development (TDD) & Implementation Protocol
 
-You are in **Implementation Engineer Mode**. Your goal is to write failing unit tests, craft the minimal Astro component/utility code to make them pass, and ensure both unit and BDD tests are green.
+You are in **Implementation Engineer Mode**. Write failing Go tests, implement the minimal code,
+and keep the conformance and calibration suites green.
 
 ## 1. Input Handoff & Contract Retrieval
-- **Read OKF Spec:** `docs/specs/<feature-id>.md`
-  - Extract TypeScript interfaces from `## 3. Component Contracts (Props)`.
-  - Extract component structure and hydration rules from `## 2. Component Structure & Hydration`.
-- **Read BDD Suite:** `tests/e2e/<feature-id>.spec.ts`
-  - Identify failing user assertion targets.
 
-## 2. Red Phase (Unit Testing)
-- **Target File Path:** `tests/unit/<feature-id>.test.ts`
-- Write unit tests using native `bun:test` (`import { test, expect, describe } from "bun:test"`):
-  - Test utility functions, data mapping, and isolated component helper logic.
-- Run `bun test tests/unit/<feature-id>.test.ts` and confirm failure.
+- Read the approved spec in `docs/specs/<feature-id>.md`.
+- Read `contract/v1/schema` and `contract/v1/types.go`.
+- Read the relevant behavior tests in `docs/bdd/` and the existing Go tests.
 
-## 3. Green Phase (Implementation)
-- Create or update `.astro` components, page routes, or TypeScript modules under `src/`.
-- Adhere strictly to the `Props` interface exported in `docs/specs/<feature-id>.md`.
-- Implement minimal code to satisfy tests—avoid unnecessary dependencies or over-engineering.
+## 2. Red Phase
 
-## 4. Verification & Green Checks
-1. **Unit Verification:** Run `bun test tests/unit/<feature-id>.test.ts` (MUST PASS).
-2. **BDD Verification:** Run `bun x playwright test tests/e2e/<feature-id>.spec.ts` (MUST PASS).
+Write tests in the package that owns the behavior:
 
-## 5. Refactor Phase
-- Clean up formatting, imports, and types without altering external behavior or breaking green suites.
+- `contract/v1/types_test.go` for schema/type contracts.
+- `engine/okf/*_test.go` for parsing, links and cache.
+- `engine/conformance_test.go` for bundle/graph/search goldens.
+- `engine/search/*_test.go` for ranking and calibration.
+- `cmd/weave/main_test.go` for CLI envelopes and exit codes.
 
-## 6. Handoff Output Protocol
-Emit a completion summary once all suites pass:
-- **Unit Suite:** `tests/unit/<feature-id>.test.ts` -> `GREEN`
-- **BDD Suite:** `tests/e2e/<feature-id>.spec.ts` -> `GREEN`
-- **Implementation Files:** List modified/created files in `src/`
-- **Next Skill Signal:** Hand off to `git-stack-reviewer` to prepare stacked PR layer (`gh stack`).
+Run:
+
+```sh
+go test ./<package> -run <Feature>
+```
+
+and confirm failure.
+
+## 3. Green Phase
+
+Implement the minimal Go code to pass. Respect the dependency direction:
+
+```text
+contract -> okf/graph -> search/nav -> operations -> cmd/weave
+```
+
+Do not add UI, HTTP, Astro, Preact or Playwright dependencies.
+
+## 4. Verification
+
+```sh
+go test ./...
+go test -race ./...
+go vet ./...
+gofmt -l cmd contract engine
+go run ./cmd/docs-lint
+./scripts/verify.sh
+```
+
+Ranking changes must also pass `TestCalibration` and must not lower the committed baseline.
+
+## 5. Refactor
+
+Clean imports and names without changing behavior. Keep results deterministic and golden output
+stable.
+
+## Hand-off
+
+Report:
+
+- package tests green,
+- conformance green,
+- calibration baseline met,
+- CLI process tests green,
+- `./scripts/verify.sh` green.
+
+Then hand off to `git-stack-reviewer` for atomic commits and stacked PRs.

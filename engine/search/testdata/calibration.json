@@ -1,0 +1,92 @@
+{
+	"version": 1,
+	"bundle": "bundle",
+	"baseline": {
+		"ndcg@10": 0.75,
+		"mrr@10": 0.7
+	},
+	"cases": [
+		{
+			"name": "exact-keyword",
+			"query": "oauth",
+			"mode": "keyword",
+			"top_k": 10,
+			"expected": [
+				{ "id": "oauth-token-rotation", "grade": 3 },
+				{ "id": "oauth-scopes", "grade": 2 }
+			]
+		},
+		{
+			"name": "keyword-prefix",
+			"query": "auth",
+			"mode": "keyword",
+			"top_k": 10,
+			"expected": [{ "id": "oauth-scopes", "grade": 3 }]
+		},
+		{
+			"name": "multi-keyword",
+			"query": "oauth tokens",
+			"mode": "keyword",
+			"top_k": 10,
+			"expected": [{ "id": "oauth-token-rotation", "grade": 3 }]
+		},
+		{
+			"name": "fuzzy-typo",
+			"query": "oauth tokn",
+			"mode": "fuzzy",
+			"top_k": 10,
+			"expected": [
+				{ "id": "oauth-token-rotation", "grade": 3 },
+				{ "id": "token-storage", "grade": 2 }
+			]
+		},
+		{
+			"name": "title-weighting",
+			"query": "fuzzy matching",
+			"mode": "fuzzy",
+			"top_k": 10,
+			"expected": [
+				{ "id": "fuzzy-matching", "grade": 3 },
+				{ "id": "search-ranking", "grade": 1 }
+			]
+		},
+		{
+			"name": "missing-keywords-excluded",
+			"query": "missing keywords",
+			"mode": "keyword",
+			"top_k": 10,
+			"expected": []
+		},
+		{
+			"name": "missing-keywords-fuzzy",
+			"query": "missing keywords",
+			"mode": "fuzzy",
+			"top_k": 10,
+			"expected": [{ "id": "missing-keywords", "grade": 3 }]
+		},
+		{
+			"name": "graph-hybrid",
+			"query": "graph traversal",
+			"mode": "hybrid",
+			"top_k": 10,
+			"expected": [{ "id": "graph-engine", "grade": 3 }]
+		},
+		{
+			"name": "description-weighting",
+			"query": "secure storage tokens",
+			"mode": "fuzzy",
+			"top_k": 10,
+			"expected": [
+				{ "id": "token-storage", "grade": 3 },
+				{ "id": "oauth-token-rotation", "grade": 2 }
+			]
+		},
+		{
+			"name": "empty-query",
+			"query": "",
+			"mode": "hybrid",
+			"top_k": 10,
+			"expected": []
+		}
+	]
+}

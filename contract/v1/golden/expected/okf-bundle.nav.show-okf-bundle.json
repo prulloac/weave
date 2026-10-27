@@ -1,0 +1,39 @@
+{
+  "id": "concepts/okf-bundle",
+  "path": "concepts/okf-bundle.md",
+  "type": "Concept",
+  "keywords": [
+    "okf",
+    "bundle",
+    "format"
+  ],
+  "title": "OKF Bundle",
+  "description": "Portable collection of OKF-compliant Markdown files.",
+  "tags": [
+    "format",
+    "okf"
+  ],
+  "status": "stable",
+  "body": "\n# OKF Bundle\n\nA portable bundle of OKF-compliant Markdown files.\n\n## Graph Edges\n\n- [User Table](/tables/users.md)\n- [Node Graph Engine](node-graph-engine.md)\n- [External Reference](https://example.com/okf)\n",
+  "links": [
+    {
+      "raw": "[User Table](/tables/users.md)",
+      "target": "/tables/users.md",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[Node Graph Engine](node-graph-engine.md)",
+      "target": "node-graph-engine.md",
+      "resolves_in_bundle": true
+    },
+    {
+      "raw": "[External Reference](https://example.com/okf)",
+      "target": "https://example.com/okf",
+      "resolves_in_bundle": false
+    }
+  ],
+  "backlinks": [
+    "concepts/search-index",
+    "tables/users"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "from": "nested/deeper/leaf",
+  "to": "root",
+  "path": [
+    "nested/deeper/leaf",
+    "root"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    {
+      "id": "linked/inside",
+      "path": "linked/inside.md",
+      "type": "Concept",
+      "title": "Inside",
+      "keywords": [
+        "symlink",
+        "inside"
+      ],
+      "in_degree": 0,
+      "out_degree": 0
+    }
+  ],
+  "edges": [],
+  "dangling": {}
+}

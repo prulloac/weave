@@ -1,0 +1,42 @@
+{
+  "root": "\u003croot\u003e",
+  "concepts": [
+    {
+      "id": "linked/inside",
+      "path": "linked/inside.md",
+      "frontmatter": {
+        "keywords": [
+          "symlink",
+          "inside"
+        ],
+        "title": "Inside",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "symlink",
+        "inside"
+      ],
+      "title": "Inside",
+      "body": "\n# Inside\n",
+      "links": []
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "linked/inside",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

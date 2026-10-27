@@ -1,75 +1,69 @@
 ---
 name: spec-writer
-description: Generates strict software component specifications formatted as OKF-compliant Markdown files with YAML frontmatter.
+description: Generates strict OKF Markdown specifications for Go engine, search and CLI contracts.
 ---
 
 # Spec-Driven Development (SDD) via OKF Protocol
 
-You are in **Architect Mode**. Your goal is to define component contracts, props, and routing specs as valid **Open Knowledge Format (OKF)** Markdown documents.
+You are in **Architect Mode**. Define contracts, algorithms, CLI behavior, validation and ranking
+expectations as valid Open Knowledge Format Markdown.
 
 Do NOT write implementation code or tests during this phase.
 
-## Target Output Path
-Save files to: `docs/specs/<feature-id>.md`
+## Target Output
 
----
+`docs/specs/<feature-id>.md`
 
-## OKF Specification Format
+## OKF Format
 
 ````markdown
 ---
 type: specification
 title: "Feature Name Specification"
-description: "High-level overview of the feature boundary and contract."
+description: "Feature boundary and contract."
 tags:
-  - "astro"
-  - "component-spec"
+  - "specification"
+  - "go"
 generated:
-  by: opencode/big-pickle
-  at: "YYYY-MM-DDTHH:MM:SSZ"
+  by: opencode/deepseek-v4.1-flash
+  at: "2026-10-26T00:00:00Z"
 status: draft
 ---
 
 # Specification: Feature Name
 
 ## 1. Overview
-Brief architectural description of the feature within the Astro application.
+What the feature does, its package boundaries and its non-goals.
 
-## 2. Component Structure & Hydration
-- **Root Component:** `src/pages/route-name.astro`
-- **Islands & Directives:**
-  - `InteractiveWidget.tsx` -> `client:visible` (Hydrate only when scrolled into view)
+## 2. Contracts
+Go types/interfaces, JSON schemas, CLI commands, flags, envelopes and exit codes.
 
-## 3. Component Contracts (Props)
+## 3. Behavior
+Algorithms, ordering, determinism and edge cases.
 
-```typescript
-export interface FeatureProps {
-  /** Unique ID of the active user */
-  userId: string;
-  /** Initial state payload */
-  initialData?: Record<string, unknown>;
-}
-```
+## 4. Data Flow
+How data moves through contract -> okf/graph -> search/nav -> operations -> cmd/weave.
 
-## 4. Data Flow & Dependencies
+## 5. Validation and Errors
+Required fields, invalid inputs, warnings, error codes and exit codes.
 
-- Data sourced from Astro frontmatter fetch (---).
-- Implements contract from Global API Spec.
-- Relies on User Auth Session.
+## 6. Testing and Calibration
+Unit, conformance, CLI process tests, golden updates and ranking baselines.
 
-## 5. Edge Cases & Errors
-
-- Unhandled null states render <EmptyBanner/>.
-- Network errors trigger client fallback.
+## 7. Acceptance Criteria
+Observable, testable outcomes.
 ````
 
 ## Instructions
 
-1. **Analyze Requirements:** Map out Astro components, props, routing, and hydration strategies.
-2. **Build YAML Frontmatter:** Set `type: specification`, `title`, `description`, `tags`, and `generated` details.
-3. **Draft Markdown Body:** Provide clear TypeScript interfaces for `Props`, component trees, and hydration rules.
-4. **Add OKF Graph Links:** Cross-link to dependent or related OKF concepts using bundle-relative paths (e.g., `[Auth Spec](/specs/auth.md)`).
-5. **Save:** Output to `docs/specs/<feature-id>.md`.
+1. **Analyze Requirements:** Identify the package(s), CLI surface and contract changes.
+2. **Build YAML Frontmatter:** `type: specification`, title, description, tags, generated, status.
+3. **Draft Contracts:** Use Go types and JSON examples, not Astro/TypeScript props.
+4. **Define Search Behavior:** If ranking is involved, specify weights, thresholds, top-K and
+   calibration metrics.
+5. **Add OKF Links:** Cross-link related specs and architecture docs.
+6. **Save:** `docs/specs/<feature-id>.md`.
 
-## Hand-off Criteria
-Pause and request user approval of `docs/s
+## Hand-off
+
+Pause and request approval of the spec before BDD or implementation.

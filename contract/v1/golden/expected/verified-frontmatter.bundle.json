@@ -1,0 +1,66 @@
+{
+  "root": "\u003croot\u003e",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "verified",
+      "path": "verified.md",
+      "frontmatter": {
+        "generated": {
+          "at": "2026-10-25T00:00:00Z",
+          "by": "opencode/deepseek-v4.1-flash"
+        },
+        "keywords": [
+          "trust",
+          "verified",
+          "metadata"
+        ],
+        "metadata": {
+          "owner": {
+            "team": "docs"
+          }
+        },
+        "title": "Verified",
+        "type": "Concept",
+        "verified": [
+          {
+            "at": "2026-08-06T00:00:00Z",
+            "by": "human:developer"
+          }
+        ]
+      },
+      "type": "Concept",
+      "keywords": [
+        "trust",
+        "verified",
+        "metadata"
+      ],
+      "title": "Verified",
+      "body": "\n# Verified\n\nTrust metadata is nested.\n",
+      "links": []
+    }
+  ],
+  "index": [
+    {
+      "title": "Verified",
+      "target": "verified.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "verified",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

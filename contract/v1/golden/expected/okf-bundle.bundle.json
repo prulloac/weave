@@ -1,0 +1,270 @@
+{
+  "root": "\u003croot\u003e",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "concepts/missing-type",
+      "path": "concepts/missing-type.md",
+      "frontmatter": {
+        "keywords": [
+          "missing",
+          "type"
+        ],
+        "title": "Concept without a type"
+      },
+      "type": "",
+      "keywords": [
+        "missing",
+        "type"
+      ],
+      "title": "Concept without a type",
+      "body": "\n# Missing Type\n\nThis file has frontmatter but no `type` key.\n",
+      "links": []
+    },
+    {
+      "id": "concepts/node-graph-engine",
+      "path": "concepts/node-graph-engine.md",
+      "frontmatter": {
+        "description": "Builds a traversable graph from bundle edges.",
+        "keywords": [
+          "graph",
+          "engine",
+          "nodes",
+          "edges"
+        ],
+        "status": "draft",
+        "tags": [
+          "graph"
+        ],
+        "title": "Node Graph Engine",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "graph",
+        "engine",
+        "nodes",
+        "edges"
+      ],
+      "title": "Node Graph Engine",
+      "description": "Builds a traversable graph from bundle edges.",
+      "tags": [
+        "graph"
+      ],
+      "status": "draft",
+      "body": "\n# Node Graph Engine\n\nConsumes [bundle edges](search-index.md) and [broken links](broken-file.md).\n",
+      "links": [
+        {
+          "raw": "[bundle edges](search-index.md)",
+          "target": "search-index.md",
+          "resolved": "concepts/search-index.md",
+          "resolves_in_bundle": true
+        },
+        {
+          "raw": "[broken links](broken-file.md)",
+          "target": "broken-file.md",
+          "resolved": "concepts/broken-file.md",
+          "resolves_in_bundle": false
+        }
+      ]
+    },
+    {
+      "id": "concepts/okf-bundle",
+      "path": "concepts/okf-bundle.md",
+      "frontmatter": {
+        "description": "Portable collection of OKF-compliant Markdown files.",
+        "keywords": [
+          "okf",
+          "bundle",
+          "format"
+        ],
+        "status": "stable",
+        "tags": [
+          "format",
+          "okf"
+        ],
+        "title": "OKF Bundle",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "okf",
+        "bundle",
+        "format"
+      ],
+      "title": "OKF Bundle",
+      "description": "Portable collection of OKF-compliant Markdown files.",
+      "tags": [
+        "format",
+        "okf"
+      ],
+      "status": "stable",
+      "body": "\n# OKF Bundle\n\nA portable bundle of OKF-compliant Markdown files.\n\n## Graph Edges\n\n- [User Table](/tables/users.md)\n- [Node Graph Engine](node-graph-engine.md)\n- [External Reference](https://example.com/okf)\n",
+      "links": [
+        {
+          "raw": "[User Table](/tables/users.md)",
+          "target": "/tables/users.md",
+          "resolved": "tables/users.md",
+          "resolves_in_bundle": true
+        },
+        {
+          "raw": "[Node Graph Engine](node-graph-engine.md)",
+          "target": "node-graph-engine.md",
+          "resolved": "concepts/node-graph-engine.md",
+          "resolves_in_bundle": true
+        },
+        {
+          "raw": "[External Reference](https://example.com/okf)",
+          "target": "https://example.com/okf",
+          "resolves_in_bundle": false
+        }
+      ]
+    },
+    {
+      "id": "concepts/search-index",
+      "path": "concepts/search-index.md",
+      "frontmatter": {
+        "description": "Full-text search over the bundle corpus.",
+        "keywords": [
+          "search",
+          "index",
+          "keywords",
+          "fuzzy"
+        ],
+        "status": "deprecated",
+        "title": "Search Index",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "search",
+        "index",
+        "keywords",
+        "fuzzy"
+      ],
+      "title": "Search Index",
+      "description": "Full-text search over the bundle corpus.",
+      "status": "deprecated",
+      "body": "\n# Search Index\n\n- [OKF Bundle](okf-bundle.md)\n",
+      "links": [
+        {
+          "raw": "[OKF Bundle](okf-bundle.md)",
+          "target": "okf-bundle.md",
+          "resolved": "concepts/okf-bundle.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    },
+    {
+      "id": "tables/users",
+      "path": "tables/users.md",
+      "frontmatter": {
+        "description": "The users relation.",
+        "keywords": [
+          "users",
+          "table",
+          "relations"
+        ],
+        "title": "User Table",
+        "type": "Table"
+      },
+      "type": "Table",
+      "keywords": [
+        "users",
+        "table",
+        "relations"
+      ],
+      "title": "User Table",
+      "description": "The users relation.",
+      "body": "\n# User Table\n\n- [OKF Bundle](../concepts/okf-bundle.md)\n",
+      "links": [
+        {
+          "raw": "[OKF Bundle](../concepts/okf-bundle.md)",
+          "target": "../concepts/okf-bundle.md",
+          "resolved": "concepts/okf-bundle.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    }
+  ],
+  "index": [
+    {
+      "title": "OKF Bundle",
+      "target": "concepts/okf-bundle.md"
+    },
+    {
+      "title": "Node Graph Engine",
+      "target": "concepts/node-graph-engine.md"
+    },
+    {
+      "title": "Search Index",
+      "target": "concepts/search-index.md"
+    },
+    {
+      "title": "User Table",
+      "target": "tables/users.md"
+    }
+  ],
+  "validation": {
+    "valid": false,
+    "concepts": [
+      {
+        "id": "concepts/missing-type",
+        "has_frontmatter": true,
+        "has_type": false,
+        "has_keywords": true,
+        "warnings": [
+          "missing type",
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      },
+      {
+        "id": "concepts/node-graph-engine",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "broken link: broken-file.md"
+        ]
+      },
+      {
+        "id": "concepts/okf-bundle",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": []
+      },
+      {
+        "id": "concepts/search-index",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: tags"
+        ]
+      },
+      {
+        "id": "loose-notes",
+        "has_frontmatter": false,
+        "has_type": false,
+        "has_keywords": false,
+        "warnings": [
+          "missing frontmatter"
+        ]
+      },
+      {
+        "id": "tables/users",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

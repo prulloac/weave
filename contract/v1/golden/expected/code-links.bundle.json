@@ -1,0 +1,89 @@
+{
+  "root": "\u003croot\u003e",
+  "okf_version": "0.2",
+  "concepts": [
+    {
+      "id": "a",
+      "path": "a.md",
+      "frontmatter": {
+        "keywords": [
+          "code",
+          "links"
+        ],
+        "title": "Code links",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "code",
+        "links"
+      ],
+      "title": "Code links",
+      "body": "\n# Code links\n\n`[inline](b.md)`\n\n```md\n[fenced](b.md)\n```\n\n[real](b.md)\n",
+      "links": [
+        {
+          "raw": "[real](b.md)",
+          "target": "b.md",
+          "resolved": "b.md",
+          "resolves_in_bundle": true
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "path": "b.md",
+      "frontmatter": {
+        "keywords": [
+          "target"
+        ],
+        "title": "Target",
+        "type": "Concept"
+      },
+      "type": "Concept",
+      "keywords": [
+        "target"
+      ],
+      "title": "Target",
+      "body": "\n# Target\n",
+      "links": []
+    }
+  ],
+  "index": [
+    {
+      "title": "Code links",
+      "target": "a.md"
+    },
+    {
+      "title": "Target",
+      "target": "b.md"
+    }
+  ],
+  "validation": {
+    "valid": true,
+    "concepts": [
+      {
+        "id": "a",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      },
+      {
+        "id": "b",
+        "has_frontmatter": true,
+        "has_type": true,
+        "has_keywords": true,
+        "warnings": [
+          "missing optional field: description",
+          "missing optional field: tags",
+          "missing optional field: status"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "root": "\u003croot\u003e",
+  "concepts": [],
+  "validation": {
+    "valid": false,
+    "concepts": [
+      {
+        "id": "bad",
+        "has_frontmatter": false,
+        "has_type": false,
+        "has_keywords": false,
+        "warnings": [
+          "parse error: invalid UTF-8"
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}

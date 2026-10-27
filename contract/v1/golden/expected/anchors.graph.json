@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {
+      "id": "a",
+      "path": "a.md",
+      "type": "Concept",
+      "title": "A",
+      "keywords": [
+        "anchors",
+        "links"
+      ],
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "id": "b",
+      "path": "b.md",
+      "type": "Concept",
+      "title": "B",
+      "keywords": [
+        "anchors",
+        "target"
+      ],
+      "in_degree": 1,
+      "out_degree": 1
+    }
+  ],
+  "edges": [
+    {
+      "from": "a",
+      "to": "b",
+      "source": "link",
+      "raw": "[section](b.md#section)"
+    },
+    {
+      "from": "b",
+      "to": "a",
+      "source": "link",
+      "raw": "[back](a.md)"
+    }
+  ],
+  "dangling": {
+    "a": [
+      {
+        "raw": "[local](#top)",
+        "target": "#top",
+        "resolves_in_bundle": false
+      },
+      {
+        "raw": "[external](https://example.com/a#frag)",
+        "target": "https://example.com/a#frag",
+        "resolves_in_bundle": false
+      }
+    ]
+  }
+}

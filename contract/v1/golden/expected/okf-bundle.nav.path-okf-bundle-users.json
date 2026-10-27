@@ -1,0 +1,8 @@
+{
+  "from": "concepts/okf-bundle",
+  "to": "tables/users",
+  "path": [
+    "concepts/okf-bundle",
+    "tables/users"
+  ]
+}
