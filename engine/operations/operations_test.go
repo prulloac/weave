@@ -53,11 +53,38 @@ func TestContractDiscovery(t *testing.T) {
 	if info.Contract != operations.ContractVersion || info.CLI != operations.CLIVersion {
 		t.Fatalf("unexpected versions: %+v", info)
 	}
-	if len(info.Operations) != 9 {
-		t.Fatalf("expected 9 operations, got %d", len(info.Operations))
+	if len(info.Operations) != 10 {
+		t.Fatalf("expected 10 operations, got %d", len(info.Operations))
 	}
 	if len(info.Errors) == 0 {
 		t.Fatal("expected error codes")
+	}
+}
+
+func TestAudit(t *testing.T) {
+	result := successResult(t, executor().Execute(context.Background(), contractv1.OperationRequest{
+		Op:     contractv1.OpAudit,
+		Path:   fixture(),
+		FailOn: contractv1.AuditFailOnError,
+	}))
+	report, ok := result.(contractv1.AuditReport)
+	if !ok {
+		t.Fatalf("expected AuditReport, got %T", result)
+	}
+	if report.FailOn != contractv1.AuditFailOnError {
+		t.Fatalf("unexpected fail_on: %s", report.FailOn)
+	}
+	if report.Summary.Concepts != 5 {
+		t.Fatalf("expected 5 concepts, got %d", report.Summary.Concepts)
+	}
+	found := false
+	for _, finding := range report.Findings {
+		if finding.Code == contractv1.AuditMissingType {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected MISSING_TYPE, got %+v", report.Findings)
 	}
 }
 

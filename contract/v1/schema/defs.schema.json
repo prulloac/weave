@@ -22,6 +22,31 @@
 			"type": "string",
 			"enum": ["title", "description", "body"]
 		},
+		"AuditFailOn": {
+			"type": "string",
+			"enum": ["error", "warning", "none"]
+		},
+		"AuditSeverity": {
+			"type": "string",
+			"enum": ["error", "warning", "info"]
+		},
+		"AuditFindingCode": {
+			"type": "string",
+			"enum": [
+				"MISSING_FRONTMATTER",
+				"MISSING_TYPE",
+				"MISSING_KEYWORDS",
+				"BROKEN_LINK",
+				"BROKEN_RELATED",
+				"MISSING_INDEX_TARGET",
+				"UNINDEXED_CONCEPT",
+				"ORPHAN_CONCEPT",
+				"UNSUPPORTED_OKF_VERSION",
+				"EMPTY_BUNDLE",
+				"DANGLING_EXTERNAL",
+				"KEY_UNAVAILABLE"
+			]
+		},
 		"ErrorCode": {
 			"type": "string",
 			"enum": [
@@ -45,7 +70,8 @@
 				"show",
 				"backlinks",
 				"path",
-				"version"
+				"version",
+				"audit"
 			]
 		},
 		"OkfLink": {
@@ -393,6 +419,58 @@
 				}
 			}
 		},
+		"AuditFinding": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["code", "severity", "message"],
+			"properties": {
+				"code": { "$ref": "#/$defs/AuditFindingCode" },
+				"severity": { "$ref": "#/$defs/AuditSeverity" },
+				"concept": { "type": "string" },
+				"source": { "type": "string" },
+				"target": { "type": "string" },
+				"message": { "type": "string" }
+			}
+		},
+		"AuditSummary": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"concepts",
+				"valid",
+				"edges",
+				"orphans",
+				"broken_links",
+				"missing_keywords",
+				"missing_index_targets",
+				"unindexed_concepts"
+			],
+			"properties": {
+				"concepts": { "type": "integer", "minimum": 0 },
+				"valid": { "type": "boolean" },
+				"edges": { "type": "integer", "minimum": 0 },
+				"orphans": { "type": "integer", "minimum": 0 },
+				"broken_links": { "type": "integer", "minimum": 0 },
+				"missing_keywords": { "type": "integer", "minimum": 0 },
+				"missing_index_targets": { "type": "integer", "minimum": 0 },
+				"unindexed_concepts": { "type": "integer", "minimum": 0 }
+			}
+		},
+		"AuditReport": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["path", "ok", "fail_on", "summary", "findings"],
+			"properties": {
+				"path": { "type": "string" },
+				"ok": { "type": "boolean" },
+				"fail_on": { "$ref": "#/$defs/AuditFailOn" },
+				"summary": { "$ref": "#/$defs/AuditSummary" },
+				"findings": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/AuditFinding" }
+				}
+			}
+		},
 		"OperationDescriptor": {
 			"type": "object",
 			"additionalProperties": false,
@@ -457,7 +535,9 @@
 					"items": { "type": "string" }
 				},
 				"status": { "type": "string" },
-				"limit": { "type": "integer", "minimum": 0 }
+				"limit": { "type": "integer", "minimum": 0 },
+				"fail_on": { "$ref": "#/$defs/AuditFailOn" },
+				"verify_keys": { "type": "boolean" }
 			}
 		},
 		"OperationError": {

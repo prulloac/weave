@@ -61,7 +61,7 @@ func Build(bundle *contractv1.Bundle) *Graph {
 		if !ok {
 			continue
 		}
-		for _, entry := range relatedStrings(related) {
+		for _, entry := range RelatedEntries(related) {
 			if entry == "" {
 				continue
 			}
@@ -110,6 +110,16 @@ func addEdge(graph *Graph, from, to, source string, raw *string) {
 
 func addDangling(graph *Graph, id string, link contractv1.OkfLink) {
 	graph.Dangling[id] = append(graph.Dangling[id], link)
+}
+
+// RelatedEntries returns the non-empty `related` frontmatter entries.
+func RelatedEntries(value any) []string {
+	return relatedStrings(value)
+}
+
+// ResolveRelated resolves a `related` entry against the graph nodes.
+func (g *Graph) ResolveRelated(entry, fromID string) (string, bool) {
+	return relatedTarget(entry, fromID, g.Nodes)
 }
 
 func relatedStrings(value any) []string {

@@ -7,6 +7,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
 )
@@ -26,6 +27,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpBacklinks, Fields: []string{"path", "target"}, Result: "BacklinksResult"},
 	{Op: contractv1.OpPath, Fields: []string{"path", "from", "to"}, Result: "PathResult"},
 	{Op: contractv1.OpVersion, Fields: []string{}, Result: "VersionInfo"},
+	{Op: contractv1.OpAudit, Fields: []string{"path", "fail_on", "verify_keys"}, Result: "AuditReport"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -166,6 +168,15 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			})
 		}
 		return success(result)
+	case contractv1.OpAudit:
+		failOn := request.FailOn
+		if failOn == "" {
+			failOn = contractv1.AuditFailOnError
+		}
+		return success(audit.Build(eng.Bundle(), eng.Graph(), audit.Options{
+			FailOn:     failOn,
+			VerifyKeys: request.VerifyKeys,
+		}))
 	default:
 		return failure(contractv1.ErrInvalidRequest, "unknown operation: "+string(request.Op), map[string]any{
 			"op": request.Op,

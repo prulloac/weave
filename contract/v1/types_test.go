@@ -344,6 +344,21 @@ func TestContractTypesValidate(t *testing.T) {
 	disconnected := PathResult{From: "a", To: "b", Path: nil}
 	marshalValidate(t, compiler, "path.schema.json", disconnected)
 
+	auditReport := AuditReport{
+		Path:   "/bundle",
+		OK:     false,
+		FailOn: AuditFailOnError,
+		Summary: AuditSummary{
+			Concepts: 1, Valid: true, Edges: 1, Orphans: 0,
+			BrokenLinks: 1, MissingKeywords: 0, MissingIndexTargets: 0, UnindexedConcepts: 0,
+		},
+		Findings: []AuditFinding{{
+			Code: AuditBrokenLink, Severity: AuditSeverityError,
+			Source: "a", Target: "b.md", Message: "link target does not resolve in the bundle",
+		}},
+	}
+	marshalValidate(t, compiler, "audit.schema.json", auditReport)
+
 	success := SuccessEnvelope{
 		Contract: "weave.contract/v1",
 		CLI:      "weave.cli/v1",

@@ -33,6 +33,39 @@ const (
 	FieldBody        SearchField = "body"
 )
 
+type AuditFailOn string
+
+const (
+	AuditFailOnError   AuditFailOn = "error"
+	AuditFailOnWarning AuditFailOn = "warning"
+	AuditFailOnNone    AuditFailOn = "none"
+)
+
+type AuditSeverity string
+
+const (
+	AuditSeverityError   AuditSeverity = "error"
+	AuditSeverityWarning AuditSeverity = "warning"
+	AuditSeverityInfo    AuditSeverity = "info"
+)
+
+type AuditFindingCode string
+
+const (
+	AuditMissingFrontmatter    AuditFindingCode = "MISSING_FRONTMATTER"
+	AuditMissingType           AuditFindingCode = "MISSING_TYPE"
+	AuditMissingKeywords       AuditFindingCode = "MISSING_KEYWORDS"
+	AuditBrokenLink            AuditFindingCode = "BROKEN_LINK"
+	AuditBrokenRelated         AuditFindingCode = "BROKEN_RELATED"
+	AuditMissingIndexTarget    AuditFindingCode = "MISSING_INDEX_TARGET"
+	AuditUnindexedConcept      AuditFindingCode = "UNINDEXED_CONCEPT"
+	AuditOrphanConcept         AuditFindingCode = "ORPHAN_CONCEPT"
+	AuditUnsupportedOKFVersion AuditFindingCode = "UNSUPPORTED_OKF_VERSION"
+	AuditEmptyBundle           AuditFindingCode = "EMPTY_BUNDLE"
+	AuditDanglingExternal      AuditFindingCode = "DANGLING_EXTERNAL"
+	AuditKeyUnavailable        AuditFindingCode = "KEY_UNAVAILABLE"
+)
+
 type ErrorCode string
 
 const (
@@ -57,6 +90,7 @@ const (
 	OpBacklinks OperationName = "backlinks"
 	OpPath      OperationName = "path"
 	OpVersion   OperationName = "version"
+	OpAudit     OperationName = "audit"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -242,6 +276,37 @@ type PathResult struct {
 	Path []string `json:"path"`
 }
 
+// AuditFinding is one conformance or graph-quality issue.
+type AuditFinding struct {
+	Code     AuditFindingCode `json:"code"`
+	Severity AuditSeverity    `json:"severity"`
+	Concept  string           `json:"concept,omitempty"`
+	Source   string           `json:"source,omitempty"`
+	Target   string           `json:"target,omitempty"`
+	Message  string           `json:"message"`
+}
+
+// AuditSummary contains deterministic counts for an audit report.
+type AuditSummary struct {
+	Concepts            int  `json:"concepts"`
+	Valid               bool `json:"valid"`
+	Edges               int  `json:"edges"`
+	Orphans             int  `json:"orphans"`
+	BrokenLinks         int  `json:"broken_links"`
+	MissingKeywords     int  `json:"missing_keywords"`
+	MissingIndexTargets int  `json:"missing_index_targets"`
+	UnindexedConcepts   int  `json:"unindexed_concepts"`
+}
+
+// AuditReport is the result of `weave audit`.
+type AuditReport struct {
+	Path     string         `json:"path"`
+	OK       bool           `json:"ok"`
+	FailOn   AuditFailOn    `json:"fail_on"`
+	Summary  AuditSummary   `json:"summary"`
+	Findings []AuditFinding `json:"findings"`
+}
+
 // OperationDescriptor describes one machine operation for discovery.
 type OperationDescriptor struct {
 	Op     OperationName `json:"op"`
@@ -267,19 +332,21 @@ type VersionInfo struct {
 
 // OperationRequest is the transport-neutral request shape for stdio/MCP.
 type OperationRequest struct {
-	ID     string        `json:"id,omitempty"`
-	Op     OperationName `json:"op"`
-	Path   string        `json:"path,omitempty"`
-	Query  string        `json:"query,omitempty"`
-	Mode   SearchMode    `json:"mode,omitempty"`
-	TopK   *int          `json:"top_k,omitempty"`
-	Target string        `json:"target,omitempty"`
-	From   string        `json:"from,omitempty"`
-	To     string        `json:"to,omitempty"`
-	Types  []string      `json:"types,omitempty"`
-	Tags   []string      `json:"tags,omitempty"`
-	Status string        `json:"status,omitempty"`
-	Limit  *int          `json:"limit,omitempty"`
+	ID         string        `json:"id,omitempty"`
+	Op         OperationName `json:"op"`
+	Path       string        `json:"path,omitempty"`
+	Query      string        `json:"query,omitempty"`
+	Mode       SearchMode    `json:"mode,omitempty"`
+	TopK       *int          `json:"top_k,omitempty"`
+	Target     string        `json:"target,omitempty"`
+	From       string        `json:"from,omitempty"`
+	To         string        `json:"to,omitempty"`
+	Types      []string      `json:"types,omitempty"`
+	Tags       []string      `json:"tags,omitempty"`
+	Status     string        `json:"status,omitempty"`
+	Limit      *int          `json:"limit,omitempty"`
+	FailOn     AuditFailOn   `json:"fail_on,omitempty"`
+	VerifyKeys bool          `json:"verify_keys,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.
