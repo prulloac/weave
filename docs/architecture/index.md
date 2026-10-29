@@ -56,7 +56,7 @@ The detailed contract and algorithms are in
 | OKF | Go | `engine/okf` | Parse bundles, frontmatter, links, validation, cache |
 | Graph | Go | `engine/graph` | Nodes, edges, degrees, traversal |
 | Search | Go | `engine/search` | In-memory catalog, keyword index, fuzzy index, ranking |
-| Operations | Go | `engine/operations` | Transport-neutral search, navigation, audit and relate requests |
+| Operations | Go | `engine/operations` | Transport-neutral search, navigation, audit, relate and explain requests |
 | CLI | Go | `cmd/weave` | Argv, stdout/stderr, envelopes, exit codes |
 
 ## Integration Surfaces
@@ -78,7 +78,7 @@ remains the compatibility promise.
 | A — Base engine | contract, parser, graph, operations, machine CLI | Complete |
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
-| D — Introspection | `weave audit`, `weave relate`, `weave explain` | v1.0 in progress |
+| D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
 | E — Storage & sync | SQLite persistence, incremental sync, watch | v1.0 planned |
 | F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
 | G — MCP | TCP MCP transport over operations | v1.0 planned |
@@ -110,6 +110,7 @@ remains the compatibility promise.
 | Fuzzy similarity | Normalized Levenshtein and trigram Dice, max |
 | Search output | Keyword, fuzzy and hybrid top-K lists |
 | Graph neighborhood | v1.0 `weave relate`, bounded BFS depth 0..5 across out/in/both |
+| Explainability | v1.0 `weave explain`, per-token keyword and per-field fuzzy evidence |
 | Default mode | Hybrid |
 | Default top-K | 10; max 100 |
 | Contract version | New v1 replaces the previous v1 in place |
@@ -171,12 +172,12 @@ remains the compatibility promise.
 
 ## Status
 
-The core v1 engine, `weave audit` and `weave relate` are implemented. The Go engine parses
-mandatory keywords, builds keyword and fuzzy indexes, returns keyword/fuzzy/hybrid top-K results,
-exposes the `search` CLI command, audits bundles for conformance and graph quality, and returns
-bounded graph neighborhoods. Calibration passes its baseline. The UI and old TypeScript stack are
-removed.
+The core v1 engine plus `weave audit`, `weave relate` and `weave explain` are implemented. The Go
+engine parses mandatory keywords, builds keyword and fuzzy indexes, returns keyword/fuzzy/hybrid
+top-K results, exposes the `search` CLI command, audits bundles for conformance and graph quality,
+returns bounded graph neighborhoods and explains score components. Calibration passes its baseline.
+The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — explain, persistent storage and sync, BM25, privacy, extensions and
-MCP — is specified but not implemented. The operations layer keeps MCP independently schedulable
-within v1.0.
+The remaining v1.0 scope — persistent storage and sync, BM25, privacy, extensions and MCP — is
+specified but not implemented. The operations layer keeps MCP independently schedulable within
+v1.0.

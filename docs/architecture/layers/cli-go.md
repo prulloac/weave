@@ -43,6 +43,7 @@ weave backlinks <path> <id|file> [--json] [--no-cache]
 weave path <path> <id|file> <id|file> [--json] [--no-cache]
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
 weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
+weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
 weave version [--json]
 weave --version | --help
 ```

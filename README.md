@@ -15,6 +15,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Weighted fuzzy search** over title, description and body.
 - **Hybrid top-K results** with component scores and match metadata.
 - **Graph navigation**: show, backlinks and shortest path.
+- **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **In-memory** indexes; v1.0 adds optional SQLite persistence.
@@ -157,6 +158,18 @@ weave relate ~/notes concepts/okf-bundle --depth 1 --direction out
 
 Spec: [Weave Relate](docs/specs/weave-relate.md).
 
+#### `weave explain`
+
+Explain a search result: matched keywords, per-field fuzzy contributions and the hybrid score
+breakdown.
+
+```sh
+weave explain ~/notes "oauth tokn" --json
+weave explain ~/notes oauth --id concepts/oauth-token-rotation --mode keyword
+```
+
+Spec: [Weave Explain](docs/specs/weave-explain.md).
+
 #### `weave version`
 
 Print the binary version and the contract it targets.
@@ -171,17 +184,6 @@ weave version --json
 > **Not yet shipped.** The commands below are specified for v1.0 but are yet to be shipped. They are
 > not available in the current binary. Flags that depend on v1.0 features, such as
 > `weave show --decrypt` and `weave search --rerank`, are also not yet shipped.
-
-#### `weave explain`
-
-Explain a search result: matched keywords, per-field fuzzy contributions and the hybrid score
-breakdown.
-
-```sh
-weave explain ~/notes "oauth tokn" --mode hybrid --json
-```
-
-Spec: [Weave Explain](docs/specs/weave-explain.md).
 
 #### `weave ingest`
 
@@ -299,5 +301,6 @@ docs/                   architecture, specs, knowledge
 - [Keyword + Fuzzy Search spec](docs/specs/keyword-fuzzy-search.md)
 - [Weave Audit spec](docs/specs/weave-audit.md)
 - [Weave Relate spec](docs/specs/weave-relate.md)
+- [Weave Explain spec](docs/specs/weave-explain.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Backlog](docs/backlog.md)
