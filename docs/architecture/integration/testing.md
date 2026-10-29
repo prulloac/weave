@@ -90,6 +90,7 @@ MRR@10 = 1.0.
   covers BM25 lexical evidence and persistent hybrid explanations.
   `engine/search/bm25_calibration_test.go` covers BM25 and hybrid calibration baselines.
   `mcp/server_test.go` covers MCP tool discovery, dispatch parity, validation and error mapping.
+  `mcp/transport_test.go` covers stdio/TCP JSON-RPC framing, initialize, tools and auth.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

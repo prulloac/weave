@@ -77,6 +77,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | --- | --- | --- | --- | --- | --- | --- |
 | MCP in-memory over operations | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP persistent + watch reload | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | - | red |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
