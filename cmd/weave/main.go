@@ -169,10 +169,10 @@ func parseFlags(args []string) (flags, error) {
 			index = next
 			mode := contractv1.SearchMode(value)
 			switch mode {
-			case contractv1.SearchKeyword, contractv1.SearchFuzzy, contractv1.SearchHybrid:
+			case contractv1.SearchKeyword, contractv1.SearchFuzzy, contractv1.SearchHybrid, contractv1.SearchBM25:
 				result.mode = mode
 			default:
-				return result, fmt.Errorf("--mode must be hybrid, keyword or fuzzy")
+				return result, fmt.Errorf("--mode must be hybrid, keyword, fuzzy or bm25")
 			}
 		case "--top-k":
 			value, next, err := flagValue(args, index, "--top-k")
@@ -493,6 +493,9 @@ func isEmptyResult(op contractv1.OperationName, result any) bool {
 		if !ok {
 			return false
 		}
+		if response.Mode == contractv1.SearchBM25 {
+			return len(response.Lexical) == 0
+		}
 		switch response.Mode {
 		case contractv1.SearchKeyword:
 			return len(response.Keyword) == 0
@@ -537,6 +540,16 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		return 0
 	case contractv1.OpSearch:
 		response := result.(contractv1.SearchResponse)
+		if response.Mode == contractv1.SearchBM25 {
+			if len(response.Lexical) == 0 {
+				fmt.Fprintln(stderr, "weave: no matches")
+				return 1
+			}
+			for _, item := range response.Lexical {
+				fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.Score, 'f', -1, 64), item.Title, item.Path)
+			}
+			return 0
+		}
 		switch response.Mode {
 		case contractv1.SearchKeyword:
 			if len(response.Keyword) == 0 {
@@ -817,7 +830,7 @@ usage:
   weave contract [--json]
   weave parse <path> [--json] [--no-cache]
   weave graph <path> [--json] [--no-cache]
-  weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
+  weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--json] [--no-cache]
   weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
   weave show <path> <id|file> [--json] [--no-cache]
   weave backlinks <path> <id|file> [--json] [--no-cache]
