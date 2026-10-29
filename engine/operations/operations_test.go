@@ -53,8 +53,8 @@ func TestContractDiscovery(t *testing.T) {
 	if info.Contract != operations.ContractVersion || info.CLI != operations.CLIVersion {
 		t.Fatalf("unexpected versions: %+v", info)
 	}
-	if len(info.Operations) != 15 {
-		t.Fatalf("expected 15 operations, got %d", len(info.Operations))
+	if len(info.Operations) != 16 {
+		t.Fatalf("expected 16 operations, got %d", len(info.Operations))
 	}
 	if len(info.Errors) == 0 {
 		t.Fatal("expected error codes")

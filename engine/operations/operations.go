@@ -2,14 +2,20 @@ package operations
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
+	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/compression"
+	"github.com/prulloac/weave/engine/extensions"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
 	"github.com/prulloac/weave/engine/privacy"
@@ -39,6 +45,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpIngest, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
 	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
 	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive", "codec"}, Result: "SyncReport"},
+	{Op: contractv1.OpExtensions, Fields: []string{"path"}, Result: "ExtensionList"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -52,6 +59,10 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrPrivacyKey,
 	contractv1.ErrPrivacyProvider,
 	contractv1.ErrPrivacyDecrypt,
+	contractv1.ErrExtensionMissing,
+	contractv1.ErrExtensionTimeout,
+	contractv1.ErrExtensionFailed,
+	contractv1.ErrExtensionProto,
 	contractv1.ErrInternal,
 }
 
@@ -63,6 +74,7 @@ type Executor struct {
 	Version string
 	Open    OpenFunc
 	Options engine.Options
+	Warn    func(message string)
 }
 
 // New creates an executor with the default engine loader.
@@ -98,6 +110,10 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			Contract:      ContractVersion,
 			CLI:           CLIVersion,
 		})
+	}
+
+	if request.Op == contractv1.OpExtensions {
+		return success(e.listExtensions(request.Path))
 	}
 
 	if request.Path == "" {
@@ -173,6 +189,11 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 				"query": request.Query,
 				"mode":  mode,
 				"top_k": topK,
+			})
+		}
+		if err := e.applyRerank(ctx, request, &result); err != nil {
+			return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+				"extension": request.Rerank,
 			})
 		}
 		return success(result)
@@ -375,6 +396,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"op": request.Op,
 		})
 	}
+	enricher, err := e.newEnricher(request)
+	if err != nil {
+		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+			"extension": request.Enricher,
+		})
+	}
 	options := e.Options
 	options.Permissive = permissive
 	eng, err := engine.Open(ctx, request.Path, options)
@@ -397,9 +424,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -449,7 +476,13 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			"op": request.Op,
 		})
 	}
-	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode, Codec: request.Codec})
+	enricher, err := e.newEnricher(request)
+	if err != nil {
+		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+			"extension": request.Enricher,
+		})
+	}
+	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode, Codec: request.Codec, Enricher: enricher})
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {
 			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
@@ -513,7 +546,7 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 		}
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
 	}
-	return success(contractv1.SearchResponse{
+	response := contractv1.SearchResponse{
 		Query:   request.Query,
 		Mode:    contractv1.SearchBM25,
 		TopK:    topK,
@@ -521,7 +554,13 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 		Fuzzy:   []contractv1.FuzzyHit{},
 		Hybrid:  []contractv1.HybridHit{},
 		Lexical: hits,
-	})
+	}
+	if err := e.applyRerank(ctx, request, &response); err != nil {
+		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+			"extension": request.Rerank,
+		})
+	}
+	return success(response)
 }
 
 func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.OperationRequest) any {
@@ -577,7 +616,7 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
 	}
 	hybrid := search.HybridBM25(lexical, fuzzyResponse.Fuzzy, topK)
-	return success(contractv1.SearchResponse{
+	response := contractv1.SearchResponse{
 		Query:   request.Query,
 		Mode:    contractv1.SearchHybrid,
 		TopK:    topK,
@@ -585,7 +624,13 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 		Fuzzy:   fuzzyResponse.Fuzzy,
 		Hybrid:  hybrid,
 		Lexical: lexical,
-	})
+	}
+	if err := e.applyRerank(ctx, request, &response); err != nil {
+		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+			"extension": request.Rerank,
+		})
+	}
+	return success(response)
 }
 
 func (e *Executor) explainBM25(ctx context.Context, request contractv1.OperationRequest) any {
@@ -795,6 +840,222 @@ func mapStorageError(err error) (contractv1.ErrorCode, string) {
 		return contractv1.ErrInvalidRequest, "database does not exist: " + err.Error()
 	}
 	return contractv1.ErrInvalidRequest, "cannot open database: " + err.Error()
+}
+
+func (e *Executor) warn(format string, args ...any) {
+	if e.Warn == nil {
+		return
+	}
+	e.Warn(fmt.Sprintf(format, args...))
+}
+
+func (e *Executor) listExtensions(root string) contractv1.ExtensionList {
+	discovered := extensions.Discover(root)
+	result := contractv1.ExtensionList{Extensions: make([]contractv1.ExtensionInfo, 0, len(discovered))}
+	for _, extension := range discovered {
+		result.Extensions = append(result.Extensions, contractv1.ExtensionInfo{
+			Name:   extension.Name,
+			Path:   extension.Path,
+			Source: extension.Source,
+		})
+	}
+	return result
+}
+
+func extensionTimeout(request contractv1.OperationRequest) time.Duration {
+	if request.TimeoutMS > 0 {
+		return time.Duration(request.TimeoutMS) * time.Millisecond
+	}
+	return extensions.DefaultTimeout
+}
+
+func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore.Enricher, error) {
+	if request.Enricher == "" {
+		return nil, nil
+	}
+	extension, err := extensions.Resolve(request.Path, request.Enricher)
+	if err != nil {
+		return nil, err
+	}
+	runner := extensions.Runner{Timeout: extensionTimeout(request)}
+	return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
+		title := concept.ID
+		if concept.Title != nil {
+			title = *concept.Title
+		}
+		response, err := runner.Enrich(ctx, extension, extensions.EnrichmentRequest{
+			DocID:       concept.ID,
+			Title:       title,
+			Frontmatter: concept.Frontmatter,
+			Body:        concept.Body,
+		})
+		if err != nil {
+			e.warn("extension %s: %v", extension.Name, err)
+			return sqlitestore.EnrichmentApply{}, err
+		}
+		data, err := json.Marshal(map[string]any{
+			"name":              extension.Name,
+			"inferred_keywords": response.InferredKeywords,
+			"response":          response.CustomMetadata,
+		})
+		if err != nil {
+			return sqlitestore.EnrichmentApply{}, err
+		}
+		return sqlitestore.EnrichmentApply{
+			Enricher: extension.Name,
+			Keywords: mergeKeywords(concept.Keywords, response.InferredKeywords),
+			Data:     data,
+		}, nil
+	}, nil
+}
+
+func mergeKeywords(declared, inferred []string) []string {
+	merged := make([]string, 0, len(declared)+len(inferred))
+	seen := make(map[string]bool, len(declared)+len(inferred))
+	for _, keyword := range append(append([]string{}, declared...), inferred...) {
+		trimmed := strings.TrimSpace(keyword)
+		if trimmed == "" {
+			continue
+		}
+		key := strings.ToLower(trimmed)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		merged = append(merged, trimmed)
+	}
+	return merged
+}
+
+func (e *Executor) applyRerank(
+	ctx context.Context,
+	request contractv1.OperationRequest,
+	response *contractv1.SearchResponse,
+) error {
+	if request.Rerank == "" {
+		return nil
+	}
+	extension, err := extensions.Resolve(request.Path, request.Rerank)
+	if err != nil {
+		return err
+	}
+	mode := request.Mode
+	if mode == "" {
+		mode = contractv1.SearchHybrid
+	}
+	candidates := rerankCandidates(*response, mode)
+	if len(candidates) == 0 {
+		return nil
+	}
+	runner := extensions.Runner{Timeout: extensionTimeout(request)}
+	scores, err := runner.Rerank(ctx, extension, extensions.RerankRequest{
+		Query:      response.Query,
+		Candidates: candidates,
+	})
+	if err != nil {
+		e.warn("extension %s: %v", extension.Name, err)
+		return nil
+	}
+	blendRerank(response, mode, scores)
+	return nil
+}
+
+func rerankCandidates(response contractv1.SearchResponse, mode contractv1.SearchMode) []extensions.Candidate {
+	switch mode {
+	case contractv1.SearchKeyword:
+		candidates := make([]extensions.Candidate, 0, len(response.Keyword))
+		for _, hit := range response.Keyword {
+			candidates = append(candidates, extensions.Candidate{ID: hit.ID, KeywordScore: hit.Score})
+		}
+		return candidates
+	case contractv1.SearchFuzzy:
+		candidates := make([]extensions.Candidate, 0, len(response.Fuzzy))
+		for _, hit := range response.Fuzzy {
+			candidates = append(candidates, extensions.Candidate{ID: hit.ID, FuzzyScore: hit.Score})
+		}
+		return candidates
+	case contractv1.SearchBM25:
+		candidates := make([]extensions.Candidate, 0, len(response.Lexical))
+		for _, hit := range response.Lexical {
+			candidates = append(candidates, extensions.Candidate{ID: hit.ID, LexicalScore: hit.Score})
+		}
+		return candidates
+	default:
+		candidates := make([]extensions.Candidate, 0, len(response.Hybrid))
+		for _, hit := range response.Hybrid {
+			candidates = append(candidates, extensions.Candidate{
+				ID:           hit.ID,
+				KeywordScore: hit.KeywordScore,
+				LexicalScore: hit.LexicalScore,
+				FuzzyScore:   hit.FuzzyScore,
+			})
+		}
+		return candidates
+	}
+}
+
+func blendRerank(
+	response *contractv1.SearchResponse,
+	mode contractv1.SearchMode,
+	scores map[string]float64,
+) {
+	blend := func(core, rerank float64) float64 {
+		return search.RoundScore(0.5*core + 0.5*rerank)
+	}
+	switch mode {
+	case contractv1.SearchKeyword:
+		for index := range response.Keyword {
+			hit := &response.Keyword[index]
+			score := scores[hit.ID]
+			hit.Score = blend(hit.Score, score)
+			hit.RerankScore = &score
+		}
+		sort.SliceStable(response.Keyword, func(i, j int) bool {
+			if response.Keyword[i].Score != response.Keyword[j].Score {
+				return response.Keyword[i].Score > response.Keyword[j].Score
+			}
+			return response.Keyword[i].ID < response.Keyword[j].ID
+		})
+	case contractv1.SearchFuzzy:
+		for index := range response.Fuzzy {
+			hit := &response.Fuzzy[index]
+			score := scores[hit.ID]
+			hit.Score = blend(hit.Score, score)
+			hit.RerankScore = &score
+		}
+		sort.SliceStable(response.Fuzzy, func(i, j int) bool {
+			if response.Fuzzy[i].Score != response.Fuzzy[j].Score {
+				return response.Fuzzy[i].Score > response.Fuzzy[j].Score
+			}
+			return response.Fuzzy[i].ID < response.Fuzzy[j].ID
+		})
+	case contractv1.SearchBM25:
+		for index := range response.Lexical {
+			hit := &response.Lexical[index]
+			score := scores[hit.ID]
+			hit.Score = blend(hit.Score, score)
+			hit.RerankScore = &score
+		}
+		sort.SliceStable(response.Lexical, func(i, j int) bool {
+			if response.Lexical[i].Score != response.Lexical[j].Score {
+				return response.Lexical[i].Score > response.Lexical[j].Score
+			}
+			return response.Lexical[i].ID < response.Lexical[j].ID
+		})
+	default:
+		for index := range response.Hybrid {
+			hit := &response.Hybrid[index]
+			score := scores[hit.ID]
+			hit.TotalScore = blend(hit.TotalScore, score)
+			hit.RerankScore = &score
+		}
+		sort.SliceStable(response.Hybrid, func(i, j int) bool {
+			if response.Hybrid[i].TotalScore != response.Hybrid[j].TotalScore {
+				return response.Hybrid[i].TotalScore > response.Hybrid[j].TotalScore
+			}
+			return response.Hybrid[i].ID < response.Hybrid[j].ID
+		})
+	}
 }
 
 func success(result any) contractv1.SuccessEnvelope {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
@@ -67,6 +68,21 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.Permissive = flags.permissive
 	request.Codec = flags.codec
 	request.Decrypt = flags.decrypt
+	request.Enricher = flags.enricher
+	request.Rerank = flags.rerank
+	if flags.timeoutSet {
+		request.TimeoutMS = flags.timeout.Milliseconds()
+	}
+	if request.Enricher != "" {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:
+		default:
+			return usageError(stdout, stderr, flags.json, "--with-enricher is only valid for ingest, rebuild and sync")
+		}
+	}
+	if request.Rerank != "" && request.Op != contractv1.OpSearch {
+		return usageError(stdout, stderr, flags.json, "--rerank is only valid for search")
+	}
 
 	if !flags.json && request.Path != "" {
 		if warning := privacy.SecurityFileWarning(request.Path); warning != "" {
@@ -75,6 +91,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	executor := operations.New(version, engine.Options{Cache: !flags.noCache})
+	executor.Warn = func(message string) {
+		fmt.Fprintf(stderr, "weave: %s\n", message)
+	}
 	value := executor.Execute(context.Background(), request)
 
 	switch envelope := value.(type) {
@@ -129,6 +148,10 @@ type flags struct {
 	strict      bool
 	permissive  bool
 	codec       string
+	enricher    string
+	rerank      string
+	timeout     time.Duration
+	timeoutSet  bool
 	positionals []string
 }
 
@@ -247,6 +270,32 @@ func parseFlags(args []string) (flags, error) {
 				return result, fmt.Errorf("--codec must be zstd, lz4 or none")
 			}
 			result.codec = value
+		case "--with-enricher":
+			value, next, err := flagValue(args, index, "--with-enricher")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.enricher = value
+		case "--rerank":
+			value, next, err := flagValue(args, index, "--rerank")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.rerank = value
+		case "--timeout":
+			value, next, err := flagValue(args, index, "--timeout")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			duration, err := time.ParseDuration(value)
+			if err != nil || duration <= 0 {
+				return result, fmt.Errorf("--timeout requires a positive duration")
+			}
+			result.timeout = duration
+			result.timeoutSet = true
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -287,6 +336,9 @@ func parseFlags(args []string) (flags, error) {
 	}
 	if result.strict && result.permissive {
 		return result, fmt.Errorf("--strict and --permissive are mutually exclusive")
+	}
+	if result.timeoutSet && result.enricher == "" && result.rerank == "" {
+		return result, fmt.Errorf("--timeout requires --with-enricher or --rerank")
 	}
 	return result, nil
 }
@@ -426,6 +478,21 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Op:   op,
 			Path: flags.positional(0),
 		}, 0, nil
+	case "extensions":
+		if len(flags.positionals) < 1 || flags.positionals[0] != "list" {
+			return contractv1.OperationRequest{}, 0, fmt.Errorf("extensions requires the list subcommand")
+		}
+		if len(flags.positionals) > 2 {
+			return contractv1.OperationRequest{}, 0, fmt.Errorf("extensions list accepts at most one path")
+		}
+		path := ""
+		if len(flags.positionals) == 2 {
+			path = flags.positionals[1]
+		}
+		return contractv1.OperationRequest{
+			Op:   contractv1.OpExtensions,
+			Path: path,
+		}, 0, nil
 	case "sync":
 		if err := requirePositional(command, flags, 1); err != nil {
 			return contractv1.OperationRequest{}, 0, err
@@ -488,6 +555,8 @@ func exitCodeFor(code contractv1.ErrorCode) int {
 	case contractv1.ErrPermissionDenied, contractv1.ErrPrivacyKey,
 		contractv1.ErrPrivacyProvider, contractv1.ErrPrivacyDecrypt:
 		return 3
+	case contractv1.ErrExtensionMissing:
+		return 2
 	default:
 		return 1
 	}
@@ -553,6 +622,12 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 	case contractv1.OpVersion:
 		info := result.(contractv1.VersionInfo)
 		fmt.Fprintf(stdout, "weave %s (contract 1)\n", info.BinaryVersion)
+		return 0
+	case contractv1.OpExtensions:
+		list := result.(contractv1.ExtensionList)
+		for _, extension := range list.Extensions {
+			fmt.Fprintf(stdout, "%-24s %-8s %s\n", extension.Name, extension.Source, extension.Path)
+		}
 		return 0
 	case contractv1.OpParse:
 		bundle := result.(*contractv1.Bundle)
@@ -882,7 +957,7 @@ usage:
   weave contract [--json]
   weave parse <path> [--json] [--no-cache]
   weave graph <path> [--json] [--no-cache]
-  weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--json] [--no-cache]
+  weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--rerank <name>] [--timeout <d>] [--json] [--no-cache]
   weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
   weave show <path> <id|file> [--decrypt] [--json] [--no-cache]
   weave backlinks <path> <id|file> [--json] [--no-cache]
@@ -890,9 +965,10 @@ usage:
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
   weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
   weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
-  weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--json] [--no-cache]
-  weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--json] [--no-cache]
-  weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--json] [--no-cache]
+  weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave extensions list [<path>] [--json]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
   weave --version | --help

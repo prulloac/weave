@@ -39,15 +39,27 @@ type Store struct {
 
 // IngestOptions controls how a bundle is stored.
 type IngestOptions struct {
-	Mode  string // strict | permissive
-	Codec string // zstd | lz4 | none
+	Mode     string // strict | permissive
+	Codec    string // zstd | lz4 | none
+	Enricher Enricher
 }
 
 // SyncOptions controls incremental synchronization.
 type SyncOptions struct {
-	Mode  string // empty keeps the stored mode
-	Codec string // zstd | lz4 | none | empty inherits per row
+	Mode     string // empty keeps the stored mode
+	Codec    string // zstd | lz4 | none | empty inherits per row
+	Enricher Enricher
 }
+
+// EnrichmentApply is the merged result of one enrichment call.
+type EnrichmentApply struct {
+	Enricher string
+	Keywords []string
+	Data     []byte
+}
+
+// Enricher enriches one concept before it is stored.
+type Enricher func(ctx context.Context, concept contractv1.OkfConcept) (EnrichmentApply, error)
 
 // DefaultPath returns the default user database path.
 func DefaultPath() (string, error) {
@@ -278,7 +290,8 @@ func (s *Store) Sync(
 		}
 		switch {
 		case !exists:
-			inserted, err := insertSyncedConcept(ctx, tx, root, concept, codec, now)
+			warnings, _, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, now)
+			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
 					privacySkipped++
@@ -286,15 +299,18 @@ func (s *Store) Sync(
 				}
 				return contractv1.SyncReport{}, err
 			}
-			if inserted {
-				added++
-			}
+			added++
 		case oldHash != hash:
+			previous, err := loadEnrichments(ctx, tx, root, concept.ID)
+			if err != nil {
+				return contractv1.SyncReport{}, err
+			}
 			if _, err := tx.ExecContext(ctx,
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
 			}
-			inserted, err := insertSyncedConcept(ctx, tx, root, concept, codec, now)
+			warnings, enriched, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, now)
+			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
 					privacySkipped++
@@ -302,9 +318,14 @@ func (s *Store) Sync(
 				}
 				return contractv1.SyncReport{}, err
 			}
-			if inserted {
-				updated++
+			if !enriched {
+				for _, row := range previous {
+					if err := insertEnrichment(ctx, tx, root, concept.ID, row.EnricherID, []byte(row.Data)); err != nil {
+						return contractv1.SyncReport{}, err
+					}
+				}
 			}
+			updated++
 		default:
 			skipped++
 		}
@@ -408,6 +429,81 @@ func (s *Store) documentCodecs(ctx context.Context, root string) (map[string]str
 	return codecs, rows.Err()
 }
 
+func loadEnrichments(ctx context.Context, tx *sql.Tx, root, docID string) ([]storedEnrichmentRow, error) {
+	rows, err := tx.QueryContext(ctx, `
+		SELECT enricher_id, data_json FROM enrichments
+		WHERE bundle_root = ? AND doc_id = ?`, root, docID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	stored := make([]storedEnrichmentRow, 0)
+	for rows.Next() {
+		var row storedEnrichmentRow
+		if err := rows.Scan(&row.EnricherID, &row.Data); err != nil {
+			return nil, err
+		}
+		stored = append(stored, row)
+	}
+	return stored, rows.Err()
+}
+
+type storedEnrichmentRow struct {
+	EnricherID string
+	Data       string
+}
+
+func (s *Store) mergeEnrichmentKeywords(
+	ctx context.Context,
+	root string,
+	concepts []contractv1.OkfConcept,
+) error {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT doc_id, data_json FROM enrichments WHERE bundle_root = ?`, root)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type storedEnrichment struct {
+		InferredKeywords []string `json:"inferred_keywords"`
+	}
+	byDocument := make(map[string][]string)
+	for rows.Next() {
+		var docID, data string
+		if err := rows.Scan(&docID, &data); err != nil {
+			return err
+		}
+		var stored storedEnrichment
+		if err := json.Unmarshal([]byte(data), &stored); err != nil {
+			continue
+		}
+		byDocument[docID] = append(byDocument[docID], stored.InferredKeywords...)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for index := range concepts {
+		inferred := byDocument[concepts[index].ID]
+		if len(inferred) == 0 {
+			continue
+		}
+		seen := make(map[string]bool, len(concepts[index].Keywords))
+		for _, keyword := range concepts[index].Keywords {
+			seen[strings.ToLower(keyword)] = true
+		}
+		for _, keyword := range inferred {
+			key := strings.ToLower(keyword)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			concepts[index].Keywords = append(concepts[index].Keywords, keyword)
+		}
+	}
+	return nil
+}
+
 // HasBundle reports whether a bundle root is indexed.
 func (s *Store) HasBundle(ctx context.Context, bundleRoot string) (bool, error) {
 	root, err := normalizeRoot(bundleRoot)
@@ -469,6 +565,9 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 		concepts = append(concepts, concept)
 	}
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.mergeEnrichmentKeywords(ctx, root, concepts); err != nil {
 		return nil, err
 	}
 
@@ -569,13 +668,18 @@ func (s *Store) writeBundle(
 	}
 
 	now := time.Now().Unix()
-	prepared, skipped, err := prepareConcepts(root, bundle.Concepts, mode == "permissive", codec)
+	prepared, skipped, err := prepareConcepts(ctx, root, bundle.Concepts, mode == "permissive", codec, options.Enricher)
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
 	for _, item := range prepared {
 		if err := insertConcept(ctx, tx, root, item, now); err != nil {
 			return contractv1.IngestReport{}, err
+		}
+		if item.enricherID != "" && len(item.enrichment) > 0 {
+			if err := insertEnrichment(ctx, tx, root, item.concept.ID, item.enricherID, item.enrichment); err != nil {
+				return contractv1.IngestReport{}, err
+			}
 		}
 	}
 
@@ -1108,61 +1212,102 @@ func insertSyncedConcept(
 	root string,
 	concept contractv1.OkfConcept,
 	codec string,
+	enricher Enricher,
 	now int64,
-) (bool, error) {
+) (int, bool, error) {
 	result, err := privacy.Apply(root, concept)
 	if err != nil {
-		return false, err
+		return 0, false, err
 	}
-	if err := insertConcept(ctx, tx, root, preparedConcept{
+	item := preparedConcept{
 		concept:   concept,
 		body:      result.Body,
 		codec:     codec,
 		directive: result.Directive,
 		redacted:  result.Redacted,
 		spans:     result.Spans,
-	}, now); err != nil {
-		return false, err
 	}
-	return true, nil
+	warnings := 0
+	if enricher != nil {
+		apply, err := enricher(ctx, concept)
+		if err != nil {
+			warnings++
+		} else {
+			item.concept.Keywords = apply.Keywords
+			item.enricherID = apply.Enricher
+			item.enrichment = apply.Data
+		}
+	}
+	if err := insertConcept(ctx, tx, root, item, now); err != nil {
+		return warnings, false, err
+	}
+	if item.enricherID != "" && len(item.enrichment) > 0 {
+		if err := insertEnrichment(ctx, tx, root, item.concept.ID, item.enricherID, item.enrichment); err != nil {
+			return warnings, false, err
+		}
+		return warnings, true, nil
+	}
+	return warnings, false, nil
+}
+
+func insertEnrichment(ctx context.Context, tx *sql.Tx, root, docID, enricherID string, data []byte) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT OR REPLACE INTO enrichments (bundle_root, doc_id, enricher_id, data_json)
+		VALUES (?, ?, ?, ?)`, root, docID, enricherID, string(data))
+	return err
 }
 
 type preparedConcept struct {
-	concept   contractv1.OkfConcept
-	body      string
-	codec     string
-	directive *contractv1.PrivacyDirective
-	redacted  bool
-	spans     []privacy.Span
+	concept    contractv1.OkfConcept
+	body       string
+	codec      string
+	directive  *contractv1.PrivacyDirective
+	redacted   bool
+	spans      []privacy.Span
+	enricherID string
+	enrichment []byte
 }
 
 func prepareConcepts(
+	ctx context.Context,
 	root string,
 	concepts []contractv1.OkfConcept,
 	permissive bool,
 	codec string,
+	enricher Enricher,
 ) ([]preparedConcept, int, error) {
 	prepared := make([]preparedConcept, 0, len(concepts))
-	skipped := 0
+	warnings := 0
 	for _, concept := range concepts {
 		result, err := privacy.Apply(root, concept)
 		if err != nil {
 			if errors.Is(err, privacy.ErrKeyUnavailable) && permissive {
-				skipped++
+				warnings++
 				continue
 			}
 			return nil, 0, err
 		}
-		prepared = append(prepared, preparedConcept{
+		item := preparedConcept{
 			concept:   concept,
 			body:      result.Body,
 			codec:     codec,
 			directive: result.Directive,
 			redacted:  result.Redacted,
 			spans:     result.Spans,
-		})
+		}
+		if enricher != nil {
+			apply, err := enricher(ctx, concept)
+			if err != nil {
+				warnings++
+			} else {
+				item.concept.Keywords = apply.Keywords
+				item.enricherID = apply.Enricher
+				item.enrichment = apply.Data
+			}
+		}
+		prepared = append(prepared, item)
 	}
-	return prepared, skipped, nil
+	return prepared, warnings, nil
 }
 
 func conceptsOf(prepared []preparedConcept) []contractv1.OkfConcept {
