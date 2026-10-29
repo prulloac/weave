@@ -90,6 +90,10 @@ Rules:
 - A file-level `privacy` block and inline directives are mutually exclusive. Frontmatter wins and the
   inline directives are dropped with a `PRIVACY_DIRECTIVE_CONFLICT` warning.
 - Unknown `policy` or `provider` values are `PRIVACY_DIRECTIVE_INVALID`.
+- `encoded: true` marks a body that is already an `enc:v1:` envelope (produced by encrypted bundle
+  export). It is valid only with `policy: encrypt`; the body is stored verbatim instead of being
+  encrypted again. Any other combination is `PRIVACY_DIRECTIVE_INVALID`. This flag ships with
+  [Bundle Export](./bundle-export.md).
 
 ### 2.2 Contract types
 
