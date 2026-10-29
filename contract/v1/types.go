@@ -100,6 +100,7 @@ const (
 	OpVersion   OperationName = "version"
 	OpAudit     OperationName = "audit"
 	OpRelate    OperationName = "relate"
+	OpExplain   OperationName = "explain"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -332,6 +333,74 @@ type RelateResult struct {
 	Depth     int             `json:"depth"`
 	Nodes     []GraphNode     `json:"nodes"`
 	Edges     []RelateEdge    `json:"edges"`
+}
+
+type ExplainKeywordMatch string
+
+const (
+	ExplainMatchExact  ExplainKeywordMatch = "exact"
+	ExplainMatchPrefix ExplainKeywordMatch = "prefix"
+	ExplainMatchNone   ExplainKeywordMatch = "none"
+)
+
+// ExplainKeywordToken is per-query-token keyword evidence.
+type ExplainKeywordToken struct {
+	QueryToken     string              `json:"query_token"`
+	MatchedKeyword string              `json:"matched_keyword"`
+	Match          ExplainKeywordMatch `json:"match"`
+	Score          float64             `json:"score"`
+}
+
+// ExplainKeyword is the keyword component of an explanation.
+type ExplainKeyword struct {
+	Score           float64               `json:"score"`
+	MatchedKeywords []string              `json:"matched_keywords"`
+	Tokens          []ExplainKeywordToken `json:"tokens"`
+}
+
+// ExplainFuzzyField is one field's fuzzy score and weighted contribution.
+type ExplainFuzzyField struct {
+	Field        SearchField `json:"field"`
+	Score        float64     `json:"score"`
+	Weight       float64     `json:"weight"`
+	Contribution float64     `json:"contribution"`
+}
+
+// ExplainFuzzyToken is per-query-token fuzzy evidence.
+type ExplainFuzzyToken struct {
+	QueryToken   string      `json:"query_token"`
+	MatchedToken string      `json:"matched_token"`
+	Field        SearchField `json:"field"`
+	Similarity   float64     `json:"similarity"`
+}
+
+// ExplainFuzzy is the fuzzy component of an explanation.
+type ExplainFuzzy struct {
+	Score         float64             `json:"score"`
+	MatchedFields []SearchField       `json:"matched_fields"`
+	Fields        []ExplainFuzzyField `json:"fields"`
+	Tokens        []ExplainFuzzyToken `json:"tokens"`
+	Snippet       *string             `json:"snippet,omitempty"`
+}
+
+// ExplainHybrid is the hybrid component of an explanation.
+type ExplainHybrid struct {
+	KeywordWeight float64 `json:"keyword_weight"`
+	FuzzyWeight   float64 `json:"fuzzy_weight"`
+	Total         float64 `json:"total"`
+}
+
+// ExplainResult is the result of `weave explain`.
+type ExplainResult struct {
+	Query   string         `json:"query"`
+	Mode    SearchMode     `json:"mode"`
+	TopK    int            `json:"top_k"`
+	ID      string         `json:"id"`
+	Rank    int            `json:"rank"`
+	Found   bool           `json:"found"`
+	Keyword ExplainKeyword `json:"keyword"`
+	Fuzzy   ExplainFuzzy   `json:"fuzzy"`
+	Hybrid  ExplainHybrid  `json:"hybrid"`
 }
 
 // OperationDescriptor describes one machine operation for discovery.

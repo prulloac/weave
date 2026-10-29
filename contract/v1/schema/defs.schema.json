@@ -51,6 +51,10 @@
 			"type": "string",
 			"enum": ["out", "in", "both"]
 		},
+		"ExplainKeywordMatch": {
+			"type": "string",
+			"enum": ["exact", "prefix", "none"]
+		},
 		"ErrorCode": {
 			"type": "string",
 			"enum": [
@@ -76,7 +80,8 @@
 				"path",
 				"version",
 				"audit",
-				"relate"
+				"relate",
+				"explain"
 			]
 		},
 		"OkfLink": {
@@ -504,6 +509,112 @@
 					"type": "array",
 					"items": { "$ref": "#/$defs/RelateEdge" }
 				}
+			}
+		},
+		"ExplainKeywordToken": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["query_token", "matched_keyword", "match", "score"],
+			"properties": {
+				"query_token": { "type": "string" },
+				"matched_keyword": { "type": "string" },
+				"match": { "$ref": "#/$defs/ExplainKeywordMatch" },
+				"score": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
+		"ExplainKeyword": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["score", "matched_keywords", "tokens"],
+			"properties": {
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"matched_keywords": {
+					"type": "array",
+					"items": { "type": "string" }
+				},
+				"tokens": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/ExplainKeywordToken" }
+				}
+			}
+		},
+		"ExplainFuzzyField": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["field", "score", "weight", "contribution"],
+			"properties": {
+				"field": { "$ref": "#/$defs/SearchField" },
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"weight": { "type": "number", "minimum": 0, "maximum": 1 },
+				"contribution": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
+		"ExplainFuzzyToken": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["query_token", "matched_token", "field", "similarity"],
+			"properties": {
+				"query_token": { "type": "string" },
+				"matched_token": { "type": "string" },
+				"field": { "$ref": "#/$defs/SearchField" },
+				"similarity": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
+		"ExplainFuzzy": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["score", "matched_fields", "fields", "tokens"],
+			"properties": {
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"matched_fields": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/SearchField" }
+				},
+				"fields": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/ExplainFuzzyField" }
+				},
+				"tokens": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/ExplainFuzzyToken" }
+				},
+				"snippet": { "type": "string" }
+			}
+		},
+		"ExplainHybrid": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["keyword_weight", "fuzzy_weight", "total"],
+			"properties": {
+				"keyword_weight": { "type": "number", "minimum": 0, "maximum": 1 },
+				"fuzzy_weight": { "type": "number", "minimum": 0, "maximum": 1 },
+				"total": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
+		"ExplainResult": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"query",
+				"mode",
+				"top_k",
+				"id",
+				"rank",
+				"found",
+				"keyword",
+				"fuzzy",
+				"hybrid"
+			],
+			"properties": {
+				"query": { "type": "string" },
+				"mode": { "$ref": "#/$defs/SearchMode" },
+				"top_k": { "type": "integer", "minimum": 1, "maximum": 100 },
+				"id": { "type": "string" },
+				"rank": { "type": "integer", "minimum": 0 },
+				"found": { "type": "boolean" },
+				"keyword": { "$ref": "#/$defs/ExplainKeyword" },
+				"fuzzy": { "$ref": "#/$defs/ExplainFuzzy" },
+				"hybrid": { "$ref": "#/$defs/ExplainHybrid" }
 			}
 		},
 		"OperationDescriptor": {

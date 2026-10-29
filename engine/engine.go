@@ -60,6 +60,15 @@ func (e *Engine) Search(query string, mode contractv1.SearchMode, topK int) (con
 	return search.Search(e.search, query, mode, topK)
 }
 
+func (e *Engine) Explain(
+	query string,
+	mode contractv1.SearchMode,
+	topK int,
+	target string,
+) (contractv1.ExplainResult, error) {
+	return search.Explain(e.search, query, mode, topK, target)
+}
+
 func (e *Engine) List(filters nav.ListFilters) []contractv1.ListResult {
 	return nav.List(e.bundle, filters)
 }

@@ -84,17 +84,10 @@ func keywordSearch(index *Index, queryTokens []string, topK int) []contractv1.Ke
 	for queryPosition, queryToken := range queryTokens {
 		scores[queryPosition] = make(map[int]float64)
 		origins[queryPosition] = make(map[int]string)
-		minimumLength := utf8.RuneCountInString(queryToken)
 
 		for token, postings := range index.KeywordPostings {
-			tokenLength := utf8.RuneCountInString(token)
-			score := 0.0
-			switch {
-			case token == queryToken:
-				score = keywordExact
-			case strings.HasPrefix(token, queryToken) && tokenLength > minimumLength:
-				score = keywordPrefix
-			default:
+			score, _ := keywordTokenScore(queryToken, token)
+			if score == 0 {
 				continue
 			}
 

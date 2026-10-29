@@ -20,6 +20,7 @@ contract/v1/
 │   ├── path.schema.json
 │   ├── audit.schema.json
 │   ├── relate.schema.json
+│   ├── explain.schema.json
 │   ├── error.schema.json
 │   ├── envelope.schema.json
 │   └── cli.schema.json

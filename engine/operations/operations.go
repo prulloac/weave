@@ -11,6 +11,7 @@ import (
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
 	"github.com/prulloac/weave/engine/relate"
+	"github.com/prulloac/weave/engine/search"
 )
 
 const (
@@ -30,6 +31,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpVersion, Fields: []string{}, Result: "VersionInfo"},
 	{Op: contractv1.OpAudit, Fields: []string{"path", "fail_on", "verify_keys"}, Result: "AuditReport"},
 	{Op: contractv1.OpRelate, Fields: []string{"path", "target", "depth", "direction"}, Result: "RelateResult"},
+	{Op: contractv1.OpExplain, Fields: []string{"path", "query", "target", "mode", "top_k"}, Result: "ExplainResult"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -209,6 +211,32 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 				})
 			default:
 				return failure(contractv1.ErrInternal, err.Error(), map[string]any{"target": id})
+			}
+		}
+		return success(result)
+	case contractv1.OpExplain:
+		topK := 10
+		if request.TopK != nil {
+			topK = *request.TopK
+		}
+		mode := request.Mode
+		if mode == "" {
+			mode = contractv1.SearchHybrid
+		}
+		result, err := eng.Explain(request.Query, mode, topK, request.Target)
+		if err != nil {
+			switch {
+			case errors.Is(err, search.ErrConceptNotFound), errors.Is(err, search.ErrNoResult), errors.Is(err, search.ErrEmptyQuery):
+				return failure(contractv1.ErrConceptNotFound, err.Error(), map[string]any{
+					"query": request.Query,
+					"id":    request.Target,
+				})
+			default:
+				return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+					"query": request.Query,
+					"mode":  mode,
+					"top_k": topK,
+				})
 			}
 		}
 		return success(result)

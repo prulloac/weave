@@ -373,6 +373,29 @@ func TestContractTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "relate.schema.json", relate)
 
+	explain := ExplainResult{
+		Query: "oauth", Mode: SearchHybrid, TopK: 10, ID: "a", Rank: 1, Found: true,
+		Keyword: ExplainKeyword{
+			Score: 1, MatchedKeywords: []string{"oauth"},
+			Tokens: []ExplainKeywordToken{{
+				QueryToken: "oauth", MatchedKeyword: "oauth",
+				Match: ExplainMatchExact, Score: 1,
+			}},
+		},
+		Fuzzy: ExplainFuzzy{
+			Score: score, MatchedFields: matchedFields,
+			Fields: []ExplainFuzzyField{{
+				Field: FieldTitle, Score: 1, Weight: 1, Contribution: 0.5263,
+			}},
+			Tokens: []ExplainFuzzyToken{{
+				QueryToken: "tokn", MatchedToken: "token", Field: FieldTitle, Similarity: 0.8,
+			}},
+			Snippet: &snippet,
+		},
+		Hybrid: ExplainHybrid{KeywordWeight: 0.5, FuzzyWeight: 0.5, Total: 0.9},
+	}
+	marshalValidate(t, compiler, "explain.schema.json", explain)
+
 	success := SuccessEnvelope{
 		Contract: "weave.contract/v1",
 		CLI:      "weave.cli/v1",

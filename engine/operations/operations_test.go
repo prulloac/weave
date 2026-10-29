@@ -53,8 +53,8 @@ func TestContractDiscovery(t *testing.T) {
 	if info.Contract != operations.ContractVersion || info.CLI != operations.CLIVersion {
 		t.Fatalf("unexpected versions: %+v", info)
 	}
-	if len(info.Operations) != 11 {
-		t.Fatalf("expected 11 operations, got %d", len(info.Operations))
+	if len(info.Operations) != 12 {
+		t.Fatalf("expected 12 operations, got %d", len(info.Operations))
 	}
 	if len(info.Errors) == 0 {
 		t.Fatal("expected error codes")
@@ -106,6 +106,25 @@ func TestRelate(t *testing.T) {
 	}
 	if len(relate.Nodes) != 3 {
 		t.Fatalf("expected 3 nodes, got %d", len(relate.Nodes))
+	}
+}
+
+func TestExplain(t *testing.T) {
+	topK := 10
+	result := successResult(t, executor().Execute(context.Background(), contractv1.OperationRequest{
+		Op:     contractv1.OpExplain,
+		Path:   filepath.Join("..", "search", "testdata", "bundle"),
+		Query:  "oauth",
+		Target: "oauth-token-rotation",
+		Mode:   contractv1.SearchHybrid,
+		TopK:   &topK,
+	}))
+	explain, ok := result.(contractv1.ExplainResult)
+	if !ok {
+		t.Fatalf("expected ExplainResult, got %T", result)
+	}
+	if !explain.Found || explain.ID != "oauth-token-rotation" {
+		t.Fatalf("unexpected explanation: %+v", explain)
 	}
 }
 
