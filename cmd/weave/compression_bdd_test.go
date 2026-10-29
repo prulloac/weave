@@ -420,6 +420,24 @@ func TestCompressionSearchParity(t *testing.T) {
 		t.Fatal("expected fuzzy hits on compressed bodies")
 	}
 
+	code, stdout, stderr = invokeRaw(t, "search", root, "compressible", "--db", db, "--mode", "bm25", "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("bm25 exit=%d stderr=%q", code, stderr)
+	}
+	var lexical contractv1.SearchResponse
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &lexical); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, hit := range lexical.Lexical {
+		if hit.ID == "large" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected BM25 hits on decompressed bodies")
+	}
+
 	code, stdout, stderr = invokeRaw(t, "explain", root, "compressible", "--db", db, "--mode", "fuzzy", "--id", "large", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("explain exit=%d stderr=%q", code, stderr)

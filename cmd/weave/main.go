@@ -12,6 +12,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/audit"
+	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/operations"
 	"github.com/prulloac/weave/engine/privacy"
 )
@@ -64,6 +65,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.NoDB = flags.noDB
 	request.Strict = flags.strict
 	request.Permissive = flags.permissive
+	request.Codec = flags.codec
 	request.Decrypt = flags.decrypt
 
 	if !flags.json && request.Path != "" {
@@ -126,6 +128,7 @@ type flags struct {
 	noDB        bool
 	strict      bool
 	permissive  bool
+	codec       string
 	positionals []string
 }
 
@@ -234,6 +237,16 @@ func parseFlags(args []string) (flags, error) {
 			result.strict = true
 		case "--permissive":
 			result.permissive = true
+		case "--codec":
+			value, next, err := flagValue(args, index, "--codec")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			if !compression.Valid(value) {
+				return result, fmt.Errorf("--codec must be zstd, lz4 or none")
+			}
+			result.codec = value
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -877,9 +890,9 @@ usage:
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
   weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
   weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
-  weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
-  weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
-  weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+  weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--json] [--no-cache]
+  weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--json] [--no-cache]
+  weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--json] [--no-cache]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
   weave --version | --help

@@ -545,6 +545,7 @@ type OperationRequest struct {
 	NoDB       bool            `json:"no_db,omitempty"`
 	Strict     bool            `json:"strict,omitempty"`
 	Permissive bool            `json:"permissive,omitempty"`
+	Codec      string          `json:"codec,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

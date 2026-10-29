@@ -9,6 +9,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/audit"
+	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
 	"github.com/prulloac/weave/engine/privacy"
@@ -35,9 +36,9 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpAudit, Fields: []string{"path", "fail_on", "verify_keys"}, Result: "AuditReport"},
 	{Op: contractv1.OpRelate, Fields: []string{"path", "target", "depth", "direction"}, Result: "RelateResult"},
 	{Op: contractv1.OpExplain, Fields: []string{"path", "query", "target", "mode", "top_k"}, Result: "ExplainResult"},
-	{Op: contractv1.OpIngest, Fields: []string{"path", "db", "strict"}, Result: "IngestReport"},
-	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict"}, Result: "IngestReport"},
-	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive"}, Result: "SyncReport"},
+	{Op: contractv1.OpIngest, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
+	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
+	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive", "codec"}, Result: "SyncReport"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -368,6 +369,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	if permissive {
 		mode = "permissive"
 	}
+	codec := request.Codec
+	if codec != "" && !compression.Valid(codec) {
+		return failure(contractv1.ErrInvalidRequest, "codec must be zstd, lz4 or none", map[string]any{
+			"op": request.Op,
+		})
+	}
 	options := e.Options
 	options.Permissive = permissive
 	eng, err := engine.Open(ctx, request.Path, options)
@@ -390,9 +397,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -437,7 +444,12 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	} else if request.Permissive {
 		mode = "permissive"
 	}
-	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode})
+	if request.Codec != "" && !compression.Valid(request.Codec) {
+		return failure(contractv1.ErrInvalidRequest, "codec must be zstd, lz4 or none", map[string]any{
+			"op": request.Op,
+		})
+	}
+	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode, Codec: request.Codec})
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {
 			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{

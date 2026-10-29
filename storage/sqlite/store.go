@@ -17,6 +17,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/okf"
 	"github.com/prulloac/weave/engine/privacy"
@@ -38,12 +39,14 @@ type Store struct {
 
 // IngestOptions controls how a bundle is stored.
 type IngestOptions struct {
-	Mode string // strict | permissive
+	Mode  string // strict | permissive
+	Codec string // zstd | lz4 | none
 }
 
 // SyncOptions controls incremental synchronization.
 type SyncOptions struct {
-	Mode string // empty keeps the stored mode
+	Mode  string // empty keeps the stored mode
+	Codec string // zstd | lz4 | none | empty inherits per row
 }
 
 // DefaultPath returns the default user database path.
@@ -227,6 +230,13 @@ func (s *Store) Sync(
 	if err != nil {
 		return contractv1.SyncReport{}, err
 	}
+	codecs, err := s.documentCodecs(ctx, root)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	if options.Codec != "" && !compression.Valid(options.Codec) {
+		return contractv1.SyncReport{}, fmt.Errorf("codec must be zstd, lz4 or none")
+	}
 
 	added, updated, removed, skipped := 0, 0, 0, 0
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -258,9 +268,17 @@ func (s *Store) Sync(
 	for path, concept := range current {
 		hash := contentHash(root, concept)
 		oldHash, exists := existing[path]
+		codec := options.Codec
+		if codec == "" {
+			if stored, ok := codecs[path]; ok && stored != "" {
+				codec = stored
+			} else {
+				codec = string(compression.CodecZstd)
+			}
+		}
 		switch {
 		case !exists:
-			inserted, err := insertSyncedConcept(ctx, tx, root, concept, now)
+			inserted, err := insertSyncedConcept(ctx, tx, root, concept, codec, now)
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
 					privacySkipped++
@@ -276,7 +294,7 @@ func (s *Store) Sync(
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
 			}
-			inserted, err := insertSyncedConcept(ctx, tx, root, concept, now)
+			inserted, err := insertSyncedConcept(ctx, tx, root, concept, codec, now)
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
 					privacySkipped++
@@ -371,6 +389,25 @@ func (s *Store) documentHashes(ctx context.Context, root string) (map[string]str
 	return hashes, rows.Err()
 }
 
+func (s *Store) documentCodecs(ctx context.Context, root string) (map[string]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT file_path, body_codec FROM documents WHERE bundle_root = ?", root)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	codecs := make(map[string]string)
+	for rows.Next() {
+		var path, codec string
+		if err := rows.Scan(&path, &codec); err != nil {
+			return nil, err
+		}
+		codecs[path] = codec
+	}
+	return codecs, rows.Err()
+}
+
 // HasBundle reports whether a bundle root is indexed.
 func (s *Store) HasBundle(ctx context.Context, bundleRoot string) (bool, error) {
 	root, err := normalizeRoot(bundleRoot)
@@ -412,7 +449,7 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, file_path, title, description, doc_type, keywords_json,
 		       frontmatter_json, tags_json, status, links_json, body_compressed,
-		       privacy_policy, privacy_provider, privacy_key_id
+		       privacy_policy, privacy_provider, privacy_key_id, body_codec
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return nil, err
@@ -420,10 +457,14 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	defer rows.Close()
 
 	concepts := make([]contractv1.OkfConcept, 0)
+	decodeWarnings := make([]string, 0)
 	for rows.Next() {
-		concept, err := scanConcept(rows)
+		concept, warning, err := scanConcept(rows)
 		if err != nil {
 			return nil, err
+		}
+		if warning != "" {
+			decodeWarnings = append(decodeWarnings, warning)
 		}
 		concepts = append(concepts, concept)
 	}
@@ -456,6 +497,7 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 		return nil, err
 	}
 	validation.Permissive = mode == "permissive"
+	validation.Warnings = append(validation.Warnings, decodeWarnings...)
 
 	bundle := &contractv1.Bundle{
 		Root:       root,
@@ -489,6 +531,13 @@ func (s *Store) writeBundle(
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	codec := options.Codec
+	if codec == "" {
+		codec = string(compression.CodecZstd)
+	}
+	if !compression.Valid(codec) {
+		return contractv1.IngestReport{}, fmt.Errorf("codec must be zstd, lz4 or none")
+	}
 
 	indexJSON, err := json.Marshal(bundle.Index)
 	if err != nil {
@@ -520,7 +569,7 @@ func (s *Store) writeBundle(
 	}
 
 	now := time.Now().Unix()
-	prepared, skipped, err := prepareConcepts(root, bundle.Concepts, mode == "permissive")
+	prepared, skipped, err := prepareConcepts(root, bundle.Concepts, mode == "permissive", codec)
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
@@ -567,20 +616,20 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 		return err
 	}
 	rows, err := tx.QueryContext(ctx, `
-		SELECT id, title, keywords_json, description, body_compressed, privacy_policy
+		SELECT id, title, keywords_json, description, body_compressed, body_codec, privacy_policy
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return err
 	}
 	type ftsRow struct {
-		id, title, keywords, body, policy string
-		description                       sql.NullString
+		id, title, keywords, body, policy, codec string
+		description                              sql.NullString
 	}
 	entries := make([]ftsRow, 0)
 	for rows.Next() {
 		var entry ftsRow
 		if err := rows.Scan(&entry.id, &entry.title, &entry.keywords, &entry.description,
-			&entry.body, &entry.policy); err != nil {
+			&entry.body, &entry.codec, &entry.policy); err != nil {
 			rows.Close()
 			return err
 		}
@@ -596,15 +645,19 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 		if contractv1.PrivacyPolicy(entry.policy) == contractv1.PrivacyEncrypt {
 			continue
 		}
+		decoded, err := compression.Decode(compression.Codec(entry.codec), []byte(entry.body))
+		if err != nil {
+			decoded = nil
+		}
 		var keywords []string
 		if err := json.Unmarshal([]byte(entry.keywords), &keywords); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `
+		_, err = tx.ExecContext(ctx, `
 			INSERT INTO fts_documents (bundle_root, id, title, keywords, description, body)
 			VALUES (?, ?, ?, ?, ?, ?)`,
 			root, entry.id, entry.title, strings.Join(keywords, " "),
-			entry.description.String, search.StripMarkdown(entry.body))
+			entry.description.String, search.StripMarkdown(string(decoded)))
 		if err != nil {
 			return err
 		}
@@ -1030,6 +1083,11 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 			keyID = item.spans[0].KeyID
 		}
 	}
+	encrypted := item.directive != nil && item.directive.Policy == contractv1.PrivacyEncrypt
+	blob, storedCodec, err := compression.Encode(compression.Codec(item.codec), []byte(item.body), encrypted)
+	if err != nil {
+		return err
+	}
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO documents (
@@ -1040,7 +1098,7 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, concept.ID, concept.Path, contentHash(root, concept), title, description, concept.Type,
 		string(keywords), string(frontmatter), string(tags), status, string(links),
-		[]byte(item.body), "none", policy, provider, keyID, boolInt(item.redacted), string(spans), now)
+		blob, string(storedCodec), policy, provider, keyID, boolInt(item.redacted), string(spans), now)
 	return err
 }
 
@@ -1049,6 +1107,7 @@ func insertSyncedConcept(
 	tx *sql.Tx,
 	root string,
 	concept contractv1.OkfConcept,
+	codec string,
 	now int64,
 ) (bool, error) {
 	result, err := privacy.Apply(root, concept)
@@ -1058,6 +1117,7 @@ func insertSyncedConcept(
 	if err := insertConcept(ctx, tx, root, preparedConcept{
 		concept:   concept,
 		body:      result.Body,
+		codec:     codec,
 		directive: result.Directive,
 		redacted:  result.Redacted,
 		spans:     result.Spans,
@@ -1070,6 +1130,7 @@ func insertSyncedConcept(
 type preparedConcept struct {
 	concept   contractv1.OkfConcept
 	body      string
+	codec     string
 	directive *contractv1.PrivacyDirective
 	redacted  bool
 	spans     []privacy.Span
@@ -1079,6 +1140,7 @@ func prepareConcepts(
 	root string,
 	concepts []contractv1.OkfConcept,
 	permissive bool,
+	codec string,
 ) ([]preparedConcept, int, error) {
 	prepared := make([]preparedConcept, 0, len(concepts))
 	skipped := 0
@@ -1094,6 +1156,7 @@ func prepareConcepts(
 		prepared = append(prepared, preparedConcept{
 			concept:   concept,
 			body:      result.Body,
+			codec:     codec,
 			directive: result.Directive,
 			redacted:  result.Redacted,
 			spans:     result.Spans,
@@ -1161,26 +1224,33 @@ func collectEdges(bundle *contractv1.Bundle) ([]storedEdge, error) {
 	return edges, nil
 }
 
-func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, error) {
+func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 	var (
 		concept                                            contractv1.OkfConcept
 		title                                              string
 		description, docType, status                       sql.NullString
 		policy, provider, keyID                            sql.NullString
+		codec                                              string
 		keywordsJSON, frontmatterJSON, tagsJSON, linksJSON string
 		body                                               []byte
 	)
 	if err := rows.Scan(
 		&concept.ID, &concept.Path, &title, &description, &docType,
 		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &body,
-		&policy, &provider, &keyID,
+		&policy, &provider, &keyID, &codec,
 	); err != nil {
-		return contractv1.OkfConcept{}, err
+		return contractv1.OkfConcept{}, "", err
+	}
+	decoded, err := compression.Decode(compression.Codec(codec), body)
+	warning := ""
+	if err != nil {
+		decoded = nil
+		warning = "BODY_DECODE_FAILED"
 	}
 	concept.Title = optionalString(title)
 	concept.Description = optionalString(description.String)
 	concept.Type = docType.String
-	concept.Body = string(body)
+	concept.Body = string(decoded)
 	if policy.Valid && policy.String != "" && policy.String != "none" {
 		concept.Privacy = &contractv1.PrivacyDirective{
 			Policy:   contractv1.PrivacyPolicy(policy.String),
@@ -1189,22 +1259,22 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, error) {
 		}
 	}
 	if err := json.Unmarshal([]byte(keywordsJSON), &concept.Keywords); err != nil {
-		return contractv1.OkfConcept{}, err
+		return contractv1.OkfConcept{}, "", err
 	}
 	if err := json.Unmarshal([]byte(frontmatterJSON), &concept.Frontmatter); err != nil {
-		return contractv1.OkfConcept{}, err
+		return contractv1.OkfConcept{}, "", err
 	}
 	if err := json.Unmarshal([]byte(tagsJSON), &concept.Tags); err != nil {
-		return contractv1.OkfConcept{}, err
+		return contractv1.OkfConcept{}, "", err
 	}
 	if err := json.Unmarshal([]byte(linksJSON), &concept.Links); err != nil {
-		return contractv1.OkfConcept{}, err
+		return contractv1.OkfConcept{}, "", err
 	}
 	if status.Valid && status.String != "" {
 		value := contractv1.ConceptStatus(status.String)
 		concept.Status = &value
 	}
-	return concept, nil
+	return concept, warning, nil
 }
 
 func contentHash(root string, concept contractv1.OkfConcept) string {
