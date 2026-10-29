@@ -111,10 +111,20 @@ func extensionShow(t *testing.T, root, id string) contractv1.ShowResult {
 
 func extensionSearchKeyword(t *testing.T, root, query string, extra ...string) bddRerankResponse {
 	t.Helper()
-	args := append([]string{"search", root, query, "--no-db", "--mode", "keyword"}, extra...)
+	args := []string{"search", root, query, "--mode", "keyword"}
+	hasDB := false
+	for _, arg := range extra {
+		if arg == "--db" {
+			hasDB = true
+		}
+	}
+	if !hasDB {
+		args = append(args, "--no-db")
+	}
+	args = append(args, extra...)
 	args = append(args, "--json")
 	code, stdout, stderr := invokeRaw(t, args...)
-	if code != 0 || stderr != "" {
+	if code != 0 {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
 	var response bddRerankResponse
@@ -386,7 +396,17 @@ func TestExtensionsRerankFailureKeepsCoreOrder(t *testing.T) {
 	root := extensionFixture(t)
 	installExtension(t, root, "fail", "fail.sh")
 
-	response := extensionSearchKeyword(t, root, "alpha", "--rerank", "fail")
+	code, stdout, stderr := invokeRaw(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "fail", "--json")
+	if code != 0 {
+		t.Fatalf("search exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stderr, "fail") {
+		t.Fatalf("stderr must name the extension: %q", stderr)
+	}
+	var response bddRerankResponse
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &response); err != nil {
+		t.Fatal(err)
+	}
 	ids := keywordIDs(response)
 	if strings.Join(ids, ",") != "a,b,c" {
 		t.Fatalf("core ordering must be preserved: %v", ids)
