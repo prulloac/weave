@@ -91,6 +91,10 @@
 				"CONCEPT_NOT_FOUND",
 				"PATH_NOT_FOUND",
 				"BUNDLE_NOT_INDEXED",
+				"EXTENSION_NOT_FOUND",
+				"EXTENSION_TIMEOUT",
+				"EXTENSION_FAILED",
+				"EXTENSION_PROTOCOL",
 				"PRIVACY_DIRECTIVE_INVALID",
 				"PRIVACY_KEY_UNAVAILABLE",
 				"PRIVACY_PROVIDER_UNSUPPORTED",
@@ -115,7 +119,8 @@
 				"explain",
 				"ingest",
 				"rebuild",
-				"sync"
+				"sync",
+				"extensions"
 			]
 		},
 		"OkfLink": {
@@ -292,7 +297,8 @@
 					"type": "array",
 					"items": { "type": "string" }
 				},
-				"score": { "type": "number", "minimum": 0, "maximum": 1 }
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"rerank_score": { "type": "number", "minimum": 0, "maximum": 1 }
 			}
 		},
 		"FuzzyHit": {
@@ -309,7 +315,8 @@
 					"type": "array",
 					"items": { "$ref": "#/$defs/SearchField" }
 				},
-				"snippet": { "type": "string" }
+				"snippet": { "type": "string" },
+				"rerank_score": { "type": "number", "minimum": 0, "maximum": 1 }
 			}
 		},
 		"HybridHit": {
@@ -343,7 +350,8 @@
 					"type": "array",
 					"items": { "$ref": "#/$defs/SearchField" }
 				},
-				"snippet": { "type": "string" }
+				"snippet": { "type": "string" },
+				"rerank_score": { "type": "number", "minimum": 0, "maximum": 1 }
 			}
 		},
 		"LexicalHit": {
@@ -356,7 +364,8 @@
 				"path": { "type": "string" },
 				"type": { "type": "string" },
 				"raw_score": { "type": "number", "minimum": 0 },
-				"score": { "type": "number", "minimum": 0, "maximum": 1 }
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"rerank_score": { "type": "number", "minimum": 0, "maximum": 1 }
 			}
 		},
 		"SearchResponse": {
@@ -764,6 +773,27 @@
 					"items": { "type": "string" }
 				},
 				"result": { "type": "string" }
+			}
+		},
+		"ExtensionInfo": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name", "path", "source"],
+			"properties": {
+				"name": { "type": "string" },
+				"path": { "type": "string" },
+				"source": { "type": "string", "enum": ["bundle", "path"] }
+			}
+		},
+		"ExtensionList": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["extensions"],
+			"properties": {
+				"extensions": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/ExtensionInfo" }
+				}
 			}
 		},
 		"ContractInfo": {

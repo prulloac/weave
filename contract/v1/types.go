@@ -90,27 +90,32 @@ const (
 	ErrPrivacyKey       ErrorCode = "PRIVACY_KEY_UNAVAILABLE"
 	ErrPrivacyProvider  ErrorCode = "PRIVACY_PROVIDER_UNSUPPORTED"
 	ErrPrivacyDecrypt   ErrorCode = "PRIVACY_DECRYPT_FAILED"
+	ErrExtensionMissing ErrorCode = "EXTENSION_NOT_FOUND"
+	ErrExtensionTimeout ErrorCode = "EXTENSION_TIMEOUT"
+	ErrExtensionFailed  ErrorCode = "EXTENSION_FAILED"
+	ErrExtensionProto   ErrorCode = "EXTENSION_PROTOCOL"
 	ErrInternal         ErrorCode = "INTERNAL"
 )
 
 type OperationName string
 
 const (
-	OpContract  OperationName = "contract"
-	OpParse     OperationName = "parse"
-	OpGraph     OperationName = "graph"
-	OpSearch    OperationName = "search"
-	OpList      OperationName = "list"
-	OpShow      OperationName = "show"
-	OpBacklinks OperationName = "backlinks"
-	OpPath      OperationName = "path"
-	OpVersion   OperationName = "version"
-	OpAudit     OperationName = "audit"
-	OpRelate    OperationName = "relate"
-	OpExplain   OperationName = "explain"
-	OpIngest    OperationName = "ingest"
-	OpRebuild   OperationName = "rebuild"
-	OpSync      OperationName = "sync"
+	OpContract   OperationName = "contract"
+	OpParse      OperationName = "parse"
+	OpGraph      OperationName = "graph"
+	OpSearch     OperationName = "search"
+	OpList       OperationName = "list"
+	OpShow       OperationName = "show"
+	OpBacklinks  OperationName = "backlinks"
+	OpPath       OperationName = "path"
+	OpVersion    OperationName = "version"
+	OpAudit      OperationName = "audit"
+	OpRelate     OperationName = "relate"
+	OpExplain    OperationName = "explain"
+	OpIngest     OperationName = "ingest"
+	OpRebuild    OperationName = "rebuild"
+	OpSync       OperationName = "sync"
+	OpExtensions OperationName = "extensions"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -234,6 +239,7 @@ type KeywordHit struct {
 	Keywords        []string `json:"keywords"`
 	MatchedKeywords []string `json:"matched_keywords"`
 	Score           float64  `json:"score"`
+	RerankScore     *float64 `json:"rerank_score,omitempty"`
 }
 
 // FuzzyHit is a fuzzy-dimension search result.
@@ -245,6 +251,7 @@ type FuzzyHit struct {
 	Score         float64       `json:"score"`
 	MatchedFields []SearchField `json:"matched_fields"`
 	Snippet       *string       `json:"snippet,omitempty"`
+	RerankScore   *float64      `json:"rerank_score,omitempty"`
 }
 
 // HybridHit is a combined search result.
@@ -260,16 +267,18 @@ type HybridHit struct {
 	MatchedKeywords []string      `json:"matched_keywords"`
 	MatchedFields   []SearchField `json:"matched_fields"`
 	Snippet         *string       `json:"snippet,omitempty"`
+	RerankScore     *float64      `json:"rerank_score,omitempty"`
 }
 
 // LexicalHit is one BM25 lexical search result.
 type LexicalHit struct {
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	Path     string  `json:"path"`
-	Type     string  `json:"type"`
-	RawScore float64 `json:"raw_score"`
-	Score    float64 `json:"score"`
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Path        string   `json:"path"`
+	Type        string   `json:"type"`
+	RawScore    float64  `json:"raw_score"`
+	Score       float64  `json:"score"`
+	RerankScore *float64 `json:"rerank_score,omitempty"`
 }
 
 // SearchResponse contains the keyword, fuzzy, hybrid and lexical top-K lists.
@@ -505,6 +514,18 @@ type OperationDescriptor struct {
 	Result string        `json:"result"`
 }
 
+// ExtensionInfo is one discovered weave-<name> binary.
+type ExtensionInfo struct {
+	Name   string `json:"name"`
+	Path   string `json:"path"`
+	Source string `json:"source"`
+}
+
+// ExtensionList is the result of `weave extensions list`.
+type ExtensionList struct {
+	Extensions []ExtensionInfo `json:"extensions"`
+}
+
 // ContractInfo is returned by `weave contract --json`.
 type ContractInfo struct {
 	Contract      string                `json:"contract"`
@@ -546,6 +567,9 @@ type OperationRequest struct {
 	Strict     bool            `json:"strict,omitempty"`
 	Permissive bool            `json:"permissive,omitempty"`
 	Codec      string          `json:"codec,omitempty"`
+	Enricher   string          `json:"enricher,omitempty"`
+	Rerank     string          `json:"rerank,omitempty"`
+	TimeoutMS  int64           `json:"timeout_ms,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.
