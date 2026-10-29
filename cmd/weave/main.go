@@ -56,6 +56,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if exitCode != 0 {
 		return exitCode
 	}
+	request.DB = flags.db
+	request.NoDB = flags.noDB
+	request.Strict = flags.strict
 
 	executor := operations.New(version, engine.Options{Cache: !flags.noCache})
 	value := executor.Execute(context.Background(), request)
@@ -106,6 +109,9 @@ type flags struct {
 	depth       *int
 	direction   contractv1.RelateDirection
 	id          string
+	db          string
+	noDB        bool
+	strict      bool
 	positionals []string
 }
 
@@ -199,6 +205,17 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.id = value
+		case "--db":
+			value, next, err := flagValue(args, index, "--db")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.db = value
+		case "--no-db":
+			result.noDB = true
+		case "--strict":
+			result.strict = true
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -234,6 +251,9 @@ func parseFlags(args []string) (flags, error) {
 		}
 	}
 
+	if result.db != "" && result.noDB {
+		return result, fmt.Errorf("--db and --no-db are mutually exclusive")
+	}
 	return result, nil
 }
 
@@ -359,6 +379,18 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Target: flags.id,
 			Mode:   flags.mode,
 			TopK:   flags.topK,
+		}, 0, nil
+	case "ingest", "rebuild":
+		if err := requirePositional(command, flags, 1); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		op := contractv1.OpIngest
+		if command == "rebuild" {
+			op = contractv1.OpRebuild
+		}
+		return contractv1.OperationRequest{
+			Op:   op,
+			Path: flags.positional(0),
 		}, 0, nil
 	case "mount", "unmount", "status":
 		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
@@ -569,6 +601,12 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 	case contractv1.OpExplain:
 		printExplainHuman(stdout, result.(contractv1.ExplainResult))
 		return 0
+	case contractv1.OpIngest, contractv1.OpRebuild:
+		report := result.(contractv1.IngestReport)
+		fmt.Fprintf(stdout, "%s: %d documents, %d edges (%s)\n",
+			report.Bundle, report.Documents, report.Edges, report.Mode)
+		fmt.Fprintf(stdout, "db: %s\n", report.DB)
+		return 0
 	default:
 		fmt.Fprintln(stderr, "weave: unsupported operation")
 		return 1
@@ -759,6 +797,8 @@ usage:
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
   weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
   weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
+  weave ingest <path> [--db <file>] [--strict] [--json] [--no-cache]
+  weave rebuild <path> [--db <file>] [--strict] [--json] [--no-cache]
   weave version [--json]
   weave --version | --help
 

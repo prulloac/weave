@@ -25,6 +25,11 @@ func fixturePath() string {
 
 func invoke(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
+	return invokeRaw(t, withInMemory(args)...)
+}
+
+func invokeRaw(t *testing.T, args ...string) (int, string, string) {
+	t.Helper()
 	if os.Getenv("WEAVE_CACHE_DIR") == "" {
 		t.Setenv("WEAVE_CACHE_DIR", t.TempDir())
 	}
@@ -33,6 +38,22 @@ func invoke(t *testing.T, args ...string) (int, string, string) {
 	var stderr bytes.Buffer
 	code := run(args, &stdout, &stderr)
 	return code, stdout.String(), stderr.String()
+}
+
+func withInMemory(args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	switch args[0] {
+	case "ingest", "rebuild", "sync":
+		return args
+	}
+	for _, arg := range args {
+		if arg == "--db" || arg == "--no-db" {
+			return args
+		}
+	}
+	return append(args, "--no-db")
 }
 
 func decodeEnvelope(t *testing.T, output string) testEnvelope {
@@ -87,8 +108,8 @@ func TestContractJSON(t *testing.T) {
 	if err := json.Unmarshal(envelope.Result, &info); err != nil {
 		t.Fatal(err)
 	}
-	if len(info.Operations) != 12 {
-		t.Fatalf("expected 12 operations, got %d", len(info.Operations))
+	if len(info.Operations) != 14 {
+		t.Fatalf("expected 14 operations, got %d", len(info.Operations))
 	}
 }
 
