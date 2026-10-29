@@ -84,4 +84,16 @@ func TestParseMCPOptions(t *testing.T) {
 			t.Fatalf("expected watch config, got %+v %v", options, err)
 		}
 	})
+
+	t.Run("sources are repeatable", func(t *testing.T) {
+		options, err := parseMCPOptions([]string{
+			"--bundle", "/notes", "--source", "work=/work/notes", "--source", "/archive/notes",
+		})
+		if err != nil {
+			t.Fatalf("sources: %v", err)
+		}
+		if len(options.sources) != 2 {
+			t.Fatalf("expected two sources, got %+v", options.sources)
+		}
+	})
 }
