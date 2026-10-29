@@ -74,10 +74,14 @@ func TestParseMCPOptions(t *testing.T) {
 		}
 	})
 
-	t.Run("watch is deferred", func(t *testing.T) {
+	t.Run("watch requires db", func(t *testing.T) {
 		_, err := parseMCPOptions([]string{"--bundle", "/notes", "--watch"})
-		if err == nil || !strings.Contains(err.Error(), "watch") {
+		if err == nil || !strings.Contains(err.Error(), "--watch requires --db") {
 			t.Fatalf("expected watch error, got %v", err)
+		}
+		options, err := parseMCPOptions([]string{"--bundle", "/notes", "--db", "/tmp/index.db", "--watch"})
+		if err != nil || !options.watch {
+			t.Fatalf("expected watch config, got %+v %v", options, err)
 		}
 	})
 }

@@ -177,7 +177,7 @@ func TestWatchCoalescesBurstsAndIgnoresGit(t *testing.T) {
 		return syncs >= 1
 	})
 
-	for index, name := range []string{"b.md", "c.md"} {
+	for _, name := range []string{"b.md", "c.md"} {
 		writeFile(t, filepath.Join(root, name), `---
 type: Concept
 title: "Burst"
@@ -189,14 +189,15 @@ keywords:
 
 Burst edit.
 `)
-		_ = index
 	}
 	waitFor(t, func() bool {
 		bundle, err := store.LoadBundle(context.Background(), root)
 		return err == nil && strings.Contains(conceptBody(bundle, "b"), "Burst edit")
 	})
 
+	mu.Lock()
 	before := syncs
+	mu.Unlock()
 	writeFile(t, filepath.Join(root, ".git", "ignored.md"), "# Ignored\n")
 	time.Sleep(100 * time.Millisecond)
 	mu.Lock()
