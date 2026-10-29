@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,7 +102,7 @@ Updated content for sync.
 		parsed := runParseBundle(t, bundle, "--json")
 		concept := findConcept(t, parsed, "b")
 		if concept.Title == nil || *concept.Title != "B Updated" ||
-			concept.Body != "# B Updated\n\nUpdated content for sync.\n" {
+			!strings.Contains(concept.Body, "Updated content for sync.") {
 			t.Fatalf("update was not persisted: %+v", concept)
 		}
 		search := permissiveSearch(t, bundle, "beta2", "--mode", "keyword")

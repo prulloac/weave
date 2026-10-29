@@ -399,6 +399,14 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Op:   op,
 			Path: flags.positional(0),
 		}, 0, nil
+	case "sync":
+		if err := requirePositional(command, flags, 1); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:   contractv1.OpSync,
+			Path: flags.positional(0),
+		}, 0, nil
 	case "mount", "unmount", "status":
 		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
 	default:
@@ -466,6 +474,11 @@ func successExitCode(op contractv1.OperationName, result any) int {
 		}
 	case contractv1.OpIngest, contractv1.OpRebuild:
 		report, ok := result.(contractv1.IngestReport)
+		if ok && report.Errors > 0 {
+			return 1
+		}
+	case contractv1.OpSync:
+		report, ok := result.(contractv1.SyncReport)
 		if ok && report.Errors > 0 {
 			return 1
 		}
@@ -615,6 +628,12 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		fmt.Fprintf(stdout, "%s: %d documents, %d edges (%s)\n",
 			report.Bundle, report.Documents, report.Edges, report.Mode)
 		fmt.Fprintf(stdout, "db: %s\n", report.DB)
+		return 0
+	case contractv1.OpSync:
+		report := result.(contractv1.SyncReport)
+		fmt.Fprintf(stdout, "%s: %d documents (%d added, %d updated, %d removed, %d skipped)\n",
+			report.Bundle, report.Documents, report.Added, report.Updated, report.Removed, report.Skipped)
+		fmt.Fprintf(stdout, "db: %s (%s)\n", report.DB, report.Mode)
 		return 0
 	default:
 		fmt.Fprintln(stderr, "weave: unsupported operation")
@@ -808,6 +827,7 @@ usage:
   weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
   weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
   weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+  weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
   weave version [--json]
   weave --version | --help
 
