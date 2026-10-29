@@ -15,6 +15,8 @@ status: draft
 
 # Specification: Compression
 
+Status: **Implemented** (zstd default, LZ4 opt-in, per-row codec, decode recovery).
+
 ## 1. Overview
 
 Weave stores document bodies compactly in SQLite. Compression is an internal storage contract with a

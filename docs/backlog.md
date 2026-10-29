@@ -63,7 +63,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | BM25 explain evidence | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
-| Memory/body compression | [compression.md](specs/compression.md) | - | x | x | - | red |
+| Memory/body compression | [compression.md](specs/compression.md) | - | x | x | x | green |
 | Privacy directives | [privacy-directives.md](specs/privacy-directives.md) | - | x | x | x | green |
 | External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | - | - | backlog |
 | Extension subprocess IPC | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
@@ -115,6 +115,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] MCP resources: bundle index/stats and concept/neighborhood templates
 - [x] Watch reload: polling sync loop, MCP live updates and clean shutdown
 - [x] Privacy directives: encrypt/tokenize/hash, key resolution, redaction and alias search
+- [x] Body compression: zstd default, LZ4 opt-in, per-row codec and decode recovery
 
 ## Dependency Order
 
@@ -131,7 +132,7 @@ Execution waves:
 4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), MCP in-memory (done), MCP persistent (done).
 5. Watch (done) and privacy directives (done).
 6. Extension runner, enrichment, rerank, sensitive MCP.
-7. AI plugin, external crypto, compression, `weave sync --watch` CLI wiring.
+7. AI plugin, external crypto, `weave sync --watch` CLI wiring.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 

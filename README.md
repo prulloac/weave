@@ -22,6 +22,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
+- **Body compression**: zstd by default, LZ4 opt-in, with per-row codecs and corruption recovery.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
@@ -51,6 +52,7 @@ Global flags:
 - `--no-db` forces transient in-memory parsing; otherwise reads use `~/.weave/index.db`.
 - `--db <file>` selects another database; it is mutually exclusive with `--no-db`.
 - `--strict` / `--permissive` select ingest mode; ingest defaults to permissive.
+- `--codec zstd|lz4|none` selects body compression for ingest, rebuild and sync; default `zstd`.
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -188,36 +190,42 @@ Spec: [Weave Explain](docs/specs/weave-explain.md).
 #### `weave ingest`
 
 Load a bundle into the default bundle-scoped database at `~/.weave/index.db`, or into `--db <file>`.
-Ingest defaults to permissive; use `--strict` to reject invalid OKF documents.
+Ingest defaults to permissive; use `--strict` to reject invalid OKF documents. Bodies are compressed
+with zstd unless `--codec lz4|none` is given.
 
 ```sh
 weave ingest ~/notes --permissive --json
 weave ingest ~/notes --strict --json
 weave ingest ~/notes --strict --db /tmp/notes.db --json
+weave ingest ~/notes --strict --codec lz4 --json
 ```
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
-[Permissive Ingestion](docs/specs/permissive-ingestion.md).
+[Permissive Ingestion](docs/specs/permissive-ingestion.md), [Compression](docs/specs/compression.md).
 
 #### `weave rebuild`
 
-Re-index one bundle's rows without touching other bundles in the shared database.
+Re-index one bundle's rows without touching other bundles in the shared database. `--codec`
+re-encodes every body, so it is also the codec migration path.
 
 ```sh
 weave rebuild ~/notes --strict --json
+weave rebuild ~/notes --codec zstd --json
 ```
 
-Spec: [Storage & Sync](docs/specs/storage-and-sync.md).
+Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Compression](docs/specs/compression.md).
 
 #### `weave sync`
 
 Incrementally update one bundle from SHA-256 content hashes: add, update, remove and skip documents,
-with cascading edge reconciliation.
+with cascading edge reconciliation. Updated documents keep their stored body codec unless `--codec`
+is given.
 
 ```sh
 weave sync ~/notes --json
 weave sync ~/notes --strict --json
 weave sync ~/notes --db /tmp/notes.db --json
+weave sync ~/notes --codec lz4 --json
 ```
 
 Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode drives incremental sync from a
@@ -339,6 +347,7 @@ engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
 storage/sqlite/          bundle-scoped persistent storage and incremental sync
 engine/privacy/          directive parsing, key resolution and crypto providers
+engine/compression/      zstd and LZ4 body codecs
 mcp/                    MCP tool descriptors, resources and in-process dispatch
 watch/                  polling watcher over incremental sync
 engine/nav/             list, show, backlinks, path
@@ -357,6 +366,7 @@ docs/                   architecture, specs, knowledge
 - [Storage & Sync spec](docs/specs/storage-and-sync.md)
 - [Watch Mode spec](docs/specs/watch-mode.md)
 - [Privacy Directives spec](docs/specs/privacy-directives.md)
+- [Compression spec](docs/specs/compression.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [MCP Server spec](docs/specs/mcp-server.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)

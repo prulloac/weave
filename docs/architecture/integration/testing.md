@@ -95,6 +95,8 @@ MRR@10 = 1.0.
   `watch/watcher_test.go` covers initial sync, updates, deletes, bursts, ignored dirs and MCP reload.
   `cmd/weave/privacy_bdd_test.go` and `engine/privacy/privacy_test.go` cover directive parsing, key
   resolution, encryption, tokenization aliases, hashing, redaction and MCP sensitive access.
+  `cmd/weave/compression_bdd_test.go` and `engine/compression/compression_test.go` cover codec
+  selection, thresholds, migration, corrupt bodies and compression parity.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

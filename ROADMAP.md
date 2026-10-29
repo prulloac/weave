@@ -3,8 +3,8 @@
 > Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
-incremental sync, watch reload, BM25, permissive ingestion, privacy directives and the MCP server
-through watch reload are shipped on `main`; extensions, compression and MCP sensitive access remain
+incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression and
+the MCP server through watch reload are shipped on `main`; extensions and MCP sensitive access remain
 specified but not implemented.
 
 ## 1. What Weave Is
@@ -66,7 +66,7 @@ waves, not product versions.
 | BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
 | BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
 | BM25 explain | v1.0 | Shipped: lexical raw/normalized scores, fields and term evidence |
-| Memory/body compression | v1.0 | Zstandard default, LZ4 opt-in body blobs; postings deferred |
+| Memory/body compression | v1.0 | Shipped: zstd default, LZ4 opt-in; postings deferred |
 | Privacy directives | v1.0 | Shipped: `encrypt`, `tokenize`, `hash`, key resolution, `show --decrypt` |
 | Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
 | External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
@@ -91,9 +91,9 @@ weave path <path> <id|file> <id|file> --json
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
 weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
-weave ingest <path> [--db <file>] [--strict|--permissive] --json
-weave rebuild <path> [--db <file>] [--strict|--permissive] --json
-weave sync <path> [--db <file>] [--strict|--permissive] --json
+weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] --json
+weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] --json
+weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] --json
 weave mcp --bundle <path> [--stdio|--listen <addr>] [--token <t>] [--db <file>] [--watch]
 weave version --json
 ```
@@ -104,8 +104,6 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ### Planned v1.0 — persistence and extensions
 
 ```sh
-weave ingest <path> [--codec lz4|zstd|none] --json
-weave rebuild <path> [--codec lz4|zstd|none] --json
 weave sync <path> --watch [--with-enricher <ext>] --json
 weave search <path> <query> [--rerank <ext>] --json
 ```
@@ -216,7 +214,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | shipped |
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
-| 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | red |
+| 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | shipped |
 | 12 | Privacy directives | [privacy-directives.md](docs/specs/privacy-directives.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | shipped |
 | 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 | planned |
 | 14 | Enrichment extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | planned |
@@ -365,7 +363,8 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 - `weave ingest`, `weave rebuild`, `weave sync` and `--mode bm25` shipped.
 - `sha256` content hashes, cascading graph updates and a polling watch loop shipped; `fsnotify`
   event delivery remains an optimization.
-- `weave sync --watch` CLI wiring and compressed body storage remain.
+- Body compression shipped with zstd by default and LZ4 opt-in; `weave sync --watch` CLI wiring and
+  posting compression remain.
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 [Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),
