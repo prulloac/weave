@@ -313,7 +313,7 @@ privacy directives ──┬── show --decrypt
 
 **Wave 4 — lifecycle and privacy:**
 
-- watch mode (after sync),
+- watch mode (shipped),
 - privacy directives (after storage + search),
 - `show --decrypt` and `audit --verify-keys`.
 
@@ -361,9 +361,10 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 
 - Pure-Go SQLite (`modernc.org/sqlite`) in WAL mode.
 - Default bundle-scoped database at `~/.weave/index.db`.
-- `weave ingest`, `weave rebuild`, `weave sync` and `--mode bm25` shipped; watch mode is next.
-- `sha256` content hashes, cascading graph updates, `fsnotify` watch mode.
-- Varint/delta postings and compressed body storage.
+- `weave ingest`, `weave rebuild`, `weave sync` and `--mode bm25` shipped.
+- `sha256` content hashes, cascading graph updates and a polling watch loop shipped; `fsnotify`
+  event delivery remains an optimization.
+- `weave sync --watch` CLI wiring and compressed body storage remain.
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 [Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),
@@ -392,10 +393,10 @@ Specs: [Privacy & Extensions](docs/specs/privacy-and-extensions.md),
 ### Phase 6 — MCP server (v1.0)
 
 - TCP MCP server over operations.
-- Bind to persistent storage and support watch-based reload.
+- Bind to persistent storage and support watch-based reload (shipped).
 - Tools: `weave_search`, `weave_explain`, `weave_relate`, `weave_audit`, `weave_show`,
   `weave_path`.
-- Strict sensitive-data boundary; encrypted fields require explicit opt-in.
+- Strict sensitive-data boundary; encrypted fields require explicit opt-in (pending).
 
 Spec: [MCP Server](docs/specs/mcp-server.md).
 
