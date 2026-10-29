@@ -11,10 +11,13 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-26T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Weave MCP Server
+
+Status: **M1 in-process tool harness implemented**. Stdio, TCP, auth, resources and watch are
+pending transport slices.
 
 ## 1. Overview
 
@@ -166,7 +169,7 @@ Resources are read-only and may be deferred until tools are stable.
 - Add contract types, operations, CLI and tests.
 - Freeze the operation schemas used by MCP.
 
-### M1 — MCP schema and in-process harness
+### M1 — MCP schema and in-process harness (implemented)
 
 - Define tool descriptors and JSON schemas from operations.
 - Build an in-process MCP request/response harness.

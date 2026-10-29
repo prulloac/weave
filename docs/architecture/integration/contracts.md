@@ -118,6 +118,9 @@ Optional for Go hosts:
 ```go
 eng, err := engine.Open(ctx, root, engine.Options{})
 response, err := eng.Search("oauth", contractv1.SearchHybrid, 10)
+
+server, err := mcp.New(operations.New(version, engine.Options{}), mcp.Options{Bundle: root})
+result, err := server.Call(ctx, "weave_search", map[string]any{"query": "oauth"})
 ```
 
 Guarantees:

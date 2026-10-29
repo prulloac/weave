@@ -75,7 +75,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| MCP in-memory over operations | [mcp-server.md](specs/mcp-server.md) | - | x | x | - | red |
+| MCP in-memory over operations | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP persistent + watch reload | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 
@@ -107,6 +107,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] BM25 lexical ranking: FTS indexing, multi-token OR, phrases, negative terms and field weights
 - [x] BM25 calibration: BM25 + fuzzy hybrid corpus, baselines and deterministic metrics
 - [x] BM25 explain: lexical raw/normalized scores, matched fields and term contributions
+- [x] MCP M1: in-process tool descriptors, dispatch, validation and error mapping
 
 ## Dependency Order
 
@@ -123,7 +124,7 @@ Execution waves:
 4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), compression, MCP in-memory.
 5. Watch and privacy directives.
 6. Extension runner, enrichment, rerank, sensitive MCP.
-7. AI plugin, external crypto, MCP persistent.
+7. AI plugin, external crypto, MCP persistent, TCP transport.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP persistent`.
 

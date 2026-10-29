@@ -16,6 +16,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Hybrid top-K results** with component scores and match metadata.
 - **BM25 lexical ranking** through SQLite FTS5 with field weights, phrases and negative terms.
 - **Calibrated hybrid ranking** using normalized BM25 plus fuzzy scores.
+- **MCP tool harness** over operations; TCP transport is pending.
 - **Graph navigation**: show, backlinks and shortest path.
 - **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.
@@ -305,6 +306,7 @@ engine/search/          keyword, fuzzy and hybrid ranking
 engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
 storage/sqlite/          bundle-scoped persistent storage and incremental sync
+mcp/                    MCP tool descriptors and in-process dispatch
 engine/nav/             list, show, backlinks, path
 engine/operations/      transport-neutral envelopes
 docs/                   architecture, specs, knowledge
@@ -320,5 +322,6 @@ docs/                   architecture, specs, knowledge
 - [Weave Explain spec](docs/specs/weave-explain.md)
 - [Storage & Sync spec](docs/specs/storage-and-sync.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
+- [MCP Server spec](docs/specs/mcp-server.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Backlog](docs/backlog.md)

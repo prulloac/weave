@@ -65,7 +65,8 @@ The detailed contract and algorithms are in
 | --- | --- | --- | --- |
 | CLI processes | Any language or runtime | Primary | argv, stdout/stderr, exit codes, `weave.cli/v1` |
 | Go package API | Go hosts | Optional | Engine/store packages |
-| TCP MCP server | Future agent integrations | Later | MCP tools over the operations layer |
+| MCP tool harness | Go hosts, future MCP clients | M1 available | `mcp.Server` over operations |
+| TCP MCP server | Future agent integrations | Transport slice | MCP tools over the operations layer |
 | Browser presentation | — | **Retired** | Removed by ADR 0003 |
 
 A host that is not written in Go must use the CLI. A Go host may use the package API, but the CLI
@@ -81,7 +82,7 @@ remains the compatibility promise.
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
 | E — Storage & sync | SQLite persistence, incremental sync, watch | Sync complete; watch next |
 | F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
-| G — MCP | TCP MCP transport over operations | v1.0 planned |
+| G — MCP | TCP MCP transport over operations | M1 in-process harness complete; TCP next |
 
 ## Dependency Rules
 
@@ -121,7 +122,7 @@ remains the compatibility promise.
 | Ranking | Persistent hybrid BM25 + fuzzy; `--no-db` legacy keyword + fuzzy |
 | Privacy | v1.0 explicit encrypt/tokenize/hash directives |
 | Extensions | v1.0 subprocess IPC over `weave.cli/v1` |
-| Integration | CLI first; Go package optional; MCP server in v1.0 |
+| Integration | CLI first; Go package optional; MCP M1 harness shipped; TCP pending |
 | Presentation | Cancelled and removed |
 
 ## Documents
@@ -183,5 +184,6 @@ Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` recon
 by SHA-256 hash, and persistent hybrid search combines normalized BM25 with fuzzy scores.
 Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — watch, privacy, extensions and MCP — is specified but not implemented.
-The operations layer keeps MCP independently schedulable within v1.0.
+The remaining v1.0 scope — watch, privacy, extensions and MCP transport — is specified but not
+implemented. The in-process MCP tool harness (M1) is available; TCP/auth/resources follow in the
+transport slice.
