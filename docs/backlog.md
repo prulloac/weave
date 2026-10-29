@@ -81,7 +81,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP resources | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
-| MCP multiple sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | - | - | backlog |
+| MCP multiple sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | - | red |
 
 ## Tier 7 — Delivery, portability and quality
 
