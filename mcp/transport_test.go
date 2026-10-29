@@ -179,21 +179,29 @@ func TestMCPStdioProtocolErrors(t *testing.T) {
 
 func TestMCPStdioAuth(t *testing.T) {
 	transport := stdioServer(t, "secret")
-	responses := stdioResponses(t, transport,
-		initializeRequest(""),
-		initializeRequest("wrong"),
-	)
-	if len(responses) != 2 {
-		t.Fatalf("expected 2 responses, got %d", len(responses))
+
+	missing := stdioResponses(t, transport, initializeRequest(""))
+	if len(missing) != 1 {
+		t.Fatalf("expected 1 response, got %d", len(missing))
 	}
-	for index, response := range responses {
-		if code := rpcErrorCode(response); code != -32001 {
-			t.Fatalf("response %d error code=%d, want -32001", index, code)
-		}
-		data, _ := response["error"].(map[string]any)["data"].(map[string]any)
-		if data["code"] != "UNAUTHORIZED" {
-			t.Fatalf("response %d data=%+v", index, data)
-		}
+	if code := rpcErrorCode(missing[0]); code != -32001 {
+		t.Fatalf("missing-token error code=%d, want -32001", code)
+	}
+	data, _ := missing[0]["error"].(map[string]any)["data"].(map[string]any)
+	if data["code"] != "UNAUTHORIZED" {
+		t.Fatalf("missing-token data=%+v", data)
+	}
+
+	wrong := stdioResponses(t, transport, initializeRequest("wrong"))
+	if len(wrong) != 1 {
+		t.Fatalf("expected 1 response, got %d", len(wrong))
+	}
+	if code := rpcErrorCode(wrong[0]); code != -32001 {
+		t.Fatalf("wrong-token error code=%d, want -32001", code)
+	}
+	data, _ = wrong[0]["error"].(map[string]any)["data"].(map[string]any)
+	if data["code"] != "UNAUTHORIZED" {
+		t.Fatalf("wrong-token data=%+v", data)
 	}
 }
 
