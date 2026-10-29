@@ -130,14 +130,36 @@ Rules:
 - `weave_audit` returning findings is a successful tool call; the report contains its own `ok`.
 - `top_k` defaults to the process default and is capped at 100.
 
-## 6. Resources (optional, later)
+## 6. Resources
 
-- `weave://bundle/index` — root index entries.
-- `weave://bundle/stats` — bundle counts and validation summary.
-- `weave://concept/{id}` — concept metadata and body.
-- `weave://graph/neighborhood/{id}` — relate output.
+Resources are read-only and use the same initialize/auth gate as tools.
 
-Resources are read-only and may be deferred until tools are stable.
+### 6.1 Static resources
+
+| URI | Payload |
+| --- | --- |
+| `weave://bundle/index` | `IndexEntry[]` |
+| `weave://bundle/stats` | bundle counts and validation summary |
+
+### 6.2 Resource templates
+
+| URI template | Payload |
+| --- | --- |
+| `weave://concept/{id}` | `ShowResult` |
+| `weave://graph/neighborhood/{id}` | `RelateResult` |
+
+- `{id}` may contain slash-separated path segments and is URL-unescaped before lookup.
+- Resource contents are JSON text with `mimeType: application/json`.
+- Resources never accept a bundle path.
+- Unknown resources return JSON-RPC `-32602` with data code `RESOURCE_NOT_FOUND`.
+- Calls before initialize return `-32002 NOT_INITIALIZED`.
+
+### 6.3 Methods
+
+- `resources/list` returns `{"resources": [...]}`.
+- `resources/templates/list` returns `{"resourceTemplates": [...]}`.
+- `resources/read` takes `{"uri": "..."}` and returns `{"contents": [...]}`.
+- `initialize` advertises `capabilities.resources`.
 
 ## 7. Transport and Protocol
 
