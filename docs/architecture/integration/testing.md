@@ -81,7 +81,8 @@ MRR@10 = 1.0.
   covers relate depth, direction, cycles, related edges, ordering and human output.
   `cmd/weave/explain_bdd_test.go` covers explain score parity, rank, modes and human output.
   `cmd/weave/storage_bdd_test.go` covers default-DB ingest, bundle isolation, `--db`/`--no-db`,
-  persistence without sources and storage error paths.
+  persistence without sources and storage error paths. `cmd/weave/permissive_bdd_test.go` covers
+  permissive ingest, synthetic documents, search inclusion and permissive audit.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

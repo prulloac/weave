@@ -59,7 +59,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Persistent SQLite storage | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | x | x | green |
 | Incremental sync | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | - | - | backlog |
 | Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | - | - | backlog |
-| Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | - | - | backlog |
+| Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | x | - | red |
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
 | BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | - | - | backlog |
