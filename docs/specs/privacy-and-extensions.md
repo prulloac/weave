@@ -21,8 +21,9 @@ Target: **v1.0**
 
 > Privacy directives are specified in detail in
 > [Privacy Directives](./privacy-directives.md), which owns the parser, key resolution, storage,
-> search and CLI contract. This document keeps the architecture summary and owns the extension IPC
-> contract.
+> search and CLI contract. Extension subprocess discovery, the `weave.cli/v1` transport and the
+> enrichment/rerank consumers are specified in
+> [Extension Subprocess IPC](./extension-ipc.md). This document keeps the architecture summary.
 
 ## 1. Privacy Directives
 
@@ -175,6 +176,7 @@ The optional AI extension is specified separately: [Weave AI Extension](./weave-
 ## Related Documents
 
 - [Privacy Directives](./privacy-directives.md)
+- [Extension Subprocess IPC](./extension-ipc.md)
 - [Storage & Sync](./storage-and-sync.md)
 - [External Crypto Providers](./external-crypto-providers.md)
 - [Weave AI Extension](./weave-ai-plugin.md)

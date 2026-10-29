@@ -148,6 +148,7 @@ remains the compatibility promise.
 | [Compression spec](../../docs/specs/compression.md) | Body codec contract (zstd default, LZ4 opt-in) |
 | [Privacy Directives spec](../../docs/specs/privacy-directives.md) | Directive parser, keys, storage and search contract |
 | [Privacy & Extensions spec](../../docs/specs/privacy-and-extensions.md) | Extension IPC and architecture summary |
+| [Extension Subprocess IPC spec](../../docs/specs/extension-ipc.md) | `weave-<name>` discovery, transport, enrichment and rerank |
 | [External Crypto Providers spec](../../docs/specs/external-crypto-providers.md) | Age, Vault and KMS provider contract |
 | [Weave AI Extension spec](../../docs/specs/weave-ai-plugin.md) | Optional enrichment and reranking plugin |
 | [MCP Server spec](../../docs/specs/mcp-server.md) | TCP MCP roadmap and contract |

@@ -104,8 +104,10 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ### Planned v1.0 — persistence and extensions
 
 ```sh
+weave extensions list [<path>] --json
+weave ingest <path> --with-enricher <ext> [--timeout 5s] --json
 weave sync <path> --watch [--with-enricher <ext>] --json
-weave search <path> <query> [--rerank <ext>] --json
+weave search <path> <query> [--rerank <ext>] [--timeout 5s] --json
 ```
 
 ## 5. Search Semantics
@@ -216,9 +218,9 @@ is the completeness check: no feature is considered planned until it appears her
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | shipped |
 | 12 | Privacy directives | [privacy-directives.md](docs/specs/privacy-directives.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | shipped |
-| 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 | planned |
-| 14 | Enrichment extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | planned |
-| 15 | Rerank extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | search, extension runner | 5 / Phase 5 | planned |
+| 13 | Extension subprocess IPC | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | operations, contract | 5 / Phase 5 | planned |
+| 14 | Enrichment extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | planned |
+| 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | planned |
 | 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | planned |
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
 | 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | planned |
@@ -387,7 +389,8 @@ Specs: [Privacy Directives](docs/specs/privacy-directives.md),
 - Optional `weave-ai` plugin for local/cloud keyword extraction and embeddings.
 - External crypto providers (Age, Vault, KMS).
 
-Specs: [Privacy & Extensions](docs/specs/privacy-and-extensions.md),
+Specs: [Extension Subprocess IPC](docs/specs/extension-ipc.md),
+[Privacy & Extensions](docs/specs/privacy-and-extensions.md),
 [Weave AI Extension](docs/specs/weave-ai-plugin.md),
 [External Crypto Providers](docs/specs/external-crypto-providers.md).
 
@@ -473,6 +476,7 @@ needed.
 - [BM25 Ranking](docs/specs/bm25-ranking.md)
 - [Compression](docs/specs/compression.md)
 - [Privacy Directives](docs/specs/privacy-directives.md)
+- [Extension Subprocess IPC](docs/specs/extension-ipc.md)
 - [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
 - [External Crypto Providers](docs/specs/external-crypto-providers.md)
 - [Weave AI Extension](docs/specs/weave-ai-plugin.md)

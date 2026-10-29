@@ -66,9 +66,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | x | x | green |
 | Privacy directives | [privacy-directives.md](specs/privacy-directives.md) | - | x | x | x | green |
 | External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | - | - | backlog |
-| Extension subprocess IPC | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
-| Enrichment extension | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
-| Rerank extension | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
+| Extension subprocess IPC | [extension-ipc.md](specs/extension-ipc.md) | - | x | - | - | backlog |
+| Enrichment extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | - | - | backlog |
+| Rerank extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | - | - | backlog |
 | AI enrichment/reranking plugin | [weave-ai-plugin.md](specs/weave-ai-plugin.md) | - | x | - | - | backlog |
 
 ## Tier 6 — MCP
