@@ -82,6 +82,15 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | MCP resources | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 
+## Tier 7 — Delivery, portability and quality
+
+| Feature | Spec | PR | Spec | BDD | TDD | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Release automation | [release-automation.md](specs/release-automation.md) | - | x | - | - | backlog |
+| Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | - | - | backlog |
+| Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | - | - | backlog |
+| Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | - | - | backlog |
+
 ## Cross-cutting
 
 - [x] Knowledge corpus: vision + related concepts (`docs/knowledge/`)
@@ -134,6 +143,8 @@ Execution waves:
 5. Watch (done) and privacy directives (done).
 6. Extension runner, enrichment and rerank (done); sensitive MCP.
 7. AI plugin, external crypto, `weave sync --watch` CLI wiring.
+8. Release automation, bundle export, multiple bundle sources.
+9. Optimization program (benchmarks, budgets, refactors).
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 

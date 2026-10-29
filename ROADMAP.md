@@ -5,7 +5,8 @@
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, and the MCP server through watch reload are shipped on `main`;
-external crypto providers, the AI plugin, MCP sensitive access and `weave sync --watch` remain.
+external crypto providers, the AI plugin, MCP sensitive access, `weave sync --watch`, release
+automation, bundle export, multiple bundle sources and the optimization program remain.
 
 ## 1. What Weave Is
 
@@ -76,6 +77,10 @@ waves, not product versions.
 | Bundle audit | v1.0 | Shipped: stable finding codes, `--fail-on` gate, JSON and human reports |
 | Graph relate | v1.0 | Shipped: bounded depth/direction subgraphs |
 | MCP server | v1.0 | Tools, stdio/TCP transport, auth, resources and watch reload shipped; sensitive access pending |
+| Release automation | v1.0 | Tag-driven verified builds and draft GitHub Releases |
+| Bundle export | v1.0 | Raw plaintext export with confirmation; encrypted OKF export |
+| Multiple bundle sources | v1.0 | Repeatable `--source` aliases with merged search |
+| Optimization program | v1.0 | Benchmarks, budgets and maintainability targets |
 
 ## 4. CLI Surface
 
@@ -108,6 +113,9 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 
 ```sh
 weave sync <path> --watch [--with-enricher <ext>] --json
+weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] --json
+weave search <path> [--source <alias=path> ...] <query> --json
+weave ingest <path> [--source <alias=path> ...] --json
 ```
 
 ## 5. Search Semantics
@@ -230,6 +238,10 @@ is the completeness check: no feature is considered planned until it appears her
 | 22 | MCP stdio/TCP transport | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory | 6 / Phase 6 | shipped |
 | 23 | MCP resources | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP transport | 6 / Phase 6 | shipped |
 | 24 | MCP watch reload | [watch-mode.md](docs/specs/watch-mode.md), [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | incremental sync, MCP persistent | 4 / Phase 3 | shipped |
+| 25 | Release automation | [release-automation.md](docs/specs/release-automation.md) | Tier 7 | contract, CI | 7 / Phase 7 (P1) | planned |
+| 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | planned |
+| 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | planned |
+| 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
 
 Rules:
 
@@ -330,6 +342,18 @@ privacy directives ──┬── show --decrypt
 - AI plugin,
 - external crypto plugins,
 - MCP persistent with storage/watch/privacy.
+
+**Wave 7 — delivery and data portability (priority order):**
+
+1. release automation (tag-driven verified artifacts),
+2. bundle export (raw with confirmation, encrypted),
+3. multiple bundle sources (aliases and merged search).
+
+**Wave 8 — optimization program (continuous):**
+
+- benchmarks and budgets,
+- time/space hotspots,
+- maintainability refactors and the performance gate.
 
 **Critical path:**
 
@@ -478,6 +502,10 @@ needed.
 - [Compression](docs/specs/compression.md)
 - [Privacy Directives](docs/specs/privacy-directives.md)
 - [Extension Subprocess IPC](docs/specs/extension-ipc.md)
+- [Release Automation](docs/specs/release-automation.md)
+- [Bundle Export](docs/specs/bundle-export.md)
+- [Multiple Bundle Sources](docs/specs/multi-bundle.md)
+- [Performance and Maintainability](docs/specs/optimization.md)
 - [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
 - [External Crypto Providers](docs/specs/external-crypto-providers.md)
 - [Weave AI Extension](docs/specs/weave-ai-plugin.md)
