@@ -46,6 +46,7 @@ weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
 weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
 weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
 weave version [--json]
 weave --version | --help
 ```

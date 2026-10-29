@@ -16,7 +16,7 @@ status: stable
 
 # Weave: Storage, Persistence & Incremental Sync Specification
 
-Status: **Storage foundation implemented** for v1.0. Incremental sync is next.
+Status: **Storage foundation and incremental sync implemented** for v1.0. Watch mode is next.
 Target: **v1.0**
 
 ---

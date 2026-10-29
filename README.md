@@ -20,6 +20,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
+- **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 
@@ -198,6 +199,19 @@ weave rebuild ~/notes --strict --json
 
 Spec: [Storage & Sync](docs/specs/storage-and-sync.md).
 
+#### `weave sync`
+
+Incrementally update one bundle from SHA-256 content hashes: add, update, remove and skip documents,
+with cascading edge reconciliation.
+
+```sh
+weave sync ~/notes --json
+weave sync ~/notes --strict --json
+weave sync ~/notes --db /tmp/notes.db --json
+```
+
+Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode is the next slice.
+
 #### `weave version`
 
 Print the binary version and the contract it targets.
@@ -211,20 +225,7 @@ weave version --json
 
 > **Not yet shipped.** The commands below are specified for v1.0 but are yet to be shipped. They are
 > not available in the current binary. Flags that depend on v1.0 features, such as
-> `weave show --decrypt` and `weave search --rerank`, are also not yet shipped.
-
-#### `weave sync`
-
-Incrementally update the persistent index from content hashes, with optional watch mode and
-enrichment or crypto extensions.
-
-```sh
-weave sync ~/notes --json
-weave sync ~/notes --watch
-```
-
-Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Watch Mode](docs/specs/watch-mode.md),
-[Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+> `weave sync --watch`, `weave show --decrypt` and `weave search --rerank`, are also not yet shipped.
 
 #### `weave mcp`
 
@@ -296,7 +297,7 @@ engine/graph/           nodes, edges, traversal
 engine/search/          keyword, fuzzy and hybrid ranking
 engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
-storage/sqlite/          bundle-scoped persistent storage
+storage/sqlite/          bundle-scoped persistent storage and incremental sync
 engine/nav/             list, show, backlinks, path
 engine/operations/      transport-neutral envelopes
 docs/                   architecture, specs, knowledge

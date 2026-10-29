@@ -79,7 +79,7 @@ remains the compatibility promise.
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
-| E — Storage & sync | SQLite persistence, incremental sync, watch | Storage foundation complete; sync next |
+| E — Storage & sync | SQLite persistence, incremental sync, watch | Sync complete; watch next |
 | F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
 | G — MCP | TCP MCP transport over operations | v1.0 planned |
 
@@ -173,14 +173,14 @@ remains the compatibility promise.
 
 ## Status
 
-The core v1 engine plus `weave audit`, `weave relate`, `weave explain`, the SQLite storage
-foundation and permissive ingestion are implemented. The Go engine parses mandatory keywords, builds
+The core v1 engine plus `weave audit`, `weave relate`, `weave explain`, SQLite storage, permissive
+ingestion and incremental sync are implemented. The Go engine parses mandatory keywords, builds
 keyword and fuzzy indexes, returns keyword/fuzzy/hybrid top-K results, exposes the `search` CLI
 command, audits bundles for conformance and graph quality, returns bounded graph neighborhoods and
 explains score components. Bundles are persisted by default in a bundle-scoped SQLite database at
 `~/.weave/index.db`; `--no-db` uses the transient parser. Permissive ingestion synthesizes metadata
-for dirty Markdown and keeps warnings visible. Calibration passes its baseline. The UI and old
-TypeScript stack are removed.
+for dirty Markdown, and `weave sync` reconciles changed files by SHA-256 hash. Calibration passes
+its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — incremental sync, watch, BM25, privacy, extensions and MCP — is specified
-but not implemented. The operations layer keeps MCP independently schedulable within v1.0.
+The remaining v1.0 scope — watch, BM25, privacy, extensions and MCP — is specified but not
+implemented. The operations layer keeps MCP independently schedulable within v1.0.
