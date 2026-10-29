@@ -51,6 +51,32 @@
 			"type": "string",
 			"enum": ["out", "in", "both"]
 		},
+		"PrivacyPolicy": {
+			"type": "string",
+			"enum": ["none", "encrypt", "tokenize", "hash", "mixed"]
+		},
+		"PrivacyDirective": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["policy"],
+			"properties": {
+				"policy": { "$ref": "#/$defs/PrivacyPolicy" },
+				"provider": { "type": "string" },
+				"key_id": { "type": "string" }
+			}
+		},
+		"PrivacyState": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["policy", "redacted", "decrypted"],
+			"properties": {
+				"policy": { "$ref": "#/$defs/PrivacyPolicy" },
+				"provider": { "type": "string" },
+				"key_id": { "type": "string" },
+				"redacted": { "type": "boolean" },
+				"decrypted": { "type": "boolean" }
+			}
+		},
 		"ExplainKeywordMatch": {
 			"type": "string",
 			"enum": ["exact", "prefix", "none"]
@@ -65,6 +91,10 @@
 				"CONCEPT_NOT_FOUND",
 				"PATH_NOT_FOUND",
 				"BUNDLE_NOT_INDEXED",
+				"PRIVACY_DIRECTIVE_INVALID",
+				"PRIVACY_KEY_UNAVAILABLE",
+				"PRIVACY_PROVIDER_UNSUPPORTED",
+				"PRIVACY_DECRYPT_FAILED",
 				"INTERNAL"
 			]
 		},
@@ -126,7 +156,8 @@
 				"links": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/OkfLink" }
-				}
+				},
+				"privacy": { "$ref": "#/$defs/PrivacyDirective" }
 			}
 		},
 		"IndexEntry": {
@@ -415,7 +446,8 @@
 				"backlinks": {
 					"type": "array",
 					"items": { "type": "string" }
-				}
+				},
+				"privacy": { "$ref": "#/$defs/PrivacyState" }
 			}
 		},
 		"Backlink": {

@@ -86,6 +86,10 @@ const (
 	ErrConceptNotFound  ErrorCode = "CONCEPT_NOT_FOUND"
 	ErrPathNotFound     ErrorCode = "PATH_NOT_FOUND"
 	ErrBundleNotIndexed ErrorCode = "BUNDLE_NOT_INDEXED"
+	ErrPrivacyDirective ErrorCode = "PRIVACY_DIRECTIVE_INVALID"
+	ErrPrivacyKey       ErrorCode = "PRIVACY_KEY_UNAVAILABLE"
+	ErrPrivacyProvider  ErrorCode = "PRIVACY_PROVIDER_UNSUPPORTED"
+	ErrPrivacyDecrypt   ErrorCode = "PRIVACY_DECRYPT_FAILED"
 	ErrInternal         ErrorCode = "INTERNAL"
 )
 
@@ -119,17 +123,18 @@ type OkfLink struct {
 
 // OkfConcept is one parsed OKF concept document.
 type OkfConcept struct {
-	ID          string         `json:"id"`
-	Path        string         `json:"path"`
-	Frontmatter map[string]any `json:"frontmatter"`
-	Type        string         `json:"type"`
-	Keywords    []string       `json:"keywords"`
-	Title       *string        `json:"title,omitempty"`
-	Description *string        `json:"description,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
-	Status      *ConceptStatus `json:"status,omitempty"`
-	Body        string         `json:"body"`
-	Links       []OkfLink      `json:"links"`
+	ID          string            `json:"id"`
+	Path        string            `json:"path"`
+	Frontmatter map[string]any    `json:"frontmatter"`
+	Type        string            `json:"type"`
+	Keywords    []string          `json:"keywords"`
+	Title       *string           `json:"title,omitempty"`
+	Description *string           `json:"description,omitempty"`
+	Tags        []string          `json:"tags,omitempty"`
+	Status      *ConceptStatus    `json:"status,omitempty"`
+	Body        string            `json:"body"`
+	Links       []OkfLink         `json:"links"`
+	Privacy     *PrivacyDirective `json:"privacy,omitempty"`
 }
 
 // IndexEntry is one root index.md listing entry.
@@ -191,6 +196,33 @@ type Graph struct {
 	Nodes    []GraphNode          `json:"nodes"`
 	Edges    []GraphEdge          `json:"edges"`
 	Dangling map[string][]OkfLink `json:"dangling"`
+}
+
+// PrivacyPolicy is one declared privacy treatment.
+type PrivacyPolicy string
+
+const (
+	PrivacyNone     PrivacyPolicy = "none"
+	PrivacyEncrypt  PrivacyPolicy = "encrypt"
+	PrivacyTokenize PrivacyPolicy = "tokenize"
+	PrivacyHash     PrivacyPolicy = "hash"
+	PrivacyMixed    PrivacyPolicy = "mixed"
+)
+
+// PrivacyDirective is one declared policy from frontmatter or an inline comment.
+type PrivacyDirective struct {
+	Policy   PrivacyPolicy `json:"policy"`
+	Provider string        `json:"provider,omitempty"`
+	KeyID    string        `json:"key_id,omitempty"`
+}
+
+// PrivacyState is the stored privacy summary for one concept.
+type PrivacyState struct {
+	Policy    PrivacyPolicy `json:"policy"`
+	Provider  string        `json:"provider,omitempty"`
+	KeyID     string        `json:"key_id,omitempty"`
+	Redacted  bool          `json:"redacted"`
+	Decrypted bool          `json:"decrypted"`
 }
 
 // KeywordHit is a keyword-dimension search result.
@@ -284,6 +316,7 @@ type ShowResult struct {
 	Body        string         `json:"body"`
 	Links       []ShowLink     `json:"links"`
 	Backlinks   []string       `json:"backlinks"`
+	Privacy     *PrivacyState  `json:"privacy,omitempty"`
 }
 
 // Backlink is a concept that references another concept.
@@ -505,6 +538,7 @@ type OperationRequest struct {
 	Limit      *int            `json:"limit,omitempty"`
 	FailOn     AuditFailOn     `json:"fail_on,omitempty"`
 	VerifyKeys bool            `json:"verify_keys,omitempty"`
+	Decrypt    bool            `json:"decrypt,omitempty"`
 	Depth      *int            `json:"depth,omitempty"`
 	Direction  RelateDirection `json:"direction,omitempty"`
 	DB         string          `json:"db,omitempty"`
