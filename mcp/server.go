@@ -200,9 +200,14 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 		if err != nil {
 			return nil, err
 		}
+		verifyKeys, err := optionalBool(arguments, "verify_keys")
+		if err != nil {
+			return nil, err
+		}
 		request = contractv1.OperationRequest{
-			Op:     contractv1.OpAudit,
-			FailOn: contractv1.AuditFailOn(failOn),
+			Op:         contractv1.OpAudit,
+			FailOn:     contractv1.AuditFailOn(failOn),
+			VerifyKeys: verifyKeys,
 		}
 	case "weave_list":
 		types, err := optionalStringSlice(arguments, "types")
@@ -261,7 +266,6 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 	request.Path = s.bundle
 	request.DB = s.db
 	request.NoDB = s.db == ""
-	request.VerifyKeys = false
 
 	if name != "weave_contract" {
 		sourceName, err := optionalString(arguments, "source")
@@ -356,12 +360,30 @@ func (s *Server) execute(ctx context.Context, request contractv1.OperationReques
 	value := s.executor.Execute(ctx, request)
 	switch envelope := value.(type) {
 	case contractv1.SuccessEnvelope:
-		return envelope.Result, nil
+		return s.sanitize(envelope.Result), nil
 	case contractv1.FailureEnvelope:
 		return nil, &Error{Code: envelope.Error.Code, Message: envelope.Error.Message}
 	default:
 		return nil, &Error{Code: contractv1.ErrInternal, Message: "internal tool error"}
 	}
+}
+
+// sanitize redacts untransformed tokenized/hashed bodies in in-memory mode,
+// where privacy directives are not applied by storage.
+func (s *Server) sanitize(value any) any {
+	if s.db != "" {
+		return value
+	}
+	view, ok := value.(*contractv1.ShowResult)
+	if !ok || view.Privacy == nil {
+		return value
+	}
+	switch view.Privacy.Policy {
+	case contractv1.PrivacyTokenize, contractv1.PrivacyHash, contractv1.PrivacyMixed:
+		view.Body = ""
+		view.Privacy.Redacted = true
+	}
+	return view
 }
 
 // Resources returns the static resource descriptors.
@@ -517,7 +539,7 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 		if err != nil || id == "" {
 			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
 		}
-		request := contractv1.OperationRequest{Path: path, Target: id}
+		request := contractv1.OperationRequest{Path: path, Target: id, Decrypt: s.allowSensitive}
 		if prefix == "weave://concept/" {
 			request.Op = contractv1.OpShow
 		} else {
@@ -595,6 +617,18 @@ func optionalStringSlice(arguments map[string]any, name string) ([]string, error
 	return values, nil
 }
 
+func optionalBool(arguments map[string]any, name string) (bool, error) {
+	value, ok := arguments[name]
+	if !ok || value == nil {
+		return false, nil
+	}
+	flag, ok := value.(bool)
+	if !ok {
+		return false, invalid(name + " must be a boolean")
+	}
+	return flag, nil
+}
+
 func optionalInt(arguments map[string]any, name string) (*int, error) {
 	value, ok := arguments[name]
 	if !ok || value == nil {
@@ -666,7 +700,8 @@ func toolDescriptors() []ToolDescriptor {
 			Description: "Audit bundle conformance and graph quality.",
 			InputSchema: objectSchema(
 				map[string]any{
-					"fail_on": map[string]any{"type": "string", "enum": []any{"error", "warning", "none"}},
+					"fail_on":     map[string]any{"type": "string", "enum": []any{"error", "warning", "none"}},
+					"verify_keys": map[string]any{"type": "boolean"},
 				},
 				[]any{},
 			),
