@@ -42,7 +42,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Calibration corpus and ranking baselines | [keyword-fuzzy-search.md](specs/keyword-fuzzy-search.md) | - | x | x | x | green |
 | `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | x | x | green |
 | `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | x | x | green |
-| `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | - | - | backlog |
+| `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | x | - | red |
 | Introspection contract types (audit/relate/explain) | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |
 
 ## Tier 4 — Portability
