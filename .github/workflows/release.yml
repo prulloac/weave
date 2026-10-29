@@ -1,0 +1,138 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version for a dry-run build (for example v1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify repository
+        run: ./scripts/verify.sh
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: windows
+            arch: amd64
+          - os: windows
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Resolve version
+        run: echo "RELEASE_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+      - name: Build binary
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} \
+            go build -trimpath -ldflags "-s -w -X main.version=${RELEASE_TAG}" -o dist/weave ./cmd/weave
+      - name: Smoke test
+        if: matrix.os == 'linux' && matrix.arch == 'amd64'
+        run: |
+          ./dist/weave version --json
+          ./dist/weave contract --json
+      - name: Package archive
+        run: |
+          go run ./cmd/release-package \
+            -version "${RELEASE_TAG}" \
+            -os "${{ matrix.os }}" \
+            -arch "${{ matrix.arch }}" \
+            -binary dist/weave \
+            -root . \
+            -out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: weave-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Write checksums
+        run: |
+          go run ./cmd/release-package \
+            -version "${RELEASE_TAG}" \
+            -out dist \
+            -checksums
+      - name: Write build info
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          go run ./cmd/release-package \
+            -version "${RELEASE_TAG}" \
+            -out dist \
+            -buildinfo
+      - name: Refuse to overwrite an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "release ${RELEASE_TAG} already exists; refusing to overwrite" >&2
+            exit 1
+          fi
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          case "${RELEASE_TAG}" in
+            *-rc*|*-beta*) PRERELEASE="--prerelease" ;;
+          esac
+          gh release create "${RELEASE_TAG}" dist/* \
+            --draft \
+            --title "${RELEASE_TAG}" \
+            --generate-notes \
+            ${PRERELEASE}
