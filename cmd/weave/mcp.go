@@ -1,0 +1,192 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net"
+	"os"
+	"os/signal"
+	"strconv"
+	"strings"
+	"syscall"
+
+	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/operations"
+	"github.com/prulloac/weave/mcp"
+)
+
+type mcpCLIOptions struct {
+	bundle         string
+	db             string
+	stdio          bool
+	listen         string
+	listenSet      bool
+	token          string
+	topKDefault    int
+	allowSensitive bool
+	help           bool
+}
+
+func parseMCPOptions(args []string) (mcpCLIOptions, error) {
+	options := mcpCLIOptions{listen: "127.0.0.1:7331", topKDefault: 10}
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		switch arg {
+		case "--help", "-h":
+			options.help = true
+		case "--stdio":
+			options.stdio = true
+		case "--bundle":
+			value, next, err := mcpFlagValue(args, index, "--bundle")
+			if err != nil {
+				return options, err
+			}
+			options.bundle = value
+			index = next
+		case "--db":
+			value, next, err := mcpFlagValue(args, index, "--db")
+			if err != nil {
+				return options, err
+			}
+			options.db = value
+			index = next
+		case "--listen":
+			value, next, err := mcpFlagValue(args, index, "--listen")
+			if err != nil {
+				return options, err
+			}
+			options.listen = value
+			options.listenSet = true
+			index = next
+		case "--token":
+			value, next, err := mcpFlagValue(args, index, "--token")
+			if err != nil {
+				return options, err
+			}
+			options.token = value
+			index = next
+		case "--top-k-default":
+			value, next, err := mcpFlagValue(args, index, "--top-k-default")
+			if err != nil {
+				return options, err
+			}
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed < 1 || parsed > 100 {
+				return options, fmt.Errorf("--top-k-default must be between 1 and 100")
+			}
+			options.topKDefault = parsed
+			index = next
+		case "--allow-sensitive":
+			options.allowSensitive = true
+		case "--watch":
+			return options, fmt.Errorf("--watch is part of the watch-mode slice and is not implemented yet")
+		default:
+			return options, fmt.Errorf("unknown option: %s", arg)
+		}
+	}
+	if options.help {
+		return options, nil
+	}
+	if options.bundle == "" {
+		return options, fmt.Errorf("--bundle is required")
+	}
+	if options.stdio && options.listenSet {
+		return options, fmt.Errorf("--stdio and --listen are mutually exclusive")
+	}
+	if !options.stdio && !isLoopbackListen(options.listen) && options.token == "" {
+		return options, fmt.Errorf("--token is required for non-loopback --listen")
+	}
+	return options, nil
+}
+
+func mcpFlagValue(args []string, index int, name string) (string, int, error) {
+	if index+1 >= len(args) {
+		return "", index, fmt.Errorf("%s requires a value", name)
+	}
+	return args[index+1], index + 1, nil
+}
+
+func isLoopbackListen(address string) bool {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(host) {
+	case "127.0.0.1", "localhost", "::1":
+		return true
+	default:
+		return false
+	}
+}
+
+func runMCP(args []string, stdout io.Writer, stderr io.Writer) int {
+	options, err := parseMCPOptions(args)
+	if err != nil {
+		fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+		return 2
+	}
+	if options.help {
+		printMCPHelp(stdout)
+		return 0
+	}
+
+	executor := operations.New(version, engine.Options{})
+	server, err := mcp.New(executor, mcp.Options{
+		Bundle:         options.bundle,
+		DB:             options.db,
+		TopKDefault:    options.topKDefault,
+		AllowSensitive: options.allowSensitive,
+	})
+	if err != nil {
+		fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+		return 2
+	}
+	transport := &mcp.Transport{Server: server, Token: options.token, Version: version}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if options.stdio {
+		if err := transport.ServeStdio(ctx, os.Stdin, stdout); err != nil {
+			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+			return 1
+		}
+		return 0
+	}
+
+	listener, err := net.Listen("tcp", options.listen)
+	if err != nil {
+		fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+		return 1
+	}
+	defer listener.Close()
+	go func() {
+		<-ctx.Done()
+		_ = listener.Close()
+	}()
+	fmt.Fprintf(stderr, "weave mcp: listening on %s\n", listener.Addr().String())
+	if err := transport.Serve(ctx, listener); err != nil {
+		fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+		return 1
+	}
+	return 0
+}
+
+func printMCPHelp(writer io.Writer) {
+	fmt.Fprint(writer, `weave mcp — serve Weave over the Model Context Protocol
+
+usage:
+  weave mcp --bundle <path> [--db <file>] [--top-k-default <n>] [--allow-sensitive]
+  weave mcp --bundle <path> --stdio [--token <token>]
+  weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
+
+flags:
+  --bundle <path>       bundle root (required)
+  --db <file>           persistent database path
+  --stdio               newline-delimited JSON-RPC over stdin/stdout
+  --listen <addr>       TCP listen address (default 127.0.0.1:7331)
+  --token <token>       required for non-loopback binds
+  --top-k-default <n>   default top-K (default 10)
+  --allow-sensitive     expose encrypted/tokenized fields
+`)
+}

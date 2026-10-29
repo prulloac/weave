@@ -39,6 +39,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	command := args[0]
+	if command == "mcp" {
+		return runMCP(args[1:], stdout, stderr)
+	}
 	jsonMode := contains(args[1:], "--json")
 	flags, err := parseFlags(args[1:])
 	if err != nil {
@@ -865,6 +868,7 @@ usage:
   weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
   weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
   weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+  weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
   weave --version | --help
 
