@@ -62,6 +62,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | x | x | green |
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
+| BM25 explain evidence | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | - | red |
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | - | - | backlog |
 | Privacy directives | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
 | External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | - | - | backlog |

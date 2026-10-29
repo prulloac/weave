@@ -86,8 +86,9 @@ MRR@10 = 1.0.
   `cmd/weave/sync_bdd_test.go` covers hash skip/update/add/remove/rename, cascade and sync errors.
   `cmd/weave/bm25_bdd_test.go` covers FTS indexing, multi-token OR, field weights, phrases,
   negative terms, top-K and BM25 persistence errors. `cmd/weave/bm25_calibration_bdd_test.go` covers
-  persistent hybrid scoring and the legacy `--no-db` fallback. `engine/search/bm25_calibration_test.go`
-  covers BM25 and hybrid calibration baselines.
+  persistent hybrid scoring and the legacy `--no-db` fallback. `cmd/weave/bm25_explain_bdd_test.go`
+  covers BM25 lexical evidence and persistent hybrid explanations.
+  `engine/search/bm25_calibration_test.go` covers BM25 and hybrid calibration baselines.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
