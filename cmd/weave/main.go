@@ -683,10 +683,34 @@ func printExplainHuman(stdout io.Writer, result contractv1.ExplainResult) {
 		}
 	}
 
+	if result.Lexical != nil {
+		fmt.Fprintf(stdout, "\nlexical  raw %.3f  normalized %.3f\n",
+			result.Lexical.RawScore, result.Lexical.Score)
+		for _, field := range result.Lexical.MatchedFields {
+			fmt.Fprintf(stdout, "  %s  matched\n", field)
+		}
+		for _, token := range result.Lexical.Tokens {
+			fmt.Fprintf(stdout, "  %s  contribution %.3f\n", token.QueryToken, token.Contribution)
+		}
+	}
+
 	fmt.Fprintf(stdout, "\nhybrid   %.3f\n", result.Hybrid.Total)
-	fmt.Fprintf(stdout, "  %.2f * %.3f + %.2f * %.3f\n",
-		result.Hybrid.KeywordWeight, result.Keyword.Score,
-		result.Hybrid.FuzzyWeight, result.Fuzzy.Score)
+	if result.Hybrid.LexicalWeight > 0 {
+		fmt.Fprintf(stdout, "  %.2f * %.3f (lexical) + %.2f * %.3f (fuzzy)\n",
+			result.Hybrid.LexicalWeight, lexicalScore(result),
+			result.Hybrid.FuzzyWeight, result.Fuzzy.Score)
+	} else {
+		fmt.Fprintf(stdout, "  %.2f * %.3f + %.2f * %.3f\n",
+			result.Hybrid.KeywordWeight, result.Keyword.Score,
+			result.Hybrid.FuzzyWeight, result.Fuzzy.Score)
+	}
+}
+
+func lexicalScore(result contractv1.ExplainResult) float64 {
+	if result.Lexical == nil {
+		return 0
+	}
+	return result.Lexical.Score
 }
 
 func printRelateHuman(stdout io.Writer, result contractv1.RelateResult) {

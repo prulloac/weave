@@ -402,7 +402,14 @@ func TestContractTypesValidate(t *testing.T) {
 			}},
 			Snippet: &snippet,
 		},
-		Hybrid: ExplainHybrid{KeywordWeight: 0.5, FuzzyWeight: 0.5, Total: 0.9},
+		Hybrid: ExplainHybrid{KeywordWeight: 0.5, LexicalWeight: 0.5, FuzzyWeight: 0.5, Total: 0.9},
+		Lexical: &ExplainLexical{
+			RawScore: 3.42, Score: 1,
+			MatchedFields: []SearchField{FieldTitle, FieldBody},
+			Tokens: []ExplainLexicalToken{{
+				QueryToken: "alpha", Matched: true, Contribution: 2.1,
+			}},
+		},
 	}
 	marshalValidate(t, compiler, "explain.schema.json", explain)
 

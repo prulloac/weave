@@ -30,6 +30,7 @@ type SearchField string
 
 const (
 	FieldTitle       SearchField = "title"
+	FieldKeywords    SearchField = "keywords"
 	FieldDescription SearchField = "description"
 	FieldBody        SearchField = "body"
 )
@@ -404,21 +405,38 @@ type ExplainFuzzy struct {
 // ExplainHybrid is the hybrid component of an explanation.
 type ExplainHybrid struct {
 	KeywordWeight float64 `json:"keyword_weight"`
+	LexicalWeight float64 `json:"lexical_weight,omitempty"`
 	FuzzyWeight   float64 `json:"fuzzy_weight"`
 	Total         float64 `json:"total"`
 }
 
+// ExplainLexicalToken is per-query-token BM25 evidence.
+type ExplainLexicalToken struct {
+	QueryToken   string  `json:"query_token"`
+	Matched      bool    `json:"matched"`
+	Contribution float64 `json:"contribution"`
+}
+
+// ExplainLexical is the BM25 component of an explanation.
+type ExplainLexical struct {
+	RawScore      float64               `json:"raw_score"`
+	Score         float64               `json:"score"`
+	MatchedFields []SearchField         `json:"matched_fields"`
+	Tokens        []ExplainLexicalToken `json:"tokens"`
+}
+
 // ExplainResult is the result of `weave explain`.
 type ExplainResult struct {
-	Query   string         `json:"query"`
-	Mode    SearchMode     `json:"mode"`
-	TopK    int            `json:"top_k"`
-	ID      string         `json:"id"`
-	Rank    int            `json:"rank"`
-	Found   bool           `json:"found"`
-	Keyword ExplainKeyword `json:"keyword"`
-	Fuzzy   ExplainFuzzy   `json:"fuzzy"`
-	Hybrid  ExplainHybrid  `json:"hybrid"`
+	Query   string          `json:"query"`
+	Mode    SearchMode      `json:"mode"`
+	TopK    int             `json:"top_k"`
+	ID      string          `json:"id"`
+	Rank    int             `json:"rank"`
+	Found   bool            `json:"found"`
+	Keyword ExplainKeyword  `json:"keyword"`
+	Fuzzy   ExplainFuzzy    `json:"fuzzy"`
+	Hybrid  ExplainHybrid   `json:"hybrid"`
+	Lexical *ExplainLexical `json:"lexical,omitempty"`
 }
 
 // IngestReport is the result of `weave ingest` or `weave rebuild`.

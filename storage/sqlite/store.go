@@ -620,11 +620,195 @@ func (s *Store) SearchBM25(
 	return hits, nil
 }
 
+// BM25Explanation is one document's lexical evidence.
+type BM25Explanation struct {
+	Target  string
+	Rank    int
+	Lexical contractv1.ExplainLexical
+}
+
+// ExplainBM25 explains one document's BM25 score.
+func (s *Store) ExplainBM25(
+	ctx context.Context,
+	root string,
+	query string,
+	topK int,
+	target string,
+) (BM25Explanation, error) {
+	root, err := normalizeRoot(root)
+	if err != nil {
+		return BM25Explanation{}, err
+	}
+	positives, negatives := splitFTSQuery(query)
+	if len(positives) == 0 {
+		return BM25Explanation{}, search.ErrEmptyQuery
+	}
+	match := buildFTSQuery(query)
+	hits, err := s.SearchBM25(ctx, root, query, topK)
+	if err != nil {
+		return BM25Explanation{}, err
+	}
+	rank := 0
+	if target == "" {
+		if len(hits) == 0 {
+			return BM25Explanation{}, search.ErrNoResult
+		}
+		target = hits[0].ID
+		rank = 1
+	} else {
+		exists, err := s.HasConcept(ctx, root, target)
+		if err != nil {
+			return BM25Explanation{}, err
+		}
+		if !exists {
+			return BM25Explanation{}, search.ErrConceptNotFound
+		}
+		for index, hit := range hits {
+			if hit.ID == target {
+				rank = index + 1
+				break
+			}
+		}
+	}
+
+	maxRaw := 0.0
+	raw := 0.0
+	for _, hit := range hits {
+		if hit.RawScore > maxRaw {
+			maxRaw = hit.RawScore
+		}
+		if hit.ID == target {
+			raw = hit.RawScore
+		}
+	}
+	if raw == 0 {
+		raw, err = s.bm25Raw(ctx, root, match, target)
+		if err != nil {
+			return BM25Explanation{}, err
+		}
+	}
+	score := 0.0
+	if maxRaw > 0 {
+		score = search.RoundScore(raw / maxRaw)
+	}
+
+	matchedFields := make([]contractv1.SearchField, 0)
+	for _, field := range []contractv1.SearchField{
+		contractv1.FieldTitle,
+		contractv1.FieldKeywords,
+		contractv1.FieldDescription,
+		contractv1.FieldBody,
+	} {
+		expression := string(field) + ":(" + strings.Join(positives, " OR ") + ")"
+		if len(negatives) > 0 {
+			expression += " NOT (" + strings.Join(negatives, " OR ") + ")"
+		}
+		matched, err := s.ftsMatches(ctx, root, expression, target)
+		if err != nil {
+			return BM25Explanation{}, err
+		}
+		if matched {
+			matchedFields = append(matchedFields, field)
+		}
+	}
+
+	tokens := make([]contractv1.ExplainLexicalToken, 0, len(positives))
+	for _, term := range positives {
+		contribution, err := s.bm25Raw(ctx, root, term, target)
+		if err != nil {
+			return BM25Explanation{}, err
+		}
+		tokens = append(tokens, contractv1.ExplainLexicalToken{
+			QueryToken:   strings.Trim(term, "\""),
+			Matched:      contribution > 0,
+			Contribution: contribution,
+		})
+	}
+
+	return BM25Explanation{
+		Target: target,
+		Rank:   rank,
+		Lexical: contractv1.ExplainLexical{
+			RawScore:      raw,
+			Score:         score,
+			MatchedFields: matchedFields,
+			Tokens:        tokens,
+		},
+	}, nil
+}
+
+// HasConcept reports whether a concept exists in a bundle.
+func (s *Store) HasConcept(ctx context.Context, root, id string) (bool, error) {
+	var found int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT 1 FROM documents WHERE bundle_root = ? AND id = ?", root, id).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *Store) bm25Raw(ctx context.Context, root, match, id string) (float64, error) {
+	var raw float64
+	err := s.db.QueryRowContext(ctx, `
+		SELECT -bm25(fts_documents, 0.0, 0.0, 10.0, 8.0, 4.0, 1.0)
+		FROM fts_documents
+		JOIN documents d
+		  ON d.bundle_root = fts_documents.bundle_root
+		 AND d.id = fts_documents.id
+		WHERE fts_documents.bundle_root = ?
+		  AND fts_documents MATCH ?
+		  AND d.id = ?`, root, match, id).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return raw, nil
+}
+
+func (s *Store) ftsMatches(ctx context.Context, root, match, id string) (bool, error) {
+	var found int
+	err := s.db.QueryRowContext(ctx, `
+		SELECT 1
+		FROM fts_documents
+		JOIN documents d
+		  ON d.bundle_root = fts_documents.bundle_root
+		 AND d.id = fts_documents.id
+		WHERE fts_documents.bundle_root = ?
+		  AND fts_documents MATCH ?
+		  AND d.id = ?
+		LIMIT 1`, root, match, id).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func buildFTSQuery(query string) string {
-	query = strings.TrimSpace(query)
-	if query == "" {
+	positives, negatives := splitFTSQuery(query)
+	if len(positives) == 0 {
 		return ""
 	}
+	expression := strings.Join(positives, " OR ")
+	if len(positives) > 1 {
+		expression = "(" + expression + ")"
+	}
+	if len(negatives) > 0 {
+		expression += " NOT (" + strings.Join(negatives, " OR ") + ")"
+	}
+	return expression
+}
+
+func splitFTSQuery(query string) ([]string, []string) {
+	query = strings.TrimSpace(query)
 	positives := make([]string, 0)
 	negatives := make([]string, 0)
 	index := 0
@@ -667,17 +851,7 @@ func buildFTSQuery(query string) string {
 			positives = append(positives, term)
 		}
 	}
-	if len(positives) == 0 {
-		return ""
-	}
-	expression := strings.Join(positives, " OR ")
-	if len(positives) > 1 {
-		expression = "(" + expression + ")"
-	}
-	if len(negatives) > 0 {
-		expression += " NOT (" + strings.Join(negatives, " OR ") + ")"
-	}
-	return expression
+	return positives, negatives
 }
 
 func insertConcept(ctx context.Context, tx *sql.Tx, root string, concept contractv1.OkfConcept, now int64) error {

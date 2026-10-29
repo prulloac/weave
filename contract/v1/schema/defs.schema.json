@@ -20,7 +20,7 @@
 		},
 		"SearchField": {
 			"type": "string",
-			"enum": ["title", "description", "body"]
+			"enum": ["title", "keywords", "description", "body"]
 		},
 		"AuditFailOn": {
 			"type": "string",
@@ -610,8 +610,36 @@
 			"required": ["keyword_weight", "fuzzy_weight", "total"],
 			"properties": {
 				"keyword_weight": { "type": "number", "minimum": 0, "maximum": 1 },
+				"lexical_weight": { "type": "number", "minimum": 0, "maximum": 1 },
 				"fuzzy_weight": { "type": "number", "minimum": 0, "maximum": 1 },
 				"total": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
+		"ExplainLexicalToken": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["query_token", "matched", "contribution"],
+			"properties": {
+				"query_token": { "type": "string" },
+				"matched": { "type": "boolean" },
+				"contribution": { "type": "number", "minimum": 0 }
+			}
+		},
+		"ExplainLexical": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["raw_score", "score", "matched_fields", "tokens"],
+			"properties": {
+				"raw_score": { "type": "number", "minimum": 0 },
+				"score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"matched_fields": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/SearchField" }
+				},
+				"tokens": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/ExplainLexicalToken" }
+				}
 			}
 		},
 		"ExplainResult": {
@@ -637,7 +665,8 @@
 				"found": { "type": "boolean" },
 				"keyword": { "$ref": "#/$defs/ExplainKeyword" },
 				"fuzzy": { "$ref": "#/$defs/ExplainFuzzy" },
-				"hybrid": { "$ref": "#/$defs/ExplainHybrid" }
+				"hybrid": { "$ref": "#/$defs/ExplainHybrid" },
+				"lexical": { "$ref": "#/$defs/ExplainLexical" }
 			}
 		},
 		"IngestReport": {
