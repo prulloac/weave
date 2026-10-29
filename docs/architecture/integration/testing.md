@@ -84,6 +84,8 @@ MRR@10 = 1.0.
   persistence without sources and storage error paths. `cmd/weave/permissive_bdd_test.go` covers
   permissive ingest, synthetic documents, search inclusion and permissive audit.
   `cmd/weave/sync_bdd_test.go` covers hash skip/update/add/remove/rename, cascade and sync errors.
+  `cmd/weave/bm25_bdd_test.go` covers FTS indexing, multi-token OR, field weights, phrases,
+  negative terms, top-K and BM25 persistence errors.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
