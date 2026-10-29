@@ -15,8 +15,7 @@ status: draft
 
 # Specification: Multiple Bundle Sources
 
-Status: **Implemented for the CLI** (aliases, merged reads, multi-source writes). MCP multiple
-sources remain a follow-up row.
+Status: **Implemented** (CLI and MCP sources, merged reads, multi-source writes and source resources).
 Target: **v1.0**
 
 ## 1. Overview

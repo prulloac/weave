@@ -6,8 +6,7 @@ Status: **v1 in progress.** The core engine, introspection commands, SQLite stor
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
 shipped on `main`; external crypto providers, the AI plugin, MCP sensitive access,
-`weave sync --watch`, bundle export, MCP multiple sources, global configuration and the
-optimization program remain.
+`weave sync --watch`, bundle export, global configuration and the optimization program remain.
 
 ## 1. What Weave Is
 
@@ -80,7 +79,7 @@ waves, not product versions.
 | MCP server | v1.0 | Tools, stdio/TCP transport, auth, resources and watch reload shipped; sensitive access pending |
 | Release automation | v1.0 | Shipped: tag-driven verified builds and draft GitHub Releases |
 | Bundle export | v1.0 | Raw plaintext export with confirmation; encrypted OKF export |
-| Multiple bundle sources (CLI) | v1.0 | Shipped: repeatable `--source` aliases with merged search |
+| Multiple bundle sources | v1.0 | Shipped: repeatable `--source` aliases across CLI and MCP |
 | Optimization program | v1.0 | Benchmarks, budgets, maintainability and UX targets |
 | Global configuration | v1.0 | YAML config plus `WEAVE_*` variables and `weave config` |
 
@@ -243,8 +242,8 @@ is the completeness check: no feature is considered planned until it appears her
 | 24 | MCP watch reload | [watch-mode.md](docs/specs/watch-mode.md), [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | incremental sync, MCP persistent | 4 / Phase 3 | shipped |
 | 25 | Release automation | [release-automation.md](docs/specs/release-automation.md) | Tier 7 | contract, CI | 7 / Phase 7 (P1) | shipped |
 | 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | planned |
-| 27 | Multiple bundle sources (CLI) | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | shipped |
-| 30 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / Phase 7 (P3) | red |
+| 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | shipped |
+| 30 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / Phase 7 (P3) | shipped |
 | 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
 | 29 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / Phase 8 (P2) | planned |
 
@@ -352,7 +351,7 @@ privacy directives ──┬── show --decrypt
 
 1. release automation (shipped),
 2. bundle export (raw with confirmation, encrypted),
-3. multiple bundle sources (aliases and merged search; CLI shipped, MCP pending).
+3. multiple bundle sources (aliases and merged search; CLI and MCP shipped).
 
 **Wave 8 — optimization program (continuous):**
 

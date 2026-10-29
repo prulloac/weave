@@ -57,10 +57,11 @@ engine or the persistent store; the operations and tool schemas stay the same.
 ## 3. Process Model
 
 ```sh
-weave mcp --bundle <path> [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--token <token>] [--top-k-default 10] [--allow-sensitive]
+weave mcp --bundle <path> [--source <alias=path> ...] [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--token <token>] [--top-k-default 10] [--allow-sensitive]
 ```
 
-- `--bundle` is required and fixed for the process lifetime.
+- `--bundle` is required and is the primary source.
+- `--source` adds bundle sources; repeatable, using the same alias rules as the CLI.
 - `--listen` defaults to `127.0.0.1:7331`.
 - `--token` is required for non-loopback binding. For loopback, a token is optional but recommended.
 - `--db` uses the persistent SQLite store; without it, the in-memory engine is used.
@@ -119,6 +120,7 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 | `weave_explain` | `query`, `id?`, `mode?`, `top_k?` | `ExplainResult` |
 | `weave_relate` | `id`, `depth?`, `direction?` | `RelateResult` |
 | `weave_audit` | `fail_on?` | `AuditReport` |
+| `weave_list` | `types?`, `tags?`, `status?`, `limit?` | `ListResults` |
 | `weave_show` | `id` | `ShowResult` |
 | `weave_backlinks` | `id` | `BacklinksResult` |
 | `weave_path` | `from`, `to` | `PathResult` |
@@ -127,6 +129,8 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 Rules:
 
 - Inputs use the same names and semantics as the operations contract.
+- Every data tool accepts an optional `source` alias; omitted means all sources with the
+  multi-bundle merge and ambiguity rules.
 - Results are the same payloads as the CLI JSON envelope `result`.
 - Errors map to MCP tool errors with `INVALID_REQUEST`, `CONCEPT_NOT_FOUND`, `PATH_NOT_FOUND`,
   `INTERNAL`, etc.
@@ -151,10 +155,16 @@ Resources are read-only and use the same initialize/auth gate as tools.
 | --- | --- |
 | `weave://concept/{id}` | `ShowResult` |
 | `weave://graph/neighborhood/{id}` | `RelateResult` |
+| `weave://source/{source}/bundle/index` | `IndexEntry[]` from one source |
+| `weave://source/{source}/bundle/stats` | counts from one source |
+| `weave://source/{source}/concept/{id}` | `ShowResult` from one source |
+| `weave://source/{source}/graph/neighborhood/{id}` | `RelateResult` from one source |
 
+- URIs without a source segment target the primary `--bundle`.
+- Source segments must match a configured alias; unknown sources return `RESOURCE_NOT_FOUND`.
 - `{id}` may contain slash-separated path segments and is URL-unescaped before lookup.
 - Resource contents are JSON text with `mimeType: application/json`.
-- Resources never accept a bundle path.
+- Resources never accept an arbitrary bundle path.
 - Unknown resources return JSON-RPC `-32602` with data code `RESOURCE_NOT_FOUND`.
 - Calls before initialize return `-32002 NOT_INITIALIZED`.
 
@@ -239,7 +249,7 @@ ping
 
 ```sh
 weave mcp --bundle <path> [--db <file>] [--top-k-default 10] [--allow-sensitive]
-weave mcp --bundle <path> --stdio
+weave mcp --bundle <path> [--source <alias=path> ...] --stdio
 weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
 weave mcp --bundle <path> --db <file> --watch
 ```

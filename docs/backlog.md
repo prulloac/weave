@@ -81,7 +81,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP resources | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
-| MCP multiple sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | - | red |
+| MCP multiple sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
 
 ## Tier 7 — Delivery, portability and quality
 
@@ -89,7 +89,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | --- | --- | --- | --- | --- | --- | --- |
 | Release automation | [release-automation.md](specs/release-automation.md) | - | x | x | x | green |
 | Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | - | - | backlog |
-| Multiple bundle sources (CLI) | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
+| Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | - | - | backlog |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | - | - | backlog |
 
@@ -129,6 +129,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Extensions: discovery, `weave.cli/v1` runner, enrichment keywords and rerank blending
 - [x] Release automation: tag-driven verified builds, archives, checksums and draft releases
 - [x] Multiple bundle sources: repeatable `--source`, merged search/list/audit and multi-source writes
+- [x] MCP multiple sources: sourced tools, qualified targets and `weave://source/<alias>/...` resources
 - [x] Body compression: zstd default, LZ4 opt-in, per-row codec and decode recovery
 
 ## Dependency Order

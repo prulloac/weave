@@ -320,10 +320,15 @@ Serve read-only MCP tools and resources over stdio or TCP, using in-memory or pe
 weave mcp --bundle ~/notes --stdio
 weave mcp --bundle ~/notes --listen 127.0.0.1:7331 --token secret
 weave mcp --bundle ~/notes --db ~/.weave/index.db
-weave mcp --bundle ~/notes --db ~/.weave/index.db --watch
+weave mcp --bundle ~/notes --source work=~/work/notes --db ~/.weave/index.db --watch
 ```
 
-Specs: [MCP Server](docs/specs/mcp-server.md), [Watch Mode](docs/specs/watch-mode.md).
+- `--source` adds bundle sources; tools accept an optional `source` alias and resources expose
+  `weave://source/<alias>/...`.
+- Without `source`, tools merge sources and reject ambiguous targets.
+
+Specs: [MCP Server](docs/specs/mcp-server.md), [Watch Mode](docs/specs/watch-mode.md),
+[Multiple Bundle Sources](docs/specs/multi-bundle.md).
 
 #### `weave version`
 
