@@ -52,6 +52,7 @@ weave audit <path> --permissive --json
 | `weave parse`, `graph`, `search` | strict/v1 behavior | no change |
 
 - `--permissive` and `--strict` are mutually exclusive.
+- `weave ingest --strict` exits `1` when validation has errors; JSON mode still emits the report.
 - The mode is stored with the v1.0 database so later syncs are consistent.
 - `--strict` on a permissive database reports documents that would be invalid.
 

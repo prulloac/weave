@@ -46,6 +46,7 @@ refuses to open a database with a newer `user_version`.
 -- 0. Bundle Registry
 CREATE TABLE IF NOT EXISTS bundles (
     bundle_root TEXT PRIMARY KEY,        -- Absolute normalized bundle root
+    mode TEXT NOT NULL DEFAULT 'strict', -- strict | permissive
     okf_version TEXT,
     index_json TEXT NOT NULL,            -- Serialized []IndexEntry
     validation_json TEXT NOT NULL,       -- Serialized Validation
@@ -257,9 +258,13 @@ Exit codes:
 ```go
 type Store struct { /* ... */ }
 
+type IngestOptions struct {
+    Mode string // strict | permissive
+}
+
 func Open(path string) (*Store, error)
-func (s *Store) Ingest(ctx context.Context, bundle *contractv1.Bundle) (IngestReport, error)
-func (s *Store) Rebuild(ctx context.Context, bundle *contractv1.Bundle) (IngestReport, error)
+func (s *Store) Ingest(ctx context.Context, bundle *contractv1.Bundle, options IngestOptions) (IngestReport, error)
+func (s *Store) Rebuild(ctx context.Context, bundle *contractv1.Bundle, options IngestOptions) (IngestReport, error)
 func (s *Store) HasBundle(ctx context.Context, bundleRoot string) (bool, error)
 func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.Bundle, error)
 func (s *Store) Sync(ctx context.Context, root string, options SyncOptions) (SyncReport, error)
