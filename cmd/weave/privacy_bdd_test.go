@@ -137,7 +137,7 @@ func privacyShow(t *testing.T, root, db, id string, extra ...string) (int, testE
 func privacySearch(t *testing.T, root, db, query, mode string) contractv1.SearchResponse {
 	t.Helper()
 	code, stdout, stderr := invokeRaw(t, "search", root, query, "--db", db, "--mode", mode, "--json")
-	if code == 1 && strings.TrimSpace(stdout) == "" {
+	if code == 1 && strings.Contains(stderr, "no matches") {
 		return contractv1.SearchResponse{}
 	}
 	if code != 0 {
