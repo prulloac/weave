@@ -177,7 +177,7 @@ enrichments follow in later slices.
 ```text
 weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
 weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
-weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]        # next slice
+weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
 
 weave parse <path> ... [--db <file> | --no-db]
 weave graph <path> ... [--db <file> | --no-db]
@@ -204,9 +204,16 @@ weave explain <path> ... [--db <file> | --no-db]
 - `ingest` replaces only the rows for `<path>` in one transaction. It never touches other bundles
   in the shared database.
 - `rebuild` deletes only that bundle's rows and re-ingests them. It does not drop other bundles.
-- `sync` is incremental, scoped to `<path>`, and is delivered after the storage foundation.
-- Mode flags follow [Permissive Ingestion](./permissive-ingestion.md). The storage foundation is
-  tested with `--strict`; `--permissive` is enabled with that feature.
+- `sync` requires an indexed bundle. A missing database is `INVALID_REQUEST`; an unindexed bundle
+  is `BUNDLE_NOT_INDEXED`.
+- `sync` hashes raw file content with SHA-256, skips unchanged files, and reports added, updated,
+  removed and skipped counts.
+- Renames are treated as one removal plus one addition; no rename detection.
+- Outgoing edges are replaced for updated documents. Incoming edges to deleted documents become
+  dangling.
+- `sync` uses the mode stored at ingest by default. Explicit `--strict` or `--permissive` overrides
+  the mode for the sync and updates the stored mode.
+- `--watch` belongs to [Watch Mode](./watch-mode.md) and is not part of this slice.
 - Source bundles are never modified.
 - The `~/.weave` directory is created with mode `0700` when the database is first written.
 
@@ -288,7 +295,9 @@ func (s *Store) Close() error
 
 For the same bundle, database-backed reads return the same envelopes and payloads as in-memory
 reads. Graph, search, navigation, audit, relate and explain build their in-memory views from the
-loaded bundle; they must not read Markdown sources when persistence is enabled.
+loaded bundle; they must not read Markdown sources when persistence is enabled. `LoadBundle`
+recomputes link resolution against the stored concept IDs so deleted targets become dangling
+without rewriting unchanged source documents.
 
 ### 5.6 Acceptance Criteria
 
@@ -300,7 +309,20 @@ loaded bundle; they must not read Markdown sources when persistence is enabled.
 - A read for an unindexed bundle fails with `BUNDLE_NOT_INDEXED` and exit `1`.
 - Missing databases and unsupported schema versions fail with exit `2`.
 - `ingest` never writes into the source bundle.
-- Incremental sync is explicitly out of scope for this slice.
+- Incremental sync is covered by its own slice below.
+
+### 5.7 Incremental Sync Acceptance
+
+- A second `sync` with no file changes reports every document as skipped.
+- Touching a file without changing its content still reports it as skipped.
+- Changing content reports exactly one update and updates stored concepts and search results.
+- Adding a file reports exactly one addition.
+- Removing a file reports exactly one removal.
+- Renaming a file reports one addition and one removal.
+- Deleting a link target leaves the source concept's link dangling and audit reports `BROKEN_LINK`.
+- `sync` refuses to run on an unindexed bundle or a missing database.
+- `sync --no-db` is a usage error.
+- `sync` preserves the stored ingest mode unless explicitly overridden.
 
 ## Related Documents
 
