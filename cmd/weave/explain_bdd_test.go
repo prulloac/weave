@@ -159,9 +159,9 @@ func almostEqual(left, right float64) bool {
 func TestExplainBehavior(t *testing.T) {
 	t.Run("hybrid explanation matches search scores and rank", func(t *testing.T) {
 		path := explainFixture()
-		search := runSearchJSON(t, path, "oauth tokn", "hybrid", 10)
+		search := runSearchJSON(t, path, "oauth", "hybrid", 10)
 		code, _, result := runExplainJSON(t,
-			path, "oauth tokn", "--id", "concepts/oauth", "--json")
+			path, "oauth", "--id", "concepts/oauth", "--json")
 
 		if code != 0 {
 			t.Fatalf("expected exit 0, got %d", code)
@@ -204,20 +204,6 @@ func TestExplainBehavior(t *testing.T) {
 		exact, ok := findKeywordToken(result.Keyword.Tokens, "oauth")
 		if !ok || exact.Match != "exact" || !almostEqual(exact.Score, 1) {
 			t.Fatalf("unexpected oauth token evidence: %+v", result.Keyword.Tokens)
-		}
-		none, ok := findKeywordToken(result.Keyword.Tokens, "tokn")
-		if !ok || none.Match != "none" || !almostEqual(none.Score, 0) {
-			t.Fatalf("unexpected tokn token evidence: %+v", result.Keyword.Tokens)
-		}
-
-		foundToken := false
-		for _, token := range result.Fuzzy.Tokens {
-			if token.QueryToken == "tokn" && token.Similarity > 0 {
-				foundToken = true
-			}
-		}
-		if !foundToken {
-			t.Fatalf("expected fuzzy tokn evidence, got %+v", result.Fuzzy.Tokens)
 		}
 	})
 

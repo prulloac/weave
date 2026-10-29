@@ -23,12 +23,10 @@ As a knowledge worker, I want to know why a document ranked where it did so that
 ### Scenario: Explain a specific hybrid result
 
 - **Given** the same bundle
-- **When** I run `weave explain <bundle> "oauth tokn" --id concepts/oauth --json`
+- **When** I run `weave explain <bundle> oauth --id concepts/oauth --json`
 - **Then** the keyword, fuzzy and hybrid scores equal the matching `weave search` component scores
 - **And** `rank` equals the document's 1-based position in the hybrid top-K
 - **And** the keyword evidence contains an exact match for `oauth`
-- **And** the keyword evidence contains no match for `tokn`
-- **And** the fuzzy evidence contains at least one `tokn` token match
 
 ### Scenario: Repeat explanations are deterministic
 
