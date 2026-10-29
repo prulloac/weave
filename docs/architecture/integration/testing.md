@@ -101,6 +101,8 @@ MRR@10 = 1.0.
   `weave.cli/v1` transport, enrichment fallbacks, rerank blending and timeout handling.
   `release/release_test.go` and `cmd/weave/release_bdd_test.go` cover version injection, artifact
   packaging, checksum ordering, build info and the release workflow contract.
+  `cmd/weave/multi_bundle_bdd_test.go` covers source aliases, merged search/list/audit, qualified
+  targets, cross-source path rejection and multi-source writes.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

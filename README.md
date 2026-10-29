@@ -61,6 +61,7 @@ Global flags:
 - `--codec zstd|lz4|none` selects body compression for ingest, rebuild and sync; default `zstd`.
 - `--with-enricher <name>` and `--rerank <name>` enable `weave-<name>` extensions; `--timeout`
   overrides the 5s default.
+- `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -119,6 +120,21 @@ weave search ~/notes "security" --mode keyword --json
 weave search ~/notes "alpha beta" --mode bm25 --json
 weave search ~/notes "token rotation" --rerank keywords --timeout 2s --json
 ```
+
+#### Multiple bundle sources
+
+Add sources with a repeatable `--source <alias=path>`; the positional path is always the first
+source. Aliases default to the directory name. Search, list and audit merge deterministically
+(`score`, then source, then id), targets accept `alias:id`, and ambiguity is an error. Graph and
+links stay bundle-scoped.
+
+```sh
+weave search ~/notes --source work=~/work/notes "oauth"
+weave show ~/notes --source work=~/work/notes work:runbook
+weave ingest ~/notes --source work=~/work/notes --db ~/.weave/index.db
+```
+
+Spec: [Multiple Bundle Sources](docs/specs/multi-bundle.md).
 
 #### `weave list`
 
