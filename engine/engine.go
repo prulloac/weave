@@ -40,15 +40,19 @@ func Open(ctx context.Context, root string, options Options) (*Engine, error) {
 		return nil, err
 	}
 
+	return FromBundle(bundle), nil
+}
+
+// FromBundle builds an engine from an already parsed bundle.
+func FromBundle(bundle *contractv1.Bundle) *Engine {
 	nodeGraph := graph.Build(bundle)
 	searchIndex := search.Build(bundle, nodeGraph)
-
 	return &Engine{
 		root:   bundle.Root,
 		bundle: bundle,
 		graph:  nodeGraph,
 		search: searchIndex,
-	}, nil
+	}
 }
 
 func (e *Engine) Root() string               { return e.root }

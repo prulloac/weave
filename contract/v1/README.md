@@ -21,6 +21,7 @@ contract/v1/
 │   ├── audit.schema.json
 │   ├── relate.schema.json
 │   ├── explain.schema.json
+│   ├── ingest.schema.json
 │   ├── error.schema.json
 │   ├── envelope.schema.json
 │   └── cli.schema.json

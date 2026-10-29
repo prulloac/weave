@@ -396,6 +396,12 @@ func TestContractTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "explain.schema.json", explain)
 
+	ingestReport := IngestReport{
+		DB: "/home/user/.weave/index.db", Bundle: "/bundle", Mode: "strict",
+		Documents: 1, Edges: 1, Synthetic: 0, Warnings: 0, Errors: 0,
+	}
+	marshalValidate(t, compiler, "ingest.schema.json", ingestReport)
+
 	success := SuccessEnvelope{
 		Contract: "weave.contract/v1",
 		CLI:      "weave.cli/v1",

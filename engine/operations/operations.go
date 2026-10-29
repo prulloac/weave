@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
@@ -12,6 +13,7 @@ import (
 	"github.com/prulloac/weave/engine/nav"
 	"github.com/prulloac/weave/engine/relate"
 	"github.com/prulloac/weave/engine/search"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
 const (
@@ -32,6 +34,8 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpAudit, Fields: []string{"path", "fail_on", "verify_keys"}, Result: "AuditReport"},
 	{Op: contractv1.OpRelate, Fields: []string{"path", "target", "depth", "direction"}, Result: "RelateResult"},
 	{Op: contractv1.OpExplain, Fields: []string{"path", "query", "target", "mode", "top_k"}, Result: "ExplainResult"},
+	{Op: contractv1.OpIngest, Fields: []string{"path", "db", "strict"}, Result: "IngestReport"},
+	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict"}, Result: "IngestReport"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -95,12 +99,26 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		})
 	}
 
-	eng, err := e.Open(ctx, request.Path)
-	if err != nil {
-		code, message := mapOpenError(err)
-		return failure(code, message, map[string]any{"path": request.Path})
+	if request.Op == contractv1.OpIngest || request.Op == contractv1.OpRebuild {
+		return e.ingest(ctx, request)
 	}
-	defer eng.Close()
+
+	eng, cleanup, err := e.openEngine(ctx, request)
+	if err != nil {
+		switch {
+		case errors.Is(err, sqlitestore.ErrBundleNotIndexed):
+			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
+				"path": request.Path,
+			})
+		case request.NoDB:
+			code, message := mapOpenError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		default:
+			code, message := mapStorageError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+	}
+	defer cleanup()
 
 	switch request.Op {
 	case contractv1.OpParse:
@@ -245,6 +263,107 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			"op": request.Op,
 		})
 	}
+}
+
+func (e *Executor) openEngine(
+	ctx context.Context,
+	request contractv1.OperationRequest,
+) (*engine.Engine, func(), error) {
+	if request.NoDB {
+		eng, err := e.Open(ctx, request.Path)
+		if err != nil {
+			return nil, func() {}, err
+		}
+		return eng, func() { _ = eng.Close() }, nil
+	}
+
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	store, err := sqlitestore.OpenExisting(dbPath)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	closeStore := func() { _ = store.Close() }
+
+	root, err := filepath.Abs(request.Path)
+	if err != nil {
+		closeStore()
+		return nil, func() {}, err
+	}
+	has, err := store.HasBundle(ctx, root)
+	if err != nil {
+		closeStore()
+		return nil, func() {}, err
+	}
+	if !has {
+		closeStore()
+		return nil, func() {}, sqlitestore.ErrBundleNotIndexed
+	}
+	bundle, err := store.LoadBundle(ctx, root)
+	if err != nil {
+		closeStore()
+		return nil, func() {}, err
+	}
+	return engine.FromBundle(bundle), closeStore, nil
+}
+
+func (e *Executor) ingest(ctx context.Context, request contractv1.OperationRequest) any {
+	if request.NoDB {
+		return failure(contractv1.ErrInvalidRequest, "--no-db cannot be used with ingest or rebuild", map[string]any{
+			"op": request.Op,
+		})
+	}
+
+	eng, err := e.Open(ctx, request.Path)
+	if err != nil {
+		code, message := mapOpenError(err)
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
+	defer eng.Close()
+
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
+	store, err := sqlitestore.Open(dbPath)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"db": dbPath})
+	}
+	defer store.Close()
+
+	var report contractv1.IngestReport
+	if request.Op == contractv1.OpRebuild {
+		report, err = store.Rebuild(ctx, eng.Bundle())
+	} else {
+		report, err = store.Ingest(ctx, eng.Bundle())
+	}
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+			"path": request.Path,
+			"db":   dbPath,
+		})
+	}
+	return success(report)
+}
+
+func resolveDBPath(path string) (string, error) {
+	if path == "" {
+		return sqlitestore.DefaultPath()
+	}
+	return sqlitestore.ExpandPath(path)
+}
+
+func mapStorageError(err error) (contractv1.ErrorCode, string) {
+	if errors.Is(err, os.ErrPermission) {
+		return contractv1.ErrPermissionDenied, "permission denied: " + err.Error()
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return contractv1.ErrInvalidRequest, "database does not exist: " + err.Error()
+	}
+	return contractv1.ErrInvalidRequest, "cannot open database: " + err.Error()
 }
 
 func success(result any) contractv1.SuccessEnvelope {

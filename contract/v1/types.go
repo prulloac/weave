@@ -83,6 +83,7 @@ const (
 	ErrParseError       ErrorCode = "PARSE_ERROR"
 	ErrConceptNotFound  ErrorCode = "CONCEPT_NOT_FOUND"
 	ErrPathNotFound     ErrorCode = "PATH_NOT_FOUND"
+	ErrBundleNotIndexed ErrorCode = "BUNDLE_NOT_INDEXED"
 	ErrInternal         ErrorCode = "INTERNAL"
 )
 
@@ -101,6 +102,8 @@ const (
 	OpAudit     OperationName = "audit"
 	OpRelate    OperationName = "relate"
 	OpExplain   OperationName = "explain"
+	OpIngest    OperationName = "ingest"
+	OpRebuild   OperationName = "rebuild"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -403,6 +406,18 @@ type ExplainResult struct {
 	Hybrid  ExplainHybrid  `json:"hybrid"`
 }
 
+// IngestReport is the result of `weave ingest` or `weave rebuild`.
+type IngestReport struct {
+	DB        string `json:"db"`
+	Bundle    string `json:"bundle"`
+	Mode      string `json:"mode"`
+	Documents int    `json:"documents"`
+	Edges     int    `json:"edges"`
+	Synthetic int    `json:"synthetic"`
+	Warnings  int    `json:"warnings"`
+	Errors    int    `json:"errors"`
+}
+
 // OperationDescriptor describes one machine operation for discovery.
 type OperationDescriptor struct {
 	Op     OperationName `json:"op"`
@@ -445,6 +460,9 @@ type OperationRequest struct {
 	VerifyKeys bool            `json:"verify_keys,omitempty"`
 	Depth      *int            `json:"depth,omitempty"`
 	Direction  RelateDirection `json:"direction,omitempty"`
+	DB         string          `json:"db,omitempty"`
+	NoDB       bool            `json:"no_db,omitempty"`
+	Strict     bool            `json:"strict,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.
