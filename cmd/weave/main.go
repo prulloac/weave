@@ -105,6 +105,7 @@ type flags struct {
 	verifyKeys  bool
 	depth       *int
 	direction   contractv1.RelateDirection
+	id          string
 	positionals []string
 }
 
@@ -191,6 +192,13 @@ func parseFlags(args []string) (flags, error) {
 			}
 		case "--verify-keys":
 			result.verifyKeys = true
+		case "--id":
+			value, next, err := flagValue(args, index, "--id")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.id = value
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -339,6 +347,18 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Target:    flags.positional(1),
 			Depth:     depth,
 			Direction: direction,
+		}, 0, nil
+	case "explain":
+		if err := requirePositional(command, flags, 2); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:     contractv1.OpExplain,
+			Path:   flags.positional(0),
+			Query:  flags.positional(1),
+			Target: flags.id,
+			Mode:   flags.mode,
+			TopK:   flags.topK,
 		}, 0, nil
 	case "mount", "unmount", "status":
 		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
@@ -546,10 +566,48 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 	case contractv1.OpRelate:
 		printRelateHuman(stdout, result.(contractv1.RelateResult))
 		return 0
+	case contractv1.OpExplain:
+		printExplainHuman(stdout, result.(contractv1.ExplainResult))
+		return 0
 	default:
 		fmt.Fprintln(stderr, "weave: unsupported operation")
 		return 1
 	}
+}
+
+func printExplainHuman(stdout io.Writer, result contractv1.ExplainResult) {
+	fmt.Fprintf(stdout, "query: %s\n", result.Query)
+	fmt.Fprintf(stdout, "mode: %s (top %d)\n", result.Mode, result.TopK)
+	fmt.Fprintf(stdout, "result: %s  rank %d\n", result.ID, result.Rank)
+
+	fmt.Fprintf(stdout, "\nkeyword  %.3f\n", result.Keyword.Score)
+	for _, token := range result.Keyword.Tokens {
+		switch token.Match {
+		case contractv1.ExplainMatchExact, contractv1.ExplainMatchPrefix:
+			fmt.Fprintf(stdout, "  %s  %s  %.3f  → keyword %q\n",
+				token.QueryToken, token.Match, token.Score, token.MatchedKeyword)
+		default:
+			fmt.Fprintf(stdout, "  %s  none  —  (no keyword match)\n", token.QueryToken)
+		}
+	}
+
+	fmt.Fprintf(stdout, "\nfuzzy    %.3f\n", result.Fuzzy.Score)
+	for _, field := range result.Fuzzy.Fields {
+		fmt.Fprintf(stdout, "  %-12s %.3f  weight %.2f  contribution %.3f\n",
+			field.Field, field.Score, field.Weight, field.Contribution)
+	}
+	if len(result.Fuzzy.Tokens) > 0 {
+		fmt.Fprintln(stdout, "  token matches")
+		for _, token := range result.Fuzzy.Tokens {
+			fmt.Fprintf(stdout, "    %s → %s  %s  %.2f\n",
+				token.QueryToken, token.MatchedToken, token.Field, token.Similarity)
+		}
+	}
+
+	fmt.Fprintf(stdout, "\nhybrid   %.3f\n", result.Hybrid.Total)
+	fmt.Fprintf(stdout, "  %.2f * %.3f + %.2f * %.3f\n",
+		result.Hybrid.KeywordWeight, result.Keyword.Score,
+		result.Hybrid.FuzzyWeight, result.Fuzzy.Score)
 }
 
 func printRelateHuman(stdout io.Writer, result contractv1.RelateResult) {
@@ -700,6 +758,7 @@ usage:
   weave path <path> <id|file> <id|file> [--json] [--no-cache]
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
   weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
+  weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
   weave version [--json]
   weave --version | --help
 
