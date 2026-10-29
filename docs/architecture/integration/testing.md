@@ -83,6 +83,7 @@ MRR@10 = 1.0.
   `cmd/weave/storage_bdd_test.go` covers default-DB ingest, bundle isolation, `--db`/`--no-db`,
   persistence without sources and storage error paths. `cmd/weave/permissive_bdd_test.go` covers
   permissive ingest, synthetic documents, search inclusion and permissive audit.
+  `cmd/weave/sync_bdd_test.go` covers hash skip/update/add/remove/rename, cascade and sync errors.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
