@@ -15,7 +15,8 @@ status: draft
 
 # Specification: Privacy Directives
 
-Status: **Proposed**
+Status: **Implemented** (directives, key resolution, built-in providers, storage, search, CLI and
+MCP redaction).
 Target: **v1.0**
 
 ## 1. Overview
@@ -249,8 +250,8 @@ weave audit <path> [--verify-keys] --json
 ```
 
 - Ingest, rebuild and sync apply directives with no extra flag.
-- `--permissive` does not relax key failures: a document with an unavailable key is skipped with a
-  `KEY_UNAVAILABLE` warning; `--strict` fails the operation with exit `3`.
+- `--permissive` does not relax key failures: a document with an unavailable key is skipped and
+  counted as a warning; `--strict` fails the operation with exit `3`.
 - `show` returns `privacy.redacted = true` and `body: ""` for encrypted concepts. `--decrypt`
   resolves the key and returns plaintext with `privacy.decrypted = true`; a missing key exits `3` with
   `PRIVACY_KEY_UNAVAILABLE`.

@@ -24,6 +24,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
+- **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 
@@ -53,7 +54,7 @@ Global flags:
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
-  `3` permission denied.
+  `3` permission, privacy key or decryption failure.
 
 ### Shipped commands
 
@@ -120,11 +121,12 @@ weave list ~/notes --status draft --limit 5 --json
 #### `weave show`
 
 Show one concept by bundle ID or file path, including type, status, tags, description, backlinks,
-outgoing links and body.
+outgoing links and body. Encrypted bodies are redacted unless `--decrypt` resolves the key.
 
 ```sh
 weave show ~/notes concepts/oauth-token-rotation
 weave show ~/notes oauth-token-rotation.md --json
+weave show ~/notes oauth-token-rotation --decrypt --json
 ```
 
 #### `weave backlinks`
@@ -221,6 +223,38 @@ weave sync ~/notes --db /tmp/notes.db --json
 Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode drives incremental sync from a
 polling loop; the `weave sync --watch` CLI flag is a follow-up.
 
+#### Privacy directives
+
+Declare per-document policies in frontmatter or protect inline spans with HTML comments. Weave
+encrypts with AES-256-GCM, tokenizes with HMAC-SHA256 aliases or hashes normalized text; encrypted
+documents are excluded from search, and tokenized/hashed content stays searchable through
+deterministic aliases.
+
+```markdown
+---
+type: runbook
+keywords: [infra]
+privacy:
+  policy: encrypt
+  provider: aes-256-gcm
+  key_id: ops-prod-key
+---
+```
+
+```markdown
+Root token: <!-- weave:encrypt key_id="ops-prod-key" -->sec_live_994821a8f9<!-- /weave:encrypt -->
+```
+
+Keys resolve from `WEAVE_KEY_<KEY_ID>` then `.weave/security.yaml`; key material is never stored.
+
+```sh
+WEAVE_KEY_OPS_PROD_KEY=... weave ingest ~/notes --db ~/.weave/index.db --strict
+weave show ~/notes secret --decrypt --json
+weave audit ~/notes --verify-keys --json
+```
+
+Spec: [Privacy Directives](docs/specs/privacy-directives.md).
+
 #### `weave mcp`
 
 Serve read-only MCP tools and resources over stdio or TCP, using in-memory or persistent storage.
@@ -304,6 +338,7 @@ engine/search/          keyword, fuzzy and hybrid ranking
 engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
 storage/sqlite/          bundle-scoped persistent storage and incremental sync
+engine/privacy/          directive parsing, key resolution and crypto providers
 mcp/                    MCP tool descriptors, resources and in-process dispatch
 watch/                  polling watcher over incremental sync
 engine/nav/             list, show, backlinks, path
@@ -321,6 +356,7 @@ docs/                   architecture, specs, knowledge
 - [Weave Explain spec](docs/specs/weave-explain.md)
 - [Storage & Sync spec](docs/specs/storage-and-sync.md)
 - [Watch Mode spec](docs/specs/watch-mode.md)
+- [Privacy Directives spec](docs/specs/privacy-directives.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [MCP Server spec](docs/specs/mcp-server.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)

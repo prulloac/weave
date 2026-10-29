@@ -93,6 +93,8 @@ MRR@10 = 1.0.
   `mcp/transport_test.go` covers stdio/TCP JSON-RPC framing, initialize, tools and auth.
   `mcp/resource_test.go` covers resource discovery, reads, templates and errors.
   `watch/watcher_test.go` covers initial sync, updates, deletes, bursts, ignored dirs and MCP reload.
+  `cmd/weave/privacy_bdd_test.go` and `engine/privacy/privacy_test.go` cover directive parsing, key
+  resolution, encryption, tokenization aliases, hashing, redaction and MCP sensitive access.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

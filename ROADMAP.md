@@ -3,9 +3,9 @@
 > Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
-incremental sync, watch reload, BM25, permissive ingestion and the MCP server through watch reload are
-shipped on `main`; privacy, extensions, compression and MCP sensitive access remain specified but not
-implemented.
+incremental sync, watch reload, BM25, permissive ingestion, privacy directives and the MCP server
+through watch reload are shipped on `main`; extensions, compression and MCP sensitive access remain
+specified but not implemented.
 
 ## 1. What Weave Is
 
@@ -67,7 +67,7 @@ waves, not product versions.
 | BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
 | BM25 explain | v1.0 | Shipped: lexical raw/normalized scores, fields and term evidence |
 | Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
-| Privacy directives | v1.0 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
+| Privacy directives | v1.0 | Shipped: `encrypt`, `tokenize`, `hash`, key resolution, `show --decrypt` |
 | Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
 | External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
 | Explainable search | v1.0 | Shipped: per-token/per-field `weave explain` |
@@ -85,7 +85,7 @@ weave parse <path> --json
 weave graph <path> --json
 weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] --json
 weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] --json
-weave show <path> <id|file> --json
+weave show <path> <id|file> [--decrypt] --json
 weave backlinks <path> <id|file> --json
 weave path <path> <id|file> <id|file> --json
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
@@ -106,8 +106,6 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ```sh
 weave sync <path> --watch [--with-enricher <ext>] --json
 weave search <path> <query> [--rerank <ext>] --json
-weave show <path> <id|file> [--decrypt] --json
-weave audit <path> [--verify-keys] --json
 ```
 
 ## 5. Search Semantics
@@ -129,7 +127,7 @@ weave audit <path> [--verify-keys] --json
 - **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; persistent hybrid uses lexical BM25.
 - **Extensions:** optional rerankers may adjust ranking after core scoring.
 
-## 6. Privacy Semantics (v1.0 target)
+## 6. Privacy Semantics (shipped)
 
 Privacy is **explicitly declared**, never heuristic.
 
@@ -217,7 +215,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | planned |
-| 12 | Privacy directives | [privacy-directives.md](docs/specs/privacy-directives.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | red |
+| 12 | Privacy directives | [privacy-directives.md](docs/specs/privacy-directives.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | shipped |
 | 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 | planned |
 | 14 | Enrichment extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | planned |
 | 15 | Rerank extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | search, extension runner | 5 / Phase 5 | planned |
@@ -371,12 +369,12 @@ Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 [Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),
 [Compression](docs/specs/compression.md).
 
-### Phase 4 — Privacy primitives (v1.0)
+### Phase 4 — Privacy primitives (complete)
 
-- Standard-library `aes-256-gcm`, `sha256`, `hmac-sha256`.
-- Frontmatter and inline privacy directives.
-- Key resolution via environment and `.weave/security.yaml`.
-- Audit key-availability checks.
+- Standard-library `aes-256-gcm`, `sha256`, `hmac-sha256` (shipped).
+- Frontmatter and inline privacy directives (shipped).
+- Key resolution via environment and `.weave/security.yaml` (shipped).
+- Audit key-availability checks (shipped).
 
 Specs: [Privacy Directives](docs/specs/privacy-directives.md),
 [Privacy & Extensions](docs/specs/privacy-and-extensions.md).

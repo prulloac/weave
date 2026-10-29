@@ -65,7 +65,8 @@ weave mcp --bundle <path> [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--t
 - `--token` is required for non-loopback binding. For loopback, a token is optional but recommended.
 - `--db` uses the persistent SQLite store; without it, the in-memory engine is used.
 - `--watch` requires `--db`; it starts the polling watcher and keeps the database current.
-- `--allow-sensitive` is required to expose encrypted/tokenized fields in tool results.
+- `--allow-sensitive` enables decryption for `weave_show`; other sensitive tool-result policies are
+  pending.
 - The server fixes the bundle path for the process lifetime and exits on SIGINT/SIGTERM.
 - Without `--watch`, tools and resources load the bundle per call through the operations executor.
 - With `--watch`, a background polling watcher keeps the persistent database current; tool and
