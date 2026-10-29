@@ -233,7 +233,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | shipped |
 | 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | planned |
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
-| 18 | Sensitive MCP policies | [mcp-sensitive.md](docs/specs/mcp-sensitive.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | planned |
+| 18 | Sensitive MCP policies | [mcp-sensitive.md](docs/specs/mcp-sensitive.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | red |
 | 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) | shipped |
 | 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | shipped |
 | 21 | BM25 explain evidence | [weave-explain.md](docs/specs/weave-explain.md), [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, storage, explain | 3 / Phase 3 | shipped |
