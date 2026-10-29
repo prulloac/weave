@@ -1,7 +1,7 @@
 ---
 type: specification
 title: "Compression Specification"
-description: "v1.0 body and posting compression contract: LZ4/Zstandard codecs, thresholds, storage schema and failure behavior."
+description: "v1.0 body compression contract: LZ4/Zstandard codecs, thresholds, storage schema, codec migration and failure behavior."
 tags:
   - "specification"
   - "compression"
@@ -9,7 +9,7 @@ tags:
   - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
-  at: "2026-10-27T00:00:00Z"
+  at: "2026-10-28T00:00:00Z"
 status: draft
 ---
 
@@ -17,90 +17,158 @@ status: draft
 
 ## 1. Overview
 
-v1.0 stores document bodies and inverted postings compactly. Compression is an internal storage
-contract, not a new CLI surface.
+Weave stores document bodies compactly in SQLite. Compression is an internal storage contract with a
+per-row codec; it adds no read-time flag and does not change search results, snippets or privacy
+semantics.
+
+This slice delivers **body compression**. In-memory posting compression is explicitly deferred (see
+§4) because the v1 search index is a map-based posting set and SQLite FTS5 already owns its own
+compressed storage format.
 
 ## 2. Goals and Non-Goals
 
 ### Goals
 
-- Reduce SQLite and transient RAM footprint.
-- Keep decompression fast enough for snippets and explain.
-- Make codecs explicit and versioned.
-- Never corrupt or silently truncate content.
+- Reduce the on-disk size of `documents.body_compressed`.
+- Keep decompression fast enough for parse-independent reads, snippets and explain.
+- Make the codec explicit, persisted per row and deterministic.
+- Never corrupt, truncate or silently drop content.
 
 ### Non-Goals
 
 - Compressing ciphertext twice.
-- User-configurable compression at query time.
+- Query-time codec selection.
 - Lossy compression.
-- Custom codecs in v1.0.
+- Custom or user-supplied codecs.
+- Delta/varint posting compression in this slice.
+- Compressing FTS5 tables; FTS5 owns its storage format.
 
 ## 3. Body Compression
 
-Schema:
+### 3.1 Schema
+
+The `documents` table already has `body_codec`; this slice adds no columns:
 
 ```sql
-ALTER TABLE documents ADD COLUMN body_codec TEXT NOT NULL DEFAULT 'none';
+body_compressed BLOB NOT NULL,
+body_codec TEXT NOT NULL DEFAULT 'none'
 ```
 
-- Default codec: LZ4 frame format.
-- Optional codec: Zstandard.
-- Bodies below 1 KiB: `body_codec = 'none'`.
-- Ciphertext bodies: stored as-is, `body_codec = 'none'`; never double-compress.
-- `documents.body_compressed` holds the encoded bytes.
-- The codec name is persisted per row for forward compatibility.
+- `body_compressed` holds the encoded bytes.
+- `body_codec` is `none`, `lz4` or `zstd`.
+- The codec is persisted per row so reads never need the write-time configuration.
 
-Rules:
+### 3.2 Codecs
 
-- Compression happens inside the sync transaction.
-- Decompression happens lazily; `weave search` only decompresses when a snippet is requested.
-- A decompression failure yields an empty body plus a warning; it never crashes a query.
-- A re-sync may change the codec without changing document content.
+| Codec | Library | Framing |
+| --- | --- | --- |
+| `lz4` | `github.com/pierrec/lz4/v4` | LZ4 frame, no content checksum, single block size |
+| `zstd` | `github.com/klauspost/compress/zstd` | Zstandard frame, default speed, single encoder |
 
-## 4. Posting Compression
+- `lz4` is the default for new writes.
+- `zstd` is opt-in at write time.
+- Both encoders are pure Go and deterministic for the same input, options and library version.
+- Codec version is pinned by `go.mod`; no separate manifest is required.
 
-Transient in-memory postings (`--no-cache`):
+### 3.3 Selection Rules
 
-- Document ids are delta-encoded.
-- Integers use standard variable-byte encoding.
-- Posting lists remain sorted by document id.
-- No compression is applied to SQLite FTS5 tables; FTS5 owns its own storage format.
+- Bodies smaller than **1024 bytes** after privacy transformation use `body_codec = 'none'`.
+- Encrypted whole-body documents (`privacy_policy = 'encrypt'`) always use `none`; ciphertext is
+  stored as produced and never double-compressed.
+- Tokenized and hashed bodies compress normally.
+- Mixed documents compress normally; inline `enc:v1:` envelopes remain inside the compressed body.
+- Empty bodies use `none`.
 
-## 5. Determinism and Performance
+### 3.4 Write Path
 
-- Output is deterministic for a given codec and version.
-- Record the codec version in configuration/manifest for migrations.
-- Targets are measured on the v1.0 benchmark corpus; regressions require a threshold review.
+CLI:
 
-## 6. Failure and Recovery
+```sh
+weave ingest <path> [--codec lz4|zstd|none] [--strict|--permissive] --json
+weave rebuild <path> [--codec lz4|zstd|none] [--strict|--permissive] --json
+weave sync <path> [--codec lz4|zstd|none] [--strict|--permissive] --json
+```
 
-- Unknown codec: treat as corrupted body, warn, keep metadata.
-- Truncated blob: warning, empty body.
-- Codec upgrade: `weave rebuild` re-encodes all bodies.
-- Codec downgrade: not automatic; requires rebuild.
+- `ingest` and `rebuild` default to `lz4`; `--codec` applies to every stored document.
+- `sync` writes new documents with `lz4`. Updated documents keep their stored codec unless
+  `--codec` is provided.
+- `--codec none` stores bodies verbatim and is the migration path to disable compression.
+- Compression runs inside the existing write transaction; a failure aborts the transaction.
+- No other CLI or contract field changes: `body_codec` is internal to storage.
 
-## 7. Testing
+### 3.5 Read Path
 
-- Round-trip every codec.
-- Threshold boundary below/above 1 KiB.
-- Encrypted bodies remain uncompressed.
-- Corrupted/truncated blob behavior.
-- Snippet decompression.
-- Rebuild re-encodes.
-- Varint/delta posting round-trip and ordering.
+- `LoadBundle` decompresses each body from its stored codec.
+- A decompression failure yields an empty body for that document and appends the bundle-level
+  warning `BODY_DECODE_FAILED`; metadata, links and edges stay intact.
+- An unknown `body_codec` is treated as a decode failure with the same warning.
+- Queries never crash on corrupt bodies and never return partial plaintext.
+- The engine materializes decompressed bodies for search; compression reduces disk footprint, not
+  steady-state RAM in this slice.
+
+## 4. Posting Compression (deferred)
+
+The v1 in-memory index stores postings as token maps, and SQLite FTS5 owns lexical storage. Delta and
+variable-byte posting compression is deferred until the index gains a compact posting representation.
+The following remain future requirements:
+
+- Document ids delta-encoded and sorted.
+- Integers variable-byte encoded.
+- No additional compression layered on FTS5.
+
+## 5. Data Flow
+
+```text
+source or stored body
+  -> privacy transform        (may produce ciphertext or aliases)
+  -> compression selection    (encrypt/empty/short -> none; else lz4 or zstd)
+  -> documents.body_compressed + body_codec
+  -> LoadBundle               (decode by body_codec; warn on failure)
+  -> engine/search/nav        (unchanged)
+```
+
+## 6. Validation and Errors
+
+| Condition | Behavior |
+| --- | --- |
+| `--codec` unknown | Usage error, exit `2` |
+| Compression failure | Transaction aborts, `INTERNAL`, exit `1` |
+| Unknown stored codec | Warning `BODY_DECODE_FAILED`, empty body, query continues |
+| Truncated or corrupt blob | Warning `BODY_DECODE_FAILED`, empty body, query continues |
+| Body below threshold | `body_codec = 'none'`, bytes verbatim |
+| Encrypted whole-body document | `body_codec = 'none'` |
+
+Exit codes are unchanged: `0` success, `1` runtime failure, `2` usage, `3` privacy failure.
+
+## 7. Testing and Calibration
+
+- LZ4 and zstd round-trip every fixture body byte-for-byte.
+- Determinism: encoding the same body twice yields identical bytes.
+- Threshold boundary: 1023 bytes → `none`, 1024 bytes and above → configured codec.
+- Encrypted bodies store ciphertext with `body_codec = 'none'`.
+- Tokenized, hashed and mixed bodies round-trip through the codec.
+- Corrupt and unknown codecs produce `BODY_DECODE_FAILED` and an empty body without failing the query.
+- Read paths (`show`, `search`, `explain`, `list`, `backlinks`) work on compressed bundles.
+- `rebuild --codec` migrates all rows; `sync` preserves per-row codecs unless `--codec` is set.
+- Compression reduces size for a repetitive fixture above the threshold.
+- Full gate: `go test ./...`, `go test -race ./...`, `go vet ./...`, `./scripts/verify.sh`,
+  docs-lint and markdownlint.
+- Ranking behavior is unchanged; `TestCalibration` must remain green.
 
 ## 8. Acceptance Criteria
 
-- All bodies round-trip without loss.
+- All stored bodies round-trip without loss through `lz4`, `zstd` and `none`.
 - Encrypted content is never double-compressed.
-- Corrupt bodies do not crash queries.
-- Compression is deterministic.
-- Rebuild migrates codecs safely.
-- Memory and storage targets are measured.
+- Corrupt bodies never crash queries and never emit partial plaintext.
+- Compression is deterministic for a given codec and library version.
+- `weave rebuild --codec` migrates codecs safely; sync preserves per-row codecs.
+- On-disk body size drops for compressible fixtures above the threshold.
+- The full verification gate stays green and calibration is unchanged.
 
 ## Related Documents
 
 - [Storage & Sync](./storage-and-sync.md)
+- [Privacy Directives](./privacy-directives.md)
 - [Privacy & Extensions](./privacy-and-extensions.md)
+- [BM25 Ranking](./bm25-ranking.md)
 - [ROADMAP](../../ROADMAP.md)

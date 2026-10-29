@@ -104,6 +104,8 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ### Planned v1.0 — persistence and extensions
 
 ```sh
+weave ingest <path> [--codec lz4|zstd|none] --json
+weave rebuild <path> [--codec lz4|zstd|none] --json
 weave sync <path> --watch [--with-enricher <ext>] --json
 weave search <path> <query> [--rerank <ext>] --json
 ```
