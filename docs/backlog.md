@@ -88,7 +88,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | --- | --- | --- | --- | --- | --- | --- |
 | Release automation | [release-automation.md](specs/release-automation.md) | - | x | x | x | green |
 | Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | - | - | backlog |
-| Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | - | - | backlog |
+| Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | - | red |
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | - | - | backlog |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | - | - | backlog |
 

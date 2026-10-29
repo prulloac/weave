@@ -243,7 +243,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 24 | MCP watch reload | [watch-mode.md](docs/specs/watch-mode.md), [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | incremental sync, MCP persistent | 4 / Phase 3 | shipped |
 | 25 | Release automation | [release-automation.md](docs/specs/release-automation.md) | Tier 7 | contract, CI | 7 / Phase 7 (P1) | shipped |
 | 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | planned |
-| 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | planned |
+| 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | red |
 | 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
 | 29 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / Phase 8 (P2) | planned |
 
