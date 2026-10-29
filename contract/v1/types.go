@@ -221,6 +221,7 @@ type HybridHit struct {
 	Path            string        `json:"path"`
 	Type            string        `json:"type"`
 	KeywordScore    float64       `json:"keyword_score"`
+	LexicalScore    float64       `json:"lexical_score,omitempty"`
 	FuzzyScore      float64       `json:"fuzzy_score"`
 	TotalScore      float64       `json:"total_score"`
 	MatchedKeywords []string      `json:"matched_keywords"`

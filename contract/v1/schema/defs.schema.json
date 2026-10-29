@@ -301,6 +301,7 @@
 				"path": { "type": "string" },
 				"type": { "type": "string" },
 				"keyword_score": { "type": "number", "minimum": 0, "maximum": 1 },
+				"lexical_score": { "type": "number", "minimum": 0, "maximum": 1 },
 				"fuzzy_score": { "type": "number", "minimum": 0, "maximum": 1 },
 				"total_score": { "type": "number", "minimum": 0, "maximum": 1 },
 				"matched_keywords": {

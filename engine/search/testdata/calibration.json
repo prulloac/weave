@@ -88,5 +88,60 @@
 			"top_k": 10,
 			"expected": []
 		}
+	],
+	"bm25_baseline": {
+		"ndcg@10": 0.7,
+		"mrr@10": 0.6
+	},
+	"bm25_cases": [
+		{
+			"name": "bm25-multi-token",
+			"query": "oauth tokens",
+			"top_k": 10,
+			"expected": [
+				{ "id": "oauth-token-rotation", "grade": 3 },
+				{ "id": "token-storage", "grade": 2 },
+				{ "id": "oauth-scopes", "grade": 1 }
+			]
+		},
+		{
+			"name": "bm25-title-weighting",
+			"query": "graph engine",
+			"top_k": 10,
+			"expected": [{ "id": "graph-engine", "grade": 3 }]
+		},
+		{
+			"name": "bm25-phrase",
+			"query": "\"refresh tokens\"",
+			"top_k": 10,
+			"expected": [{ "id": "oauth-token-rotation", "grade": 3 }]
+		},
+		{
+			"name": "bm25-permissive",
+			"query": "permissive calibration",
+			"top_k": 10,
+			"expected": [{ "id": "synthetic-calibration", "grade": 3 }]
+		}
+	],
+	"hybrid_baseline": {
+		"ndcg@10": 0.7,
+		"mrr@10": 0.6
+	},
+	"hybrid_cases": [
+		{
+			"name": "hybrid-typo",
+			"query": "oauth tokn",
+			"top_k": 10,
+			"expected": [
+				{ "id": "oauth-token-rotation", "grade": 3 },
+				{ "id": "token-storage", "grade": 2 }
+			]
+		},
+		{
+			"name": "hybrid-graph",
+			"query": "graph traversal",
+			"top_k": 10,
+			"expected": [{ "id": "graph-engine", "grade": 3 }]
+		}
 	]
 }
