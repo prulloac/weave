@@ -11,10 +11,13 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: BM25 Lexical Ranking
+
+Status: **BM25 mode and FTS indexing implemented** for v1.0. Hybrid rebase, BM25 explain and
+calibration follow in the calibration slice.
 
 ## 1. Overview
 

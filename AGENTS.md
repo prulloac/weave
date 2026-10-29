@@ -29,8 +29,8 @@ CLI-first surface and no UI. The core is in-memory; v1.0 adds optional SQLite pe
 5. **Storage:** bundle reads use a bundle-scoped `~/.weave/index.db` by default. `--no-db` forces
    transient in-memory parsing; `--db <file>` overrides the path.
 6. **Search:** shipped keyword (exact + prefix, AND), weighted fuzzy (title 1.00, description 0.60,
-   body 0.30), hybrid top-K. v1.0 adds BM25 and explain diagnostics. `search` replaces `find`.
-   Default K=10.
+   body 0.30), hybrid top-K, and BM25 via SQLite FTS5 (`--mode bm25`). BM25 requires persistence.
+   `search` replaces `find`. Default K=10.
 7. **Calibration:** ranking changes must update or pass the labeled corpus and baseline.
 8. **Go-native:** favor the standard library and Go idioms; use `yaml.v3` and `goldmark` only where
    specified. No UI dependencies.

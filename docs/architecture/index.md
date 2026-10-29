@@ -118,7 +118,7 @@ remains the compatibility promise.
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
 | Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory |
-| Ranking | Keyword + fuzzy core; v1.0 adds BM25 lexical ranking |
+| Ranking | Keyword + fuzzy hybrid; BM25 lexical mode shipped |
 | Privacy | v1.0 explicit encrypt/tokenize/hash directives |
 | Extensions | v1.0 subprocess IPC over `weave.cli/v1` |
 | Integration | CLI first; Go package optional; MCP server in v1.0 |
@@ -174,13 +174,15 @@ remains the compatibility promise.
 ## Status
 
 The core v1 engine plus `weave audit`, `weave relate`, `weave explain`, SQLite storage, permissive
-ingestion and incremental sync are implemented. The Go engine parses mandatory keywords, builds
-keyword and fuzzy indexes, returns keyword/fuzzy/hybrid top-K results, exposes the `search` CLI
-command, audits bundles for conformance and graph quality, returns bounded graph neighborhoods and
-explains score components. Bundles are persisted by default in a bundle-scoped SQLite database at
-`~/.weave/index.db`; `--no-db` uses the transient parser. Permissive ingestion synthesizes metadata
-for dirty Markdown, and `weave sync` reconciles changed files by SHA-256 hash. Calibration passes
-its baseline. The UI and old TypeScript stack are removed.
+ingestion, incremental sync and BM25 lexical ranking are implemented. The Go engine parses
+mandatory keywords, builds keyword and fuzzy indexes, returns keyword/fuzzy/hybrid top-K results,
+exposes the `search` CLI command, audits bundles for conformance and graph quality, returns bounded
+graph neighborhoods and explains score components. Bundles are persisted by default in a
+bundle-scoped SQLite database at `~/.weave/index.db`; `--no-db` uses the transient parser.
+Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` reconciles changed files
+by SHA-256 hash, and `--mode bm25` ranks through SQLite FTS5. Calibration passes its baseline. The
+UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — watch, BM25, privacy, extensions and MCP — is specified but not
-implemented. The operations layer keeps MCP independently schedulable within v1.0.
+The remaining v1.0 scope — watch, BM25 hybrid calibration, privacy, extensions and MCP — is
+specified but not implemented. The operations layer keeps MCP independently schedulable within
+v1.0.

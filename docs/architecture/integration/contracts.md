@@ -29,7 +29,7 @@ weave rebuild <path> [--db <file>] [--strict|--permissive] --json
 weave sync <path> [--db <file>] [--strict|--permissive] --json
 weave parse <path> --json
 weave graph <path> --json
-weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
+weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] --json
 weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] --json
 weave show <path> <id|file> --json
 weave backlinks <path> <id|file> --json

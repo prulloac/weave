@@ -11,10 +11,10 @@ remain specified but not implemented.
 Weave is a **local-first, related-document knowledge database**:
 
 - **v1 core (shipped):** ingest OKF/Markdown bundles into memory or a persistent SQLite index,
-  build a graph, search by mandatory keywords and weighted fuzzy similarity, navigate with `show`,
-  `backlinks` and `path`, audit bundle quality with `weave audit`, explore graph neighborhoods with
-  `weave relate`, explain ranking with `weave explain`, ingest non-OKF Markdown permissively, and
-  sync indexed bundles incrementally.
+  build a graph, search by mandatory keywords, weighted fuzzy similarity and BM25 lexical ranking,
+  navigate with `show`, `backlinks` and `path`, audit bundle quality with `weave audit`, explore
+  graph neighborhoods with `weave relate`, explain ranking with `weave explain`, ingest non-OKF
+  Markdown permissively, and sync indexed bundles incrementally.
 - **v1.0 platform (in progress):** persist and incrementally sync bundles into SQLite, add lexical
   BM25, support permissive Markdown ingestion, protect sensitive content with explicit privacy
   directives, and run external enrichment/reranking and crypto extensions.
@@ -49,6 +49,7 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | SQLite storage | Shipped | Default `~/.weave/index.db`, bundle-scoped, `--no-db` opt-out |
 | Permissive ingestion | Shipped | Synthetic Markdown documents with warnings; exact keyword excluded |
 | Incremental sync | Shipped | SHA-256 add/update/remove/skip with cascade and dangling links |
+| BM25 lexical ranking | Shipped | SQLite FTS5 `--mode bm25` with field weights and phrases |
 
 ## 3. v1.0 Scope (in progress)
 
@@ -61,7 +62,7 @@ waves, not product versions.
 | Incremental sync | v1.0 | Shipped: SHA-256 add/update/remove/skip with cascade |
 | Watch mode | v1.0 | `fsnotify` live sync and MCP reload |
 | Permissive ingestion | v1.0 | Shipped: synthetic Markdown documents with warnings |
-| BM25 lexical ranking | v1.0 | SQLite FTS5 BM25 replaces strict AND for multi-token queries |
+| BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
 | Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
 | Privacy directives | v1.0 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
 | Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
@@ -79,7 +80,7 @@ waves, not product versions.
 weave contract --json
 weave parse <path> --json
 weave graph <path> --json
-weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
+weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] --json
 weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] --json
 weave show <path> <id|file> --json
 weave backlinks <path> <id|file> --json
@@ -113,12 +114,12 @@ weave audit <path> [--verify-keys] --json
 - **Fuzzy:** max of normalized Levenshtein and trigram Dice, threshold `0.55`.
 - **Field weights:** title `1.00`, description `0.60`, body `0.30`.
 - **Hybrid:** `0.50 * keyword + 0.50 * fuzzy`.
+- **BM25:** SQLite FTS5 `--mode bm25`, OR terms, phrases, negative terms.
 - **Top-K:** default 10, max 100.
 
 ### v1.0 target
 
-- **Lexical:** SQLite FTS5 BM25 with term coordination; replaces strict AND for multi-token
-  queries.
+- **Lexical:** BM25 hybrid normalization and calibration.
 - **Fuzzy:** unchanged.
 - **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; initial a/b remain 0.50/0.50.
 - **Extensions:** optional rerankers may adjust ranking after core scoring.
@@ -207,7 +208,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 | shipped |
 | 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 | shipped |
 | 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | planned |
-| 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | planned |
+| 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | planned |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | planned |
 | 12 | Privacy directives | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | planned |
@@ -244,7 +245,7 @@ The phases below are not arbitrary; they follow this dependency graph.
 | SQLite storage | parser, graph, contract | sync, BM25, compression, privacy storage, MCP persistent |
 | Incremental sync (shipped) | storage, parser, graph | watch, enrichment, MCP persistent |
 | Watch mode | incremental sync | live MCP reload |
-| BM25 lexical ranking | storage/FTS5, search contract, calibration | BM25 hybrid ranking |
+| BM25 lexical ranking (shipped) | storage/FTS5, search contract, calibration | BM25 hybrid ranking |
 | Compression | storage | memory/body budgets |
 | Privacy directives | parser, storage, search, CLI, contract, key resolver | decrypt, audit key checks, sensitive MCP, crypto plugins |
 | Extension runner | operations/contract | enrichment, rerank, AI and crypto plugins |
@@ -351,7 +352,7 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 
 - Pure-Go SQLite (`modernc.org/sqlite`) in WAL mode.
 - Default bundle-scoped database at `~/.weave/index.db`.
-- `weave ingest`, `weave rebuild` and `weave sync` shipped; watch mode is next.
+- `weave ingest`, `weave rebuild`, `weave sync` and `--mode bm25` shipped; watch mode is next.
 - `sha256` content hashes, cascading graph updates, `fsnotify` watch mode.
 - Varint/delta postings and compressed body storage.
 

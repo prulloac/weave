@@ -36,7 +36,7 @@ are gone or deferred.
 weave contract [--json]
 weave parse <path> [--json] [--no-cache]
 weave graph <path> [--json] [--no-cache]
-weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
+weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--json] [--no-cache]
 weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
 weave show <path> <id|file> [--json] [--no-cache]
 weave backlinks <path> <id|file> [--json] [--no-cache]

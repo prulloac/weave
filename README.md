@@ -14,6 +14,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Keyword search** over mandatory frontmatter keywords.
 - **Weighted fuzzy search** over title, description and body.
 - **Hybrid top-K results** with component scores and match metadata.
+- **BM25 lexical ranking** through SQLite FTS5 with field weights, phrases and negative terms.
 - **Graph navigation**: show, backlinks and shortest path.
 - **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.
@@ -85,18 +86,21 @@ weave graph ~/notes --json
 
 #### `weave search`
 
-Rank matching concepts with keyword, fuzzy or hybrid search. Keyword uses exact and prefix matching
-with AND semantics; fuzzy tolerates typos; hybrid combines both scores at 50/50 (default).
+Rank matching concepts with keyword, fuzzy, hybrid or BM25 lexical search. Keyword uses exact and
+prefix matching with AND semantics; fuzzy tolerates typos; BM25 ranks multi-token lexical matches;
+hybrid combines keyword and fuzzy at 50/50 (default).
 
-- `--mode hybrid|keyword|fuzzy` — default `hybrid`.
+- `--mode hybrid|keyword|fuzzy|bm25` — default `hybrid`.
 - `--top-k <n>` — default `10`, valid range `1..100`.
 - Fuzzy field weights: **title 1.00, description 0.60, body 0.30**.
+- BM25 requires persistent storage; `--no-db` with `--mode bm25` is an error.
 - In `--json` mode an empty result exits `1`.
 
 ```sh
 weave search ~/notes "token rotation"
 weave search ~/notes "oauth tokn" --mode fuzzy --top-k 5
 weave search ~/notes "security" --mode keyword --json
+weave search ~/notes "alpha beta" --mode bm25 --json
 ```
 
 #### `weave list`
@@ -312,5 +316,6 @@ docs/                   architecture, specs, knowledge
 - [Weave Relate spec](docs/specs/weave-relate.md)
 - [Weave Explain spec](docs/specs/weave-explain.md)
 - [Storage & Sync spec](docs/specs/storage-and-sync.md)
+- [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Backlog](docs/backlog.md)
