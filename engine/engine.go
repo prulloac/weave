@@ -7,6 +7,7 @@ import (
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
 	"github.com/prulloac/weave/engine/okf"
+	"github.com/prulloac/weave/engine/privacy"
 	"github.com/prulloac/weave/engine/search"
 )
 
@@ -81,6 +82,54 @@ func (e *Engine) List(filters nav.ListFilters) []contractv1.ListResult {
 
 func (e *Engine) Show(target string) (*contractv1.ShowResult, bool) {
 	return nav.Show(e.bundle, e.graph, target)
+}
+
+// ShowOptions controls redaction and decryption for one concept view.
+type ShowOptions struct {
+	Decrypt bool
+}
+
+// ShowWithOptions returns a concept view with its privacy state applied.
+func (e *Engine) ShowWithOptions(
+	target string,
+	options ShowOptions,
+) (*contractv1.ShowResult, bool, error) {
+	result, ok := nav.Show(e.bundle, e.graph, target)
+	if !ok {
+		return nil, false, nil
+	}
+	concept := e.conceptByID(result.ID)
+	if concept == nil {
+		return result, true, nil
+	}
+	result.Privacy = privacy.StateFor(*concept)
+	if result.Privacy == nil {
+		return result, true, nil
+	}
+	if result.Privacy.Redacted {
+		result.Body = ""
+	}
+	if !options.Decrypt {
+		return result, true, nil
+	}
+	body, err := privacy.DecryptBody(e.root, concept.Body, concept.Privacy, nil)
+	if err != nil {
+		return nil, true, err
+	}
+	result.Body = body
+	if result.Privacy.Policy == contractv1.PrivacyEncrypt {
+		result.Privacy.Decrypted = true
+	}
+	return result, true, nil
+}
+
+func (e *Engine) conceptByID(id string) *contractv1.OkfConcept {
+	for index := range e.bundle.Concepts {
+		if e.bundle.Concepts[index].ID == id {
+			return &e.bundle.Concepts[index]
+		}
+	}
+	return nil
 }
 
 func (e *Engine) Backlinks(target string) (*contractv1.BacklinksResult, bool) {

@@ -50,7 +50,13 @@ func Build(bundle *contractv1.Bundle, _ *graph.Graph) *Index {
 		index.TrigramIndex[field] = make(map[string]map[string]bool)
 	}
 
-	concepts := append([]contractv1.OkfConcept(nil), bundle.Concepts...)
+	concepts := make([]contractv1.OkfConcept, 0, len(bundle.Concepts))
+	for _, concept := range bundle.Concepts {
+		if concept.Privacy != nil && concept.Privacy.Policy == contractv1.PrivacyEncrypt {
+			continue
+		}
+		concepts = append(concepts, concept)
+	}
 	sort.Slice(concepts, func(i, j int) bool {
 		return concepts[i].ID < concepts[j].ID
 	})

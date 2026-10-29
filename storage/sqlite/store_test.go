@@ -198,7 +198,7 @@ func TestSchemaVersionMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := raw.Exec("PRAGMA user_version = 2"); err != nil {
+	if _, err := raw.Exec("PRAGMA user_version = 99"); err != nil {
 		t.Fatal(err)
 	}
 	raw.Close()

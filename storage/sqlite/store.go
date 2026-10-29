@@ -19,10 +19,11 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/okf"
+	"github.com/prulloac/weave/engine/privacy"
 	"github.com/prulloac/weave/engine/search"
 )
 
-const schemaVersion = 1
+const schemaVersion = 2
 
 var (
 	// ErrBundleNotIndexed is returned when a bundle is absent from the database.
@@ -101,6 +102,15 @@ func Open(path string) (*Store, error) {
 			return nil, err
 		}
 	case schemaVersion:
+	case 1:
+		if err := migrateV1toV2(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
+			db.Close()
+			return nil, err
+		}
 	default:
 		db.Close()
 		return nil, fmt.Errorf("unsupported database schema version %d", version)
@@ -244,24 +254,39 @@ func (s *Store) Sync(
 	}
 
 	now := time.Now().Unix()
+	privacySkipped := 0
 	for path, concept := range current {
 		hash := contentHash(root, concept)
 		oldHash, exists := existing[path]
 		switch {
 		case !exists:
-			if err := insertConcept(ctx, tx, root, concept, now); err != nil {
+			inserted, err := insertSyncedConcept(ctx, tx, root, concept, now)
+			if err != nil {
+				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
+					privacySkipped++
+					continue
+				}
 				return contractv1.SyncReport{}, err
 			}
-			added++
+			if inserted {
+				added++
+			}
 		case oldHash != hash:
 			if _, err := tx.ExecContext(ctx,
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
 			}
-			if err := insertConcept(ctx, tx, root, concept, now); err != nil {
+			inserted, err := insertSyncedConcept(ctx, tx, root, concept, now)
+			if err != nil {
+				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
+					privacySkipped++
+					continue
+				}
 				return contractv1.SyncReport{}, err
 			}
-			updated++
+			if inserted {
+				updated++
+			}
 		default:
 			skipped++
 		}
@@ -292,7 +317,7 @@ func (s *Store) Sync(
 			return contractv1.SyncReport{}, err
 		}
 	}
-	if err := populateFTS(ctx, tx, root, bundle); err != nil {
+	if err := populateFTS(ctx, tx, root); err != nil {
 		return contractv1.SyncReport{}, err
 	}
 
@@ -309,7 +334,7 @@ func (s *Store) Sync(
 		Updated:   updated,
 		Removed:   removed,
 		Skipped:   skipped,
-		Warnings:  warningCount(bundle),
+		Warnings:  warningCount(bundle) + privacySkipped,
 		Errors:    errorCount(bundle, mode),
 	}, nil
 }
@@ -386,7 +411,8 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, file_path, title, description, doc_type, keywords_json,
-		       frontmatter_json, tags_json, status, links_json, body_compressed
+		       frontmatter_json, tags_json, status, links_json, body_compressed,
+		       privacy_policy, privacy_provider, privacy_key_id
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return nil, err
@@ -494,13 +520,17 @@ func (s *Store) writeBundle(
 	}
 
 	now := time.Now().Unix()
-	for _, concept := range bundle.Concepts {
-		if err := insertConcept(ctx, tx, root, concept, now); err != nil {
+	prepared, skipped, err := prepareConcepts(root, bundle.Concepts, mode == "permissive")
+	if err != nil {
+		return contractv1.IngestReport{}, err
+	}
+	for _, item := range prepared {
+		if err := insertConcept(ctx, tx, root, item, now); err != nil {
 			return contractv1.IngestReport{}, err
 		}
 	}
 
-	edges, err := collectEdges(bundle)
+	edges, err := collectEdges(&contractv1.Bundle{Root: bundle.Root, Concepts: conceptsOf(prepared)})
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
@@ -512,7 +542,7 @@ func (s *Store) writeBundle(
 			return contractv1.IngestReport{}, err
 		}
 	}
-	if err := populateFTS(ctx, tx, root, bundle); err != nil {
+	if err := populateFTS(ctx, tx, root); err != nil {
 		return contractv1.IngestReport{}, err
 	}
 
@@ -524,32 +554,57 @@ func (s *Store) writeBundle(
 		DB:        s.path,
 		Bundle:    root,
 		Mode:      mode,
-		Documents: len(bundle.Concepts),
+		Documents: len(prepared),
 		Edges:     len(edges),
 		Synthetic: syntheticCount(bundle, mode),
-		Warnings:  warningCount(bundle),
+		Warnings:  warningCount(bundle) + skipped,
 		Errors:    errorCount(bundle, mode),
 	}, nil
 }
 
-func populateFTS(ctx context.Context, tx *sql.Tx, root string, bundle *contractv1.Bundle) error {
+func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 	if _, err := tx.ExecContext(ctx, "DELETE FROM fts_documents WHERE bundle_root = ?", root); err != nil {
 		return err
 	}
-	for _, concept := range bundle.Concepts {
-		title := concept.ID
-		if concept.Title != nil {
-			title = *concept.Title
+	rows, err := tx.QueryContext(ctx, `
+		SELECT id, title, keywords_json, description, body_compressed, privacy_policy
+		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
+	if err != nil {
+		return err
+	}
+	type ftsRow struct {
+		id, title, keywords, body, policy string
+		description                       sql.NullString
+	}
+	entries := make([]ftsRow, 0)
+	for rows.Next() {
+		var entry ftsRow
+		if err := rows.Scan(&entry.id, &entry.title, &entry.keywords, &entry.description,
+			&entry.body, &entry.policy); err != nil {
+			rows.Close()
+			return err
 		}
-		description := ""
-		if concept.Description != nil {
-			description = *concept.Description
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	for _, entry := range entries {
+		if contractv1.PrivacyPolicy(entry.policy) == contractv1.PrivacyEncrypt {
+			continue
+		}
+		var keywords []string
+		if err := json.Unmarshal([]byte(entry.keywords), &keywords); err != nil {
+			return err
 		}
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO fts_documents (bundle_root, id, title, keywords, description, body)
 			VALUES (?, ?, ?, ?, ?, ?)`,
-			root, concept.ID, title, strings.Join(concept.Keywords, " "),
-			description, search.StripMarkdown(concept.Body))
+			root, entry.id, entry.title, strings.Join(keywords, " "),
+			entry.description.String, search.StripMarkdown(entry.body))
 		if err != nil {
 			return err
 		}
@@ -575,6 +630,16 @@ func (s *Store) SearchBM25(
 		return nil, search.ErrInvalidTopK
 	}
 	match := buildFTSQuery(query)
+	aliases := privacy.ExpandQuery(query, s.privacyRefs(ctx, root), func(id string) ([]byte, error) {
+		return privacy.ResolveKey(root, id)
+	})
+	if len(aliases) > 0 {
+		if match == "" {
+			match = strings.Join(aliases, " OR ")
+		} else {
+			match = "(" + match + ") OR (" + strings.Join(aliases, " OR ") + ")"
+		}
+	}
 	if match == "" {
 		return []contractv1.LexicalHit{}, nil
 	}
@@ -640,10 +705,22 @@ func (s *Store) ExplainBM25(
 		return BM25Explanation{}, err
 	}
 	positives, negatives := splitFTSQuery(query)
+	aliases := privacy.ExpandQuery(query, s.privacyRefs(ctx, root), func(id string) ([]byte, error) {
+		return privacy.ResolveKey(root, id)
+	})
+	for _, alias := range aliases {
+		positives = append(positives, quoteFTSTerm(alias))
+	}
 	if len(positives) == 0 {
 		return BM25Explanation{}, search.ErrEmptyQuery
 	}
-	match := buildFTSQuery(query)
+	match := strings.Join(positives, " OR ")
+	if len(positives) > 1 {
+		match = "(" + match + ")"
+	}
+	if len(negatives) > 0 {
+		match += " NOT (" + strings.Join(negatives, " OR ") + ")"
+	}
 	hits, err := s.SearchBM25(ctx, root, query, topK)
 	if err != nil {
 		return BM25Explanation{}, err
@@ -735,6 +812,48 @@ func (s *Store) ExplainBM25(
 			Tokens:        tokens,
 		},
 	}, nil
+}
+
+func (s *Store) privacyRefs(ctx context.Context, root string) []privacy.KeyRef {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT privacy_policy, privacy_provider, privacy_key_id, privacy_spans_json
+		FROM documents
+		WHERE bundle_root = ? AND privacy_policy IN ('tokenize', 'hash', 'mixed')`, root)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	refs := make([]privacy.KeyRef, 0)
+	seen := make(map[string]bool)
+	add := func(policy contractv1.PrivacyPolicy, provider, keyID string) {
+		if keyID == "" || (policy != contractv1.PrivacyTokenize && policy != contractv1.PrivacyHash) {
+			return
+		}
+		key := string(policy) + "\x00" + provider + "\x00" + keyID
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		refs = append(refs, privacy.KeyRef{Policy: policy, Provider: provider, KeyID: keyID})
+	}
+	for rows.Next() {
+		var policy, provider, keyID, spansJSON string
+		if err := rows.Scan(&policy, &provider, &keyID, &spansJSON); err != nil {
+			return nil
+		}
+		stored := contractv1.PrivacyPolicy(policy)
+		if stored == contractv1.PrivacyMixed {
+			var spans []privacy.Span
+			if err := json.Unmarshal([]byte(spansJSON), &spans); err == nil {
+				for _, span := range spans {
+					add(span.Policy, span.Provider, span.KeyID)
+				}
+			}
+			continue
+		}
+		add(stored, provider, keyID)
+	}
+	return refs
 }
 
 // HasConcept reports whether a concept exists in a bundle.
@@ -845,6 +964,7 @@ func splitFTSQuery(query string) ([]string, []string) {
 		if term == "" || term == "-\"\"" {
 			continue
 		}
+		term = quoteFTSTerm(term)
 		if negative {
 			negatives = append(negatives, term)
 		} else {
@@ -854,7 +974,17 @@ func splitFTSQuery(query string) ([]string, []string) {
 	return positives, negatives
 }
 
-func insertConcept(ctx context.Context, tx *sql.Tx, root string, concept contractv1.OkfConcept, now int64) error {
+func quoteFTSTerm(term string) string {
+	if strings.HasPrefix(term, "\"") {
+		return term
+	}
+	// FTS5 treats punctuation such as "-" as an operator; quote literal terms
+	// so hyphenated identifiers match as phrases.
+	return `"` + strings.ReplaceAll(term, `"`, `""`) + `"`
+}
+
+func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedConcept, now int64) error {
+	concept := item.concept
 	frontmatter, err := json.Marshal(concept.Frontmatter)
 	if err != nil {
 		return err
@@ -868,6 +998,10 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, concept contrac
 		return err
 	}
 	links, err := json.Marshal(concept.Links)
+	if err != nil {
+		return err
+	}
+	spans, err := json.Marshal(item.spans)
 	if err != nil {
 		return err
 	}
@@ -885,16 +1019,95 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, concept contrac
 		status = string(*concept.Status)
 	}
 
+	policy := "none"
+	provider := ""
+	keyID := ""
+	if item.directive != nil {
+		policy = string(item.directive.Policy)
+		provider = item.directive.Provider
+		keyID = item.directive.KeyID
+		if policy == "mixed" && keyID == "" && len(item.spans) > 0 {
+			keyID = item.spans[0].KeyID
+		}
+	}
+
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO documents (
 			bundle_root, id, file_path, content_hash, title, description, doc_type,
 			keywords_json, frontmatter_json, tags_json, status, links_json,
-			body_compressed, body_codec, privacy_policy, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			body_compressed, body_codec, privacy_policy, privacy_provider,
+			privacy_key_id, redacted, privacy_spans_json, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, concept.ID, concept.Path, contentHash(root, concept), title, description, concept.Type,
 		string(keywords), string(frontmatter), string(tags), status, string(links),
-		[]byte(concept.Body), "none", "none", now)
+		[]byte(item.body), "none", policy, provider, keyID, boolInt(item.redacted), string(spans), now)
 	return err
+}
+
+func insertSyncedConcept(
+	ctx context.Context,
+	tx *sql.Tx,
+	root string,
+	concept contractv1.OkfConcept,
+	now int64,
+) (bool, error) {
+	result, err := privacy.Apply(root, concept)
+	if err != nil {
+		return false, err
+	}
+	if err := insertConcept(ctx, tx, root, preparedConcept{
+		concept:   concept,
+		body:      result.Body,
+		directive: result.Directive,
+		redacted:  result.Redacted,
+		spans:     result.Spans,
+	}, now); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+type preparedConcept struct {
+	concept   contractv1.OkfConcept
+	body      string
+	directive *contractv1.PrivacyDirective
+	redacted  bool
+	spans     []privacy.Span
+}
+
+func prepareConcepts(
+	root string,
+	concepts []contractv1.OkfConcept,
+	permissive bool,
+) ([]preparedConcept, int, error) {
+	prepared := make([]preparedConcept, 0, len(concepts))
+	skipped := 0
+	for _, concept := range concepts {
+		result, err := privacy.Apply(root, concept)
+		if err != nil {
+			if errors.Is(err, privacy.ErrKeyUnavailable) && permissive {
+				skipped++
+				continue
+			}
+			return nil, 0, err
+		}
+		prepared = append(prepared, preparedConcept{
+			concept:   concept,
+			body:      result.Body,
+			directive: result.Directive,
+			redacted:  result.Redacted,
+			spans:     result.Spans,
+		})
+	}
+	return prepared, skipped, nil
+}
+
+func conceptsOf(prepared []preparedConcept) []contractv1.OkfConcept {
+	concepts := make([]contractv1.OkfConcept, 0, len(prepared))
+	for _, item := range prepared {
+		concepts = append(concepts, item.concept)
+	}
+	return concepts
 }
 
 type storedEdge struct {
@@ -953,12 +1166,14 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, error) {
 		concept                                            contractv1.OkfConcept
 		title                                              string
 		description, docType, status                       sql.NullString
+		policy, provider, keyID                            sql.NullString
 		keywordsJSON, frontmatterJSON, tagsJSON, linksJSON string
 		body                                               []byte
 	)
 	if err := rows.Scan(
 		&concept.ID, &concept.Path, &title, &description, &docType,
 		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &body,
+		&policy, &provider, &keyID,
 	); err != nil {
 		return contractv1.OkfConcept{}, err
 	}
@@ -966,6 +1181,13 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, error) {
 	concept.Description = optionalString(description.String)
 	concept.Type = docType.String
 	concept.Body = string(body)
+	if policy.Valid && policy.String != "" && policy.String != "none" {
+		concept.Privacy = &contractv1.PrivacyDirective{
+			Policy:   contractv1.PrivacyPolicy(policy.String),
+			Provider: provider.String,
+			KeyID:    keyID.String,
+		}
+	}
 	if err := json.Unmarshal([]byte(keywordsJSON), &concept.Keywords); err != nil {
 		return contractv1.OkfConcept{}, err
 	}
@@ -1069,6 +1291,20 @@ func userVersion(db *sql.DB) (int, error) {
 	return version, nil
 }
 
+func migrateV1toV2(db *sql.DB) error {
+	for _, statement := range []string{
+		"ALTER TABLE documents ADD COLUMN privacy_provider TEXT DEFAULT ''",
+		"ALTER TABLE documents ADD COLUMN privacy_key_id TEXT DEFAULT ''",
+		"ALTER TABLE documents ADD COLUMN redacted INTEGER DEFAULT 0",
+		"ALTER TABLE documents ADD COLUMN privacy_spans_json TEXT DEFAULT '[]'",
+	} {
+		if _, err := db.Exec(statement); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func createSchema(db *sql.DB) error {
 	_, err := db.Exec(`
 CREATE TABLE IF NOT EXISTS bundles (
@@ -1095,6 +1331,10 @@ CREATE TABLE IF NOT EXISTS documents (
     body_compressed BLOB NOT NULL,
     body_codec TEXT NOT NULL DEFAULT 'none',
     privacy_policy TEXT DEFAULT 'none',
+    privacy_provider TEXT DEFAULT '',
+    privacy_key_id TEXT DEFAULT '',
+    redacted INTEGER DEFAULT 0,
+    privacy_spans_json TEXT DEFAULT '[]',
     updated_at INTEGER NOT NULL,
     PRIMARY KEY (bundle_root, id),
     UNIQUE (bundle_root, file_path),
