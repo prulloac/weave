@@ -45,21 +45,26 @@ weave mcp --bundle <path> --db .weave/index.db --watch
 
 ## 3. Process Contract
 
-- `--watch` requires a persistent database (`--db` or default `.weave/index.db`).
+- `--watch` requires a persistent database (`--db` or default `.weave/index.db`) and an indexed
+  bundle. An unindexed bundle returns `BUNDLE_NOT_INDEXED`; run `weave ingest` first.
 - Initial sync runs before watching.
 - The process stays alive until SIGINT/SIGTERM.
 - Reindex operations are serialized.
 - Queries read the last committed snapshot; sync uses transactions.
+- MCP tools and resources read the persistent bundle per request, so a successful watch sync is
+  immediately visible without restarting the server.
 - `--json` with `--watch` emits one initial sync result and JSONL status events on stdout only if
   `--events` is set; default diagnostics go to stderr.
 
 ## 4. Event Handling
 
-- Use `fsnotify` where supported; fall back to polling when the backend is unavailable.
+- Use polling with SHA-256 snapshots in this slice; `fsnotify` event optimization is a follow-up.
+- Poll interval defaults to 500 ms; tests may use a shorter interval.
 - Watch the bundle root recursively.
-- Ignore `.git`, `node_modules`, the database directory and temporary files.
-- Debounce at 200 ms; coalesce events per path.
-- Treat editor atomic saves (rename/create) as modification.
+- Ignore `.git`, `node_modules`, the database directory, hidden temp files, editor swap files and
+  files ending in `~` or `.tmp`.
+- Coalesce bursts by polling; only sync when the snapshot changes.
+- Treat editor atomic saves as modification.
 - Handle delete by pruning the document and cascading edges.
 - Handle rename as delete + create.
 - Ignore files outside the bundle root.
