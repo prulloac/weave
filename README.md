@@ -431,5 +431,6 @@ docs/                   architecture, specs, knowledge
 - [Configuration spec](docs/specs/configuration.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [MCP Server spec](docs/specs/mcp-server.md)
+- [MCP Sensitive Access spec](docs/specs/mcp-sensitive.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Backlog](docs/backlog.md)

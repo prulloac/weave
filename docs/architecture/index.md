@@ -157,6 +157,7 @@ remains the compatibility promise.
 | [External Crypto Providers spec](../../docs/specs/external-crypto-providers.md) | Age, Vault and KMS provider contract |
 | [Weave AI Extension spec](../../docs/specs/weave-ai-plugin.md) | Optional enrichment and reranking plugin |
 | [MCP Server spec](../../docs/specs/mcp-server.md) | TCP MCP roadmap and contract |
+| [MCP Sensitive Access spec](../../docs/specs/mcp-sensitive.md) | Redacted defaults and opt-in decryption |
 | [Roadmap](../../ROADMAP.md) | Current capabilities and roadmap |
 
 ## Reading Order

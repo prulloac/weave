@@ -66,8 +66,8 @@ weave mcp --bundle <path> [--source <alias=path> ...] [--db <file>] [--watch] [-
 - `--token` is required for non-loopback binding. For loopback, a token is optional but recommended.
 - `--db` uses the persistent SQLite store; without it, the in-memory engine is used.
 - `--watch` requires `--db`; it starts the polling watcher and keeps the database current.
-- `--allow-sensitive` enables decryption for `weave_show`; other sensitive tool-result policies are
-  pending.
+- `--allow-sensitive` enables server-wide decryption for `weave_show`, concept resources and
+  `weave_audit --verify-keys` findings; see [MCP Sensitive Access](./mcp-sensitive.md).
 - The server fixes the bundle path for the process lifetime and exits on SIGINT/SIGTERM.
 - Without `--watch`, tools and resources load the bundle per call through the operations executor.
 - With `--watch`, a background polling watcher keeps the persistent database current; tool and
@@ -119,7 +119,7 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 | `weave_search` | `query`, `mode?`, `top_k?` | `SearchResponse` |
 | `weave_explain` | `query`, `id?`, `mode?`, `top_k?` | `ExplainResult` |
 | `weave_relate` | `id`, `depth?`, `direction?` | `RelateResult` |
-| `weave_audit` | `fail_on?` | `AuditReport` |
+| `weave_audit` | `fail_on?`, `verify_keys?` | `AuditReport` |
 | `weave_list` | `types?`, `tags?`, `status?`, `limit?` | `ListResults` |
 | `weave_show` | `id` | `ShowResult` |
 | `weave_backlinks` | `id` | `BacklinksResult` |

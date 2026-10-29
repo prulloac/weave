@@ -80,7 +80,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | MCP watch reload | [watch-mode.md](specs/watch-mode.md), [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP resources | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
-| Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| Sensitive MCP access policies | [mcp-sensitive.md](specs/mcp-sensitive.md) | - | x | - | - | backlog |
 | MCP multiple sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
 
 ## Tier 7 — Delivery, portability and quality
