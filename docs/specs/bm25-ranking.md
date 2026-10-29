@@ -52,26 +52,31 @@ weave explain <path> <query> --mode bm25 --id <id> --json
 | `exact` | Exact/prefix keyword matching, AND across query tokens |
 | `bm25` | SQLite FTS5 BM25 lexical ranking |
 | `fuzzy` | Weighted Levenshtein + trigram similarity |
-| `hybrid` | Normalized BM25 + fuzzy |
+| `hybrid` | Normalized BM25 + fuzzy (calibration slice) |
 
 - `keyword` is an alias for `exact` during the v1.0 transition; new documentation prefers `exact`.
 - Default mode remains `hybrid`.
 - `--mode bm25` is additive; it does not change existing `keyword` or `fuzzy` results.
+- This slice delivers `bm25` and FTS indexing. The hybrid BM25 rebase, BM25 explain evidence and
+  calibration corpus are delivered with the calibration slice.
+- `--mode bm25` requires persistent storage. With `--no-db`, it is `INVALID_REQUEST` with exit `2`.
 
 ## 4. FTS5 Index
 
 ```sql
 CREATE VIRTUAL TABLE fts_documents USING fts5 (
+    bundle_root UNINDEXED,
     id UNINDEXED,
     title,
-    description,
     keywords,
+    description,
     body,
     tokenize = 'porter unicode61'
 );
 ```
 
-- One row per indexed document.
+- One row per indexed document per bundle.
+- `bundle_root` scopes queries to one bundle.
 - `id` is the concept id.
 - Keywords are indexed as a single field.
 - Body is the stripped Markdown body.
@@ -79,7 +84,7 @@ CREATE VIRTUAL TABLE fts_documents USING fts5 (
 
 ### Field weights
 
-Initial FTS5 column weights:
+Initial FTS5 column weights, in SQL column order after the two unindexed columns:
 
 | Field | Weight |
 | --- | --- |
@@ -90,11 +95,30 @@ Initial FTS5 column weights:
 
 These weights are calibration parameters, separate from fuzzy field weights.
 
+### Lexical result
+
+`--mode bm25` returns a `lexical` list:
+
+```json
+{
+  "id": "concepts/oauth-token-rotation",
+  "title": "OAuth Token Rotation",
+  "path": "concepts/oauth-token-rotation.md",
+  "type": "Concept",
+  "raw_score": 3.42,
+  "score": 1.0
+}
+```
+
+- `raw_score` is the positive FTS5 BM25 score.
+- `score` is normalized to `[0,1]` against the best raw score in the result set.
+- Ties break by id ascending.
+
 ## 5. Query Semantics
 
 - Tokenize with FTS5 `porter unicode61`.
 - Default query is a term union with coordination: a document may match any query term.
-- Ranking uses `bm25(fts_documents, 10.0, 8.0, 4.0, 1.0)`.
+- Ranking uses `bm25(fts_documents, 0.0, 0.0, 10.0, 8.0, 4.0, 1.0)`.
 - Quoted phrases are exact phrase queries.
 - Negative terms (`-term`) are excluded.
 - Empty/whitespace queries return no results.
@@ -176,10 +200,10 @@ Baseline metrics:
 
 - Multi-token queries no longer drop documents that match a subset of terms.
 - BM25 ranking is deterministic and reproducible.
-- Hybrid normalization is bounded and calibrated.
-- `explain` exposes lexical contributions.
+- FTS rows are created on ingest and updated on sync.
+- `--mode bm25` works against the default database and fails cleanly without persistence.
 - Exact mode preserves existing behavior.
-- Calibration meets or exceeds the committed baseline.
+- Hybrid normalization and BM25 explain are covered by the calibration slice.
 
 ## Related Documents
 
