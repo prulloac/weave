@@ -29,6 +29,7 @@ type mcpCLIOptions struct {
 	topKDefault    int
 	allowSensitive bool
 	watch          bool
+	sources        []string
 	help           bool
 }
 
@@ -85,6 +86,13 @@ func parseMCPOptions(args []string) (mcpCLIOptions, error) {
 			options.allowSensitive = true
 		case "--watch":
 			options.watch = true
+		case "--source":
+			value, next, err := mcpFlagValue(args, index, "--source")
+			if err != nil {
+				return options, err
+			}
+			options.sources = append(options.sources, value)
+			index = next
 		default:
 			return options, fmt.Errorf("unknown option: %s", arg)
 		}
@@ -139,8 +147,17 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	executor := operations.New(version, engine.Options{})
+	var sources []contractv1.SourceSpec
+	if len(options.sources) > 0 {
+		sources, err = buildSourceSpecs(options.bundle, options.sources)
+		if err != nil {
+			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+			return 2
+		}
+	}
 	server, err := mcp.New(executor, mcp.Options{
 		Bundle:         options.bundle,
+		Sources:        sources,
 		DB:             options.db,
 		TopKDefault:    options.topKDefault,
 		AllowSensitive: options.allowSensitive,
@@ -230,12 +247,13 @@ func printMCPHelp(writer io.Writer) {
 	fmt.Fprint(writer, `weave mcp — serve Weave over the Model Context Protocol
 
 usage:
-  weave mcp --bundle <path> [--db <file>] [--top-k-default <n>] [--allow-sensitive]
-  weave mcp --bundle <path> --stdio [--token <token>]
-  weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
+  weave mcp --bundle <path> [--source <alias=path> ...] [--db <file>] [--top-k-default <n>] [--allow-sensitive]
+  weave mcp --bundle <path> [--source ...] --stdio [--token <token>]
+  weave mcp --bundle <path> [--source ...] --listen 127.0.0.1:7331 [--token <token>]
 
 flags:
-  --bundle <path>       bundle root (required)
+  --bundle <path>       primary bundle root (required)
+  --source <alias=path> additional bundle source; repeatable
   --db <file>           persistent database path
   --stdio               newline-delimited JSON-RPC over stdin/stdout
   --listen <addr>       TCP listen address (default 127.0.0.1:7331)

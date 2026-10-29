@@ -15,6 +15,7 @@ import (
 // Options configures an MCP server.
 type Options struct {
 	Bundle         string
+	Sources        []contractv1.SourceSpec
 	DB             string
 	TopKDefault    int
 	AllowSensitive bool
@@ -62,6 +63,8 @@ func (e *Error) Error() string { return e.Message }
 type Server struct {
 	executor       *operations.Executor
 	bundle         string
+	sources        []contractv1.SourceSpec
+	sourcePaths    map[string]string
 	db             string
 	topKDefault    int
 	allowSensitive bool
@@ -73,7 +76,7 @@ func New(executor *operations.Executor, options Options) (*Server, error) {
 	if executor == nil {
 		return nil, fmt.Errorf("executor is required")
 	}
-	if options.Bundle == "" {
+	if options.Bundle == "" && len(options.Sources) == 0 {
 		return nil, fmt.Errorf("bundle is required")
 	}
 	topK := options.TopKDefault
@@ -83,9 +86,31 @@ func New(executor *operations.Executor, options Options) (*Server, error) {
 	if topK < 1 || topK > 100 {
 		return nil, fmt.Errorf("top_k default must be between 1 and 100")
 	}
+	sources := append([]contractv1.SourceSpec(nil), options.Sources...)
+	paths := make(map[string]string, len(sources))
+	aliases := make(map[string]bool, len(sources))
+	for _, source := range sources {
+		if source.Alias == "" || source.Path == "" {
+			return nil, fmt.Errorf("source alias and path are required")
+		}
+		if aliases[source.Alias] {
+			return nil, fmt.Errorf("duplicate source alias %q", source.Alias)
+		}
+		aliases[source.Alias] = true
+		paths[source.Alias] = source.Path
+	}
+	primary := options.Bundle
+	if len(sources) > 0 {
+		primary = sources[0].Path
+	}
+	if primary == "" {
+		return nil, fmt.Errorf("bundle is required")
+	}
 	return &Server{
 		executor:       executor,
-		bundle:         options.Bundle,
+		bundle:         primary,
+		sources:        sources,
+		sourcePaths:    paths,
 		db:             options.DB,
 		topKDefault:    topK,
 		allowSensitive: options.AllowSensitive,
@@ -179,6 +204,30 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 			Op:     contractv1.OpAudit,
 			FailOn: contractv1.AuditFailOn(failOn),
 		}
+	case "weave_list":
+		types, err := optionalStringSlice(arguments, "types")
+		if err != nil {
+			return nil, err
+		}
+		tags, err := optionalStringSlice(arguments, "tags")
+		if err != nil {
+			return nil, err
+		}
+		status, err := optionalString(arguments, "status")
+		if err != nil {
+			return nil, err
+		}
+		limit, err := optionalInt(arguments, "limit")
+		if err != nil {
+			return nil, err
+		}
+		request = contractv1.OperationRequest{
+			Op:     contractv1.OpList,
+			Types:  types,
+			Tags:   tags,
+			Status: status,
+			Limit:  limit,
+		}
 	case "weave_show", "weave_backlinks":
 		id, err := requiredString(arguments, "id")
 		if err != nil {
@@ -214,7 +263,88 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 	request.NoDB = s.db == ""
 	request.VerifyKeys = false
 
+	if name != "weave_contract" {
+		sourceName, err := optionalString(arguments, "source")
+		if err != nil {
+			return nil, err
+		}
+		if sourceName != "" {
+			path, ok := s.sourcePaths[sourceName]
+			if !ok {
+				return nil, &Error{
+					Code:    contractv1.ErrInvalidRequest,
+					Message: "unknown source: " + sourceName,
+				}
+			}
+			request.Path = path
+			request.Sources = nil
+			request.Target = stripSourcePrefix(request.Target, sourceName)
+			request.From = stripSourcePrefix(request.From, sourceName)
+			request.To = stripSourcePrefix(request.To, sourceName)
+			value, err := s.execute(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+			return annotateResult(value, sourceName), nil
+		}
+		if len(s.sources) > 1 {
+			request.Path = s.bundle
+			request.Sources = s.sources
+		}
+	}
+
 	return s.execute(ctx, request)
+}
+
+func stripSourcePrefix(target, alias string) string {
+	prefix := alias + ":"
+	if strings.HasPrefix(target, prefix) {
+		return strings.TrimPrefix(target, prefix)
+	}
+	return target
+}
+
+func annotateResult(value any, alias string) any {
+	switch typed := value.(type) {
+	case *contractv1.ShowResult:
+		typed.Source = alias
+	case *contractv1.PathResult:
+		typed.Source = alias
+	case contractv1.RelateResult:
+		typed.Source = alias
+		for index := range typed.Nodes {
+			typed.Nodes[index].Source = alias
+		}
+		return typed
+	case contractv1.ExplainResult:
+		typed.Source = alias
+		return typed
+	case contractv1.SearchResponse:
+		for index := range typed.Keyword {
+			typed.Keyword[index].Source = alias
+		}
+		for index := range typed.Fuzzy {
+			typed.Fuzzy[index].Source = alias
+		}
+		for index := range typed.Hybrid {
+			typed.Hybrid[index].Source = alias
+		}
+		for index := range typed.Lexical {
+			typed.Lexical[index].Source = alias
+		}
+		return typed
+	case []contractv1.ListResult:
+		for index := range typed {
+			typed[index].Source = alias
+		}
+		return typed
+	case contractv1.AuditReport:
+		for index := range typed.Findings {
+			typed.Findings[index].Source = alias
+		}
+		return typed
+	}
+	return value
 }
 
 func (s *Server) execute(ctx context.Context, request contractv1.OperationRequest) (any, error) {
@@ -267,6 +397,30 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 			Description: "Bounded graph neighborhood for a concept.",
 			MimeType:    "application/json",
 		},
+		{
+			URITemplate: "weave://source/{source}/bundle/index",
+			Name:        "Source bundle index",
+			Description: "Root index entries for one source.",
+			MimeType:    "application/json",
+		},
+		{
+			URITemplate: "weave://source/{source}/bundle/stats",
+			Name:        "Source bundle stats",
+			Description: "Bundle counts and validation summary for one source.",
+			MimeType:    "application/json",
+		},
+		{
+			URITemplate: "weave://source/{source}/concept/{id}",
+			Name:        "Source concept",
+			Description: "Concept metadata and body from one source.",
+			MimeType:    "application/json",
+		},
+		{
+			URITemplate: "weave://source/{source}/graph/neighborhood/{id}",
+			Name:        "Source graph neighborhood",
+			Description: "Bounded graph neighborhood for a concept in one source.",
+			MimeType:    "application/json",
+		},
 	}
 }
 
@@ -288,9 +442,28 @@ func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent,
 }
 
 func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
-	switch uri {
+	path := s.bundle
+	rest := uri
+	sourceAlias := ""
+	if strings.HasPrefix(uri, "weave://source/") {
+		tail := strings.TrimPrefix(uri, "weave://source/")
+		slash := strings.Index(tail, "/")
+		if slash <= 0 {
+			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
+		}
+		alias := tail[:slash]
+		resolved, exists := s.sourcePaths[alias]
+		if !exists {
+			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
+		}
+		path = resolved
+		rest = "weave://" + tail[slash+1:]
+		sourceAlias = alias
+	}
+
+	switch rest {
 	case "weave://bundle/index":
-		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse})
+		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse, Path: path})
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +473,7 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 		}
 		return bundle.Index, nil
 	case "weave://bundle/stats":
-		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse})
+		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse, Path: path})
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +481,7 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 		if !ok {
 			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected bundle payload"}
 		}
-		graphValue, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpGraph})
+		graphValue, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpGraph, Path: path})
 		if err != nil {
 			return nil, err
 		}
@@ -337,23 +510,27 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 	}
 
 	for _, prefix := range []string{"weave://concept/", "weave://graph/neighborhood/"} {
-		if !strings.HasPrefix(uri, prefix) {
+		if !strings.HasPrefix(rest, prefix) {
 			continue
 		}
-		id, err := url.PathUnescape(strings.TrimPrefix(uri, prefix))
+		id, err := url.PathUnescape(strings.TrimPrefix(rest, prefix))
 		if err != nil || id == "" {
 			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
 		}
+		request := contractv1.OperationRequest{Path: path, Target: id}
 		if prefix == "weave://concept/" {
-			return s.execute(ctx, contractv1.OperationRequest{
-				Op:     contractv1.OpShow,
-				Target: id,
-			})
+			request.Op = contractv1.OpShow
+		} else {
+			request.Op = contractv1.OpRelate
 		}
-		return s.execute(ctx, contractv1.OperationRequest{
-			Op:     contractv1.OpRelate,
-			Target: id,
-		})
+		value, err := s.execute(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+		if sourceAlias != "" {
+			return annotateResult(value, sourceAlias), nil
+		}
+		return value, nil
 	}
 
 	return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
@@ -398,6 +575,26 @@ func optionalString(arguments map[string]any, name string) (string, error) {
 	return text, nil
 }
 
+func optionalStringSlice(arguments map[string]any, name string) ([]string, error) {
+	value, ok := arguments[name]
+	if !ok || value == nil {
+		return nil, nil
+	}
+	raw, ok := value.([]any)
+	if !ok {
+		return nil, invalid(name + " must be an array of strings")
+	}
+	values := make([]string, 0, len(raw))
+	for _, entry := range raw {
+		text, ok := entry.(string)
+		if !ok {
+			return nil, invalid(name + " must be an array of strings")
+		}
+		values = append(values, text)
+	}
+	return values, nil
+}
+
 func optionalInt(arguments map[string]any, name string) (*int, error) {
 	value, ok := arguments[name]
 	if !ok || value == nil {
@@ -426,7 +623,7 @@ func invalid(message string) *Error {
 }
 
 func toolDescriptors() []ToolDescriptor {
-	return []ToolDescriptor{
+	tools := []ToolDescriptor{
 		{
 			Name:        "weave_search",
 			Description: "Search a bundle by keyword, fuzzy, hybrid or BM25 ranking.",
@@ -475,6 +672,19 @@ func toolDescriptors() []ToolDescriptor {
 			),
 		},
 		{
+			Name:        "weave_list",
+			Description: "List concepts with optional metadata filters.",
+			InputSchema: objectSchema(
+				map[string]any{
+					"types":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"tags":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"status": map[string]any{"type": "string"},
+					"limit":  map[string]any{"type": "integer", "minimum": 1},
+				},
+				[]any{},
+			),
+		},
+		{
 			Name:        "weave_show",
 			Description: "Show one concept.",
 			InputSchema: objectSchema(
@@ -507,6 +717,17 @@ func toolDescriptors() []ToolDescriptor {
 			InputSchema: objectSchema(map[string]any{}, []any{}),
 		},
 	}
+	for index := range tools {
+		if tools[index].Name == "weave_contract" {
+			continue
+		}
+		properties, ok := tools[index].InputSchema["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		properties["source"] = map[string]any{"type": "string"}
+	}
+	return tools
 }
 
 func objectSchema(properties map[string]any, required []any) map[string]any {

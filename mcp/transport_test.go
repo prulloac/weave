@@ -101,8 +101,8 @@ func TestMCPStdioInitializeAndTools(t *testing.T) {
 		t.Fatalf("tools/list response missing result: %+v", responses[1])
 	}
 	tools, ok := listResult["tools"].([]any)
-	if !ok || len(tools) != 8 {
-		t.Fatalf("expected 8 tools, got %+v", listResult)
+	if !ok || len(tools) != 9 {
+		t.Fatalf("expected 9 tools, got %+v", listResult)
 	}
 }
 

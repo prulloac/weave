@@ -164,6 +164,9 @@ func TestMCPMultiSourceToolSchema(t *testing.T) {
 	rootA, _, sources := multiFixture(t)
 	server := multiServer(t, rootA, sources)
 	for _, tool := range server.Tools() {
+		if tool.Name == "weave_contract" {
+			continue
+		}
 		properties, _ := tool.InputSchema["properties"].(map[string]any)
 		if _, ok := properties["source"]; !ok {
 			t.Fatalf("tool %s must accept a source argument", tool.Name)
