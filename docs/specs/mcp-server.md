@@ -66,7 +66,45 @@ weave mcp --bundle <path> [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--t
 - The server loads the bundle once at startup and exits on SIGINT/SIGTERM.
 - No request may choose a different bundle path.
 
-## 4. MCP Tools
+## 4. M1 In-Process Tool Contract
+
+M1 delivers the tool layer without networking. It is the contract that M2 stdio and M3 TCP reuse.
+
+```go
+type Options struct {
+    Bundle       string
+    DB           string // empty means in-memory
+    TopKDefault  int
+    AllowSensitive bool
+}
+
+type Server struct { /* ... */ }
+
+func New(executor *operations.Executor, options Options) (*Server, error)
+func (s *Server) Tools() []ToolDescriptor
+func (s *Server) Call(ctx context.Context, name string, arguments map[string]any) (any, error)
+```
+
+- `Bundle` is fixed at construction; tools never take a path.
+- `DB` empty selects in-memory operation; otherwise the persistent store is used.
+- `TopKDefault` defaults to `10`; tool `top_k` has the same valid range `1..100` as search.
+- `Call` builds the equivalent `OperationRequest` and returns the same payload as the CLI
+  envelope’s `result`.
+- Operation failures become MCP errors with the same stable code and message:
+
+```json
+{
+  "code": "INVALID_REQUEST",
+  "message": "top_k must be between 1 and 100"
+}
+```
+
+- Unknown tools, missing required arguments and wrong argument types return `INVALID_REQUEST`.
+- `weave_audit` is successful even when the report contains findings.
+- `weave_contract` returns the operations contract.
+- M1 has no sockets, tokens, resources or watch mode.
+
+## 5. MCP Tools
 
 | Tool | Input | Result |
 | --- | --- | --- |
@@ -89,7 +127,7 @@ Rules:
 - `weave_audit` returning findings is a successful tool call; the report contains its own `ok`.
 - `top_k` defaults to the process default and is capped at 100.
 
-## 5. Resources (optional, later)
+## 6. Resources (optional, later)
 
 - `weave://bundle/index` — root index entries.
 - `weave://bundle/stats` — bundle counts and validation summary.
@@ -98,7 +136,7 @@ Rules:
 
 Resources are read-only and may be deferred until tools are stable.
 
-## 6. Transport and Protocol
+## 7. Transport and Protocol
 
 - MCP over TCP, JSON-RPC framed per the MCP specification.
 - One bundle per server process.
@@ -109,7 +147,7 @@ Resources are read-only and may be deferred until tools are stable.
 - TLS termination is the responsibility of the operator/reverse proxy in v1; a future option may add
   native TLS.
 
-## 7. Security
+## 8. Security
 
 - Bind to `127.0.0.1` by default.
 - Require a bearer token for any non-loopback bind.
@@ -120,7 +158,7 @@ Resources are read-only and may be deferred until tools are stable.
 - Encrypted fields require `--allow-sensitive`; tokenized/hashed fields follow the privacy spec.
 - Graceful shutdown on SIGINT/SIGTERM.
 
-## 8. Roadmap
+## 9. Roadmap
 
 ### M0 — Operations stabilization
 
@@ -156,7 +194,7 @@ Resources are read-only and may be deferred until tools are stable.
 - Metrics/logging.
 - Packaging and service examples.
 
-## 9. Testing
+## 10. Testing
 
 - Tool schema snapshots.
 - In-process dispatch tests.
@@ -166,7 +204,7 @@ Resources are read-only and may be deferred until tools are stable.
 - Graceful shutdown and reconnect tests.
 - Result equivalence with CLI operations.
 
-## 10. Acceptance Criteria
+## 11. Acceptance Criteria
 
 - All tools return the same payloads as the CLI operations.
 - Unknown tools and invalid inputs return structured MCP errors.
