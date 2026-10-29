@@ -180,6 +180,7 @@ type GraphNode struct {
 	ID        string         `json:"id"`
 	Path      string         `json:"path"`
 	Type      string         `json:"type"`
+	Source    string         `json:"source,omitempty"`
 	Title     string         `json:"title"`
 	Keywords  []string       `json:"keywords"`
 	Status    *ConceptStatus `json:"status,omitempty"`
@@ -236,6 +237,7 @@ type KeywordHit struct {
 	Title           string   `json:"title"`
 	Path            string   `json:"path"`
 	Type            string   `json:"type"`
+	Source          string   `json:"source,omitempty"`
 	Keywords        []string `json:"keywords"`
 	MatchedKeywords []string `json:"matched_keywords"`
 	Score           float64  `json:"score"`
@@ -248,6 +250,7 @@ type FuzzyHit struct {
 	Title         string        `json:"title"`
 	Path          string        `json:"path"`
 	Type          string        `json:"type"`
+	Source        string        `json:"source,omitempty"`
 	Score         float64       `json:"score"`
 	MatchedFields []SearchField `json:"matched_fields"`
 	Snippet       *string       `json:"snippet,omitempty"`
@@ -260,6 +263,7 @@ type HybridHit struct {
 	Title           string        `json:"title"`
 	Path            string        `json:"path"`
 	Type            string        `json:"type"`
+	Source          string        `json:"source,omitempty"`
 	KeywordScore    float64       `json:"keyword_score"`
 	LexicalScore    float64       `json:"lexical_score,omitempty"`
 	FuzzyScore      float64       `json:"fuzzy_score"`
@@ -276,6 +280,7 @@ type LexicalHit struct {
 	Title       string   `json:"title"`
 	Path        string   `json:"path"`
 	Type        string   `json:"type"`
+	Source      string   `json:"source,omitempty"`
 	RawScore    float64  `json:"raw_score"`
 	Score       float64  `json:"score"`
 	RerankScore *float64 `json:"rerank_score,omitempty"`
@@ -298,6 +303,7 @@ type ListResult struct {
 	Title    string         `json:"title"`
 	Path     string         `json:"path"`
 	Type     string         `json:"type"`
+	Source   string         `json:"source,omitempty"`
 	Keywords []string       `json:"keywords"`
 	Status   *ConceptStatus `json:"status,omitempty"`
 	Tags     []string       `json:"tags,omitempty"`
@@ -317,6 +323,7 @@ type ShowResult struct {
 	ID          string         `json:"id"`
 	Path        string         `json:"path"`
 	Type        string         `json:"type"`
+	Source      string         `json:"source,omitempty"`
 	Keywords    []string       `json:"keywords"`
 	Title       *string        `json:"title,omitempty"`
 	Description *string        `json:"description,omitempty"`
@@ -342,17 +349,18 @@ type BacklinksResult struct {
 
 // PathResult is a shortest directed path, or null when disconnected.
 type PathResult struct {
-	From string   `json:"from"`
-	To   string   `json:"to"`
-	Path []string `json:"path"`
+	From   string   `json:"from"`
+	To     string   `json:"to"`
+	Source string   `json:"source,omitempty"`
+	Path   []string `json:"path"`
 }
 
 // AuditFinding is one conformance or graph-quality issue.
 type AuditFinding struct {
 	Code     AuditFindingCode `json:"code"`
 	Severity AuditSeverity    `json:"severity"`
-	Concept  string           `json:"concept,omitempty"`
 	Source   string           `json:"source,omitempty"`
+	Concept  string           `json:"concept,omitempty"`
 	Target   string           `json:"target,omitempty"`
 	Message  string           `json:"message"`
 }
@@ -390,6 +398,7 @@ type RelateEdge struct {
 // RelateResult is the bounded graph neighborhood returned by `weave relate`.
 type RelateResult struct {
 	Root      string          `json:"root"`
+	Source    string          `json:"source,omitempty"`
 	Direction RelateDirection `json:"direction"`
 	Depth     int             `json:"depth"`
 	Nodes     []GraphNode     `json:"nodes"`
@@ -473,6 +482,7 @@ type ExplainResult struct {
 	Mode    SearchMode      `json:"mode"`
 	TopK    int             `json:"top_k"`
 	ID      string          `json:"id"`
+	Source  string          `json:"source,omitempty"`
 	Rank    int             `json:"rank"`
 	Found   bool            `json:"found"`
 	Keyword ExplainKeyword  `json:"keyword"`
@@ -483,28 +493,30 @@ type ExplainResult struct {
 
 // IngestReport is the result of `weave ingest` or `weave rebuild`.
 type IngestReport struct {
-	DB        string `json:"db"`
-	Bundle    string `json:"bundle"`
-	Mode      string `json:"mode"`
-	Documents int    `json:"documents"`
-	Edges     int    `json:"edges"`
-	Synthetic int    `json:"synthetic"`
-	Warnings  int    `json:"warnings"`
-	Errors    int    `json:"errors"`
+	DB        string         `json:"db"`
+	Bundle    string         `json:"bundle"`
+	Mode      string         `json:"mode"`
+	Documents int            `json:"documents"`
+	Edges     int            `json:"edges"`
+	Synthetic int            `json:"synthetic"`
+	Warnings  int            `json:"warnings"`
+	Errors    int            `json:"errors"`
+	Sources   []SourceReport `json:"sources,omitempty"`
 }
 
 // SyncReport is the result of `weave sync`.
 type SyncReport struct {
-	DB        string `json:"db"`
-	Bundle    string `json:"bundle"`
-	Mode      string `json:"mode"`
-	Documents int    `json:"documents"`
-	Added     int    `json:"added"`
-	Updated   int    `json:"updated"`
-	Removed   int    `json:"removed"`
-	Skipped   int    `json:"skipped"`
-	Warnings  int    `json:"warnings"`
-	Errors    int    `json:"errors"`
+	DB        string         `json:"db"`
+	Bundle    string         `json:"bundle"`
+	Mode      string         `json:"mode"`
+	Documents int            `json:"documents"`
+	Added     int            `json:"added"`
+	Updated   int            `json:"updated"`
+	Removed   int            `json:"removed"`
+	Skipped   int            `json:"skipped"`
+	Warnings  int            `json:"warnings"`
+	Errors    int            `json:"errors"`
+	Sources   []SourceReport `json:"sources,omitempty"`
 }
 
 // OperationDescriptor describes one machine operation for discovery.
@@ -542,6 +554,46 @@ type VersionInfo struct {
 	CLI           string `json:"cli"`
 }
 
+// SourceSpec is one bundle source passed to a multi-source invocation.
+type SourceSpec struct {
+	Alias string `json:"alias"`
+	Path  string `json:"path"`
+}
+
+// SourceBundle is one per-source parse result.
+type SourceBundle struct {
+	Source string  `json:"source"`
+	Bundle *Bundle `json:"bundle"`
+}
+
+// SourceBundles is the result of a multi-source parse.
+type SourceBundles struct {
+	Sources []SourceBundle `json:"sources"`
+}
+
+// SourceGraph is one per-source graph result.
+type SourceGraph struct {
+	Source string `json:"source"`
+	Graph  Graph  `json:"graph"`
+}
+
+// SourceGraphs is the result of a multi-source graph.
+type SourceGraphs struct {
+	Sources []SourceGraph `json:"sources"`
+}
+
+// SourceReport is one per-source write summary.
+type SourceReport struct {
+	Source    string `json:"source"`
+	Documents int    `json:"documents"`
+	Added     int    `json:"added,omitempty"`
+	Updated   int    `json:"updated,omitempty"`
+	Removed   int    `json:"removed,omitempty"`
+	Skipped   int    `json:"skipped,omitempty"`
+	Warnings  int    `json:"warnings"`
+	Errors    int    `json:"errors"`
+}
+
 // OperationRequest is the transport-neutral request shape for stdio/MCP.
 type OperationRequest struct {
 	ID         string          `json:"id,omitempty"`
@@ -570,6 +622,7 @@ type OperationRequest struct {
 	Enricher   string          `json:"enricher,omitempty"`
 	Rerank     string          `json:"rerank,omitempty"`
 	TimeoutMS  int64           `json:"timeout_ms,omitempty"`
+	Sources    []SourceSpec    `json:"sources,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.
