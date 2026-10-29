@@ -135,8 +135,11 @@ func (t *Transport) handleLine(line []byte, state *sessionState) (map[string]any
 			"id":      request.ID,
 			"result": map[string]any{
 				"protocolVersion": "2025-06-18",
-				"capabilities":    map[string]any{"tools": map[string]any{}},
-				"serverInfo":      map[string]any{"name": "weave", "version": version},
+				"capabilities": map[string]any{
+					"tools":     map[string]any{},
+					"resources": map[string]any{},
+				},
+				"serverInfo": map[string]any{"name": "weave", "version": version},
 			},
 		}, false
 	case "notifications/initialized":
@@ -162,8 +165,57 @@ func (t *Transport) handleLine(line []byte, state *sessionState) (map[string]any
 			}), false
 		}
 		return t.handleToolCall(request), false
+	case "resources/list":
+		if !state.initialized {
+			return errorResponse(request.ID, -32002, "not initialized", map[string]any{
+				"code": "NOT_INITIALIZED",
+			}), false
+		}
+		return map[string]any{
+			"jsonrpc": "2.0",
+			"id":      request.ID,
+			"result":  map[string]any{"resources": t.Server.Resources()},
+		}, false
+	case "resources/templates/list":
+		if !state.initialized {
+			return errorResponse(request.ID, -32002, "not initialized", map[string]any{
+				"code": "NOT_INITIALIZED",
+			}), false
+		}
+		return map[string]any{
+			"jsonrpc": "2.0",
+			"id":      request.ID,
+			"result":  map[string]any{"resourceTemplates": t.Server.ResourceTemplates()},
+		}, false
+	case "resources/read":
+		if !state.initialized {
+			return errorResponse(request.ID, -32002, "not initialized", map[string]any{
+				"code": "NOT_INITIALIZED",
+			}), false
+		}
+		return t.handleResourceRead(request), false
 	default:
 		return errorResponse(request.ID, -32601, "method not found", nil), false
+	}
+}
+
+func (t *Transport) handleResourceRead(request rpcRequest) map[string]any {
+	var params struct {
+		URI string `json:"uri"`
+	}
+	if err := json.Unmarshal(request.Params, &params); err != nil || params.URI == "" {
+		return errorResponse(request.ID, -32602, "invalid params", nil)
+	}
+	content, err := t.Server.ReadResource(context.Background(), params.URI)
+	if err != nil {
+		return errorResponse(request.ID, -32602, err.Error(), map[string]any{
+			"code": "RESOURCE_NOT_FOUND",
+		})
+	}
+	return map[string]any{
+		"jsonrpc": "2.0",
+		"id":      request.ID,
+		"result":  map[string]any{"contents": []any{content}},
 	}
 }
 

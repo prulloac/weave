@@ -3,7 +3,10 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/operations"
@@ -22,6 +25,29 @@ type ToolDescriptor struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
 	InputSchema map[string]any `json:"input_schema"`
+}
+
+// ResourceDescriptor describes one static MCP resource.
+type ResourceDescriptor struct {
+	URI         string `json:"uri"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MimeType    string `json:"mimeType"`
+}
+
+// ResourceTemplate describes one parameterized MCP resource.
+type ResourceTemplate struct {
+	URITemplate string `json:"uriTemplate"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MimeType    string `json:"mimeType"`
+}
+
+// ResourceContent is one resolved resource payload.
+type ResourceContent struct {
+	URI      string `json:"uri"`
+	MimeType string `json:"mimeType"`
+	Text     string `json:"text"`
 }
 
 // Error is a structured MCP tool error.
@@ -185,6 +211,15 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 	request.NoDB = s.db == ""
 	request.VerifyKeys = false
 
+	return s.execute(ctx, request)
+}
+
+func (s *Server) execute(ctx context.Context, request contractv1.OperationRequest) (any, error) {
+	if request.Path == "" {
+		request.Path = s.bundle
+	}
+	request.DB = s.db
+	request.NoDB = s.db == ""
 	value := s.executor.Execute(ctx, request)
 	switch envelope := value.(type) {
 	case contractv1.SuccessEnvelope:
@@ -194,6 +229,131 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 	default:
 		return nil, &Error{Code: contractv1.ErrInternal, Message: "internal tool error"}
 	}
+}
+
+// Resources returns the static resource descriptors.
+func (s *Server) Resources() []ResourceDescriptor {
+	return []ResourceDescriptor{
+		{
+			URI:         "weave://bundle/index",
+			Name:        "Bundle index",
+			Description: "Root index entries for the bundle.",
+			MimeType:    "application/json",
+		},
+		{
+			URI:         "weave://bundle/stats",
+			Name:        "Bundle stats",
+			Description: "Bundle counts and validation summary.",
+			MimeType:    "application/json",
+		},
+	}
+}
+
+// ResourceTemplates returns the parameterized resource descriptors.
+func (s *Server) ResourceTemplates() []ResourceTemplate {
+	return []ResourceTemplate{
+		{
+			URITemplate: "weave://concept/{id}",
+			Name:        "Concept",
+			Description: "Concept metadata and body.",
+			MimeType:    "application/json",
+		},
+		{
+			URITemplate: "weave://graph/neighborhood/{id}",
+			Name:        "Graph neighborhood",
+			Description: "Bounded graph neighborhood for a concept.",
+			MimeType:    "application/json",
+		},
+	}
+}
+
+// ReadResource resolves one resource URI.
+func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent, error) {
+	payload, err := s.resourcePayload(ctx, uri)
+	if err != nil {
+		return ResourceContent{}, err
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+	}
+	return ResourceContent{
+		URI:      uri,
+		MimeType: "application/json",
+		Text:     string(data),
+	}, nil
+}
+
+func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
+	switch uri {
+	case "weave://bundle/index":
+		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse})
+		if err != nil {
+			return nil, err
+		}
+		bundle, ok := value.(*contractv1.Bundle)
+		if !ok {
+			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected bundle payload"}
+		}
+		return bundle.Index, nil
+	case "weave://bundle/stats":
+		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse})
+		if err != nil {
+			return nil, err
+		}
+		bundle, ok := value.(*contractv1.Bundle)
+		if !ok {
+			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected bundle payload"}
+		}
+		graphValue, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpGraph})
+		if err != nil {
+			return nil, err
+		}
+		view, ok := graphValue.(contractv1.Graph)
+		if !ok {
+			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected graph payload"}
+		}
+		orphans := 0
+		for _, node := range view.Nodes {
+			if node.InDegree == 0 && node.OutDegree == 0 {
+				orphans++
+			}
+		}
+		version := ""
+		if bundle.OkfVersion != nil {
+			version = string(*bundle.OkfVersion)
+		}
+		return map[string]any{
+			"concepts":      len(bundle.Concepts),
+			"edges":         len(view.Edges),
+			"orphans":       orphans,
+			"index_entries": len(bundle.Index),
+			"valid":         bundle.Validation.Valid,
+			"okf_version":   version,
+		}, nil
+	}
+
+	for _, prefix := range []string{"weave://concept/", "weave://graph/neighborhood/"} {
+		if !strings.HasPrefix(uri, prefix) {
+			continue
+		}
+		id, err := url.PathUnescape(strings.TrimPrefix(uri, prefix))
+		if err != nil || id == "" {
+			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
+		}
+		if prefix == "weave://concept/" {
+			return s.execute(ctx, contractv1.OperationRequest{
+				Op:     contractv1.OpShow,
+				Target: id,
+			})
+		}
+		return s.execute(ctx, contractv1.OperationRequest{
+			Op:     contractv1.OpRelate,
+			Target: id,
+		})
+	}
+
+	return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
 }
 
 func (s *Server) topKArgument(arguments map[string]any) (*int, error) {
