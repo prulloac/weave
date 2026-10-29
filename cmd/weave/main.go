@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -83,6 +84,21 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if request.Rerank != "" && request.Op != contractv1.OpSearch {
 		return usageError(stdout, stderr, flags.json, "--rerank is only valid for search")
 	}
+	if len(flags.sources) > 0 {
+		switch request.Op {
+		case contractv1.OpParse, contractv1.OpGraph, contractv1.OpSearch, contractv1.OpList,
+			contractv1.OpShow, contractv1.OpBacklinks, contractv1.OpPath, contractv1.OpRelate,
+			contractv1.OpExplain, contractv1.OpAudit, contractv1.OpIngest, contractv1.OpRebuild,
+			contractv1.OpSync:
+		default:
+			return usageError(stdout, stderr, flags.json, "--source is not supported for this command")
+		}
+		specs, err := buildSourceSpecs(request.Path, flags.sources)
+		if err != nil {
+			return usageError(stdout, stderr, flags.json, err.Error())
+		}
+		request.Sources = specs
+	}
 
 	if !flags.json && request.Path != "" {
 		if warning := privacy.SecurityFileWarning(request.Path); warning != "" {
@@ -152,6 +168,7 @@ type flags struct {
 	rerank      string
 	timeout     time.Duration
 	timeoutSet  bool
+	sources     []string
 	positionals []string
 }
 
@@ -296,6 +313,13 @@ func parseFlags(args []string) (flags, error) {
 			}
 			result.timeout = duration
 			result.timeoutSet = true
+		case "--source":
+			value, next, err := flagValue(args, index, "--source")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.sources = append(result.sources, value)
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -341,6 +365,92 @@ func parseFlags(args []string) (flags, error) {
 		return result, fmt.Errorf("--timeout requires --with-enricher or --rerank")
 	}
 	return result, nil
+}
+
+func buildSourceSpecs(primary string, extras []string) ([]contractv1.SourceSpec, error) {
+	alias, err := deriveSourceAlias(primary)
+	if err != nil {
+		return nil, err
+	}
+	specs := []contractv1.SourceSpec{{Alias: alias, Path: primary}}
+	aliases := map[string]bool{alias: true}
+	paths := map[string]bool{canonicalSourcePath(primary): true}
+
+	for _, extra := range extras {
+		alias := ""
+		path := extra
+		if index := strings.Index(extra, "="); index > 0 {
+			alias = extra[:index]
+			path = extra[index+1:]
+		}
+		if strings.TrimSpace(path) == "" {
+			return nil, fmt.Errorf("--source requires a path")
+		}
+		if alias == "" {
+			alias, err = deriveSourceAlias(path)
+			if err != nil {
+				return nil, err
+			}
+		} else if !validSourceAlias(alias) {
+			return nil, fmt.Errorf("invalid source alias %q", alias)
+		}
+		if aliases[alias] {
+			return nil, fmt.Errorf("duplicate source alias %q", alias)
+		}
+		canonical := canonicalSourcePath(path)
+		if paths[canonical] {
+			return nil, fmt.Errorf("duplicate source path %q", path)
+		}
+		aliases[alias] = true
+		paths[canonical] = true
+		specs = append(specs, contractv1.SourceSpec{Alias: alias, Path: path})
+	}
+	return specs, nil
+}
+
+func deriveSourceAlias(path string) (string, error) {
+	base := strings.ToLower(filepath.Base(filepath.Clean(path)))
+	var builder strings.Builder
+	lastDash := false
+	for _, char := range base {
+		switch {
+		case char >= 'a' && char <= 'z', char >= '0' && char <= '9':
+			builder.WriteRune(char)
+			lastDash = false
+		default:
+			if !lastDash && builder.Len() > 0 {
+				builder.WriteByte('-')
+				lastDash = true
+			}
+		}
+	}
+	alias := strings.Trim(builder.String(), "-")
+	if alias == "" {
+		alias = "bundle"
+	}
+	if alias == "contract" || alias == "weave" {
+		alias = "bundle"
+	}
+	return alias, nil
+}
+
+func validSourceAlias(alias string) bool {
+	for index, char := range alias {
+		switch {
+		case char >= 'a' && char <= 'z', char >= '0' && char <= '9':
+		case char == '-' && index > 0:
+		default:
+			return false
+		}
+	}
+	return alias != ""
+}
+
+func canonicalSourcePath(path string) string {
+	if absolute, err := filepath.Abs(path); err == nil {
+		return filepath.Clean(absolute)
+	}
+	return filepath.Clean(path)
 }
 
 func contains(values []string, target string) bool {
@@ -630,16 +740,28 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		}
 		return 0
 	case contractv1.OpParse:
-		bundle := result.(*contractv1.Bundle)
-		version := "unknown"
-		if bundle.OkfVersion != nil {
-			version = string(*bundle.OkfVersion)
+		switch value := result.(type) {
+		case *contractv1.Bundle:
+			version := "unknown"
+			if value.OkfVersion != nil {
+				version = string(*value.OkfVersion)
+			}
+			fmt.Fprintf(stdout, "%d concepts, okf_version %s, valid=%t\n", len(value.Concepts), version, value.Validation.Valid)
+		case contractv1.SourceBundles:
+			for _, source := range value.Sources {
+				fmt.Fprintf(stdout, "%s: %d concepts, valid=%t\n", source.Source, len(source.Bundle.Concepts), source.Bundle.Validation.Valid)
+			}
 		}
-		fmt.Fprintf(stdout, "%d concepts, okf_version %s, valid=%t\n", len(bundle.Concepts), version, bundle.Validation.Valid)
 		return 0
 	case contractv1.OpGraph:
-		graph := result.(contractv1.Graph)
-		fmt.Fprintf(stdout, "%d nodes, %d edges\n", len(graph.Nodes), len(graph.Edges))
+		switch value := result.(type) {
+		case contractv1.Graph:
+			fmt.Fprintf(stdout, "%d nodes, %d edges\n", len(value.Nodes), len(value.Edges))
+		case contractv1.SourceGraphs:
+			for _, source := range value.Sources {
+				fmt.Fprintf(stdout, "%s: %d nodes, %d edges\n", source.Source, len(source.Graph.Nodes), len(source.Graph.Edges))
+			}
+		}
 		return 0
 	case contractv1.OpSearch:
 		response := result.(contractv1.SearchResponse)
@@ -687,12 +809,19 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 			return 1
 		}
 		for _, item := range results {
+			if item.Source != "" {
+				fmt.Fprintf(stdout, "%s: %s [%s]\n", item.Source, item.Title, item.Path)
+				continue
+			}
 			fmt.Fprintf(stdout, "%s [%s]\n", item.Title, item.Path)
 		}
 		return 0
 	case contractv1.OpShow:
 		show := result.(*contractv1.ShowResult)
 		fmt.Fprintf(stdout, "# %s\nType: %s\n", titleOrID(show.Title, show.ID), show.Type)
+		if show.Source != "" {
+			fmt.Fprintf(stdout, "Source: %s\n", show.Source)
+		}
 		if show.Status != nil {
 			fmt.Fprintf(stdout, "Status: %s\n", *show.Status)
 		}
@@ -955,19 +1084,19 @@ func printHelp(writer io.Writer) {
 
 usage:
   weave contract [--json]
-  weave parse <path> [--json] [--no-cache]
-  weave graph <path> [--json] [--no-cache]
-  weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--rerank <name>] [--timeout <d>] [--json] [--no-cache]
-  weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
-  weave show <path> <id|file> [--decrypt] [--json] [--no-cache]
-  weave backlinks <path> <id|file> [--json] [--no-cache]
-  weave path <path> <id|file> <id|file> [--json] [--no-cache]
-  weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
-  weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
-  weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
-  weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
-  weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
-  weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave parse <path> [--source <alias=path> ...] [--json] [--no-cache]
+  weave graph <path> [--source <alias=path> ...] [--json] [--no-cache]
+  weave search <path> <query> [--source <alias=path> ...] [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--rerank <name>] [--timeout <d>] [--json] [--no-cache]
+  weave list <path> [--source <alias=path> ...] [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
+  weave show <path> [--source <alias=path> ...] <id|file> [--decrypt] [--json] [--no-cache]
+  weave backlinks <path> [--source <alias=path> ...] <id|file> [--json] [--no-cache]
+  weave path <path> [--source <alias=path> ...] <id|file> <id|file> [--json] [--no-cache]
+  weave audit <path> [--source <alias=path> ...] [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
+  weave relate <path> [--source <alias=path> ...] <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
+  weave explain <path> [--source <alias=path> ...] <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
+  weave ingest <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave rebuild <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
   weave extensions list [<path>] [--json]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]

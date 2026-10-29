@@ -116,6 +116,13 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		return success(e.listExtensions(request.Path))
 	}
 
+	if len(request.Sources) > 1 {
+		return e.executeMulti(ctx, request)
+	}
+	if len(request.Sources) == 1 {
+		request.Path = request.Sources[0].Path
+	}
+
 	if request.Path == "" {
 		return failure(contractv1.ErrInvalidRequest, "path is required for this operation", map[string]any{
 			"op": request.Op,
