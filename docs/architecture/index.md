@@ -65,8 +65,8 @@ The detailed contract and algorithms are in
 | --- | --- | --- | --- |
 | CLI processes | Any language or runtime | Primary | argv, stdout/stderr, exit codes, `weave.cli/v1` |
 | Go package API | Go hosts | Optional | Engine/store packages |
-| MCP tool harness | Go hosts, future MCP clients | M1 available | `mcp.Server` over operations |
-| TCP MCP server | Future agent integrations | Transport slice | MCP tools over the operations layer |
+| MCP tool harness | Go hosts, MCP clients | M1–M3 available | `mcp.Server` + stdio/TCP transport |
+| TCP MCP server | MCP clients | Available | newline JSON-RPC over TCP |
 | Browser presentation | — | **Retired** | Removed by ADR 0003 |
 
 A host that is not written in Go must use the CLI. A Go host may use the package API, but the CLI
@@ -82,7 +82,7 @@ remains the compatibility promise.
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
 | E — Storage & sync | SQLite persistence, incremental sync, watch | Sync complete; watch next |
 | F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
-| G — MCP | TCP MCP transport over operations | M1 in-process harness complete; TCP next |
+| G — MCP | MCP tools over operations | M1–M3 complete; resources/watch next |
 
 ## Dependency Rules
 
@@ -184,6 +184,5 @@ Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` recon
 by SHA-256 hash, and persistent hybrid search combines normalized BM25 with fuzzy scores.
 Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — watch, privacy, extensions and MCP transport — is specified but not
-implemented. The in-process MCP tool harness (M1) is available; TCP/auth/resources follow in the
-transport slice.
+The remaining v1.0 scope — watch, privacy, extensions and MCP resources/watch — is specified but
+not implemented. MCP tools, stdio/TCP transport and token auth are available.

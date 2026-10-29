@@ -16,8 +16,8 @@ status: stable
 
 # Specification: Weave MCP Server
 
-Status: **M1 in-process tool harness implemented**. Stdio, TCP, auth, resources and watch are
-pending transport slices.
+Status: **M1–M3 implemented**: in-process tools, stdio/TCP transport and token auth. Resources, watch
+reload and sensitive access remain pending.
 
 ## 1. Overview
 
@@ -247,16 +247,16 @@ weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
 - Conformance tests for tool inputs/outputs.
 - No network yet.
 
-### M2 — Local stdio (optional)
+### M2 — Local stdio (implemented)
 
 - `weave mcp --stdio` for local single-client use.
 - Reuse the same tool descriptors and error mapping.
 - Useful for early agent integrations before TCP.
 
-### M3 — TCP MCP server
+### M3 — TCP MCP server (implemented)
 
 - `weave mcp --bundle <path> --listen 127.0.0.1:7331 --token <token>`.
-- Optional `--db`/`--watch` binding to persistent storage.
+- Optional `--db` binding to persistent storage.
 - Token auth, lifecycle, concurrency and reconnect tests.
 - MCP client integration tests.
 - Documentation for Claude/agent clients.

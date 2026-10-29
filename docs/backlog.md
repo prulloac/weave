@@ -77,7 +77,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | --- | --- | --- | --- | --- | --- | --- |
 | MCP in-memory over operations | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP persistent + watch reload | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
-| MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | - | red |
+| MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
@@ -109,6 +109,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] BM25 calibration: BM25 + fuzzy hybrid corpus, baselines and deterministic metrics
 - [x] BM25 explain: lexical raw/normalized scores, matched fields and term contributions
 - [x] MCP M1: in-process tool descriptors, dispatch, validation and error mapping
+- [x] MCP transport: stdio/TCP newline JSON-RPC, initialize, tools and token auth
 
 ## Dependency Order
 

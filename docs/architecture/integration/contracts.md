@@ -27,6 +27,7 @@ weave contract --json
 weave ingest <path> [--db <file>] [--strict|--permissive] --json
 weave rebuild <path> [--db <file>] [--strict|--permissive] --json
 weave sync <path> [--db <file>] [--strict|--permissive] --json
+weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
 weave parse <path> --json
 weave graph <path> --json
 weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] --json

@@ -16,7 +16,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Hybrid top-K results** with component scores and match metadata.
 - **BM25 lexical ranking** through SQLite FTS5 with field weights, phrases and negative terms.
 - **Calibrated hybrid ranking** using normalized BM25 plus fuzzy scores.
-- **MCP tool harness** over operations; TCP transport is pending.
+- **MCP tool harness** over operations, with stdio/TCP JSON-RPC transport and token auth.
 - **Graph navigation**: show, backlinks and shortest path.
 - **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.
@@ -220,6 +220,18 @@ weave sync ~/notes --db /tmp/notes.db --json
 
 Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode is the next slice.
 
+#### `weave mcp`
+
+Serve read-only MCP tools over stdio or TCP, using in-memory or persistent storage.
+
+```sh
+weave mcp --bundle ~/notes --stdio
+weave mcp --bundle ~/notes --listen 127.0.0.1:7331 --token secret
+weave mcp --bundle ~/notes --db ~/.weave/index.db
+```
+
+Spec: [MCP Server](docs/specs/mcp-server.md).
+
 #### `weave version`
 
 Print the binary version and the contract it targets.
@@ -228,23 +240,6 @@ Print the binary version and the contract it targets.
 weave version
 weave version --json
 ```
-
-### Planned commands
-
-> **Not yet shipped.** The commands below are specified for v1.0 but are yet to be shipped. They are
-> not available in the current binary. Flags that depend on v1.0 features, such as
-> `weave sync --watch`, `weave show --decrypt` and `weave search --rerank`, are also not yet shipped.
-
-#### `weave mcp`
-
-Start the read-only MCP server over the operations layer, in-memory or backed by persistent storage.
-
-```sh
-weave mcp --bundle ~/notes
-weave mcp --bundle ~/notes --db .weave/index.db --watch
-```
-
-Spec: [MCP Server](docs/specs/mcp-server.md).
 
 ### Retired commands
 
