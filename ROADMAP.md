@@ -2,9 +2,10 @@
 
 > Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
-Status: **v1 in progress.** The core engine, introspection commands and SQLite storage foundation are
-shipped on `main`; incremental sync, watch, BM25, permissive ingestion, privacy, extensions and MCP
-remain specified but not implemented.
+Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
+incremental sync, watch reload, BM25, permissive ingestion and the MCP server through watch reload are
+shipped on `main`; privacy, extensions, compression and MCP sensitive access remain specified but not
+implemented.
 
 ## 1. What Weave Is
 
@@ -60,7 +61,7 @@ waves, not product versions.
 | --- | --- | --- |
 | Persistent SQLite storage | v1.0 | Shipped: pure-Go `modernc.org/sqlite`, bundle-scoped, WAL |
 | Incremental sync | v1.0 | Shipped: SHA-256 add/update/remove/skip with cascade |
-| Watch mode | v1.0 | `fsnotify` live sync and MCP reload |
+| Watch mode | v1.0 | Shipped: SHA-256 polling watcher, MCP live reload; `fsnotify` deferred |
 | Permissive ingestion | v1.0 | Shipped: synthetic Markdown documents with warnings |
 | BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
 | BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
@@ -72,7 +73,7 @@ waves, not product versions.
 | Explainable search | v1.0 | Shipped: per-token/per-field `weave explain` |
 | Bundle audit | v1.0 | Shipped: stable finding codes, `--fail-on` gate, JSON and human reports |
 | Graph relate | v1.0 | Shipped: bounded depth/direction subgraphs |
-| MCP server | v1.0 | Tools, stdio/TCP transport, auth and resources shipped; watch/sensitive pending |
+| MCP server | v1.0 | Tools, stdio/TCP transport, auth, resources and watch reload shipped; sensitive access pending |
 
 ## 4. CLI Surface
 
@@ -93,6 +94,7 @@ weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k 
 weave ingest <path> [--db <file>] [--strict|--permissive] --json
 weave rebuild <path> [--db <file>] [--strict|--permissive] --json
 weave sync <path> [--db <file>] [--strict|--permissive] --json
+weave mcp --bundle <path> [--stdio|--listen <addr>] [--token <t>] [--db <file>] [--watch]
 weave version --json
 ```
 
@@ -210,7 +212,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 | shipped |
 | 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 | shipped |
 | 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 | shipped |
-| 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | red |
+| 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | shipped |
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | planned |
@@ -222,10 +224,11 @@ is the completeness check: no feature is considered planned until it appears her
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
 | 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | planned |
 | 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) | shipped |
-| 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | planned |
+| 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | shipped |
 | 21 | BM25 explain evidence | [weave-explain.md](docs/specs/weave-explain.md), [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, storage, explain | 3 / Phase 3 | shipped |
 | 22 | MCP stdio/TCP transport | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory | 6 / Phase 6 | shipped |
 | 23 | MCP resources | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP transport | 6 / Phase 6 | shipped |
+| 24 | MCP watch reload | [watch-mode.md](docs/specs/watch-mode.md), [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | incremental sync, MCP persistent | 4 / Phase 3 | shipped |
 
 Rules:
 

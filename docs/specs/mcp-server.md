@@ -16,8 +16,8 @@ status: stable
 
 # Specification: Weave MCP Server
 
-Status: **M1–M3 tools/transport/auth and M4 core resources implemented**. Watch reload, sensitive
-access and remaining polish are pending.
+Status: **M1–M4 implemented**: tools, stdio/TCP transport, auth, resources and watch reload.
+Sensitive access and remaining polish are pending.
 
 ## 1. Overview
 
@@ -66,7 +66,10 @@ weave mcp --bundle <path> [--db <file>] [--watch] [--listen 127.0.0.1:7331] [--t
 - `--db` uses the persistent SQLite store; without it, the in-memory engine is used.
 - `--watch` requires `--db`; it starts the polling watcher and keeps the database current.
 - `--allow-sensitive` is required to expose encrypted/tokenized fields in tool results.
-- The server loads the bundle once at startup and exits on SIGINT/SIGTERM.
+- The server fixes the bundle path for the process lifetime and exits on SIGINT/SIGTERM.
+- Without `--watch`, tools and resources load the bundle per call through the operations executor.
+- With `--watch`, a background polling watcher keeps the persistent database current; tool and
+  resource reads therefore observe new snapshots without a restart.
 - No request may choose a different bundle path.
 
 ## 4. M1 In-Process Tool Contract
@@ -237,10 +240,12 @@ ping
 weave mcp --bundle <path> [--db <file>] [--top-k-default 10] [--allow-sensitive]
 weave mcp --bundle <path> --stdio
 weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
+weave mcp --bundle <path> --db <file> --watch
 ```
 
 - `--stdio` and `--listen` are mutually exclusive.
-- `--watch` requires `--db` and starts the polling watcher.
+- `--watch` requires `--db` and starts the polling watcher; the startup fails if the bundle is not
+  indexed in that database.
 - Non-loopback `--listen` without `--token` is a usage error.
 
 ## 8. Security

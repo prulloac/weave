@@ -10,10 +10,13 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Watch Mode
+
+Status: **Polling watcher and MCP reload implemented**. `weave sync --watch` CLI wiring remains a
+follow-up; the shared watcher is shipped.
 
 ## 1. Overview
 
@@ -21,7 +24,7 @@ Watch mode keeps a v1.0 persistent index current while files change. It is built
 sync engine and is used by both `weave sync --watch` and `weave mcp --watch`.
 
 ```sh
-weave sync <path> --watch --json
+weave sync <path> --watch --json      # CLI wiring follow-up
 weave mcp --bundle <path> --db .weave/index.db --watch
 ```
 
@@ -45,8 +48,8 @@ weave mcp --bundle <path> --db .weave/index.db --watch
 
 ## 3. Process Contract
 
-- `--watch` requires a persistent database (`--db` or default `.weave/index.db`) and an indexed
-  bundle. An unindexed bundle returns `BUNDLE_NOT_INDEXED`; run `weave ingest` first.
+- `--watch` requires an explicit `--db` path and an already indexed bundle. An unindexed bundle
+  returns `BUNDLE_NOT_INDEXED`; run `weave ingest` first.
 - Initial sync runs before watching.
 - The process stays alive until SIGINT/SIGTERM.
 - Reindex operations are serialized.
@@ -58,17 +61,18 @@ weave mcp --bundle <path> --db .weave/index.db --watch
 
 ## 4. Event Handling
 
-- Use polling with SHA-256 snapshots in this slice; `fsnotify` event optimization is a follow-up.
-- Poll interval defaults to 500 ms; tests may use a shorter interval.
+- Polling with SHA-256 snapshots is the delivered mechanism; `fsnotify` event optimization is a
+  follow-up and no event backend fallback is required today.
+- Poll interval defaults to 500 ms; tests use a shorter interval.
 - Watch the bundle root recursively.
-- Ignore `.git`, `node_modules`, the database directory, hidden temp files, editor swap files and
-  files ending in `~` or `.tmp`.
-- Coalesce bursts by polling; only sync when the snapshot changes.
+- Ignore `.git`, `node_modules`, `.weave`, other dot-directories and dot-files, editor swap files and
+  files ending in `~`, `.tmp` or `.swp`.
+- Only Markdown files participate in snapshots and sync; other files never trigger a sync.
+- Coalesce bursts by polling: sync runs only when the snapshot differs from the last synced one.
 - Treat editor atomic saves as modification.
 - Handle delete by pruning the document and cascading edges.
 - Handle rename as delete + create.
 - Ignore files outside the bundle root.
-- Cap pending event queue; drop duplicates before syncing.
 
 ## 5. Sync Semantics
 
@@ -88,37 +92,33 @@ good content.
 
 ## 6. Error Handling
 
-- Filesystem watcher failure: log and fall back to polling; if polling is unavailable, exit `1`.
-- Database busy/locked: retry with bounded backoff.
-- Parse error: log, keep previous snapshot, continue.
-- Permission error: log, continue; `--fail-fast` exits `3`.
-- Shutdown: stop watcher, finish in-flight sync, close DB.
+- Snapshot read failure: report through `OnError` and keep polling; the loop does not exit.
+- Sync failure: report through `OnError`, retain the last good index, and retry on the next tick.
+- Parse error: sync keeps the previous document version and reports the error.
+- Shutdown: stop polling, finish any in-flight sync, and let the caller close the database.
+- `--fail-fast` and database-backoff retries are deferred with the CLI wiring.
 
 ## 7. Output
 
-Initial result:
+Initial sync result is passed to `OnSync` as a `contractv1.SyncReport`:
 
 ```json
-{"mode":"watch","documents":42,"added":0,"updated":0,"removed":0,"errors":0}
+{"db":"/home/u/.weave/index.db","bundle":"/notes","mode":"strict","documents":3,"added":0,"updated":0,"removed":0,"skipped":3,"warnings":0,"errors":0}
 ```
 
-Optional event:
-
-```json
-{"event":"sync","at":"2026-10-27T12:00:00Z","added":1,"updated":2,"removed":0,"errors":0}
-```
+Status events, `--events` JSONL and `--fail-fast` exit codes belong to the `weave sync --watch` CLI
+follow-up; `weave mcp --watch` writes watch diagnostics to stderr.
 
 ## 8. Testing
 
-- Create/modify/delete/rename.
-- Burst edits and debounce.
-- Atomic-save pattern.
-- Ignored directories.
-- Parse-error retention.
-- Shutdown during sync.
-- Polling fallback.
-- Concurrent queries during reindex.
+- Initial sync before polling.
+- Modify and delete propagation.
+- Burst edits and ignored directories.
+- Clean shutdown under cancellation.
+- MCP reload visibility and concurrent queries.
+- Unindexed bundle rejection.
 - Race suite.
+- Rename/atomic-save, parse-error retention and polling fallback are pending the `fsnotify` slice.
 
 ## 9. Acceptance Criteria
 

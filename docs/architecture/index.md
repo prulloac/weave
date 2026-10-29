@@ -80,9 +80,9 @@ remains the compatibility promise.
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
-| E — Storage & sync | SQLite persistence, incremental sync, watch | Sync complete; watch next |
+| E — Storage & sync | SQLite persistence, incremental sync, watch | Complete |
 | F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
-| G — MCP | MCP tools over operations | M1–M4 resources complete; watch/sensitive next |
+| G — MCP | MCP tools over operations | M1–M4 complete; sensitive/polish next |
 
 ## Dependency Rules
 
@@ -184,5 +184,5 @@ Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` recon
 by SHA-256 hash, and persistent hybrid search combines normalized BM25 with fuzzy scores.
 Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — watch, privacy, extensions and MCP watch/sensitive access — is specified
-but not implemented. MCP tools, stdio/TCP transport, token auth and resources are available.
+The remaining v1.0 scope — privacy, extensions, MCP sensitive access and MCP polish — is specified
+but not implemented. MCP tools, stdio/TCP transport, auth, resources and watch reload are available.

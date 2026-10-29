@@ -58,7 +58,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | --- | --- | --- | --- | --- | --- | --- |
 | Persistent SQLite storage | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | x | x | green |
 | Incremental sync | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | x | x | green |
-| Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | x | - | red |
+| Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | x | x | green |
 | Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | x | x | green |
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
@@ -76,7 +76,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | MCP in-memory over operations | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
-| MCP persistent + watch reload | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
+| MCP persistent binding | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
+| MCP watch reload | [watch-mode.md](specs/watch-mode.md), [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP resources | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | Sensitive MCP access policies | [mcp-server.md](specs/mcp-server.md) | - | x | - | - | backlog |
@@ -112,6 +113,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] MCP M1: in-process tool descriptors, dispatch, validation and error mapping
 - [x] MCP transport: stdio/TCP newline JSON-RPC, initialize, tools and token auth
 - [x] MCP resources: bundle index/stats and concept/neighborhood templates
+- [x] Watch reload: polling sync loop, MCP live updates and clean shutdown
 
 ## Dependency Order
 
@@ -125,12 +127,12 @@ Execution waves:
 1. Shipped: parser, graph, search, CLI, calibration.
 2. Parallel: introspection contract types (done), `audit` (done), `relate` (done), `explain` (done), permissive ingestion (done).
 3. Storage: SQLite (done).
-4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), compression, MCP in-memory.
-5. Watch and privacy directives.
+4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), MCP in-memory (done), MCP persistent (done).
+5. Watch (done) and privacy directives.
 6. Extension runner, enrichment, rerank, sensitive MCP.
-7. AI plugin, external crypto, MCP persistent, TCP transport.
+7. AI plugin, external crypto, compression, `weave sync --watch` CLI wiring.
 
-Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP persistent`.
+Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 
 ## Maintenance
 

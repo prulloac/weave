@@ -218,19 +218,22 @@ weave sync ~/notes --strict --json
 weave sync ~/notes --db /tmp/notes.db --json
 ```
 
-Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode is the next slice.
+Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode drives incremental sync from a
+polling loop; the `weave sync --watch` CLI flag is a follow-up.
 
 #### `weave mcp`
 
-Serve read-only MCP tools over stdio or TCP, using in-memory or persistent storage.
+Serve read-only MCP tools and resources over stdio or TCP, using in-memory or persistent storage.
+`--watch` keeps the persistent index current so tool and resource reads see edits without a restart.
 
 ```sh
 weave mcp --bundle ~/notes --stdio
 weave mcp --bundle ~/notes --listen 127.0.0.1:7331 --token secret
 weave mcp --bundle ~/notes --db ~/.weave/index.db
+weave mcp --bundle ~/notes --db ~/.weave/index.db --watch
 ```
 
-Spec: [MCP Server](docs/specs/mcp-server.md).
+Specs: [MCP Server](docs/specs/mcp-server.md), [Watch Mode](docs/specs/watch-mode.md).
 
 #### `weave version`
 
@@ -301,7 +304,8 @@ engine/search/          keyword, fuzzy and hybrid ranking
 engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
 storage/sqlite/          bundle-scoped persistent storage and incremental sync
-mcp/                    MCP tool descriptors and in-process dispatch
+mcp/                    MCP tool descriptors, resources and in-process dispatch
+watch/                  polling watcher over incremental sync
 engine/nav/             list, show, backlinks, path
 engine/operations/      transport-neutral envelopes
 docs/                   architecture, specs, knowledge
@@ -316,6 +320,7 @@ docs/                   architecture, specs, knowledge
 - [Weave Relate spec](docs/specs/weave-relate.md)
 - [Weave Explain spec](docs/specs/weave-explain.md)
 - [Storage & Sync spec](docs/specs/storage-and-sync.md)
+- [Watch Mode spec](docs/specs/watch-mode.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [MCP Server spec](docs/specs/mcp-server.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
