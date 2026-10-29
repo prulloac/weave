@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/privacy"
 )
 
 const (
@@ -149,6 +150,22 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 	for position := range concepts {
 		concept := &concepts[position]
 		linkWarnings := make([]string, 0)
+		directive, privacyErr := privacy.ParseFrontmatter(concept.Frontmatter)
+		if privacyErr != nil {
+			warnings = append(warnings, privacy.CodeDirectiveInvalid)
+			linkWarnings = append(linkWarnings, privacyErr.Error())
+		} else if directive != nil {
+			concept.Privacy = directive
+		}
+		if concept.Privacy != nil {
+			if _, inlineWarnings := privacy.ScanInline(concept.Body); len(inlineWarnings) > 0 {
+				warnings = append(warnings, privacy.CodeDirectiveConflict)
+				linkWarnings = append(linkWarnings, privacy.CodeDirectiveConflict+": inline directives ignored")
+			}
+		} else if _, inlineWarnings := privacy.ScanInline(concept.Body); len(inlineWarnings) > 0 {
+			warnings = append(warnings, privacy.CodeDirectiveInvalid)
+			linkWarnings = append(linkWarnings, inlineWarnings...)
+		}
 		for linkPosition := range concept.Links {
 			link := &concept.Links[linkPosition]
 			link.ResolvesInBundle = false
