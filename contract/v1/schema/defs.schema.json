@@ -16,7 +16,7 @@
 		},
 		"SearchMode": {
 			"type": "string",
-			"enum": ["keyword", "fuzzy", "hybrid"]
+			"enum": ["keyword", "fuzzy", "hybrid", "bm25"]
 		},
 		"SearchField": {
 			"type": "string",
@@ -314,6 +314,19 @@
 				"snippet": { "type": "string" }
 			}
 		},
+		"LexicalHit": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "title", "path", "type", "raw_score", "score"],
+			"properties": {
+				"id": { "type": "string" },
+				"title": { "type": "string" },
+				"path": { "type": "string" },
+				"type": { "type": "string" },
+				"raw_score": { "type": "number", "minimum": 0 },
+				"score": { "type": "number", "minimum": 0, "maximum": 1 }
+			}
+		},
 		"SearchResponse": {
 			"type": "object",
 			"additionalProperties": false,
@@ -333,6 +346,10 @@
 				"hybrid": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/HybridHit" }
+				},
+				"lexical": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/LexicalHit" }
 				}
 			}
 		},

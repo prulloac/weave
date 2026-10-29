@@ -23,6 +23,7 @@ const (
 	SearchKeyword SearchMode = "keyword"
 	SearchFuzzy   SearchMode = "fuzzy"
 	SearchHybrid  SearchMode = "hybrid"
+	SearchBM25    SearchMode = "bm25"
 )
 
 type SearchField string
@@ -227,7 +228,17 @@ type HybridHit struct {
 	Snippet         *string       `json:"snippet,omitempty"`
 }
 
-// SearchResponse contains the keyword, fuzzy and hybrid top-K lists.
+// LexicalHit is one BM25 lexical search result.
+type LexicalHit struct {
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	Path     string  `json:"path"`
+	Type     string  `json:"type"`
+	RawScore float64 `json:"raw_score"`
+	Score    float64 `json:"score"`
+}
+
+// SearchResponse contains the keyword, fuzzy, hybrid and lexical top-K lists.
 type SearchResponse struct {
 	Query   string       `json:"query"`
 	Mode    SearchMode   `json:"mode"`
@@ -235,6 +246,7 @@ type SearchResponse struct {
 	Keyword []KeywordHit `json:"keyword"`
 	Fuzzy   []FuzzyHit   `json:"fuzzy"`
 	Hybrid  []HybridHit  `json:"hybrid"`
+	Lexical []LexicalHit `json:"lexical,omitempty"`
 }
 
 // ListResult is one metadata-filtered concept.

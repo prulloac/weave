@@ -19,6 +19,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/okf"
+	"github.com/prulloac/weave/engine/search"
 )
 
 const schemaVersion = 1
@@ -291,6 +292,9 @@ func (s *Store) Sync(
 			return contractv1.SyncReport{}, err
 		}
 	}
+	if err := populateFTS(ctx, tx, root, bundle); err != nil {
+		return contractv1.SyncReport{}, err
+	}
 
 	if err := tx.Commit(); err != nil {
 		return contractv1.SyncReport{}, err
@@ -508,6 +512,9 @@ func (s *Store) writeBundle(
 			return contractv1.IngestReport{}, err
 		}
 	}
+	if err := populateFTS(ctx, tx, root, bundle); err != nil {
+		return contractv1.IngestReport{}, err
+	}
 
 	if err := tx.Commit(); err != nil {
 		return contractv1.IngestReport{}, err
@@ -523,6 +530,154 @@ func (s *Store) writeBundle(
 		Warnings:  warningCount(bundle),
 		Errors:    errorCount(bundle, mode),
 	}, nil
+}
+
+func populateFTS(ctx context.Context, tx *sql.Tx, root string, bundle *contractv1.Bundle) error {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM fts_documents WHERE bundle_root = ?", root); err != nil {
+		return err
+	}
+	for _, concept := range bundle.Concepts {
+		title := concept.ID
+		if concept.Title != nil {
+			title = *concept.Title
+		}
+		description := ""
+		if concept.Description != nil {
+			description = *concept.Description
+		}
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO fts_documents (bundle_root, id, title, keywords, description, body)
+			VALUES (?, ?, ?, ?, ?, ?)`,
+			root, concept.ID, title, strings.Join(concept.Keywords, " "),
+			description, search.StripMarkdown(concept.Body))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SearchBM25 returns lexical hits for a bundle.
+func (s *Store) SearchBM25(
+	ctx context.Context,
+	root string,
+	query string,
+	topK int,
+) ([]contractv1.LexicalHit, error) {
+	root, err := normalizeRoot(root)
+	if err != nil {
+		return nil, err
+	}
+	if topK == 0 {
+		topK = 10
+	}
+	if topK < 1 || topK > 100 {
+		return nil, search.ErrInvalidTopK
+	}
+	match := buildFTSQuery(query)
+	if match == "" {
+		return []contractv1.LexicalHit{}, nil
+	}
+
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT d.id, d.title, d.file_path, d.doc_type,
+		       -bm25(fts_documents, 0.0, 0.0, 10.0, 8.0, 4.0, 1.0) AS raw
+		FROM fts_documents
+		JOIN documents d
+		  ON d.bundle_root = fts_documents.bundle_root
+		 AND d.id = fts_documents.id
+		WHERE fts_documents.bundle_root = ?
+		  AND fts_documents MATCH ?
+		ORDER BY raw DESC, d.id ASC
+		LIMIT ?`, root, match, topK)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	hits := make([]contractv1.LexicalHit, 0)
+	maxScore := 0.0
+	for rows.Next() {
+		var hit contractv1.LexicalHit
+		var docType sql.NullString
+		if err := rows.Scan(&hit.ID, &hit.Title, &hit.Path, &docType, &hit.RawScore); err != nil {
+			return nil, err
+		}
+		hit.Type = docType.String
+		if hit.RawScore > maxScore {
+			maxScore = hit.RawScore
+		}
+		hits = append(hits, hit)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if maxScore > 0 {
+		for index := range hits {
+			hits[index].Score = search.RoundScore(hits[index].RawScore / maxScore)
+		}
+	}
+	return hits, nil
+}
+
+func buildFTSQuery(query string) string {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return ""
+	}
+	positives := make([]string, 0)
+	negatives := make([]string, 0)
+	index := 0
+	for index < len(query) {
+		for index < len(query) && (query[index] == ' ' || query[index] == '\t') {
+			index++
+		}
+		if index >= len(query) {
+			break
+		}
+		negative := false
+		if query[index] == '-' {
+			negative = true
+			index++
+			if index >= len(query) {
+				break
+			}
+		}
+		start := index
+		if query[index] == '"' {
+			index++
+			for index < len(query) && query[index] != '"' {
+				index++
+			}
+			if index < len(query) {
+				index++
+			}
+		} else {
+			for index < len(query) && query[index] != ' ' && query[index] != '\t' {
+				index++
+			}
+		}
+		term := strings.TrimSpace(query[start:index])
+		if term == "" || term == "-\"\"" {
+			continue
+		}
+		if negative {
+			negatives = append(negatives, term)
+		} else {
+			positives = append(positives, term)
+		}
+	}
+	if len(positives) == 0 {
+		return ""
+	}
+	expression := strings.Join(positives, " OR ")
+	if len(positives) > 1 {
+		expression = "(" + expression + ")"
+	}
+	if len(negatives) > 0 {
+		expression += " NOT (" + strings.Join(negatives, " OR ") + ")"
+	}
+	return expression
 }
 
 func insertConcept(ctx context.Context, tx *sql.Tx, root string, concept contractv1.OkfConcept, now int64) error {
@@ -787,8 +942,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS fts_documents USING fts5 (
     bundle_root UNINDEXED,
     id UNINDEXED,
     title,
-    description,
     keywords,
+    description,
     body,
     tokenize = 'porter unicode61'
 );

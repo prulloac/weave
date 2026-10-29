@@ -24,6 +24,8 @@ const (
 var (
 	ErrInvalidTopK = errors.New("top_k must be between 1 and 100")
 	ErrInvalidMode = errors.New("unknown search mode")
+	// ErrBM25RequiresStorage is returned by the in-memory search path.
+	ErrBM25RequiresStorage = errors.New("bm25 requires persistent storage")
 )
 
 var fuzzyWeights = map[contractv1.SearchField]float64{
@@ -44,6 +46,8 @@ func Search(
 	}
 	switch mode {
 	case contractv1.SearchKeyword, contractv1.SearchFuzzy, contractv1.SearchHybrid:
+	case contractv1.SearchBM25:
+		return contractv1.SearchResponse{}, ErrBM25RequiresStorage
 	default:
 		return contractv1.SearchResponse{}, ErrInvalidMode
 	}

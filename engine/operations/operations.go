@@ -106,6 +106,9 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 	if request.Op == contractv1.OpSync {
 		return e.sync(ctx, request)
 	}
+	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchBM25 {
+		return e.searchBM25(ctx, request)
+	}
 
 	eng, cleanup, err := e.openEngine(ctx, request)
 	if err != nil {
@@ -412,6 +415,59 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		})
 	}
 	return success(report)
+}
+
+func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationRequest) any {
+	if request.NoDB {
+		return failure(contractv1.ErrInvalidRequest, "bm25 requires persistent storage; remove --no-db", map[string]any{
+			"mode": request.Mode,
+		})
+	}
+	topK := 10
+	if request.TopK != nil {
+		topK = *request.TopK
+	}
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
+	store, err := sqlitestore.OpenExisting(dbPath)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"db": dbPath})
+	}
+	defer store.Close()
+
+	root, err := filepath.Abs(request.Path)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
+	}
+	has, err := store.HasBundle(ctx, root)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
+	if !has {
+		return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
+			"path": request.Path,
+		})
+	}
+	hits, err := store.SearchBM25(ctx, root, request.Query, topK)
+	if err != nil {
+		if errors.Is(err, search.ErrInvalidTopK) {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK})
+		}
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
+	}
+	return success(contractv1.SearchResponse{
+		Query:   request.Query,
+		Mode:    contractv1.SearchBM25,
+		TopK:    topK,
+		Keyword: []contractv1.KeywordHit{},
+		Fuzzy:   []contractv1.FuzzyHit{},
+		Hybrid:  []contractv1.HybridHit{},
+		Lexical: hits,
+	})
 }
 
 func resolveDBPath(path string) (string, error) {

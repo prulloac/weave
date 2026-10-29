@@ -322,6 +322,16 @@ func TestContractTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "search.schema.json", searchResponse)
 
+	lexicalResponse := SearchResponse{
+		Query: "graph", Mode: SearchBM25, TopK: 10,
+		Keyword: []KeywordHit{}, Fuzzy: []FuzzyHit{}, Hybrid: []HybridHit{},
+		Lexical: []LexicalHit{{
+			ID: "a", Title: "A", Path: "a.md", Type: "Concept",
+			RawScore: 3.42, Score: 1,
+		}},
+	}
+	marshalValidate(t, compiler, "search.schema.json", lexicalResponse)
+
 	listResults := ListResults{{
 		ID: "a", Title: "A", Path: "a.md", Type: "Concept", Keywords: keywords,
 		Status: &status, Tags: []string{"tag"},
