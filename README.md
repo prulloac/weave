@@ -16,7 +16,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Hybrid top-K results** with component scores and match metadata.
 - **BM25 lexical ranking** through SQLite FTS5 with field weights, phrases and negative terms.
 - **Calibrated hybrid ranking** using normalized BM25 plus fuzzy scores.
-- **MCP tool harness** over operations, with stdio/TCP JSON-RPC transport and token auth.
+- **MCP tool harness** over operations, with stdio/TCP JSON-RPC transport, token auth and resources.
 - **Graph navigation**: show, backlinks and shortest path.
 - **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.

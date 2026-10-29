@@ -16,8 +16,8 @@ status: stable
 
 # Specification: Weave MCP Server
 
-Status: **M1–M3 implemented**: in-process tools, stdio/TCP transport and token auth. Resources, watch
-reload and sensitive access remain pending.
+Status: **M1–M3 tools/transport/auth and M4 core resources implemented**. Watch reload, sensitive
+access and remaining polish are pending.
 
 ## 1. Overview
 
@@ -283,9 +283,10 @@ weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
 - MCP client integration tests.
 - Documentation for Claude/agent clients.
 
-### M4 — Resources and polish
+### M4 — Resources and polish (resources implemented)
 
 - Bundle/index/stats resources.
+- Concept and graph-neighborhood resources.
 - Rate/output limits.
 - Metrics/logging.
 - Packaging and service examples.
