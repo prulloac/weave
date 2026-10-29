@@ -97,6 +97,8 @@ MRR@10 = 1.0.
   resolution, encryption, tokenization aliases, hashing, redaction and MCP sensitive access.
   `cmd/weave/compression_bdd_test.go` and `engine/compression/compression_test.go` cover codec
   selection, thresholds, migration, corrupt bodies and compression parity.
+  `cmd/weave/extensions_bdd_test.go` and `engine/extensions/extensions_test.go` cover discovery,
+  `weave.cli/v1` transport, enrichment fallbacks, rerank blending and timeout handling.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

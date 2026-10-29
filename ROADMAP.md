@@ -3,9 +3,9 @@
 > Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
-incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression and
-the MCP server through watch reload are shipped on `main`; extensions and MCP sensitive access remain
-specified but not implemented.
+incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
+extension IPC with enrichment/rerank, and the MCP server through watch reload are shipped on `main`;
+external crypto providers, the AI plugin, MCP sensitive access and `weave sync --watch` remain.
 
 ## 1. What Weave Is
 
@@ -68,7 +68,9 @@ waves, not product versions.
 | BM25 explain | v1.0 | Shipped: lexical raw/normalized scores, fields and term evidence |
 | Memory/body compression | v1.0 | Shipped: zstd default, LZ4 opt-in; postings deferred |
 | Privacy directives | v1.0 | Shipped: `encrypt`, `tokenize`, `hash`, key resolution, `show --decrypt` |
-| Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
+| Extension runner | v1.0 | Shipped: subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
+| Enrichment extension | v1.0 | Shipped: `--with-enricher`, inferred keywords and metadata |
+| Rerank extension | v1.0 | Shipped: `--rerank`, 0.5/0.5 blend and fallback |
 | External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
 | Explainable search | v1.0 | Shipped: per-token/per-field `weave explain` |
 | Bundle audit | v1.0 | Shipped: stable finding codes, `--fail-on` gate, JSON and human reports |
@@ -83,7 +85,7 @@ waves, not product versions.
 weave contract --json
 weave parse <path> --json
 weave graph <path> --json
-weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] --json
+weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--rerank <name>] [--timeout <d>] --json
 weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] --json
 weave show <path> <id|file> [--decrypt] --json
 weave backlinks <path> <id|file> --json
@@ -91,9 +93,10 @@ weave path <path> <id|file> <id|file> --json
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
 weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
-weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] --json
-weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] --json
-weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] --json
+weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
+weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
+weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
+weave extensions list [<path>] --json
 weave mcp --bundle <path> [--stdio|--listen <addr>] [--token <t>] [--db <file>] [--watch]
 weave version --json
 ```
@@ -101,13 +104,10 @@ weave version --json
 Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memory parsing and
 `--db <file>` selects another database.
 
-### Planned v1.0 — persistence and extensions
+### Planned v1.0 — remaining surface
 
 ```sh
-weave extensions list [<path>] --json
-weave ingest <path> --with-enricher <ext> [--timeout 5s] --json
 weave sync <path> --watch [--with-enricher <ext>] --json
-weave search <path> <query> [--rerank <ext>] [--timeout 5s] --json
 ```
 
 ## 5. Search Semantics
@@ -218,9 +218,9 @@ is the completeness check: no feature is considered planned until it appears her
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | shipped |
 | 12 | Privacy directives | [privacy-directives.md](docs/specs/privacy-directives.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | shipped |
-| 13 | Extension subprocess IPC | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | operations, contract | 5 / Phase 5 | red |
-| 14 | Enrichment extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | red |
-| 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | red |
+| 13 | Extension subprocess IPC | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | operations, contract | 5 / Phase 5 | shipped |
+| 14 | Enrichment extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | shipped |
+| 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | shipped |
 | 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | planned |
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
 | 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | planned |
@@ -382,10 +382,11 @@ Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 Specs: [Privacy Directives](docs/specs/privacy-directives.md),
 [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
 
-### Phase 5 — Extension architecture (v1.0)
+### Phase 5 — Extension architecture (runner, enrichment and rerank complete)
 
-- `weave-<name>` subprocess plugins over `weave.cli/v1` stdio.
-- Enrichment during sync; reranking during search.
+- `weave-<name>` subprocess plugins over `weave.cli/v1` stdio (shipped).
+- Enrichment during ingest, rebuild and sync (shipped).
+- Reranking during search (shipped).
 - Optional `weave-ai` plugin for local/cloud keyword extraction and embeddings.
 - External crypto providers (Age, Vault, KMS).
 

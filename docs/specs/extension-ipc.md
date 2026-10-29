@@ -15,7 +15,7 @@ status: draft
 
 # Specification: Extension Subprocess IPC
 
-Status: **Proposed**
+Status: **Implemented** (discovery, `weave.cli/v1` runner, enrichment and reranking).
 Target: **v1.0**
 
 ## 1. Overview

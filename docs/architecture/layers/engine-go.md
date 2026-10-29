@@ -49,6 +49,9 @@ engine/
 │   └── tokenize.go      # tokenization and markdown stripping
 ├── nav/
 │   └── nav.go           # normalize, list, show, backlinks, path
+├── privacy/             # directives, key resolution and crypto providers
+├── compression/         # zstd and LZ4 body codecs
+├── extensions/          # weave-<name> discovery and transport
 └── operations/          # transport-neutral envelopes
 ```
 

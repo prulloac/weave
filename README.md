@@ -26,6 +26,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
+- **Extensions**: `weave-<name>` enrichment during writes and reranking during search.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 
@@ -53,6 +54,8 @@ Global flags:
 - `--db <file>` selects another database; it is mutually exclusive with `--no-db`.
 - `--strict` / `--permissive` select ingest mode; ingest defaults to permissive.
 - `--codec zstd|lz4|none` selects body compression for ingest, rebuild and sync; default `zstd`.
+- `--with-enricher <name>` and `--rerank <name>` enable `weave-<name>` extensions; `--timeout`
+  overrides the 5s default.
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -98,6 +101,8 @@ the legacy keyword + fuzzy fallback.
 
 - `--mode hybrid|keyword|fuzzy|bm25` — default `hybrid`.
 - `--top-k <n>` — default `10`, valid range `1..100`.
+- `--rerank <name>` — optional `weave-<name>` reranker; failures fall back to core order.
+- `--timeout <duration>` — extension timeout, default `5s`.
 - Fuzzy field weights: **title 1.00, description 0.60, body 0.30**.
 - BM25 requires persistent storage; `--no-db` with `--mode bm25` is an error.
 - In `--json` mode an empty result exits `1`.
@@ -107,6 +112,7 @@ weave search ~/notes "token rotation"
 weave search ~/notes "oauth tokn" --mode fuzzy --top-k 5
 weave search ~/notes "security" --mode keyword --json
 weave search ~/notes "alpha beta" --mode bm25 --json
+weave search ~/notes "token rotation" --rerank keywords --timeout 2s --json
 ```
 
 #### `weave list`
@@ -198,6 +204,7 @@ weave ingest ~/notes --permissive --json
 weave ingest ~/notes --strict --json
 weave ingest ~/notes --strict --db /tmp/notes.db --json
 weave ingest ~/notes --strict --codec lz4 --json
+weave ingest ~/notes --strict --with-enricher keywords --json
 ```
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
@@ -226,6 +233,7 @@ weave sync ~/notes --json
 weave sync ~/notes --strict --json
 weave sync ~/notes --db /tmp/notes.db --json
 weave sync ~/notes --codec lz4 --json
+weave sync ~/notes --with-enricher keywords --json
 ```
 
 Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode drives incremental sync from a
@@ -262,6 +270,25 @@ weave audit ~/notes --verify-keys --json
 ```
 
 Spec: [Privacy Directives](docs/specs/privacy-directives.md).
+
+#### `weave extensions`
+
+List executable `weave-<name>` extensions from `<path>/.weave/bin/` and `$PATH`. Enrichers run
+during writes with `--with-enricher`, rerankers during search with `--rerank`; both speak
+`weave.cli/v1` JSON over stdin/stdout.
+
+```sh
+weave extensions list ~/notes --json
+weave ingest ~/notes --db ~/.weave/index.db --with-enricher keywords --json
+weave search ~/notes "token rotation" --rerank keywords --json
+```
+
+- Bundle-local extensions win over `$PATH` entries with the same name.
+- Enrichment failures add a warning and keep core results; writes still succeed.
+- Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.
+- Default timeout is `5s`; override with `--timeout`.
+
+Spec: [Extension Subprocess IPC](docs/specs/extension-ipc.md).
 
 #### `weave mcp`
 
@@ -348,6 +375,7 @@ engine/relate/          bounded depth/direction graph neighborhoods
 storage/sqlite/          bundle-scoped persistent storage and incremental sync
 engine/privacy/          directive parsing, key resolution and crypto providers
 engine/compression/      zstd and LZ4 body codecs
+engine/extensions/       weave-<name> discovery and weave.cli/v1 transport
 mcp/                    MCP tool descriptors, resources and in-process dispatch
 watch/                  polling watcher over incremental sync
 engine/nav/             list, show, backlinks, path
@@ -367,6 +395,7 @@ docs/                   architecture, specs, knowledge
 - [Watch Mode spec](docs/specs/watch-mode.md)
 - [Privacy Directives spec](docs/specs/privacy-directives.md)
 - [Compression spec](docs/specs/compression.md)
+- [Extension Subprocess IPC spec](docs/specs/extension-ipc.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [MCP Server spec](docs/specs/mcp-server.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
