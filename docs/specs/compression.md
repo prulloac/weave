@@ -60,13 +60,15 @@ body_codec TEXT NOT NULL DEFAULT 'none'
 
 ### 3.2 Codecs
 
-| Codec | Library | Framing |
-| --- | --- | --- |
-| `lz4` | `github.com/pierrec/lz4/v4` | LZ4 frame, no content checksum, single block size |
-| `zstd` | `github.com/klauspost/compress/zstd` | Zstandard frame, default speed, single encoder |
+| Codec | Library | Default | Notes |
+| --- | --- | --- | --- |
+| `zstd` | `github.com/klauspost/compress/zstd` | yes | best ratio for the usual sub-1 MB document |
+| `lz4` | `github.com/pierrec/lz4/v4` | no | faster encode/decode, lower ratio |
+| `none` | standard library | no | short, empty or encrypted bodies |
 
-- `lz4` is the default for new writes.
-- `zstd` is opt-in at write time.
+- `zstd` is the default for new writes: document bodies are usually well under 1 MB, where the extra
+  ratio outweighs LZ4's speed advantage.
+- `lz4` stays available for write-heavy workflows that prefer faster encoding.
 - Both encoders are pure Go and deterministic for the same input, options and library version.
 - Codec version is pinned by `go.mod`; no separate manifest is required.
 
@@ -89,8 +91,8 @@ weave rebuild <path> [--codec lz4|zstd|none] [--strict|--permissive] --json
 weave sync <path> [--codec lz4|zstd|none] [--strict|--permissive] --json
 ```
 
-- `ingest` and `rebuild` default to `lz4`; `--codec` applies to every stored document.
-- `sync` writes new documents with `lz4`. Updated documents keep their stored codec unless
+- `ingest` and `rebuild` default to `zstd`; `--codec` applies to every stored document.
+- `sync` writes new documents with `zstd`. Updated documents keep their stored codec unless
   `--codec` is provided.
 - `--codec none` stores bodies verbatim and is the migration path to disable compression.
 - Compression runs inside the existing write transaction; a failure aborts the transaction.
@@ -157,7 +159,8 @@ Exit codes are unchanged: `0` success, `1` runtime failure, `2` usage, `3` priva
 
 ## 8. Acceptance Criteria
 
-- All stored bodies round-trip without loss through `lz4`, `zstd` and `none`.
+- All stored bodies round-trip without loss through `zstd`, `lz4` and `none`.
+- `zstd` is the default codec for new writes.
 - Encrypted content is never double-compressed.
 - Corrupt bodies never crash queries and never emit partial plaintext.
 - Compression is deterministic for a given codec and library version.

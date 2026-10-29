@@ -66,7 +66,7 @@ waves, not product versions.
 | BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
 | BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
 | BM25 explain | v1.0 | Shipped: lexical raw/normalized scores, fields and term evidence |
-| Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
+| Memory/body compression | v1.0 | Zstandard default, LZ4 opt-in body blobs; postings deferred |
 | Privacy directives | v1.0 | Shipped: `encrypt`, `tokenize`, `hash`, key resolution, `show --decrypt` |
 | Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
 | External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
