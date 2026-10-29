@@ -11,6 +11,7 @@ import (
 	"github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
+	"github.com/prulloac/weave/engine/privacy"
 	"github.com/prulloac/weave/engine/relate"
 	"github.com/prulloac/weave/engine/search"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
@@ -46,6 +47,10 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrParseError,
 	contractv1.ErrConceptNotFound,
 	contractv1.ErrPathNotFound,
+	contractv1.ErrPrivacyDirective,
+	contractv1.ErrPrivacyKey,
+	contractv1.ErrPrivacyProvider,
+	contractv1.ErrPrivacyDecrypt,
 	contractv1.ErrInternal,
 }
 
@@ -182,7 +187,17 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			Limit:  limit,
 		}))
 	case contractv1.OpShow:
-		result, ok := eng.Show(request.Target)
+		result, ok, err := eng.ShowWithOptions(request.Target, engine.ShowOptions{Decrypt: request.Decrypt})
+		if err != nil {
+			switch {
+			case errors.Is(err, privacy.ErrKeyUnavailable):
+				return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"target": request.Target})
+			case errors.Is(err, privacy.ErrDecrypt):
+				return failure(contractv1.ErrPrivacyDecrypt, err.Error(), map[string]any{"target": request.Target})
+			default:
+				return failure(contractv1.ErrInternal, err.Error(), map[string]any{"target": request.Target})
+			}
+		}
 		if !ok {
 			return failure(contractv1.ErrConceptNotFound, "concept not found: "+request.Target, map[string]any{
 				"target": request.Target,
@@ -380,6 +395,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode})
 	}
 	if err != nil {
+		if errors.Is(err, privacy.ErrKeyUnavailable) {
+			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{
+				"path": request.Path,
+				"db":   dbPath,
+			})
+		}
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"path": request.Path,
 			"db":   dbPath,
@@ -421,6 +442,12 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {
 			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
 				"path": request.Path,
+			})
+		}
+		if errors.Is(err, privacy.ErrKeyUnavailable) {
+			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{
+				"path": request.Path,
+				"db":   dbPath,
 			})
 		}
 		code, message := mapStorageError(err)

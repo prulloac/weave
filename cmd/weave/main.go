@@ -13,6 +13,7 @@ import (
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/operations"
+	"github.com/prulloac/weave/engine/privacy"
 )
 
 var version = "dev"
@@ -63,6 +64,13 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.NoDB = flags.noDB
 	request.Strict = flags.strict
 	request.Permissive = flags.permissive
+	request.Decrypt = flags.decrypt
+
+	if !flags.json && request.Path != "" {
+		if warning := privacy.SecurityFileWarning(request.Path); warning != "" {
+			fmt.Fprintf(stderr, "weave: %s\n", warning)
+		}
+	}
 
 	executor := operations.New(version, engine.Options{Cache: !flags.noCache})
 	value := executor.Execute(context.Background(), request)
@@ -110,6 +118,7 @@ type flags struct {
 	status      string
 	failOn      contractv1.AuditFailOn
 	verifyKeys  bool
+	decrypt     bool
 	depth       *int
 	direction   contractv1.RelateDirection
 	id          string
@@ -203,6 +212,8 @@ func parseFlags(args []string) (flags, error) {
 			}
 		case "--verify-keys":
 			result.verifyKeys = true
+		case "--decrypt":
+			result.decrypt = true
 		case "--id":
 			value, next, err := flagValue(args, index, "--id")
 			if err != nil {
@@ -459,9 +470,10 @@ func writeJSON(writer io.Writer, value any) error {
 
 func exitCodeFor(code contractv1.ErrorCode) int {
 	switch code {
-	case contractv1.ErrInvalidRequest, contractv1.ErrInvalidRoot:
+	case contractv1.ErrInvalidRequest, contractv1.ErrInvalidRoot, contractv1.ErrPrivacyDirective:
 		return 2
-	case contractv1.ErrPermissionDenied:
+	case contractv1.ErrPermissionDenied, contractv1.ErrPrivacyKey,
+		contractv1.ErrPrivacyProvider, contractv1.ErrPrivacyDecrypt:
 		return 3
 	default:
 		return 1
@@ -859,7 +871,7 @@ usage:
   weave graph <path> [--json] [--no-cache]
   weave search <path> <query> [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--json] [--no-cache]
   weave list <path> [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
-  weave show <path> <id|file> [--json] [--no-cache]
+  weave show <path> <id|file> [--decrypt] [--json] [--no-cache]
   weave backlinks <path> <id|file> [--json] [--no-cache]
   weave path <path> <id|file> <id|file> [--json] [--no-cache]
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]

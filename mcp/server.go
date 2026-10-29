@@ -185,10 +185,13 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 			return nil, err
 		}
 		op := contractv1.OpShow
+		decrypt := false
 		if name == "weave_backlinks" {
 			op = contractv1.OpBacklinks
+		} else {
+			decrypt = s.allowSensitive
 		}
-		request = contractv1.OperationRequest{Op: op, Target: id}
+		request = contractv1.OperationRequest{Op: op, Target: id, Decrypt: decrypt}
 	case "weave_path":
 		from, err := requiredString(arguments, "from")
 		if err != nil {

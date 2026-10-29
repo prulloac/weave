@@ -9,6 +9,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
+	"github.com/prulloac/weave/engine/privacy"
 )
 
 // Options controls audit report construction.
@@ -40,6 +41,9 @@ func Build(bundle *contractv1.Bundle, view *graph.Graph, options Options) contra
 	addGraphFindings(bundle, view, &report)
 	addIndexFindings(bundle, &report)
 	addBundleWarnings(bundle, &report)
+	if options.VerifyKeys {
+		addPrivacyFindings(bundle, &report)
+	}
 
 	sortFindings(report.Findings)
 	report.OK = !hasError(report.Findings)
@@ -246,6 +250,36 @@ func addBundleWarnings(bundle *contractv1.Bundle, report *contractv1.AuditReport
 				"",
 				warning,
 			))
+		}
+	}
+}
+
+func addPrivacyFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport) {
+	for _, concept := range bundle.Concepts {
+		seen := make(map[string]bool)
+		check := func(keyID string) {
+			if keyID == "" || seen[keyID] {
+				return
+			}
+			seen[keyID] = true
+			if privacy.HasKey(bundle.Root, keyID) {
+				return
+			}
+			report.Findings = append(report.Findings, finding(
+				contractv1.AuditKeyUnavailable,
+				contractv1.AuditSeverityWarning,
+				concept.ID,
+				concept.Path,
+				"",
+				"privacy key unavailable: "+keyID,
+			))
+		}
+		if concept.Privacy != nil {
+			check(concept.Privacy.KeyID)
+		}
+		spans, _ := privacy.ScanInline(concept.Body)
+		for _, span := range spans {
+			check(span.KeyID)
 		}
 	}
 }
