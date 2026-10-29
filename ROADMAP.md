@@ -225,6 +225,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | planned |
 | 21 | BM25 explain evidence | [weave-explain.md](docs/specs/weave-explain.md), [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, storage, explain | 3 / Phase 3 | shipped |
 | 22 | MCP stdio/TCP transport | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory | 6 / Phase 6 | shipped |
+| 23 | MCP resources | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP transport | 6 / Phase 6 | red |
 
 Rules:
 
