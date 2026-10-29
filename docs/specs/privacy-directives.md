@@ -145,8 +145,8 @@ const (
 | Policy | Provider default | Operation |
 | --- | --- | --- |
 | `encrypt` | `aes-256-gcm` | AES-256-GCM, random 12-byte nonce |
-| `tokenize` | `hmac-sha256` | HMAC-SHA256, `tok_<hex>` |
-| `hash` | `hmac-sha256` | HMAC-SHA256, `h_<hex>` |
+| `tokenize` | `hmac-sha256` | HMAC-SHA256 per token, `tok<hex>` |
+| `hash` | `hmac-sha256` | HMAC-SHA256 over normalized text, `hash<hex>` |
 
 - `encrypt` with `provider: hmac-sha256` or `tokenize`/`hash` with `provider: aes-256-gcm` is
   `PRIVACY_PROVIDER_UNSUPPORTED`.
@@ -178,13 +178,16 @@ At ingest or sync, each concept is transformed before storage:
 3. File-level `encrypt`: encrypt the whole body with AES-256-GCM. The stored body is
    `enc:v1:<base64(nonce||ciphertext)>`. Metadata (title, description, keywords, tags, type, status)
    stays in cleartext so `list`, `graph`, `relate`, `backlinks` and `audit` still work.
-4. File-level `tokenize`: replace every non-whitespace run in the body with
-   `tok_<hex(HMAC(key, run))>`. The transformed body is stored and indexed.
-5. File-level `hash`: replace the whole body with `h_<hex(HMAC(key, body))>`. Whitespace and
-   paragraph structure are not preserved.
+4. File-level `tokenize`: replace every alphanumeric run in the body with
+   `tok<hex(HMAC(key, run))>`, preserving surrounding punctuation and whitespace. The transformed
+   body is stored and indexed.
+5. File-level `hash`: replace the whole body with `hash<hex(HMAC(key, normalized_body))>`, where
+   `normalized_body` is trimmed, whitespace-collapsed and lower-cased. Paragraph structure is not
+   preserved.
 6. Inline directives: apply the policy to the enclosed span only. Stored policy is `mixed`;
    per-span metadata records policy, provider and key id in `privacy_spans_json`. Encrypted spans are
-   replaced by `enc:v1:<base64>` inline, tokenized spans by `tok_<hex>`, hashed spans by `h_<hex>`.
+   replaced by `enc:v1:<base64>` inline, tokenized spans by `tok<hex>` per alphanumeric run, hashed
+   spans by `hash<hex>` over the normalized span text.
 7. `privacy_policy`, `privacy_provider`, `privacy_key_id` and `redacted` are persisted per document.
 
 Encryption binds no AAD in v1; tampering is detected by the GCM tag. A decryption failure is
@@ -215,8 +218,8 @@ privacy_spans_json TEXT DEFAULT '[]'
 | --- | --- | --- | --- | --- | --- |
 | `none` | plaintext | yes | yes | yes | body excerpt |
 | `encrypt` | excluded | no | no | no | none |
-| `tokenize` | `tok_<hex>` | alias match | no | alias match | metadata only |
-| `hash` | `h_<hex>` | exact alias only | no | exact alias only | metadata only |
+| `tokenize` | `tok<hex>` | alias match | no | alias match | metadata only |
+| `hash` | `hash<hex>` | exact alias only | no | exact alias only | metadata only |
 | `mixed` | transformed text | as stored | as stored | as stored | stored text only |
 
 - Encrypted documents never appear in search results in any mode; they remain reachable through
@@ -224,8 +227,9 @@ privacy_spans_json TEXT DEFAULT '[]'
 - Tokenized and hashed documents never produce fuzzy or trigram matches on the protected content.
   Their titles, descriptions and keywords remain searchable when not protected.
 - Query-side alias expansion: for each distinct `(key_id, policy)` recorded for the bundle, the
-  search preprocessor transforms each query token and appends the alias to the term set. Tokenize
-  aliases participate in keyword/BM25 matching; hash aliases require an exact digest term match.
+  search preprocessor transforms each query token into a tokenize alias, and normalizes the whole
+  query into a hash alias. Tokenize aliases participate in keyword/BM25 term matching; a hash alias
+  is an independent match path that does not require the remaining query tokens to match.
 - If a key is unavailable during search, alias expansion for that key is skipped and a
   `KEY_UNAVAILABLE` diagnostic is written to stderr in human mode.
 
