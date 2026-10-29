@@ -56,6 +56,8 @@ weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k 
 - Without `--id`, explain the rank-1 result in the selected mode.
 - `--mode` defaults to `hybrid`.
 - `--top-k` defaults to 10; valid `1..100`.
+- `--mode bm25` requires persistent storage. With `--no-db`, it is `INVALID_REQUEST` with exit `2`.
+- Persistent `--mode hybrid` explains the BM25 + fuzzy score.
 - Exit codes:
   - `0` — explanation produced.
   - `1` — no result to explain (`--id` not found and no matches, or empty query).
@@ -109,6 +111,18 @@ weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k 
     "keyword_weight": 0.50,
     "fuzzy_weight": 0.50,
     "total": 0.81
+  },
+  "lexical": {
+    "raw_score": 3.42,
+    "score": 1.0,
+    "matched_fields": ["title", "body"],
+    "tokens": [
+      {
+        "query_token": "oauth",
+        "matched": true,
+        "contribution": 2.1
+      }
+    ]
   }
 }
 ```
@@ -122,6 +136,12 @@ weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k 
 - `tokens` lists per-query-token evidence.
 - `fields` lists per-field fuzzy scores and weighted contributions.
 - `snippet` is present only when the body contributes a match.
+- `lexical` is present for `--mode bm25` and persistent `--mode hybrid`.
+- `lexical.raw_score` and `lexical.score` match `weave search --mode bm25`.
+- `lexical.tokens` reports each positive query term and whether it matched.
+- `matched_fields` lists the FTS fields that matched.
+- `hybrid.keyword_weight` is `0` for persisted BM25 hybrid; `lexical_weight` is `0.50` and
+  `fuzzy_weight` is `0.50`.
 
 ## 5. Scoring Semantics
 
@@ -130,7 +150,9 @@ The explanation must reuse the production scoring logic, not duplicate it:
 - Keyword: exact `1.0`, prefix `0.75`, AND across query tokens.
 - Fuzzy: max of normalized Levenshtein and trigram Dice; title `1.00`, description `0.60`,
   body `0.30`; normalized by `1.90`.
-- Hybrid: `0.50 * keyword + 0.50 * fuzzy`.
+- Hybrid: persistent searches use `0.50 * BM25 + 0.50 * fuzzy`; `--no-db` keeps legacy
+  `0.50 * keyword + 0.50 * fuzzy`.
+- BM25: FTS5 weights title `10`, keywords `8`, description `4`, body `1`.
 - Field and fuzzy thresholds match the search spec.
 
 If `--id` is outside the top-K, compute its scores directly but report `rank: 0`.
@@ -156,6 +178,11 @@ fuzzy    0.870
 
 hybrid   0.810
   0.50 * 0.750 + 0.50 * 0.870
+
+lexical  3.420  normalized 1.000
+  title  matched
+  body   matched
+  oauth  contribution 2.100
 ```
 
 ## 7. Determinism
