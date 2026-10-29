@@ -10,10 +10,13 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Permissive Ingestion
+
+Status: **Implemented** for `ingest`, `rebuild`, stored reads and `audit`. `sync` integration follows
+with incremental sync.
 
 ## 1. Overview
 

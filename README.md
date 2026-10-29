@@ -19,6 +19,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
+- **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 
@@ -44,6 +45,7 @@ Global flags:
 - `--no-cache` disables the parse cache, which is enabled by default.
 - `--no-db` forces transient in-memory parsing; otherwise reads use `~/.weave/index.db`.
 - `--db <file>` selects another database; it is mutually exclusive with `--no-db`.
+- `--strict` / `--permissive` select ingest mode; ingest defaults to permissive.
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -175,13 +177,16 @@ Spec: [Weave Explain](docs/specs/weave-explain.md).
 #### `weave ingest`
 
 Load a bundle into the default bundle-scoped database at `~/.weave/index.db`, or into `--db <file>`.
+Ingest defaults to permissive; use `--strict` to reject invalid OKF documents.
 
 ```sh
+weave ingest ~/notes --permissive --json
 weave ingest ~/notes --strict --json
 weave ingest ~/notes --strict --db /tmp/notes.db --json
 ```
 
-Spec: [Storage & Sync](docs/specs/storage-and-sync.md).
+Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
+[Permissive Ingestion](docs/specs/permissive-ingestion.md).
 
 #### `weave rebuild`
 

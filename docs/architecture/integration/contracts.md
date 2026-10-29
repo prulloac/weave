@@ -24,8 +24,8 @@ The UI is retired by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retireme
 
 ```sh
 weave contract --json
-weave ingest <path> [--db <file>] [--strict] --json
-weave rebuild <path> [--db <file>] [--strict] --json
+weave ingest <path> [--db <file>] [--strict|--permissive] --json
+weave rebuild <path> [--db <file>] [--strict|--permissive] --json
 weave parse <path> --json
 weave graph <path> --json
 weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json

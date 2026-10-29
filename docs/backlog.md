@@ -59,7 +59,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Persistent SQLite storage | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | x | x | green |
 | Incremental sync | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | - | - | backlog |
 | Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | - | - | backlog |
-| Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | x | - | red |
+| Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | x | x | green |
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
 | BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | - | - | backlog |
@@ -101,6 +101,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Relate contract, engine and CLI behavior suite (`weave relate`)
 - [x] Explain contract, search evidence and CLI behavior suite (`weave explain`)
 - [x] SQLite storage foundation: default bundle-scoped DB, ingest, rebuild, `--db`/`--no-db`
+- [x] Permissive ingestion: synthetic documents, warnings, permissive audit and search inclusion
 
 ## Dependency Order
 
@@ -112,7 +113,7 @@ one row here and one row there.
 Execution waves:
 
 1. Shipped: parser, graph, search, CLI, calibration.
-2. Parallel: introspection contract types (done), `audit` (done), `relate` (done), `explain` (done), permissive ingestion.
+2. Parallel: introspection contract types (done), `audit` (done), `relate` (done), `explain` (done), permissive ingestion (done).
 3. Storage: SQLite (done).
 4. Parallel: sync, BM25, compression, MCP in-memory.
 5. Watch and privacy directives.

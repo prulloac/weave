@@ -13,7 +13,7 @@ Weave is a **local-first, related-document knowledge database**:
 - **v1 core (shipped):** ingest OKF/Markdown bundles into memory or a persistent SQLite index,
   build a graph, search by mandatory keywords and weighted fuzzy similarity, navigate with `show`,
   `backlinks` and `path`, audit bundle quality with `weave audit`, explore graph neighborhoods with
-  `weave relate`, and explain ranking with `weave explain`.
+  `weave relate`, explain ranking with `weave explain`, and ingest non-OKF Markdown permissively.
 - **v1.0 platform (in progress):** persist and incrementally sync bundles into SQLite, add lexical
   BM25, support permissive Markdown ingestion, protect sensitive content with explicit privacy
   directives, and run external enrichment/reranking and crypto extensions.
@@ -46,6 +46,7 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Graph relate | Shipped | Bounded depth/direction graph neighborhoods |
 | Search explain | Shipped | Per-token keyword and per-field fuzzy score breakdowns |
 | SQLite storage | Shipped | Default `~/.weave/index.db`, bundle-scoped, `--no-db` opt-out |
+| Permissive ingestion | Shipped | Synthetic Markdown documents with warnings; exact keyword excluded |
 
 ## 3. v1.0 Scope (in progress)
 
@@ -56,7 +57,7 @@ waves, not product versions.
 | --- | --- | --- |
 | Persistent SQLite storage | v1.0 | Shipped: pure-Go `modernc.org/sqlite`, bundle-scoped, WAL |
 | Incremental sync & watch | v1.0 | `sha256` content-hash upserts, cascading edge updates, `fsnotify` |
-| Permissive ingestion | v1.0 | Index dirty/non-OKF Markdown trees with warnings |
+| Permissive ingestion | v1.0 | Shipped: synthetic Markdown documents with warnings |
 | BM25 lexical ranking | v1.0 | SQLite FTS5 BM25 replaces strict AND for multi-token queries |
 | Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
 | Privacy directives | v1.0 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
@@ -83,8 +84,8 @@ weave path <path> <id|file> <id|file> --json
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
 weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
-weave ingest <path> [--db <file>] [--strict] --json
-weave rebuild <path> [--db <file>] [--strict] --json
+weave ingest <path> [--db <file>] [--strict|--permissive] --json
+weave rebuild <path> [--db <file>] [--strict|--permissive] --json
 weave version --json
 ```
 
@@ -198,7 +199,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 2 | `weave relate` | [weave-relate.md](docs/specs/weave-relate.md) | Tier 3 | graph, contract | 1 / Phase 2 | shipped |
 | 3 | `weave audit` | [weave-audit.md](docs/specs/weave-audit.md) | Tier 3 | parser, graph, root index, contract | 1 / Phase 2 | shipped |
 | 4 | `weave explain` | [weave-explain.md](docs/specs/weave-explain.md) | Tier 3 | search scoring, contract | 1 / Phase 2 | shipped |
-| 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 | planned |
+| 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 | shipped |
 | 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 | shipped |
 | 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 | planned |
 | 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | planned |
@@ -235,7 +236,7 @@ The phases below are not arbitrary; they follow this dependency graph.
 | `weave relate` (shipped) | graph, contract | graph workflows, MCP relate |
 | `weave audit` (shipped) | parser validation, graph, root index, contract | CI docs gate, MCP audit, privacy key checks |
 | `weave explain` (shipped) | search scoring internals, contract | ranking debugging, calibration, MCP explain |
-| Permissive ingestion | parser/validation | ingestion of dirty Markdown trees |
+| Permissive ingestion (shipped) | parser/validation | ingestion of dirty Markdown trees |
 | SQLite storage | parser, graph, contract | sync, BM25, compression, privacy storage, MCP persistent |
 | Incremental sync | storage, parser, graph | watch, enrichment, MCP persistent |
 | Watch mode | incremental sync | live MCP reload |
@@ -332,12 +333,12 @@ tracks, not prerequisites for the critical path.
 - Calibration suite (NDCG@10 ≥ 0.75, MRR@10 ≥ 0.70).
 - Pure Go CLI with contract goldens.
 
-### Phase 2 — Introspection and adoption (in progress)
+### Phase 2 — Introspection and adoption (complete)
 
 - `weave audit` (shipped): bundle conformance, graph validation, keyword/index consistency.
 - `weave relate` (shipped): bounded graph neighborhoods by depth and direction.
 - `weave explain` (shipped): per-token, per-field score decomposition.
-- Permissive ingestion mode: warn instead of fail on dirty Markdown trees.
+- Permissive ingestion mode (shipped): warn instead of fail on dirty Markdown trees.
 
 Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 [explain](docs/specs/weave-explain.md), [permissive ingestion](docs/specs/permissive-ingestion.md).
