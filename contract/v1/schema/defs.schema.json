@@ -84,7 +84,8 @@
 				"relate",
 				"explain",
 				"ingest",
-				"rebuild"
+				"rebuild",
+				"sync"
 			]
 		},
 		"OkfLink": {
@@ -641,6 +642,34 @@
 				"documents": { "type": "integer", "minimum": 0 },
 				"edges": { "type": "integer", "minimum": 0 },
 				"synthetic": { "type": "integer", "minimum": 0 },
+				"warnings": { "type": "integer", "minimum": 0 },
+				"errors": { "type": "integer", "minimum": 0 }
+			}
+		},
+		"SyncReport": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"db",
+				"bundle",
+				"mode",
+				"documents",
+				"added",
+				"updated",
+				"removed",
+				"skipped",
+				"warnings",
+				"errors"
+			],
+			"properties": {
+				"db": { "type": "string" },
+				"bundle": { "type": "string" },
+				"mode": { "type": "string", "enum": ["strict", "permissive"] },
+				"documents": { "type": "integer", "minimum": 0 },
+				"added": { "type": "integer", "minimum": 0 },
+				"updated": { "type": "integer", "minimum": 0 },
+				"removed": { "type": "integer", "minimum": 0 },
+				"skipped": { "type": "integer", "minimum": 0 },
 				"warnings": { "type": "integer", "minimum": 0 },
 				"errors": { "type": "integer", "minimum": 0 }
 			}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -103,6 +104,69 @@ func TestIngestReplacesOnlyTargetBundle(t *testing.T) {
 	}
 }
 
+func TestSync(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	writeSampleFiles(t, root)
+	store, err := sqlitestore.Open(filepath.Join(t.TempDir(), "index.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+
+	if _, err := store.Ingest(ctx, sampleBundle(root), sqlitestore.IngestOptions{Mode: "strict"}); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := store.Sync(ctx, root, sqlitestore.SyncOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Skipped != 2 || report.Added != 0 || report.Updated != 0 || report.Removed != 0 {
+		t.Fatalf("unexpected no-op sync: %+v", report)
+	}
+
+	if err := os.WriteFile(filepath.Join(root, "b.md"), []byte(`---
+type: Concept
+title: "B Updated"
+keywords:
+  - "beta"
+---
+
+# B Updated
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	report, err = store.Sync(ctx, root, sqlitestore.SyncOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Updated != 1 || report.Skipped != 1 {
+		t.Fatalf("unexpected update sync: %+v", report)
+	}
+
+	if err := os.Remove(filepath.Join(root, "b.md")); err != nil {
+		t.Fatal(err)
+	}
+	report, err = store.Sync(ctx, root, sqlitestore.SyncOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Removed != 1 || report.Skipped != 1 {
+		t.Fatalf("unexpected remove sync: %+v", report)
+	}
+	loaded, err := store.LoadBundle(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Concepts) != 1 || len(loaded.Concepts[0].Links) != 1 {
+		t.Fatalf("unexpected loaded bundle: %+v", loaded)
+	}
+	if loaded.Concepts[0].Links[0].ResolvesInBundle {
+		t.Fatal("expected a's link to b to be dangling")
+	}
+}
+
 func TestMissingBundle(t *testing.T) {
 	ctx := context.Background()
 	store, err := sqlitestore.Open(filepath.Join(t.TempDir(), "index.db"))
@@ -154,6 +218,37 @@ func TestDefaultPathUsesHome(t *testing.T) {
 	}
 	if want := filepath.Join(home, ".weave", "index.db"); path != want {
 		t.Fatalf("path=%q, want %q", path, want)
+	}
+}
+
+func writeSampleFiles(t *testing.T, root string) {
+	t.Helper()
+	files := map[string]string{
+		"a.md": `---
+type: Concept
+title: "A"
+keywords:
+  - "alpha"
+---
+
+# A
+
+See [B](b.md).
+`,
+		"b.md": `---
+type: Concept
+title: "B"
+keywords:
+  - "beta"
+---
+
+# B
+`,
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 

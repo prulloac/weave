@@ -104,6 +104,7 @@ const (
 	OpExplain   OperationName = "explain"
 	OpIngest    OperationName = "ingest"
 	OpRebuild   OperationName = "rebuild"
+	OpSync      OperationName = "sync"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -415,6 +416,20 @@ type IngestReport struct {
 	Documents int    `json:"documents"`
 	Edges     int    `json:"edges"`
 	Synthetic int    `json:"synthetic"`
+	Warnings  int    `json:"warnings"`
+	Errors    int    `json:"errors"`
+}
+
+// SyncReport is the result of `weave sync`.
+type SyncReport struct {
+	DB        string `json:"db"`
+	Bundle    string `json:"bundle"`
+	Mode      string `json:"mode"`
+	Documents int    `json:"documents"`
+	Added     int    `json:"added"`
+	Updated   int    `json:"updated"`
+	Removed   int    `json:"removed"`
+	Skipped   int    `json:"skipped"`
 	Warnings  int    `json:"warnings"`
 	Errors    int    `json:"errors"`
 }

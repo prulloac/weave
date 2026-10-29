@@ -18,6 +18,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
+	"github.com/prulloac/weave/engine/okf"
 )
 
 const schemaVersion = 1
@@ -36,6 +37,11 @@ type Store struct {
 // IngestOptions controls how a bundle is stored.
 type IngestOptions struct {
 	Mode string // strict | permissive
+}
+
+// SyncOptions controls incremental synchronization.
+type SyncOptions struct {
+	Mode string // empty keeps the stored mode
 }
 
 // DefaultPath returns the default user database path.
@@ -174,6 +180,168 @@ func (s *Store) Rebuild(
 	return s.writeBundle(ctx, bundle, options)
 }
 
+// Sync updates one indexed bundle from the filesystem using content hashes.
+func (s *Store) Sync(
+	ctx context.Context,
+	root string,
+	options SyncOptions,
+) (contractv1.SyncReport, error) {
+	root, err := normalizeRoot(root)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	storedMode, err := s.bundleMode(ctx, root)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	mode := options.Mode
+	if mode == "" {
+		mode = storedMode
+	}
+	if mode != "strict" && mode != "permissive" {
+		return contractv1.SyncReport{}, fmt.Errorf("mode must be strict or permissive")
+	}
+
+	bundle, err := okf.ParseBundle(ctx, root, okf.Options{Permissive: mode == "permissive"})
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+
+	current := make(map[string]contractv1.OkfConcept, len(bundle.Concepts))
+	for _, concept := range bundle.Concepts {
+		current[concept.Path] = concept
+	}
+
+	existing, err := s.documentHashes(ctx, root)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+
+	added, updated, removed, skipped := 0, 0, 0, 0
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	defer tx.Rollback()
+
+	indexJSON, err := json.Marshal(bundle.Index)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	validationJSON, err := json.Marshal(bundle.Validation)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	version := ""
+	if bundle.OkfVersion != nil {
+		version = string(*bundle.OkfVersion)
+	}
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE bundles SET mode = ?, okf_version = ?, index_json = ?, validation_json = ?, updated_at = ? WHERE bundle_root = ?",
+		mode, nullableString(version), string(indexJSON), string(validationJSON), time.Now().Unix(), root); err != nil {
+		return contractv1.SyncReport{}, err
+	}
+
+	now := time.Now().Unix()
+	for path, concept := range current {
+		hash := contentHash(root, concept)
+		oldHash, exists := existing[path]
+		switch {
+		case !exists:
+			if err := insertConcept(ctx, tx, root, concept, now); err != nil {
+				return contractv1.SyncReport{}, err
+			}
+			added++
+		case oldHash != hash:
+			if _, err := tx.ExecContext(ctx,
+				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
+				return contractv1.SyncReport{}, err
+			}
+			if err := insertConcept(ctx, tx, root, concept, now); err != nil {
+				return contractv1.SyncReport{}, err
+			}
+			updated++
+		default:
+			skipped++
+		}
+	}
+	for path := range existing {
+		if _, ok := current[path]; ok {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx,
+			"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+		removed++
+	}
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM edges WHERE bundle_root = ?", root); err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	edges, err := collectEdges(bundle)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	for _, edge := range edges {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO edges (bundle_root, source_id, target_id, edge_type, dangling)
+			VALUES (?, ?, ?, ?, ?)`,
+			root, edge.from, edge.to, edge.kind, boolInt(edge.dangling)); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return contractv1.SyncReport{}, err
+	}
+
+	return contractv1.SyncReport{
+		DB:        s.path,
+		Bundle:    root,
+		Mode:      mode,
+		Documents: len(current),
+		Added:     added,
+		Updated:   updated,
+		Removed:   removed,
+		Skipped:   skipped,
+		Warnings:  warningCount(bundle),
+		Errors:    errorCount(bundle, mode),
+	}, nil
+}
+
+func (s *Store) bundleMode(ctx context.Context, root string) (string, error) {
+	var mode string
+	err := s.db.QueryRowContext(ctx,
+		"SELECT mode FROM bundles WHERE bundle_root = ?", root).Scan(&mode)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrBundleNotIndexed
+	}
+	if err != nil {
+		return "", err
+	}
+	return mode, nil
+}
+
+func (s *Store) documentHashes(ctx context.Context, root string) (map[string]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT file_path, content_hash FROM documents WHERE bundle_root = ?", root)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	hashes := make(map[string]string)
+	for rows.Next() {
+		var path, hash string
+		if err := rows.Scan(&path, &hash); err != nil {
+			return nil, err
+		}
+		hashes[path] = hash
+	}
+	return hashes, rows.Err()
+}
+
 // HasBundle reports whether a bundle root is indexed.
 func (s *Store) HasBundle(ctx context.Context, bundleRoot string) (bool, error) {
 	root, err := normalizeRoot(bundleRoot)
@@ -231,6 +399,22 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	ids := make(map[string]bool, len(concepts))
+	for _, concept := range concepts {
+		ids[concept.ID] = true
+	}
+	for conceptIndex := range concepts {
+		for linkIndex := range concepts[conceptIndex].Links {
+			link := &concepts[conceptIndex].Links[linkIndex]
+			if link.Resolved == nil {
+				link.ResolvesInBundle = false
+				continue
+			}
+			target := strings.TrimSuffix(*link.Resolved, ".md")
+			link.ResolvesInBundle = ids[target]
+		}
 	}
 
 	var index []contractv1.IndexEntry

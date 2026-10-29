@@ -402,6 +402,13 @@ func TestContractTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "ingest.schema.json", ingestReport)
 
+	syncReport := SyncReport{
+		DB: "/home/user/.weave/index.db", Bundle: "/bundle", Mode: "strict",
+		Documents: 1, Added: 0, Updated: 1, Removed: 0, Skipped: 0,
+		Warnings: 0, Errors: 0,
+	}
+	marshalValidate(t, compiler, "sync.schema.json", syncReport)
+
 	success := SuccessEnvelope{
 		Contract: "weave.contract/v1",
 		CLI:      "weave.cli/v1",

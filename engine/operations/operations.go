@@ -36,6 +36,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpExplain, Fields: []string{"path", "query", "target", "mode", "top_k"}, Result: "ExplainResult"},
 	{Op: contractv1.OpIngest, Fields: []string{"path", "db", "strict"}, Result: "IngestReport"},
 	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict"}, Result: "IngestReport"},
+	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive"}, Result: "SyncReport"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -101,6 +102,9 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 
 	if request.Op == contractv1.OpIngest || request.Op == contractv1.OpRebuild {
 		return e.ingest(ctx, request)
+	}
+	if request.Op == contractv1.OpSync {
+		return e.sync(ctx, request)
 	}
 
 	eng, cleanup, err := e.openEngine(ctx, request)
@@ -359,6 +363,50 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	}
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+			"path": request.Path,
+			"db":   dbPath,
+		})
+	}
+	return success(report)
+}
+
+func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest) any {
+	if request.NoDB {
+		return failure(contractv1.ErrInvalidRequest, "--no-db cannot be used with sync", map[string]any{
+			"op": request.Op,
+		})
+	}
+	if request.Strict && request.Permissive {
+		return failure(contractv1.ErrInvalidRequest, "--strict and --permissive are mutually exclusive", map[string]any{
+			"op": request.Op,
+		})
+	}
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
+	store, err := sqlitestore.OpenExisting(dbPath)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"db": dbPath})
+	}
+	defer store.Close()
+
+	mode := ""
+	if request.Strict {
+		mode = "strict"
+	} else if request.Permissive {
+		mode = "permissive"
+	}
+	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode})
+	if err != nil {
+		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {
+			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
+				"path": request.Path,
+			})
+		}
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{
 			"path": request.Path,
 			"db":   dbPath,
 		})

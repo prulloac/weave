@@ -22,6 +22,7 @@ contract/v1/
 │   ├── relate.schema.json
 │   ├── explain.schema.json
 │   ├── ingest.schema.json
+│   ├── sync.schema.json
 │   ├── error.schema.json
 │   ├── envelope.schema.json
 │   └── cli.schema.json
