@@ -25,13 +25,21 @@ type Options struct {
 	Cache       bool
 	CacheDir    string
 	Concurrency int
+	Permissive  bool
 	FS          FileSystem
 	OnCacheHit  func(path string)
+}
+
+type conceptPresence struct {
+	Frontmatter bool
+	Type        bool
+	Keywords    bool
 }
 
 type fileOutcome struct {
 	Concept    *contractv1.OkfConcept        `json:"concept,omitempty"`
 	Validation *contractv1.ConceptValidation `json:"validation,omitempty"`
+	Presence   *conceptPresence              `json:"-"`
 	Index      []contractv1.IndexEntry       `json:"index,omitempty"`
 	Version    any                           `json:"version,omitempty"`
 	HasIndex   bool                          `json:"has_index,omitempty"`
@@ -69,7 +77,7 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 	sort.Strings(files)
 
 	var cache *parseCache
-	if options.Cache {
+	if options.Cache && !options.Permissive {
 		cache, err = openParseCache(absRoot, options.CacheDir)
 		if err != nil {
 			cache = nil
@@ -82,7 +90,7 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 	}
 
 	tasks, err := mapLimit(ctx, files, concurrency, func(file string) fileTask {
-		return processFile(ctx, fsys, file, absRoot, cache, options.OnCacheHit)
+		return processFile(ctx, fsys, file, absRoot, cache, options.OnCacheHit, options.Permissive)
 	})
 	if err != nil {
 		return nil, err
@@ -94,6 +102,7 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 	warnings := make([]string, 0)
 	concepts := make([]contractv1.OkfConcept, 0)
 	validation := make(map[string]contractv1.ConceptValidation)
+	presence := make(map[string]conceptPresence)
 
 	for _, task := range tasks {
 		if task.outcome.Skip {
@@ -115,6 +124,9 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 		}
 		if task.outcome.Concept != nil {
 			concepts = append(concepts, *task.outcome.Concept)
+			if task.outcome.Presence != nil {
+				presence[task.outcome.Concept.ID] = *task.outcome.Presence
+			}
 		}
 	}
 
@@ -151,6 +163,9 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 			}
 		}
 		validation[concept.ID] = validateConcept(*concept, linkWarnings)
+		if original, ok := presence[concept.ID]; ok {
+			validation[concept.ID] = validatePermissiveConcept(*concept, original, linkWarnings)
+		}
 	}
 
 	sort.Slice(concepts, func(i, j int) bool {
@@ -179,9 +194,10 @@ func ParseBundle(ctx context.Context, root string, options Options) (*contractv1
 		Concepts:   concepts,
 		Index:      nil,
 		Validation: contractv1.Validation{
-			Valid:    valid,
-			Concepts: validationEntries,
-			Warnings: warnings,
+			Valid:      valid,
+			Permissive: options.Permissive,
+			Concepts:   validationEntries,
+			Warnings:   warnings,
 		},
 	}
 	if hasIndex {
@@ -202,6 +218,7 @@ func processFile(
 	bundleRoot string,
 	cache *parseCache,
 	onCacheHit func(string),
+	permissive bool,
 ) fileTask {
 	rel, err := filepath.Rel(bundleRoot, file)
 	if err != nil {
@@ -235,7 +252,7 @@ func processFile(
 	if base == "index.md" {
 		outcome = parseIndexFile(ctx, fsys, file)
 	} else {
-		outcome = parseConceptFile(ctx, fsys, file, bundleRoot)
+		outcome = parseConceptFile(ctx, fsys, file, bundleRoot, permissive)
 	}
 
 	if cache != nil && cacheInfo != nil && outcome.IndexError == "" && !outcome.Skip {
@@ -355,6 +372,7 @@ func parseConceptFile(
 	fsys FileSystem,
 	file string,
 	bundleRoot string,
+	permissive bool,
 ) fileOutcome {
 	raw, err := readText(ctx, fsys, file)
 	if err != nil {
@@ -365,8 +383,13 @@ func parseConceptFile(
 	if err != nil {
 		return invalidOutcome(conceptIDForFile(bundleRoot, file), "parse error: "+err.Error())
 	}
+	hadFrontmatter := ok
 	if !ok {
-		return invalidOutcome(conceptIDForFile(bundleRoot, file), "missing frontmatter")
+		if !permissive {
+			return invalidOutcome(conceptIDForFile(bundleRoot, file), "missing frontmatter")
+		}
+		frontmatter = map[string]any{}
+		body = raw
 	}
 
 	rel, err := filepath.Rel(bundleRoot, file)
@@ -385,12 +408,17 @@ func parseConceptFile(
 		ResolveLink(&links[position], dir)
 	}
 
+	originalType := conceptType(frontmatter["type"])
+	originalKeywords := keywords(frontmatter["keywords"])
+	hasType := strings.TrimSpace(originalType) != ""
+	hasKeywords := len(originalKeywords) > 0
+
 	concept := &contractv1.OkfConcept{
 		ID:          id,
 		Path:        rel,
 		Frontmatter: frontmatter,
-		Type:        conceptType(frontmatter["type"]),
-		Keywords:    keywords(frontmatter["keywords"]),
+		Type:        originalType,
+		Keywords:    originalKeywords,
 		Title:       optionalString(frontmatter["title"]),
 		Description: optionalString(frontmatter["description"]),
 		Tags:        optionalStringSlice(frontmatter["tags"]),
@@ -398,7 +426,108 @@ func parseConceptFile(
 		Body:        body,
 		Links:       links,
 	}
-	return fileOutcome{Concept: concept}
+	if !permissive {
+		return fileOutcome{Concept: concept}
+	}
+
+	if concept.Type == "" {
+		concept.Type = "Document"
+	}
+	if concept.Keywords == nil {
+		concept.Keywords = []string{}
+	}
+	if concept.Title == nil {
+		concept.Title = fallbackTitle(body, rel)
+	}
+	if concept.Description == nil {
+		concept.Description = fallbackDescription(body)
+	}
+
+	return fileOutcome{
+		Concept: concept,
+		Presence: &conceptPresence{
+			Frontmatter: hadFrontmatter,
+			Type:        hasType,
+			Keywords:    hasKeywords,
+		},
+	}
+}
+
+func validatePermissiveConcept(
+	concept contractv1.OkfConcept,
+	presence conceptPresence,
+	linkWarnings []string,
+) contractv1.ConceptValidation {
+	warnings := append([]string{}, linkWarnings...)
+	if !presence.Frontmatter {
+		warnings = append(warnings, "missing frontmatter")
+	} else {
+		if !presence.Type {
+			warnings = append(warnings, "missing type")
+		}
+		if !presence.Keywords {
+			warnings = append(warnings, "missing keywords")
+		}
+	}
+	return contractv1.ConceptValidation{
+		ID:             concept.ID,
+		HasFrontmatter: presence.Frontmatter,
+		HasType:        presence.Type,
+		HasKeywords:    presence.Keywords,
+		Warnings:       warnings,
+	}
+}
+
+var fallbackHeading = regexp.MustCompile(`(?m)^#\s+(.+?)\s*$`)
+
+func fallbackTitle(body, rel string) *string {
+	if match := fallbackHeading.FindStringSubmatch(body); match != nil {
+		title := strings.TrimSpace(match[1])
+		if title != "" {
+			return &title
+		}
+	}
+	base := filepath.Base(rel)
+	title := strings.TrimSuffix(base, filepath.Ext(base))
+	return &title
+}
+
+func fallbackDescription(body string) *string {
+	lines := strings.Split(body, "\n")
+	inFence := false
+	paragraph := make([]string, 0)
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue
+		}
+		if trimmed == "" {
+			if len(paragraph) > 0 {
+				break
+			}
+			continue
+		}
+		if strings.HasPrefix(trimmed, "#") {
+			if len(paragraph) > 0 {
+				break
+			}
+			continue
+		}
+		paragraph = append(paragraph, trimmed)
+	}
+	if len(paragraph) == 0 {
+		return nil
+	}
+	text := strings.Join(paragraph, " ")
+	runes := []rune(text)
+	if len(runes) > 160 {
+		text = string(runes[:160])
+	}
+	return &text
 }
 
 func parseIndexFile(ctx context.Context, fsys FileSystem, file string) fileOutcome {

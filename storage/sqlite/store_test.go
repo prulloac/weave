@@ -24,7 +24,7 @@ func TestIngestLoadBundleRoundTrip(t *testing.T) {
 	defer store.Close()
 
 	bundle := sampleBundle(root)
-	report, err := store.Ingest(ctx, bundle)
+	report, err := store.Ingest(ctx, bundle, sqlitestore.IngestOptions{Mode: "strict"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,13 +77,13 @@ func TestIngestReplacesOnlyTargetBundle(t *testing.T) {
 	}}
 	bundleB.Index = []contractv1.IndexEntry{{Title: "B", Target: "b.md"}}
 
-	if _, err := store.Ingest(ctx, bundleA); err != nil {
+	if _, err := store.Ingest(ctx, bundleA, sqlitestore.IngestOptions{Mode: "strict"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.Ingest(ctx, bundleB); err != nil {
+	if _, err := store.Ingest(ctx, bundleB, sqlitestore.IngestOptions{Mode: "strict"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.Ingest(ctx, bundleA); err != nil {
+	if _, err := store.Ingest(ctx, bundleA, sqlitestore.IngestOptions{Mode: "strict"}); err != nil {
 		t.Fatal(err)
 	}
 

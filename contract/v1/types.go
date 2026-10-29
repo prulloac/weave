@@ -147,9 +147,10 @@ type ConceptValidation struct {
 
 // Validation records bundle-level conformance.
 type Validation struct {
-	Valid    bool                `json:"valid"`
-	Concepts []ConceptValidation `json:"concepts"`
-	Warnings []string            `json:"warnings"`
+	Valid      bool                `json:"valid"`
+	Permissive bool                `json:"permissive,omitempty"`
+	Concepts   []ConceptValidation `json:"concepts"`
+	Warnings   []string            `json:"warnings"`
 }
 
 // Bundle is the parsed OKF bundle exposed by `weave parse`.
@@ -463,6 +464,7 @@ type OperationRequest struct {
 	DB         string          `json:"db,omitempty"`
 	NoDB       bool            `json:"no_db,omitempty"`
 	Strict     bool            `json:"strict,omitempty"`
+	Permissive bool            `json:"permissive,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

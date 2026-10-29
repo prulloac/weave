@@ -15,6 +15,7 @@ import (
 type Options struct {
 	FailOn     contractv1.AuditFailOn
 	VerifyKeys bool
+	Permissive bool
 }
 
 // Build evaluates a parsed bundle and its graph.
@@ -35,7 +36,7 @@ func Build(bundle *contractv1.Bundle, view *graph.Graph, options Options) contra
 		},
 	}
 
-	addValidationFindings(bundle, &report)
+	addValidationFindings(bundle, &report, options.Permissive || bundle.Validation.Permissive)
 	addGraphFindings(bundle, view, &report)
 	addIndexFindings(bundle, &report)
 	addBundleWarnings(bundle, &report)
@@ -72,12 +73,16 @@ func normalizeFailOn(value contractv1.AuditFailOn) contractv1.AuditFailOn {
 	}
 }
 
-func addValidationFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport) {
+func addValidationFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport, permissive bool) {
+	severity := contractv1.AuditSeverityError
+	if permissive {
+		severity = contractv1.AuditSeverityWarning
+	}
 	for _, validation := range bundle.Validation.Concepts {
 		if !validation.HasFrontmatter {
 			report.Findings = append(report.Findings, finding(
 				contractv1.AuditMissingFrontmatter,
-				contractv1.AuditSeverityError,
+				severity,
 				validation.ID,
 				"",
 				"",
@@ -88,7 +93,7 @@ func addValidationFindings(bundle *contractv1.Bundle, report *contractv1.AuditRe
 		if !validation.HasType {
 			report.Findings = append(report.Findings, finding(
 				contractv1.AuditMissingType,
-				contractv1.AuditSeverityError,
+				severity,
 				validation.ID,
 				"",
 				"",
@@ -99,7 +104,7 @@ func addValidationFindings(bundle *contractv1.Bundle, report *contractv1.AuditRe
 			report.Summary.MissingKeywords++
 			report.Findings = append(report.Findings, finding(
 				contractv1.AuditMissingKeywords,
-				contractv1.AuditSeverityError,
+				severity,
 				validation.ID,
 				"",
 				"",

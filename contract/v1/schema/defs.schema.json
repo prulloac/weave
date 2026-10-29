@@ -159,6 +159,7 @@
 			"required": ["valid", "concepts", "warnings"],
 			"properties": {
 				"valid": { "type": "boolean" },
+				"permissive": { "type": "boolean" },
 				"concepts": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/ConceptValidation" }
@@ -715,7 +716,8 @@
 				"direction": { "$ref": "#/$defs/RelateDirection" },
 				"db": { "type": "string" },
 				"no_db": { "type": "boolean" },
-				"strict": { "type": "boolean" }
+				"strict": { "type": "boolean" },
+				"permissive": { "type": "boolean" }
 			}
 		},
 		"OperationError": {

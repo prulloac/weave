@@ -198,6 +198,7 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		return success(audit.Build(eng.Bundle(), eng.Graph(), audit.Options{
 			FailOn:     failOn,
 			VerifyKeys: request.VerifyKeys,
+			Permissive: request.Permissive,
 		}))
 	case contractv1.OpRelate:
 		id, ok := nav.NormalizeTarget(eng.Bundle(), request.Target)
@@ -270,7 +271,11 @@ func (e *Executor) openEngine(
 	request contractv1.OperationRequest,
 ) (*engine.Engine, func(), error) {
 	if request.NoDB {
-		eng, err := e.Open(ctx, request.Path)
+		options := e.Options
+		if request.Op == contractv1.OpAudit {
+			options.Permissive = request.Permissive
+		}
+		eng, err := engine.Open(ctx, request.Path, options)
 		if err != nil {
 			return nil, func() {}, err
 		}
@@ -315,8 +320,20 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"op": request.Op,
 		})
 	}
+	if request.Strict && request.Permissive {
+		return failure(contractv1.ErrInvalidRequest, "--strict and --permissive are mutually exclusive", map[string]any{
+			"op": request.Op,
+		})
+	}
 
-	eng, err := e.Open(ctx, request.Path)
+	permissive := !request.Strict
+	mode := "strict"
+	if permissive {
+		mode = "permissive"
+	}
+	options := e.Options
+	options.Permissive = permissive
+	eng, err := engine.Open(ctx, request.Path, options)
 	if err != nil {
 		code, message := mapOpenError(err)
 		return failure(code, message, map[string]any{"path": request.Path})
@@ -336,9 +353,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle())
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle())
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode})
 	}
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{

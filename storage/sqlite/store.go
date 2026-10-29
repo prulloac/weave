@@ -33,6 +33,11 @@ type Store struct {
 	path string
 }
 
+// IngestOptions controls how a bundle is stored.
+type IngestOptions struct {
+	Mode string // strict | permissive
+}
+
 // DefaultPath returns the default user database path.
 func DefaultPath() (string, error) {
 	home, err := os.UserHomeDir()
@@ -152,13 +157,21 @@ func (s *Store) Close() error {
 }
 
 // Ingest replaces one bundle's stored rows in a single transaction.
-func (s *Store) Ingest(ctx context.Context, bundle *contractv1.Bundle) (contractv1.IngestReport, error) {
-	return s.writeBundle(ctx, bundle)
+func (s *Store) Ingest(
+	ctx context.Context,
+	bundle *contractv1.Bundle,
+	options IngestOptions,
+) (contractv1.IngestReport, error) {
+	return s.writeBundle(ctx, bundle, options)
 }
 
 // Rebuild re-ingests one bundle without touching other bundles.
-func (s *Store) Rebuild(ctx context.Context, bundle *contractv1.Bundle) (contractv1.IngestReport, error) {
-	return s.writeBundle(ctx, bundle)
+func (s *Store) Rebuild(
+	ctx context.Context,
+	bundle *contractv1.Bundle,
+	options IngestOptions,
+) (contractv1.IngestReport, error) {
+	return s.writeBundle(ctx, bundle, options)
 }
 
 // HasBundle reports whether a bundle root is indexed.
@@ -187,10 +200,11 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	}
 
 	var version sql.NullString
+	var mode string
 	var indexJSON, validationJSON string
 	err = s.db.QueryRowContext(ctx,
-		"SELECT okf_version, index_json, validation_json FROM bundles WHERE bundle_root = ?",
-		root).Scan(&version, &indexJSON, &validationJSON)
+		"SELECT okf_version, mode, index_json, validation_json FROM bundles WHERE bundle_root = ?",
+		root).Scan(&version, &mode, &indexJSON, &validationJSON)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrBundleNotIndexed
 	}
@@ -227,6 +241,7 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	if err := json.Unmarshal([]byte(validationJSON), &validation); err != nil {
 		return nil, err
 	}
+	validation.Permissive = mode == "permissive"
 
 	bundle := &contractv1.Bundle{
 		Root:       root,
@@ -241,9 +256,20 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	return bundle, nil
 }
 
-func (s *Store) writeBundle(ctx context.Context, bundle *contractv1.Bundle) (contractv1.IngestReport, error) {
+func (s *Store) writeBundle(
+	ctx context.Context,
+	bundle *contractv1.Bundle,
+	options IngestOptions,
+) (contractv1.IngestReport, error) {
 	if bundle == nil {
 		return contractv1.IngestReport{}, fmt.Errorf("bundle is required")
+	}
+	mode := options.Mode
+	if mode == "" {
+		mode = "strict"
+	}
+	if mode != "strict" && mode != "permissive" {
+		return contractv1.IngestReport{}, fmt.Errorf("mode must be strict or permissive")
 	}
 	root, err := normalizeRoot(bundle.Root)
 	if err != nil {
@@ -273,9 +299,9 @@ func (s *Store) writeBundle(ctx context.Context, bundle *contractv1.Bundle) (con
 		return contractv1.IngestReport{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO bundles (bundle_root, okf_version, index_json, validation_json, updated_at)
-		VALUES (?, ?, ?, ?, ?)`,
-		root, nullableString(version), string(indexJSON), string(validationJSON), time.Now().Unix()); err != nil {
+		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		root, mode, nullableString(version), string(indexJSON), string(validationJSON), time.Now().Unix()); err != nil {
 		return contractv1.IngestReport{}, err
 	}
 
@@ -306,12 +332,12 @@ func (s *Store) writeBundle(ctx context.Context, bundle *contractv1.Bundle) (con
 	return contractv1.IngestReport{
 		DB:        s.path,
 		Bundle:    root,
-		Mode:      "strict",
+		Mode:      mode,
 		Documents: len(bundle.Concepts),
 		Edges:     len(edges),
-		Synthetic: 0,
-		Warnings:  len(bundle.Validation.Warnings),
-		Errors:    0,
+		Synthetic: syntheticCount(bundle, mode),
+		Warnings:  warningCount(bundle),
+		Errors:    errorCount(bundle, mode),
 	}, nil
 }
 
@@ -488,6 +514,40 @@ func boolInt(value bool) int {
 	return 0
 }
 
+func syntheticCount(bundle *contractv1.Bundle, mode string) int {
+	if mode != "permissive" {
+		return 0
+	}
+	count := 0
+	for _, validation := range bundle.Validation.Concepts {
+		if !validation.HasFrontmatter || !validation.HasType || !validation.HasKeywords {
+			count++
+		}
+	}
+	return count
+}
+
+func warningCount(bundle *contractv1.Bundle) int {
+	count := len(bundle.Validation.Warnings)
+	for _, validation := range bundle.Validation.Concepts {
+		count += len(validation.Warnings)
+	}
+	return count
+}
+
+func errorCount(bundle *contractv1.Bundle, mode string) int {
+	if mode == "permissive" {
+		return 0
+	}
+	count := 0
+	for _, validation := range bundle.Validation.Concepts {
+		if !validation.HasFrontmatter || !validation.HasType || !validation.HasKeywords {
+			count++
+		}
+	}
+	return count
+}
+
 func userVersion(db *sql.DB) (int, error) {
 	var version int
 	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
@@ -500,6 +560,7 @@ func createSchema(db *sql.DB) error {
 	_, err := db.Exec(`
 CREATE TABLE IF NOT EXISTS bundles (
     bundle_root TEXT PRIMARY KEY,
+    mode TEXT NOT NULL DEFAULT 'strict',
     okf_version TEXT,
     index_json TEXT NOT NULL,
     validation_json TEXT NOT NULL,

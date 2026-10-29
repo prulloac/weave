@@ -15,6 +15,7 @@ type Options struct {
 	Cache       bool
 	CacheDir    string
 	Concurrency int
+	Permissive  bool
 	FS          okf.FileSystem
 	OnCacheHit  func(path string)
 }
@@ -33,6 +34,7 @@ func Open(ctx context.Context, root string, options Options) (*Engine, error) {
 		Cache:       options.Cache,
 		CacheDir:    options.CacheDir,
 		Concurrency: options.Concurrency,
+		Permissive:  options.Permissive,
 		FS:          options.FS,
 		OnCacheHit:  options.OnCacheHit,
 	})
