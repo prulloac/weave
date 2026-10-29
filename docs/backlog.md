@@ -90,6 +90,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | - | - | backlog |
 | Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | - | - | backlog |
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | - | - | backlog |
+| Global configuration | [configuration.md](specs/configuration.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
 
@@ -144,7 +145,7 @@ Execution waves:
 6. Extension runner, enrichment and rerank (done); sensitive MCP.
 7. AI plugin, external crypto, `weave sync --watch` CLI wiring.
 8. Release automation, bundle export, multiple bundle sources.
-9. Optimization program (benchmarks, budgets, refactors).
+9. Optimization program (benchmarks, budgets, refactors) and global configuration/UX.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 

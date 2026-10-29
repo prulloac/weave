@@ -400,6 +400,7 @@ docs/                   architecture, specs, knowledge
 - [Bundle Export spec](docs/specs/bundle-export.md)
 - [Multiple Bundle Sources spec](docs/specs/multi-bundle.md)
 - [Performance and Maintainability spec](docs/specs/optimization.md)
+- [Configuration spec](docs/specs/configuration.md)
 - [BM25 Ranking spec](docs/specs/bm25-ranking.md)
 - [MCP Server spec](docs/specs/mcp-server.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)

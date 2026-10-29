@@ -6,7 +6,8 @@ Status: **v1 in progress.** The core engine, introspection commands, SQLite stor
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, and the MCP server through watch reload are shipped on `main`;
 external crypto providers, the AI plugin, MCP sensitive access, `weave sync --watch`, release
-automation, bundle export, multiple bundle sources and the optimization program remain.
+automation, bundle export, multiple bundle sources, global configuration and the optimization
+program remain.
 
 ## 1. What Weave Is
 
@@ -80,7 +81,8 @@ waves, not product versions.
 | Release automation | v1.0 | Tag-driven verified builds and draft GitHub Releases |
 | Bundle export | v1.0 | Raw plaintext export with confirmation; encrypted OKF export |
 | Multiple bundle sources | v1.0 | Repeatable `--source` aliases with merged search |
-| Optimization program | v1.0 | Benchmarks, budgets and maintainability targets |
+| Optimization program | v1.0 | Benchmarks, budgets, maintainability and UX targets |
+| Global configuration | v1.0 | YAML config plus `WEAVE_*` variables and `weave config` |
 
 ## 4. CLI Surface
 
@@ -116,6 +118,7 @@ weave sync <path> --watch [--with-enricher <ext>] --json
 weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] --json
 weave search <path> [--source <alias=path> ...] <query> --json
 weave ingest <path> [--source <alias=path> ...] --json
+weave config show|path|init [--json]
 ```
 
 ## 5. Search Semantics
@@ -242,6 +245,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | planned |
 | 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | planned |
 | 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
+| 29 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / Phase 8 (P2) | planned |
 
 Rules:
 
@@ -353,7 +357,8 @@ privacy directives ──┬── show --decrypt
 
 - benchmarks and budgets,
 - time/space hotspots,
-- maintainability refactors and the performance gate.
+- maintainability refactors and the performance gate,
+- UX optimization with global configuration and environment variables first.
 
 **Critical path:**
 
@@ -506,6 +511,7 @@ needed.
 - [Bundle Export](docs/specs/bundle-export.md)
 - [Multiple Bundle Sources](docs/specs/multi-bundle.md)
 - [Performance and Maintainability](docs/specs/optimization.md)
+- [Configuration](docs/specs/configuration.md)
 - [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
 - [External Crypto Providers](docs/specs/external-crypto-providers.md)
 - [Weave AI Extension](docs/specs/weave-ai-plugin.md)
