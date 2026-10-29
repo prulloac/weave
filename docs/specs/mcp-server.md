@@ -141,14 +141,85 @@ Resources are read-only and may be deferred until tools are stable.
 
 ## 7. Transport and Protocol
 
-- MCP over TCP, JSON-RPC framed per the MCP specification.
-- One bundle per server process.
-- The server advertises capabilities and tool schemas at initialize.
-- Requests are processed concurrently with read-only engine access.
-- The server rejects unknown methods and malformed frames without crashing.
-- Frame size and request count limits are configurable.
-- TLS termination is the responsibility of the operator/reverse proxy in v1; a future option may add
-  native TLS.
+### 7.1 Framing
+
+- Stdio and TCP both use **one JSON-RPC 2.0 object per line** (newline-delimited JSON).
+- Stdio reads stdin and writes stdout; diagnostics go to stderr.
+- TCP accepts concurrent connections; each connection has its own initialize state.
+- Default maximum frame size is **1 MiB**. Oversized frames return a parse error and close the
+  connection.
+- Stdio exits cleanly on EOF. TCP connections close on EOF or write failure.
+- TLS termination is the responsibility of the operator/reverse proxy.
+
+### 7.2 Methods
+
+```text
+initialize
+notifications/initialized
+tools/list
+tools/call
+ping
+```
+
+`initialize` request parameters:
+
+```json
+{
+  "protocolVersion": "2025-06-18",
+  "capabilities": {},
+  "clientInfo": {"name": "test", "version": "1"},
+  "_meta": {"token": "secret"}
+}
+```
+
+`initialize` result:
+
+```json
+{
+  "protocolVersion": "2025-06-18",
+  "capabilities": {"tools": {}},
+  "serverInfo": {"name": "weave", "version": "dev"}
+}
+```
+
+- `notifications/initialized` emits no response.
+- `tools/list` returns `{"tools": [...]}`.
+- `tools/call` takes `{"name": "<tool>", "arguments": {...}}`.
+- Success result:
+
+```json
+{
+  "content": [{"type": "text", "text": "<JSON result>"}],
+  "structuredContent": {},
+  "isError": false
+}
+```
+
+- Tool failures use `isError: true` and `structuredContent: {"code": "...", "message": "..."}`.
+- Unknown methods return JSON-RPC `-32601`; invalid parameters `-32602`; malformed JSON `-32700`.
+- Calls before `initialize` return `-32002 NOT_INITIALIZED`.
+- `ping` returns an empty result.
+
+### 7.3 Authentication
+
+- TCP default bind is `127.0.0.1:7331`.
+- A token is required for any non-loopback bind.
+- When a token is configured, `initialize._meta.token` must match using constant-time comparison.
+- A missing/invalid token returns JSON-RPC `-32001` with data code `UNAUTHORIZED` and closes the
+  connection.
+- Stdio may also require a token if configured.
+
+### 7.4 CLI
+
+```sh
+weave mcp --bundle <path> [--db <file>] [--top-k-default 10] [--allow-sensitive]
+weave mcp --bundle <path> --stdio
+weave mcp --bundle <path> --listen 127.0.0.1:7331 [--token <token>]
+```
+
+- `--stdio` and `--listen` are mutually exclusive.
+- `--watch` remains part of the watch-mode slice.
+- Non-loopback `--listen` without `--token` is a usage error.
 
 ## 8. Security
 
