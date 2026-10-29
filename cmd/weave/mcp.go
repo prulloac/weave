@@ -11,9 +11,12 @@ import (
 	"strings"
 	"syscall"
 
+	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/operations"
 	"github.com/prulloac/weave/mcp"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
+	"github.com/prulloac/weave/watch"
 )
 
 type mcpCLIOptions struct {
@@ -25,6 +28,7 @@ type mcpCLIOptions struct {
 	token          string
 	topKDefault    int
 	allowSensitive bool
+	watch          bool
 	help           bool
 }
 
@@ -80,7 +84,7 @@ func parseMCPOptions(args []string) (mcpCLIOptions, error) {
 		case "--allow-sensitive":
 			options.allowSensitive = true
 		case "--watch":
-			return options, fmt.Errorf("--watch is part of the watch-mode slice and is not implemented yet")
+			options.watch = true
 		default:
 			return options, fmt.Errorf("unknown option: %s", arg)
 		}
@@ -93,6 +97,9 @@ func parseMCPOptions(args []string) (mcpCLIOptions, error) {
 	}
 	if options.stdio && options.listenSet {
 		return options, fmt.Errorf("--stdio and --listen are mutually exclusive")
+	}
+	if options.watch && options.db == "" {
+		return options, fmt.Errorf("--watch requires --db")
 	}
 	if !options.stdio && !isLoopbackListen(options.listen) && options.token == "" {
 		return options, fmt.Errorf("--token is required for non-loopback --listen")
@@ -146,6 +153,53 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	if options.watch {
+		dbPath, err := sqlitestore.ExpandPath(options.db)
+		if err != nil {
+			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+			return 2
+		}
+		store, err := sqlitestore.OpenExisting(dbPath)
+		if err != nil {
+			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+			return 1
+		}
+		defer store.Close()
+		ready := make(chan struct{}, 1)
+		watchErr := make(chan error, 1)
+		watcher, err := watch.New(watch.Options{
+			Root:  options.bundle,
+			Store: store,
+			OnSync: func(contractv1.SyncReport) {
+				select {
+				case ready <- struct{}{}:
+				default:
+				}
+			},
+			OnError: func(err error) {
+				fmt.Fprintf(stderr, "weave mcp: watch: %s\n", err)
+			},
+		})
+		if err != nil {
+			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+			return 2
+		}
+		go func() { watchErr <- watcher.Run(ctx) }()
+		select {
+		case <-ready:
+		case err := <-watchErr:
+			fmt.Fprintf(stderr, "weave mcp: watch: %s\n", err)
+			return 1
+		case <-ctx.Done():
+			return 0
+		}
+		go func() {
+			if err := <-watchErr; err != nil {
+				fmt.Fprintf(stderr, "weave mcp: watch: %s\n", err)
+			}
+		}()
+	}
+
 	if options.stdio {
 		if err := transport.ServeStdio(ctx, os.Stdin, stdout); err != nil {
 			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
@@ -188,5 +242,6 @@ flags:
   --token <token>       required for non-loopback binds
   --top-k-default <n>   default top-K (default 10)
   --allow-sensitive     expose encrypted/tokenized fields
+  --watch               poll and sync the bundle; requires --db
 `)
 }
