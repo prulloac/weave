@@ -59,6 +59,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.DB = flags.db
 	request.NoDB = flags.noDB
 	request.Strict = flags.strict
+	request.Permissive = flags.permissive
 
 	executor := operations.New(version, engine.Options{Cache: !flags.noCache})
 	value := executor.Execute(context.Background(), request)
@@ -112,6 +113,7 @@ type flags struct {
 	db          string
 	noDB        bool
 	strict      bool
+	permissive  bool
 	positionals []string
 }
 
@@ -216,6 +218,8 @@ func parseFlags(args []string) (flags, error) {
 			result.noDB = true
 		case "--strict":
 			result.strict = true
+		case "--permissive":
+			result.permissive = true
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -253,6 +257,9 @@ func parseFlags(args []string) (flags, error) {
 
 	if result.db != "" && result.noDB {
 		return result, fmt.Errorf("--db and --no-db are mutually exclusive")
+	}
+	if result.strict && result.permissive {
+		return result, fmt.Errorf("--strict and --permissive are mutually exclusive")
 	}
 	return result, nil
 }
@@ -451,15 +458,17 @@ func exitCodeFor(code contractv1.ErrorCode) int {
 }
 
 func successExitCode(op contractv1.OperationName, result any) int {
-	if op != contractv1.OpAudit {
-		return 0
-	}
-	report, ok := result.(contractv1.AuditReport)
-	if !ok {
-		return 0
-	}
-	if audit.Failed(report) {
-		return 1
+	switch op {
+	case contractv1.OpAudit:
+		report, ok := result.(contractv1.AuditReport)
+		if ok && audit.Failed(report) {
+			return 1
+		}
+	case contractv1.OpIngest, contractv1.OpRebuild:
+		report, ok := result.(contractv1.IngestReport)
+		if ok && report.Errors > 0 {
+			return 1
+		}
 	}
 	return 0
 }
@@ -797,8 +806,8 @@ usage:
   weave audit <path> [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
   weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
   weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
-  weave ingest <path> [--db <file>] [--strict] [--json] [--no-cache]
-  weave rebuild <path> [--db <file>] [--strict] [--json] [--no-cache]
+  weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+  weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
   weave version [--json]
   weave --version | --help
 
