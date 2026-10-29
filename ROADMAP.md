@@ -210,7 +210,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 | shipped |
 | 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 | shipped |
 | 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 | shipped |
-| 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | planned |
+| 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | red |
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | planned |

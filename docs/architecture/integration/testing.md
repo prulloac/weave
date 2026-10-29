@@ -92,6 +92,7 @@ MRR@10 = 1.0.
   `mcp/server_test.go` covers MCP tool discovery, dispatch parity, validation and error mapping.
   `mcp/transport_test.go` covers stdio/TCP JSON-RPC framing, initialize, tools and auth.
   `mcp/resource_test.go` covers resource discovery, reads, templates and errors.
+  `watch/watcher_test.go` covers initial sync, updates, deletes, bursts, ignored dirs and MCP reload.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
