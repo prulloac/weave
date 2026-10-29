@@ -61,7 +61,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | - | - | backlog |
 | Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | x | x | green |
 | BM25 lexical ranking | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
-| BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | - | - | backlog |
+| BM25 calibration | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | - | - | backlog |
 | Privacy directives | [privacy-and-extensions.md](specs/privacy-and-extensions.md) | - | x | - | - | backlog |
 | External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | - | - | backlog |
@@ -104,6 +104,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Permissive ingestion: synthetic documents, warnings, permissive audit and search inclusion
 - [x] Incremental sync: hash skip, add/update/remove/rename, cascade and mode persistence
 - [x] BM25 lexical ranking: FTS indexing, multi-token OR, phrases, negative terms and field weights
+- [x] BM25 calibration: BM25 + fuzzy hybrid corpus, baselines and deterministic metrics
 
 ## Dependency Order
 
@@ -117,7 +118,7 @@ Execution waves:
 1. Shipped: parser, graph, search, CLI, calibration.
 2. Parallel: introspection contract types (done), `audit` (done), `relate` (done), `explain` (done), permissive ingestion (done).
 3. Storage: SQLite (done).
-4. Parallel: sync (done), BM25 (done), compression, MCP in-memory.
+4. Parallel: sync (done), BM25 (done), BM25 calibration (done), compression, MCP in-memory.
 5. Watch and privacy directives.
 6. Extension runner, enrichment, rerank, sensitive MCP.
 7. AI plugin, external crypto, MCP persistent.

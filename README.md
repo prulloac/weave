@@ -15,6 +15,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Weighted fuzzy search** over title, description and body.
 - **Hybrid top-K results** with component scores and match metadata.
 - **BM25 lexical ranking** through SQLite FTS5 with field weights, phrases and negative terms.
+- **Calibrated hybrid ranking** using normalized BM25 plus fuzzy scores.
 - **Graph navigation**: show, backlinks and shortest path.
 - **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.
@@ -87,8 +88,9 @@ weave graph ~/notes --json
 #### `weave search`
 
 Rank matching concepts with keyword, fuzzy, hybrid or BM25 lexical search. Keyword uses exact and
-prefix matching with AND semantics; fuzzy tolerates typos; BM25 ranks multi-token lexical matches;
-hybrid combines keyword and fuzzy at 50/50 (default).
+prefix matching with AND semantics; fuzzy tolerates typos; BM25 ranks multi-token lexical matches.
+Persistent hybrid search combines normalized BM25 and fuzzy at 50/50 (default); `--no-db` retains
+the legacy keyword + fuzzy fallback.
 
 - `--mode hybrid|keyword|fuzzy|bm25` — default `hybrid`.
 - `--top-k <n>` — default `10`, valid range `1..100`.

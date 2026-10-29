@@ -118,7 +118,7 @@ remains the compatibility promise.
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
 | Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory |
-| Ranking | Keyword + fuzzy hybrid; BM25 lexical mode shipped |
+| Ranking | Persistent hybrid BM25 + fuzzy; `--no-db` legacy keyword + fuzzy |
 | Privacy | v1.0 explicit encrypt/tokenize/hash directives |
 | Extensions | v1.0 subprocess IPC over `weave.cli/v1` |
 | Integration | CLI first; Go package optional; MCP server in v1.0 |
@@ -180,9 +180,8 @@ exposes the `search` CLI command, audits bundles for conformance and graph quali
 graph neighborhoods and explains score components. Bundles are persisted by default in a
 bundle-scoped SQLite database at `~/.weave/index.db`; `--no-db` uses the transient parser.
 Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` reconciles changed files
-by SHA-256 hash, and `--mode bm25` ranks through SQLite FTS5. Calibration passes its baseline. The
-UI and old TypeScript stack are removed.
+by SHA-256 hash, and persistent hybrid search combines normalized BM25 with fuzzy scores.
+Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — watch, BM25 hybrid calibration, privacy, extensions and MCP — is
-specified but not implemented. The operations layer keeps MCP independently schedulable within
-v1.0.
+The remaining v1.0 scope — watch, BM25 explain, privacy, extensions and MCP — is specified but not
+implemented. The operations layer keeps MCP independently schedulable within v1.0.

@@ -107,7 +107,7 @@ See [Contract layer](../layers/contract.md) for full fields.
 - Keyword, fuzzy and hybrid lists are independently capped.
 - Keyword exact = 1.0, prefix = 0.75, AND across query tokens.
 - Fuzzy weights: title 1.00, description 0.60, body 0.30.
-- Hybrid = `0.50 * keyword + 0.50 * fuzzy` (calibrated).
+- Hybrid = persistent normalized BM25 + fuzzy (50/50); `--no-db` keeps legacy keyword + fuzzy.
 - Scores are deterministic and rounded to four decimals.
 - `find` is removed.
 

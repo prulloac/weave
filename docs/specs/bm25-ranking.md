@@ -16,8 +16,8 @@ status: stable
 
 # Specification: BM25 Lexical Ranking
 
-Status: **BM25 mode and FTS indexing implemented** for v1.0. Hybrid rebase, BM25 explain and
-calibration follow in the calibration slice.
+Status: **BM25 mode, FTS indexing and hybrid calibration implemented** for v1.0. BM25 explain
+evidence remains a follow-up.
 
 ## 1. Overview
 
@@ -55,7 +55,7 @@ weave explain <path> <query> --mode bm25 --id <id> --json
 | `exact` | Exact/prefix keyword matching, AND across query tokens |
 | `bm25` | SQLite FTS5 BM25 lexical ranking |
 | `fuzzy` | Weighted Levenshtein + trigram similarity |
-| `hybrid` | Normalized BM25 + fuzzy (calibration slice) |
+| `hybrid` | Normalized BM25 + fuzzy for persistent searches; legacy keyword + fuzzy with `--no-db` |
 
 - `keyword` is an alias for `exact` during the v1.0 transition; new documentation prefers `exact`.
 - Default mode remains `hybrid`.
@@ -63,6 +63,8 @@ weave explain <path> <query> --mode bm25 --id <id> --json
 - This slice delivers `bm25` and FTS indexing. The hybrid BM25 rebase, BM25 explain evidence and
   calibration corpus are delivered with the calibration slice.
 - `--mode bm25` requires persistent storage. With `--no-db`, it is `INVALID_REQUEST` with exit `2`.
+- Persistent `--mode hybrid` uses normalized BM25 + fuzzy. `--no-db --mode hybrid` retains the
+  legacy keyword + fuzzy fallback for transient operation.
 
 ## 4. FTS5 Index
 
@@ -151,19 +153,14 @@ total = a * bm25_norm + b * fuzzy_score + c * rerank_score
 - When a reranker extension is active, `c` is configured by the extension contract.
 - Hybrid candidates are the union of the BM25 top-K and fuzzy top-K.
 - Sort by `total` descending, then BM25 descending, then fuzzy descending, then id.
+- Hybrid hits carry `lexical_score`, `fuzzy_score` and `total_score`.
 - Exact keyword mode remains available for deterministic facet-like retrieval.
 
 ## 8. Explain Integration
 
-`weave explain --mode bm25` reports:
-
-- raw BM25 score,
-- normalized score,
-- per-query-term contributions,
-- matched fields,
-- document/field frequencies used by FTS5 where available.
-
-`weave explain --mode hybrid` includes BM25, fuzzy, and hybrid components.
+BM25 explain evidence (`raw_score`, normalized score, per-term contributions, matched fields and
+field frequencies) is a follow-up explain slice. This calibration slice covers ranking and
+calibration only.
 
 ## 9. Calibration
 
@@ -203,10 +200,12 @@ Baseline metrics:
 
 - Multi-token queries no longer drop documents that match a subset of terms.
 - BM25 ranking is deterministic and reproducible.
+- Persistent hybrid ranking is `0.50 * normalized BM25 + 0.50 * fuzzy`.
+- BM25 and hybrid calibration meet or exceed their recorded baselines.
 - FTS rows are created on ingest and updated on sync.
 - `--mode bm25` works against the default database and fails cleanly without persistence.
 - Exact mode preserves existing behavior.
-- Hybrid normalization and BM25 explain are covered by the calibration slice.
+- BM25 explain evidence remains a follow-up explain slice.
 
 ## Related Documents
 

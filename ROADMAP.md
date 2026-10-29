@@ -63,6 +63,7 @@ waves, not product versions.
 | Watch mode | v1.0 | `fsnotify` live sync and MCP reload |
 | Permissive ingestion | v1.0 | Shipped: synthetic Markdown documents with warnings |
 | BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
+| BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
 | Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
 | Privacy directives | v1.0 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
 | Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
@@ -113,15 +114,16 @@ weave audit <path> [--verify-keys] --json
 - **Keyword:** exact token `1.0`, prefix `0.75`, AND across query tokens.
 - **Fuzzy:** max of normalized Levenshtein and trigram Dice, threshold `0.55`.
 - **Field weights:** title `1.00`, description `0.60`, body `0.30`.
-- **Hybrid:** `0.50 * keyword + 0.50 * fuzzy`.
+- **Hybrid:** persistent searches use `0.50 * BM25 + 0.50 * fuzzy`; `--no-db` keeps legacy
+  keyword + fuzzy.
 - **BM25:** SQLite FTS5 `--mode bm25`, OR terms, phrases, negative terms.
 - **Top-K:** default 10, max 100.
 
 ### v1.0 target
 
-- **Lexical:** BM25 hybrid normalization and calibration.
+- **Lexical:** BM25 explain evidence remains a follow-up.
 - **Fuzzy:** unchanged.
-- **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; initial a/b remain 0.50/0.50.
+- **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; persistent hybrid uses lexical BM25.
 - **Extensions:** optional rerankers may adjust ranking after core scoring.
 
 ## 6. Privacy Semantics (v1.0 target)
@@ -209,7 +211,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 | shipped |
 | 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | planned |
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
-| 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | planned |
+| 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | planned |
 | 12 | Privacy directives | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | planned |
 | 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 | planned |
@@ -298,7 +300,7 @@ privacy directives ──┬── show --decrypt
 **Wave 3 — storage consumers (parallel):**
 
 - incremental sync,
-- BM25 lexical ranking,
+- BM25 lexical ranking and calibration,
 - compression,
 - MCP in-memory (independent of persistence; can be pulled earlier if desired).
 
