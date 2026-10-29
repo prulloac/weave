@@ -80,7 +80,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | MCP watch reload | [watch-mode.md](specs/watch-mode.md), [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP stdio/TCP transport | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
 | MCP resources | [mcp-server.md](specs/mcp-server.md) | - | x | x | x | green |
-| Sensitive MCP access policies | [mcp-sensitive.md](specs/mcp-sensitive.md) | - | x | x | - | red |
+| Sensitive MCP access policies | [mcp-sensitive.md](specs/mcp-sensitive.md) | - | x | x | x | green |
 | MCP multiple sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
 
 ## Tier 7 — Delivery, portability and quality
@@ -130,6 +130,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Release automation: tag-driven verified builds, archives, checksums and draft releases
 - [x] Multiple bundle sources: repeatable `--source`, merged search/list/audit and multi-source writes
 - [x] MCP multiple sources: sourced tools, qualified targets and `weave://source/<alias>/...` resources
+- [x] MCP sensitive access: redacted defaults, opt-in decryption and audit key checks
 - [x] Body compression: zstd default, LZ4 opt-in, per-row codec and decode recovery
 
 ## Dependency Order
@@ -146,7 +147,7 @@ Execution waves:
 3. Storage: SQLite (done).
 4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), MCP in-memory (done), MCP persistent (done).
 5. Watch (done) and privacy directives (done).
-6. Extension runner, enrichment and rerank (done); sensitive MCP.
+6. Extension runner, enrichment and rerank (done); sensitive MCP (done).
 7. AI plugin, external crypto, `weave sync --watch` CLI wiring.
 8. Release automation (done), bundle export, multiple bundle sources.
 9. Optimization program (benchmarks, budgets, refactors) and global configuration/UX.

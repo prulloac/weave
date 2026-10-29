@@ -5,8 +5,8 @@
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
-shipped on `main`; external crypto providers, the AI plugin, MCP sensitive access,
-`weave sync --watch`, bundle export, global configuration and the optimization program remain.
+shipped on `main`; external crypto providers, the AI plugin, `weave sync --watch`, bundle export,
+global configuration and the optimization program remain.
 
 ## 1. What Weave Is
 
@@ -76,7 +76,7 @@ waves, not product versions.
 | Explainable search | v1.0 | Shipped: per-token/per-field `weave explain` |
 | Bundle audit | v1.0 | Shipped: stable finding codes, `--fail-on` gate, JSON and human reports |
 | Graph relate | v1.0 | Shipped: bounded depth/direction subgraphs |
-| MCP server | v1.0 | Tools, stdio/TCP transport, auth, resources and watch reload shipped; sensitive access pending |
+| MCP server | v1.0 | Tools, transport, auth, resources, watch reload and sensitive access shipped |
 | Release automation | v1.0 | Shipped: tag-driven verified builds and draft GitHub Releases |
 | Bundle export | v1.0 | Raw plaintext export with confirmation; encrypted OKF export |
 | Multiple bundle sources | v1.0 | Shipped: repeatable `--source` aliases across CLI and MCP |
@@ -233,7 +233,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | shipped |
 | 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | planned |
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
-| 18 | Sensitive MCP policies | [mcp-sensitive.md](docs/specs/mcp-sensitive.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | red |
+| 18 | Sensitive MCP policies | [mcp-sensitive.md](docs/specs/mcp-sensitive.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | shipped |
 | 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) | shipped |
 | 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | shipped |
 | 21 | BM25 explain evidence | [weave-explain.md](docs/specs/weave-explain.md), [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, storage, explain | 3 / Phase 3 | shipped |
@@ -339,7 +339,7 @@ privacy directives ──┬── show --decrypt
 - extension runner,
 - enrichment (after sync),
 - rerank (after search),
-- sensitive MCP policies.
+- sensitive MCP policies (shipped).
 
 **Wave 6 — ecosystem and persistent MCP:**
 

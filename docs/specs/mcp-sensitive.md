@@ -16,7 +16,7 @@ status: draft
 
 # Specification: MCP Sensitive Access Policies
 
-Status: **Proposed**
+Status: **Implemented** (server-wide redaction, opt-in decryption, resource policy and audit key checks).
 Target: **v1.0**
 
 ## 1. Overview

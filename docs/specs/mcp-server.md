@@ -16,8 +16,8 @@ status: stable
 
 # Specification: Weave MCP Server
 
-Status: **M1–M4 implemented**: tools, stdio/TCP transport, auth, resources and watch reload.
-Sensitive access and remaining polish are pending.
+Status: **M1–M4 implemented**: tools, stdio/TCP transport, auth, resources, watch reload and
+sensitive access. Remaining polish is tracked separately.
 
 ## 1. Overview
 

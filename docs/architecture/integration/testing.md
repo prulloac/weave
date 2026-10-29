@@ -104,6 +104,8 @@ MRR@10 = 1.0.
   `cmd/weave/multi_bundle_bdd_test.go` covers source aliases, merged search/list/audit, qualified
   targets, cross-source path rejection and multi-source writes.
   `mcp/multi_test.go` covers sourced tools, ambiguity, merged MCP reads and source resources.
+  `mcp/sensitive_test.go` covers redacted defaults, opt-in decryption, in-memory redaction,
+  missing-key failures and audit key verification.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

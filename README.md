@@ -325,6 +325,8 @@ weave mcp --bundle ~/notes --source work=~/work/notes --db ~/.weave/index.db --w
 
 - `--source` adds bundle sources; tools accept an optional `source` alias and resources expose
   `weave://source/<alias>/...`.
+- Encrypted bodies are redacted by default; `--allow-sensitive` decrypts `weave_show` and concept
+  resources without making encrypted documents searchable.
 - Without `source`, tools merge sources and reject ambiguous targets.
 
 Specs: [MCP Server](docs/specs/mcp-server.md), [Watch Mode](docs/specs/watch-mode.md),
