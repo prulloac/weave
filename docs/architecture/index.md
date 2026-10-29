@@ -56,7 +56,7 @@ The detailed contract and algorithms are in
 | OKF | Go | `engine/okf` | Parse bundles, frontmatter, links, validation, cache |
 | Graph | Go | `engine/graph` | Nodes, edges, degrees, traversal |
 | Search | Go | `engine/search` | In-memory catalog, keyword index, fuzzy index, ranking |
-| Operations | Go | `engine/operations` | Transport-neutral search, navigation, audit, relate and explain requests |
+| Operations | Go | `engine/operations` | Transport-neutral ingest, rebuild, search, navigation, audit, relate and explain requests |
 | CLI | Go | `cmd/weave` | Argv, stdout/stderr, envelopes, exit codes |
 
 ## Integration Surfaces
@@ -79,7 +79,7 @@ remains the compatibility promise.
 | B — Search v1 | mandatory keywords, weighted fuzzy search, hybrid top-K, calibration, CLI `search` | Complete |
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
-| E — Storage & sync | SQLite persistence, incremental sync, watch | v1.0 planned |
+| E — Storage & sync | SQLite persistence, incremental sync, watch | Storage foundation complete; sync next |
 | F — Privacy & extensions | Explicit privacy directives and subprocess plugins | v1.0 planned |
 | G — MCP | TCP MCP transport over operations | v1.0 planned |
 
@@ -116,7 +116,7 @@ remains the compatibility promise.
 | Contract version | New v1 replaces the previous v1 in place |
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
-| Storage | In-memory core; v1.0 adds SQLite persistence |
+| Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory |
 | Ranking | Keyword + fuzzy core; v1.0 adds BM25 lexical ranking |
 | Privacy | v1.0 explicit encrypt/tokenize/hash directives |
 | Extensions | v1.0 subprocess IPC over `weave.cli/v1` |
@@ -172,12 +172,14 @@ remains the compatibility promise.
 
 ## Status
 
-The core v1 engine plus `weave audit`, `weave relate` and `weave explain` are implemented. The Go
-engine parses mandatory keywords, builds keyword and fuzzy indexes, returns keyword/fuzzy/hybrid
-top-K results, exposes the `search` CLI command, audits bundles for conformance and graph quality,
-returns bounded graph neighborhoods and explains score components. Calibration passes its baseline.
-The UI and old TypeScript stack are removed.
+The core v1 engine plus `weave audit`, `weave relate`, `weave explain` and the SQLite storage
+foundation are implemented. The Go engine parses mandatory keywords, builds keyword and fuzzy
+indexes, returns keyword/fuzzy/hybrid top-K results, exposes the `search` CLI command, audits
+bundles for conformance and graph quality, returns bounded graph neighborhoods and explains score
+components. Bundles are persisted by default in a bundle-scoped SQLite database at
+`~/.weave/index.db`; `--no-db` uses the transient parser. Calibration passes its baseline. The UI
+and old TypeScript stack are removed.
 
-The remaining v1.0 scope — persistent storage and sync, BM25, privacy, extensions and MCP — is
-specified but not implemented. The operations layer keeps MCP independently schedulable within
-v1.0.
+The remaining v1.0 scope — incremental sync, watch, BM25, permissive ingestion, privacy, extensions
+and MCP — is specified but not implemented. The operations layer keeps MCP independently
+schedulable within v1.0.

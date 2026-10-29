@@ -2,17 +2,18 @@
 
 > Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
-Status: **v1 in progress.** The core engine is shipped on `main`; the full v1.0 scope
-(persistence, privacy, extensions and MCP) is specified but not yet implemented.
+Status: **v1 in progress.** The core engine, introspection commands and SQLite storage foundation are
+shipped on `main`; incremental sync, watch, BM25, permissive ingestion, privacy, extensions and MCP
+remain specified but not implemented.
 
 ## 1. What Weave Is
 
 Weave is a **local-first, related-document knowledge database**:
 
-- **v1 core (shipped):** ingest OKF/Markdown bundles into memory, build a graph, search by mandatory
-  keywords and weighted fuzzy similarity, navigate with `show`, `backlinks` and `path`, audit bundle
-  quality with `weave audit`, explore graph neighborhoods with `weave relate`, and explain ranking
-  with `weave explain`.
+- **v1 core (shipped):** ingest OKF/Markdown bundles into memory or a persistent SQLite index,
+  build a graph, search by mandatory keywords and weighted fuzzy similarity, navigate with `show`,
+  `backlinks` and `path`, audit bundle quality with `weave audit`, explore graph neighborhoods with
+  `weave relate`, and explain ranking with `weave explain`.
 - **v1.0 platform (in progress):** persist and incrementally sync bundles into SQLite, add lexical
   BM25, support permissive Markdown ingestion, protect sensitive content with explicit privacy
   directives, and run external enrichment/reranking and crypto extensions.
@@ -44,6 +45,7 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Bundle audit | Shipped | Stable finding codes, `--fail-on` gate, JSON and human reports |
 | Graph relate | Shipped | Bounded depth/direction graph neighborhoods |
 | Search explain | Shipped | Per-token keyword and per-field fuzzy score breakdowns |
+| SQLite storage | Shipped | Default `~/.weave/index.db`, bundle-scoped, `--no-db` opt-out |
 
 ## 3. v1.0 Scope (in progress)
 
@@ -52,7 +54,7 @@ waves, not product versions.
 
 | Capability | Target | Notes |
 | --- | --- | --- |
-| Persistent SQLite storage | v1.0 | Pure-Go `modernc.org/sqlite`, WAL, fast cold reads |
+| Persistent SQLite storage | v1.0 | Shipped: pure-Go `modernc.org/sqlite`, bundle-scoped, WAL |
 | Incremental sync & watch | v1.0 | `sha256` content-hash upserts, cascading edge updates, `fsnotify` |
 | Permissive ingestion | v1.0 | Index dirty/non-OKF Markdown trees with warnings |
 | BM25 lexical ranking | v1.0 | SQLite FTS5 BM25 replaces strict AND for multi-token queries |
@@ -81,15 +83,18 @@ weave path <path> <id|file> <id|file> --json
 weave audit <path> [--fail-on error|warning|none] [--verify-keys] --json
 weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
+weave ingest <path> [--db <file>] [--strict] --json
+weave rebuild <path> [--db <file>] [--strict] --json
 weave version --json
 ```
+
+Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memory parsing and
+`--db <file>` selects another database.
 
 ### Planned v1.0 — persistence and extensions
 
 ```sh
-weave ingest <path> [--db <file>] [--permissive] --json
 weave sync <path> [--watch] [--with-enricher <ext>] --json
-weave rebuild <path> --json
 weave search <path> <query> [--rerank <ext>] --json
 weave show <path> <id|file> [--decrypt] --json
 weave audit <path> [--verify-keys] --json
@@ -138,7 +143,7 @@ Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md). Ext
 
 ```text
 cmd/weave + engine/operations
-  search · parse · graph · list · show · backlinks · path · audit · relate · explain · version
+  ingest · rebuild · search · parse · graph · list · show · backlinks · path · audit · relate · explain · version
         |
 engine/search
   documents · keyword postings · fuzzy/trigram indexes · ranking · explain evidence
@@ -148,6 +153,9 @@ engine/audit
         |
 engine/relate
   bounded BFS · depth · direction · subgraphs
+        |
+storage/sqlite
+  bundle registry · documents · edges · schema version
         |
 engine/graph + engine/okf
   nodes · edges · traversal · parser · validation · cache
@@ -191,7 +199,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 3 | `weave audit` | [weave-audit.md](docs/specs/weave-audit.md) | Tier 3 | parser, graph, root index, contract | 1 / Phase 2 | shipped |
 | 4 | `weave explain` | [weave-explain.md](docs/specs/weave-explain.md) | Tier 3 | search scoring, contract | 1 / Phase 2 | shipped |
 | 5 | Permissive ingestion | [permissive-ingestion.md](docs/specs/permissive-ingestion.md) | Tier 5 | parser validation | 1 / Phase 2 | planned |
-| 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 | planned |
+| 6 | SQLite storage | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | parser, graph, contract | 2 / Phase 3 | shipped |
 | 7 | Incremental sync | [storage-and-sync.md](docs/specs/storage-and-sync.md) | Tier 5 | storage, parser, graph | 3 / Phase 3 | planned |
 | 8 | Watch mode | [watch-mode.md](docs/specs/watch-mode.md) | Tier 5 | incremental sync | 4 / Phase 3 | planned |
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | planned |
@@ -337,9 +345,9 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 ### Phase 3 — Persistent storage and sync (v1.0)
 
 - Pure-Go SQLite (`modernc.org/sqlite`) in WAL mode.
-- `weave ingest` and `weave sync` with `sha256` content-hash upserts.
-- Cascading graph updates for edits/deletes.
-- `fsnotify` watch mode.
+- Default bundle-scoped database at `~/.weave/index.db`.
+- `weave ingest` and `weave rebuild` shipped; `weave sync` is next.
+- `sha256` content hashes, cascading graph updates, `fsnotify` watch mode.
 - Varint/delta postings and compressed body storage.
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),

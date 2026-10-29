@@ -26,16 +26,18 @@ CLI-first surface and no UI. The core is in-memory; v1.0 adds optional SQLite pe
 3. **CLI-first:** `cmd/weave` is the integration boundary. No HTTP, daemon, mount or browser UI.
 4. **Data contract:** `contract/v1` is authoritative. Documents require `type` and `keywords`.
    JSON Schema drives hand-written Go structs and goldens.
-5. **Search:** shipped keyword (exact + prefix, AND), weighted fuzzy (title 1.00, description 0.60,
+5. **Storage:** bundle reads use a bundle-scoped `~/.weave/index.db` by default. `--no-db` forces
+   transient in-memory parsing; `--db <file>` overrides the path.
+6. **Search:** shipped keyword (exact + prefix, AND), weighted fuzzy (title 1.00, description 0.60,
    body 0.30), hybrid top-K. v1.0 adds BM25 and explain diagnostics. `search` replaces `find`.
    Default K=10.
-6. **Calibration:** ranking changes must update or pass the labeled corpus and baseline.
-7. **Go-native:** favor the standard library and Go idioms; use `yaml.v3` and `goldmark` only where
+7. **Calibration:** ranking changes must update or pass the labeled corpus and baseline.
+8. **Go-native:** favor the standard library and Go idioms; use `yaml.v3` and `goldmark` only where
    specified. No UI dependencies.
-8. **Commits & delivery:** atomic conventional commits only (`feat:`, `fix:`, `docs(spec):`,
+9. **Commits & delivery:** atomic conventional commits only (`feat:`, `fix:`, `docs(spec):`,
    `test:`, `perf:`), delivered as stacked PRs via `gh stack`.
-9. **Backlog:** update `docs/backlog.md` as phases advance (`backlog` → `in-progress` → `red` →
-   `green` → `review`). **Never** set `merged`; that is a user-only action.
+10. **Backlog:** update `docs/backlog.md` as phases advance (`backlog` → `in-progress` → `red` →
+    `green` → `review`). **Never** set `merged`; that is a user-only action.
 
 ## Skill Router (progressive disclosure)
 

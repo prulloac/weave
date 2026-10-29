@@ -11,12 +11,12 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Weave: Storage, Persistence & Incremental Sync Specification
 
-Status: **Proposed**  
+Status: **Storage foundation implemented** for v1.0. Incremental sync is next.
 Target: **v1.0**
 
 ---
@@ -43,21 +43,36 @@ migrations bump this number independently of the product version and `weave.cont
 refuses to open a database with a newer `user_version`.
 
 ```sql
+-- 0. Bundle Registry
+CREATE TABLE IF NOT EXISTS bundles (
+    bundle_root TEXT PRIMARY KEY,        -- Absolute normalized bundle root
+    okf_version TEXT,
+    index_json TEXT NOT NULL,            -- Serialized []IndexEntry
+    validation_json TEXT NOT NULL,       -- Serialized Validation
+    updated_at INTEGER NOT NULL
+);
+
 -- 1. Document Registry
 CREATE TABLE IF NOT EXISTS documents (
-    bundle_root TEXT NOT NULL,           -- Absolute normalized bundle root
+    bundle_root TEXT NOT NULL,
     id TEXT NOT NULL,                    -- Relative path or explicit bundle ID
     file_path TEXT NOT NULL,             -- Path relative to bundle root
     content_hash TEXT NOT NULL,          -- SHA-256 of raw file content
     title TEXT NOT NULL,
     description TEXT,
     doc_type TEXT,                       -- OKF type (e.g. runbook, spec, adr)
+    keywords_json TEXT NOT NULL,         -- Serialized []string
+    frontmatter_json TEXT NOT NULL,      -- Serialized map[string]any
+    tags_json TEXT NOT NULL,             -- Serialized []string
+    status TEXT,                         -- draft | stable | deprecated
+    links_json TEXT NOT NULL,            -- Serialized []OkfLink
     body_compressed BLOB NOT NULL,       -- LZ4 or Zstandard compressed body text
     body_codec TEXT NOT NULL DEFAULT 'none',
     privacy_policy TEXT DEFAULT 'none',  -- none | encrypt | redact
     updated_at INTEGER NOT NULL,         -- Unix timestamp of sync
     PRIMARY KEY (bundle_root, id),
-    UNIQUE (bundle_root, file_path)
+    UNIQUE (bundle_root, file_path),
+    FOREIGN KEY (bundle_root) REFERENCES bundles(bundle_root) ON DELETE CASCADE
 );
 
 -- 2. Graph Edges
@@ -159,9 +174,9 @@ enrichments follow in later slices.
 ### 5.1 Commands
 
 ```text
-weave ingest <path> [--db <file>] [--json] [--no-cache]
-weave rebuild <path> [--db <file>] [--json] [--no-cache]
-weave sync <path> [--db <file>] [--json] [--no-cache]        # next slice
+weave ingest <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+weave rebuild <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]
+weave sync <path> [--db <file>] [--strict|--permissive] [--json] [--no-cache]        # next slice
 
 weave parse <path> ... [--db <file> | --no-db]
 weave graph <path> ... [--db <file> | --no-db]

@@ -18,7 +18,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Search explain**: per-token keyword and per-field fuzzy breakdowns.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
-- **In-memory** indexes; v1.0 adds optional SQLite persistence.
+- **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 
@@ -42,6 +42,8 @@ Global flags:
 
 - `--json` emits one `weave.cli/v1` envelope on stdout.
 - `--no-cache` disables the parse cache, which is enabled by default.
+- `--no-db` forces transient in-memory parsing; otherwise reads use `~/.weave/index.db`.
+- `--db <file>` selects another database; it is mutually exclusive with `--no-db`.
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -170,6 +172,27 @@ weave explain ~/notes oauth --id concepts/oauth-token-rotation --mode keyword
 
 Spec: [Weave Explain](docs/specs/weave-explain.md).
 
+#### `weave ingest`
+
+Load a bundle into the default bundle-scoped database at `~/.weave/index.db`, or into `--db <file>`.
+
+```sh
+weave ingest ~/notes --strict --json
+weave ingest ~/notes --strict --db /tmp/notes.db --json
+```
+
+Spec: [Storage & Sync](docs/specs/storage-and-sync.md).
+
+#### `weave rebuild`
+
+Re-index one bundle's rows without touching other bundles in the shared database.
+
+```sh
+weave rebuild ~/notes --strict --json
+```
+
+Spec: [Storage & Sync](docs/specs/storage-and-sync.md).
+
 #### `weave version`
 
 Print the binary version and the contract it targets.
@@ -185,17 +208,6 @@ weave version --json
 > not available in the current binary. Flags that depend on v1.0 features, such as
 > `weave show --decrypt` and `weave search --rerank`, are also not yet shipped.
 
-#### `weave ingest`
-
-Load a bundle into persistent SQLite storage, optionally permissively for non-OKF Markdown trees.
-
-```sh
-weave ingest ~/notes --permissive --json
-```
-
-Spec: [Storage & Sync](docs/specs/storage-and-sync.md),
-[Permissive Ingestion](docs/specs/permissive-ingestion.md).
-
 #### `weave sync`
 
 Incrementally update the persistent index from content hashes, with optional watch mode and
@@ -208,16 +220,6 @@ weave sync ~/notes --watch
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Watch Mode](docs/specs/watch-mode.md),
 [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
-
-#### `weave rebuild`
-
-Re-encode the persistent index, for example after a compression codec change.
-
-```sh
-weave rebuild ~/notes --json
-```
-
-Spec: [Compression](docs/specs/compression.md).
 
 #### `weave mcp`
 
@@ -289,6 +291,7 @@ engine/graph/           nodes, edges, traversal
 engine/search/          keyword, fuzzy and hybrid ranking
 engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
+storage/sqlite/          bundle-scoped persistent storage
 engine/nav/             list, show, backlinks, path
 engine/operations/      transport-neutral envelopes
 docs/                   architecture, specs, knowledge
@@ -302,5 +305,6 @@ docs/                   architecture, specs, knowledge
 - [Weave Audit spec](docs/specs/weave-audit.md)
 - [Weave Relate spec](docs/specs/weave-relate.md)
 - [Weave Explain spec](docs/specs/weave-explain.md)
+- [Storage & Sync spec](docs/specs/storage-and-sync.md)
 - [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
 - [Backlog](docs/backlog.md)

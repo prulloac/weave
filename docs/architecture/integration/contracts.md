@@ -24,6 +24,8 @@ The UI is retired by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retireme
 
 ```sh
 weave contract --json
+weave ingest <path> [--db <file>] [--strict] --json
+weave rebuild <path> [--db <file>] [--strict] --json
 weave parse <path> --json
 weave graph <path> --json
 weave search <path> <query> [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
@@ -40,6 +42,9 @@ Guarantees:
 - stderr is diagnostics.
 - Exit codes: 0 success, 1 runtime/no match, 2 usage/invalid parameters, 3 permission.
 - No network, daemon or UI.
+- Bundle reads use `~/.weave/index.db` by default; `--no-db` forces in-memory parsing and
+  `--db <file>` selects another database.
+- An unindexed bundle returns `BUNDLE_NOT_INDEXED`; missing databases are `INVALID_REQUEST`.
 - Parse cache enabled by default; `--no-cache` disables it.
 
 ### Envelope
@@ -131,6 +136,7 @@ Guarantees:
 | Symlinks | Files followed; directories one level with cycle guard |
 | Writes | Never write into the target bundle |
 | Cache | Optional, outside the target tree |
+| Database | Default `~/.weave/index.db`, bundle-scoped; never written into the source bundle |
 
 ## Compatibility
 

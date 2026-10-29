@@ -56,7 +56,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Persistent SQLite storage | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | x | - | red |
+| Persistent SQLite storage | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | x | x | green |
 | Incremental sync | [storage-and-sync.md](specs/storage-and-sync.md) | - | x | - | - | backlog |
 | Watch mode | [watch-mode.md](specs/watch-mode.md) | - | x | - | - | backlog |
 | Permissive Markdown ingestion | [permissive-ingestion.md](specs/permissive-ingestion.md) | - | x | - | - | backlog |
@@ -100,6 +100,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Audit contract, engine and CLI behavior suite (`weave audit`)
 - [x] Relate contract, engine and CLI behavior suite (`weave relate`)
 - [x] Explain contract, search evidence and CLI behavior suite (`weave explain`)
+- [x] SQLite storage foundation: default bundle-scoped DB, ingest, rebuild, `--db`/`--no-db`
 
 ## Dependency Order
 
@@ -112,7 +113,7 @@ Execution waves:
 
 1. Shipped: parser, graph, search, CLI, calibration.
 2. Parallel: introspection contract types (done), `audit` (done), `relate` (done), `explain` (done), permissive ingestion.
-3. Storage: SQLite.
+3. Storage: SQLite (done).
 4. Parallel: sync, BM25, compression, MCP in-memory.
 5. Watch and privacy directives.
 6. Extension runner, enrichment, rerank, sensitive MCP.
