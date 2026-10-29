@@ -1,7 +1,7 @@
 ---
 type: specification
 title: "Performance and Maintainability Optimization Specification"
-description: "Continuous optimization program for Weave time, space, startup and code maintainability with benchmarks, budgets and regression gates."
+description: "Continuous optimization program for Weave time, space, startup, maintainability and user experience with benchmarks, budgets and regression gates."
 tags:
   - "specification"
   - "performance"
@@ -22,8 +22,8 @@ Target: **v1.0**
 ## 1. Overview
 
 This is a cross-cutting program, not a user-facing feature. It establishes measurements, budgets and
-a repeatable workflow so time, space, startup and maintainability improve without changing search
-ranking, the contract or storage semantics.
+a repeatable workflow so time, space, startup, maintainability and user experience improve without
+changing search ranking, the contract or storage semantics.
 
 The program ships in measured slices; every slice records a before/after number and keeps the full
 verification gate green.
@@ -35,6 +35,7 @@ Non-goals:
 - Premature concurrency or worker pools without measurements.
 - GC tuning, `unsafe` or assembly hot paths.
 - Changing the CLI contract for performance reasons.
+- A UI or interactive editor; UX work stays CLI-first.
 
 ## 2. Contracts
 
@@ -98,6 +99,17 @@ Measured on the standard CI runner with the 10,000-document corpus unless noted:
   `storage/sqlite` may import engine packages but never `cmd` or `mcp`.
 - New packages require a package comment and at least one table-driven test.
 
+### 2.5 User experience targets
+
+- Recurring flags must be configurable once: global config file plus `WEAVE_*` environment variables
+  (see [Configuration](./configuration.md)).
+- Setting up a bundle for daily use takes at most two commands after configuration: `ingest` then
+  `search`.
+- Every non-zero exit prints an actionable next step, not only the failure.
+- `--help` lists global config keys and points to `weave config show`.
+- Errors name the offending flag, environment variable or file path.
+- No UX change may make JSON output or exit codes less deterministic.
+
 ## 3. Behavior
 
 ### 3.1 O1 — Measure
@@ -140,7 +152,27 @@ tracked budget beyond the 10% gate.
 - Keep `go vet`, gofmt, docs-lint and markdownlint in the required gate.
 - Track TODO/FIXME density and package count in the performance report; no hard gate in v1.0.
 
-### 3.5 O5 — Continuous gate
+### 3.5 O5 — User experience
+
+The first slice is **global configuration**: a YAML file plus `WEAVE_*` environment variables with
+deterministic precedence and `weave config show|path|init`, specified in
+[Configuration](./configuration.md).
+
+Subsequent UX candidates, ordered by measured friction:
+
+- Replace repeated flags in docs and examples with configuration-driven flows.
+- Add remediation hints to common errors (`BUNDLE_NOT_INDEXED`, `PRIVACY_KEY_UNAVAILABLE`,
+  `EXTENSION_NOT_FOUND`, `CONFIG_INVALID`).
+- Teach configuration in `--help` and shell completions.
+- Improve first-run behavior: empty database, missing `.weave` directory and missing extension
+  messages.
+- Coherent human output spacing and summary lines without breaking JSON.
+- Defer shell completion generation to a follow-up if it needs a new dependency.
+
+UX changes are validated by CLI tests and docs updates; they never alter the contract or default
+behavior for existing flags.
+
+### 3.6 O6 — Continuous gate
 
 - Add a non-blocking GitHub Actions performance job on `main` that runs `cmd/bench` and uploads
   results.
@@ -176,6 +208,8 @@ benchmarks/corpus generator
 - Baseline JSON schema validated.
 - Goldens, conformance, calibration and BDD suites unchanged by refactors.
 - Dependency-direction check has a failing fixture and a passing repository run.
+- Configuration precedence, `config show/path/init` and remediation messages covered by CLI tests.
+- UX changes keep goldens and JSON output stable.
 - Race suite green for every optimization slice.
 
 ## 7. Acceptance Criteria
@@ -186,6 +220,8 @@ benchmarks/corpus generator
 - `storage/sqlite/store.go`, `engine/operations/operations.go` and `cmd/weave/main.go` are split
   below the line limit with no behavior change.
 - The CLI test harness is shared across feature suites.
+- Global configuration and environment variables replace recurring flags, with visible precedence and
+  actionable errors.
 - Ranking calibration, contract goldens and the full verification gate stay green.
 - The performance CI job fails on regressions above 10% once the baseline is committed.
 
@@ -196,5 +232,6 @@ benchmarks/corpus generator
 - [Compression](./compression.md)
 - [Extension Subprocess IPC](./extension-ipc.md)
 - [Release Automation](./release-automation.md)
+- [Configuration](./configuration.md)
 - [Architecture](../architecture/index.md)
 - [ROADMAP](../../ROADMAP.md)
