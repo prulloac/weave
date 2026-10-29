@@ -146,7 +146,8 @@ remains the compatibility promise.
 | [Watch Mode spec](../../docs/specs/watch-mode.md) | Live filesystem sync |
 | [BM25 Ranking spec](../../docs/specs/bm25-ranking.md) | FTS5 lexical ranking |
 | [Compression spec](../../docs/specs/compression.md) | Body and posting compression contract |
-| [Privacy & Extensions spec](../../docs/specs/privacy-and-extensions.md) | Privacy directives and extension IPC |
+| [Privacy Directives spec](../../docs/specs/privacy-directives.md) | Directive parser, keys, storage and search contract |
+| [Privacy & Extensions spec](../../docs/specs/privacy-and-extensions.md) | Extension IPC and architecture summary |
 | [External Crypto Providers spec](../../docs/specs/external-crypto-providers.md) | Age, Vault and KMS provider contract |
 | [Weave AI Extension spec](../../docs/specs/weave-ai-plugin.md) | Optional enrichment and reranking plugin |
 | [MCP Server spec](../../docs/specs/mcp-server.md) | TCP MCP roadmap and contract |

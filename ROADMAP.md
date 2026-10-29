@@ -145,7 +145,8 @@ Privacy is **explicitly declared**, never heuristic.
 - Keys resolve from `WEAVE_KEY_<ID>` and `.weave/security.yaml`.
 - Missing keys are audit warnings; `show --decrypt` fails with exit `3`.
 
-Full contract: [Privacy & Extensions](docs/specs/privacy-and-extensions.md). External key stores:
+Full contract: [Privacy Directives](docs/specs/privacy-directives.md). Extension IPC:
+[Privacy & Extensions](docs/specs/privacy-and-extensions.md). External key stores:
 [External Crypto Providers](docs/specs/external-crypto-providers.md).
 
 ## 7. Architecture
@@ -216,7 +217,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 9 | BM25 lexical ranking | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | storage/FTS5, search contract | 3 / Phase 3 | shipped |
 | 10 | BM25 calibration | [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, calibration corpus | 3 / Phase 3 | shipped |
 | 11 | Compression | [compression.md](docs/specs/compression.md) | Tier 5 | storage schema | 3 / Phase 3 | planned |
-| 12 | Privacy directives | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | planned |
+| 12 | Privacy directives | [privacy-directives.md](docs/specs/privacy-directives.md) | Tier 5 | parser, storage, search, contract, key resolver | 4 / Phase 4 | planned |
 | 13 | Extension subprocess IPC | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | operations, contract | 5 / Phase 5 | planned |
 | 14 | Enrichment extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | planned |
 | 15 | Rerank extension | [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 5 | search, extension runner | 5 / Phase 5 | planned |
@@ -377,7 +378,8 @@ Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 - Key resolution via environment and `.weave/security.yaml`.
 - Audit key-availability checks.
 
-Spec: [Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+Specs: [Privacy Directives](docs/specs/privacy-directives.md),
+[Privacy & Extensions](docs/specs/privacy-and-extensions.md).
 
 ### Phase 5 — Extension architecture (v1.0)
 
@@ -471,6 +473,7 @@ needed.
 - [Watch Mode](docs/specs/watch-mode.md)
 - [BM25 Ranking](docs/specs/bm25-ranking.md)
 - [Compression](docs/specs/compression.md)
+- [Privacy Directives](docs/specs/privacy-directives.md)
 - [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
 - [External Crypto Providers](docs/specs/external-crypto-providers.md)
 - [Weave AI Extension](docs/specs/weave-ai-plugin.md)

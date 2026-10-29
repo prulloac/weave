@@ -16,10 +16,13 @@ status: draft
 
 # Weave: Privacy Directives & Extension Architecture Specification
 
-Status: **Proposed**  
+Status: **Proposed**
 Target: **v1.0**
 
----
+> Privacy directives are specified in detail in
+> [Privacy Directives](./privacy-directives.md), which owns the parser, key resolution, storage,
+> search and CLI contract. This document keeps the architecture summary and owns the extension IPC
+> contract.
 
 ## 1. Privacy Directives
 
@@ -171,6 +174,7 @@ The optional AI extension is specified separately: [Weave AI Extension](./weave-
 
 ## Related Documents
 
+- [Privacy Directives](./privacy-directives.md)
 - [Storage & Sync](./storage-and-sync.md)
 - [External Crypto Providers](./external-crypto-providers.md)
 - [Weave AI Extension](./weave-ai-plugin.md)
