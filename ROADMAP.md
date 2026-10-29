@@ -64,6 +64,7 @@ waves, not product versions.
 | Permissive ingestion | v1.0 | Shipped: synthetic Markdown documents with warnings |
 | BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
 | BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
+| BM25 explain | v1.0 | Shipped: lexical raw/normalized scores, fields and term evidence |
 | Memory/body compression | v1.0 | Varint/delta postings, LZ4/Zstandard body blobs |
 | Privacy directives | v1.0 | `encrypt`, `tokenize`, `hash` in frontmatter and inline comments |
 | Extension runner | v1.0 | Subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
@@ -121,7 +122,7 @@ weave audit <path> [--verify-keys] --json
 
 ### v1.0 target
 
-- **Lexical:** BM25 explain evidence remains a follow-up.
+- **Lexical:** BM25 explain evidence shipped.
 - **Fuzzy:** unchanged.
 - **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; persistent hybrid uses lexical BM25.
 - **Extensions:** optional rerankers may adjust ranking after core scoring.
@@ -222,7 +223,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 18 | Sensitive MCP policies | [mcp-server.md](docs/specs/mcp-server.md), [privacy-and-extensions.md](docs/specs/privacy-and-extensions.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | planned |
 | 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) | planned |
 | 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | planned |
-| 21 | BM25 explain evidence | [weave-explain.md](docs/specs/weave-explain.md), [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, storage, explain | 3 / Phase 3 | red |
+| 21 | BM25 explain evidence | [weave-explain.md](docs/specs/weave-explain.md), [bm25-ranking.md](docs/specs/bm25-ranking.md) | Tier 5 | BM25, storage, explain | 3 / Phase 3 | shipped |
 
 Rules:
 
@@ -301,7 +302,7 @@ privacy directives ──┬── show --decrypt
 **Wave 3 — storage consumers (parallel):**
 
 - incremental sync,
-- BM25 lexical ranking and calibration,
+- BM25 lexical ranking, calibration and explain evidence,
 - compression,
 - MCP in-memory (independent of persistence; can be pulled earlier if desired).
 

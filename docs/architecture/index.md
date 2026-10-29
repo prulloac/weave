@@ -110,7 +110,7 @@ remains the compatibility promise.
 | Fuzzy similarity | Normalized Levenshtein and trigram Dice, max |
 | Search output | Keyword, fuzzy and hybrid top-K lists |
 | Graph neighborhood | v1.0 `weave relate`, bounded BFS depth 0..5 across out/in/both |
-| Explainability | v1.0 `weave explain`, per-token keyword and per-field fuzzy evidence |
+| Explainability | v1.0 `weave explain`, keyword/fuzzy/BM25 evidence and hybrid breakdown |
 | Ingestion | Strict OKF for parse/graph/search; permissive mode for `ingest`/`rebuild`/`audit` |
 | Default mode | Hybrid |
 | Default top-K | 10; max 100 |
@@ -183,5 +183,5 @@ Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` recon
 by SHA-256 hash, and persistent hybrid search combines normalized BM25 with fuzzy scores.
 Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — watch, BM25 explain, privacy, extensions and MCP — is specified but not
-implemented. The operations layer keeps MCP independently schedulable within v1.0.
+The remaining v1.0 scope — watch, privacy, extensions and MCP — is specified but not implemented.
+The operations layer keeps MCP independently schedulable within v1.0.

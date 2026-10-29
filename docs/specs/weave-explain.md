@@ -15,7 +15,7 @@ status: stable
 
 # Specification: Weave Explain
 
-Status: **Implemented** for v1.0.
+Status: **Implemented**, including BM25 and persistent-hybrid evidence.
 
 ## 1. Overview
 

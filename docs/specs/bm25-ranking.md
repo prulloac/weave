@@ -16,8 +16,7 @@ status: stable
 
 # Specification: BM25 Lexical Ranking
 
-Status: **BM25 mode, FTS indexing and hybrid calibration implemented** for v1.0. BM25 explain
-evidence remains a follow-up.
+Status: **BM25 mode, FTS indexing, hybrid calibration and explain evidence implemented** for v1.0.
 
 ## 1. Overview
 
@@ -60,8 +59,7 @@ weave explain <path> <query> --mode bm25 --id <id> --json
 - `keyword` is an alias for `exact` during the v1.0 transition; new documentation prefers `exact`.
 - Default mode remains `hybrid`.
 - `--mode bm25` is additive; it does not change existing `keyword` or `fuzzy` results.
-- This slice delivers `bm25` and FTS indexing. The hybrid BM25 rebase, BM25 explain evidence and
-  calibration corpus are delivered with the calibration slice.
+- BM25 mode, FTS indexing, hybrid calibration and explain evidence are implemented.
 - `--mode bm25` requires persistent storage. With `--no-db`, it is `INVALID_REQUEST` with exit `2`.
 - Persistent `--mode hybrid` uses normalized BM25 + fuzzy. `--no-db --mode hybrid` retains the
   legacy keyword + fuzzy fallback for transient operation.
@@ -158,9 +156,15 @@ total = a * bm25_norm + b * fuzzy_score + c * rerank_score
 
 ## 8. Explain Integration
 
-BM25 explain evidence (`raw_score`, normalized score, per-term contributions, matched fields and
-field frequencies) is a follow-up explain slice. This calibration slice covers ranking and
-calibration only.
+`weave explain --mode bm25` reports:
+
+- raw BM25 score,
+- normalized score,
+- per-query-term contributions,
+- matched FTS fields.
+
+Persistent `weave explain --mode hybrid` includes BM25, fuzzy and hybrid components. Field
+frequencies are not exposed yet; term contributions are raw single-term BM25 scores.
 
 ## 9. Calibration
 
@@ -205,7 +209,7 @@ Baseline metrics:
 - FTS rows are created on ingest and updated on sync.
 - `--mode bm25` works against the default database and fails cleanly without persistence.
 - Exact mode preserves existing behavior.
-- BM25 explain evidence remains a follow-up explain slice.
+- BM25 explain evidence exposes raw/normalized scores, matched fields and term contributions.
 
 ## Related Documents
 

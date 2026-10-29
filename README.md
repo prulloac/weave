@@ -171,12 +171,13 @@ Spec: [Weave Relate](docs/specs/weave-relate.md).
 
 #### `weave explain`
 
-Explain a search result: matched keywords, per-field fuzzy contributions and the hybrid score
-breakdown.
+Explain a search result: matched keywords, per-field fuzzy contributions, BM25 lexical evidence and
+the hybrid score breakdown.
 
 ```sh
 weave explain ~/notes "oauth tokn" --json
 weave explain ~/notes oauth --id concepts/oauth-token-rotation --mode keyword
+weave explain ~/notes "alpha beta" --mode bm25 --id concepts/alpha --json
 ```
 
 Spec: [Weave Explain](docs/specs/weave-explain.md).
