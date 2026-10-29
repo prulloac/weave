@@ -16,7 +16,7 @@ status: draft
 
 # Specification: Release Automation
 
-Status: **Proposed**
+Status: **Implemented** (workflow, packaging helpers and version injection).
 Target: **v1.0**
 
 ## 1. Overview
@@ -85,7 +85,9 @@ weave_<version>_buildinfo.txt
 ```
 
 - `<version>` omits the leading `v` (`v1.2.3` → `weave_1.2.3_linux_amd64.tar.gz`).
-- Archives contain a single `weave` binary (`weave.exe` on Windows), `README.md` and `LICENSE`.
+- Archives contain a single `weave` binary (`weave.exe` on Windows) and `README.md`; `LICENSE` is
+  included when the repository has one. Weave currently ships without a license file, so release
+  archives omit it until licensing is decided.
 - `checksums.txt` lists every archive with lowercase SHA-256, sorted by filename.
 - `buildinfo.txt` records version, commit SHA, Go version and build timestamp.
 - `weave version` prints the tag version, never `dev`.

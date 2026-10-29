@@ -86,7 +86,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 | Feature | Spec | PR | Spec | BDD | TDD | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Release automation | [release-automation.md](specs/release-automation.md) | - | x | x | - | red |
+| Release automation | [release-automation.md](specs/release-automation.md) | - | x | x | x | green |
 | Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | - | - | backlog |
 | Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | - | - | backlog |
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | - | - | backlog |
@@ -126,6 +126,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Watch reload: polling sync loop, MCP live updates and clean shutdown
 - [x] Privacy directives: encrypt/tokenize/hash, key resolution, redaction and alias search
 - [x] Extensions: discovery, `weave.cli/v1` runner, enrichment keywords and rerank blending
+- [x] Release automation: tag-driven verified builds, archives, checksums and draft releases
 - [x] Body compression: zstd default, LZ4 opt-in, per-row codec and decode recovery
 
 ## Dependency Order
@@ -144,7 +145,7 @@ Execution waves:
 5. Watch (done) and privacy directives (done).
 6. Extension runner, enrichment and rerank (done); sensitive MCP.
 7. AI plugin, external crypto, `weave sync --watch` CLI wiring.
-8. Release automation, bundle export, multiple bundle sources.
+8. Release automation (done), bundle export, multiple bundle sources.
 9. Optimization program (benchmarks, budgets, refactors) and global configuration/UX.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.

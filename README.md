@@ -40,6 +40,11 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 go build -o weave ./cmd/weave
 ```
 
+Releases are produced by `.github/workflows/release.yml`: an annotated `v*` tag verifies the
+repository, builds six static targets, writes sorted checksums and creates a draft GitHub Release.
+`workflow_dispatch` performs a build-only dry run. See the
+[release automation spec](docs/specs/release-automation.md).
+
 ## Usage
 
 ```sh
@@ -366,6 +371,7 @@ Calibration corpus: `engine/search/testdata/calibration.json`.
 ```text
 cmd/weave/              CLI
 cmd/contract-export/    golden corpus generator
+cmd/release-package/    release archive and checksum builder
 contract/v1/            schemas, Go types, fixtures
 engine/okf/             bundle parser, links, validation, cache
 engine/graph/           nodes, edges, traversal
@@ -376,6 +382,7 @@ storage/sqlite/          bundle-scoped persistent storage and incremental sync
 engine/privacy/          directive parsing, key resolution and crypto providers
 engine/compression/      zstd and LZ4 body codecs
 engine/extensions/       weave-<name> discovery and weave.cli/v1 transport
+release/                 release archives, checksums and build info
 mcp/                    MCP tool descriptors, resources and in-process dispatch
 watch/                  polling watcher over incremental sync
 engine/nav/             list, show, backlinks, path

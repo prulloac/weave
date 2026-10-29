@@ -39,7 +39,8 @@ checksums and creates a **draft** GitHub Release. Packaging helpers are covered 
 
 - **Given** a built binary
 - **When** I package it
-- **Then** the archive contains `weave` (or `weave.exe`), `README.md` and `LICENSE`
+- **Then** the archive contains `weave` (or `weave.exe`) and `README.md`
+- **And** `LICENSE` is included when present
 - **And** the binary is executable inside tar archives
 
 ### Scenario: Checksums are sorted and correct
