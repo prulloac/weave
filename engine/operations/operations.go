@@ -421,6 +421,30 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"op": request.Op,
 		})
 	}
+	if request.DryRun {
+		options := e.Options
+		options.Permissive = permissive
+		eng, err := engine.Open(ctx, request.Path, options)
+		if err != nil {
+			code, message := mapOpenError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+		defer eng.Close()
+		dbPath, err := resolveDBPath(request.DB)
+		if err != nil {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+		}
+		bundle := eng.Bundle()
+		return success(contractv1.IngestReport{
+			DB:        dbPath,
+			Bundle:    bundle.Root,
+			Mode:      mode,
+			Documents: len(bundle.Concepts),
+			Edges:     len(graph.SortedEdges(eng.Graph())),
+			Warnings:  len(bundle.Validation.Warnings),
+			DryRun:    true,
+		})
+	}
 	enricher, err := e.newEnricher(request)
 	if err != nil {
 		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
@@ -506,6 +530,25 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	if request.Codec != "" && !compression.Valid(request.Codec) {
 		return failure(contractv1.ErrInvalidRequest, "codec must be zstd, lz4 or none", map[string]any{
 			"op": request.Op,
+		})
+	}
+	if request.DryRun {
+		options := e.Options
+		options.Permissive = request.Permissive
+		eng, err := engine.Open(ctx, request.Path, options)
+		if err != nil {
+			code, message := mapOpenError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+		defer eng.Close()
+		bundle := eng.Bundle()
+		return success(contractv1.SyncReport{
+			DB:        dbPath,
+			Bundle:    bundle.Root,
+			Mode:      mode,
+			Documents: len(bundle.Concepts),
+			Warnings:  len(bundle.Validation.Warnings),
+			DryRun:    true,
 		})
 	}
 	enricher, err := e.newEnricher(request)

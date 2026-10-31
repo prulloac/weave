@@ -506,6 +506,7 @@ type IngestReport struct {
 	Synthetic int            `json:"synthetic"`
 	Warnings  int            `json:"warnings"`
 	Errors    int            `json:"errors"`
+	DryRun    bool           `json:"dry_run,omitempty"`
 	Sources   []SourceReport `json:"sources,omitempty"`
 }
 
@@ -521,6 +522,7 @@ type SyncReport struct {
 	Skipped   int            `json:"skipped"`
 	Warnings  int            `json:"warnings"`
 	Errors    int            `json:"errors"`
+	DryRun    bool           `json:"dry_run,omitempty"`
 	Sources   []SourceReport `json:"sources,omitempty"`
 }
 
@@ -608,6 +610,7 @@ type ExportReport struct {
 	Encrypted    int    `json:"encrypted"`
 	Tokenized    int    `json:"tokenized"`
 	Hashed       int    `json:"hashed"`
+	DryRun       bool   `json:"dry_run,omitempty"`
 	Confirmation bool   `json:"confirmation_required,omitempty"`
 }
 
@@ -646,6 +649,7 @@ type OperationRequest struct {
 	Provider   string          `json:"provider,omitempty"`
 	Force      bool            `json:"force,omitempty"`
 	Confirmed  bool            `json:"confirmed,omitempty"`
+	DryRun     bool            `json:"dry_run,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

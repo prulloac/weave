@@ -39,6 +39,7 @@ var commandHelpText = map[string]commandHelp{
 			"--strict | --permissive            validation mode",
 			"--codec zstd|lz4|none              body compression",
 			"--with-enricher <name>             enrich documents during the write",
+			"--dry-run                          preview counts without writing",
 			"--provider <name>                  external crypto provider",
 		},
 		Examples: []string{
@@ -64,6 +65,7 @@ var commandHelpText = map[string]commandHelp{
 			"--codec zstd|lz4|none              override the stored codec",
 			"--watch [--events]                 poll and sync; JSONL events with --json",
 			"--with-enricher <name>             enrich changed documents",
+			"--dry-run                          preview counts without writing",
 		},
 		Examples: []string{
 			`weave sync ~/notes --json`,
@@ -108,6 +110,8 @@ var commandHelpText = map[string]commandHelp{
 			"--key-id <id>                      export key for encrypted format",
 			"--yes                              confirm raw plaintext export",
 			"--force                            write into a non-empty target",
+			"--dry-run                          preview counts without writing",
+			"--no-input                         fail instead of prompting",
 			"--provider <name>                  external crypto provider",
 		},
 		Examples: []string{

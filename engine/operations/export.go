@@ -36,7 +36,7 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 	if format != "raw" && format != "encrypted" {
 		return failure(contractv1.ErrInvalidRequest, "format must be raw or encrypted", map[string]any{"format": request.Format})
 	}
-	if format == "raw" && !request.Confirmed {
+	if format == "raw" && !request.Confirmed && !request.DryRun {
 		return failure(contractv1.ErrConfirmation, "raw export writes plaintext; pass --yes after confirming", nil)
 	}
 	if format == "encrypted" && request.KeyID == "" {
@@ -92,6 +92,26 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			"path": root,
 			"out":  out,
 		})
+	}
+	if request.DryRun {
+		report := contractv1.ExportReport{
+			Source:    root,
+			Out:       out,
+			Format:    format,
+			Documents: len(bundle.Concepts),
+			DryRun:    true,
+		}
+		for _, concept := range bundle.Concepts {
+			switch conceptPolicy(concept) {
+			case contractv1.PrivacyEncrypt:
+				report.Encrypted++
+			case contractv1.PrivacyTokenize:
+				report.Tokenized++
+			case contractv1.PrivacyHash:
+				report.Hashed++
+			}
+		}
+		return success(report)
 	}
 
 	if err := preflightExportKeys(root, bundle, format, request.KeyID, provider); err != nil {

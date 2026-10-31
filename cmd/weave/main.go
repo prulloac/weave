@@ -26,8 +26,6 @@ import (
 
 var version = "dev"
 
-const contractVersion = "weave.contract/v1"
-
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
@@ -148,6 +146,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		if flags.events && !flags.json {
 			return usageError(stdout, stderr, flags.json, "--events requires --json")
 		}
+		if flags.dryRun {
+			return usageError(stdout, stderr, flags.json, "--watch does not support --dry-run")
+		}
 		if len(flags.sources) > 0 || flags.enricher != "" || flags.rerank != "" {
 			return usageError(stdout, stderr, flags.json, "--watch does not support --source, --with-enricher or --rerank")
 		}
@@ -161,6 +162,17 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.Force = flags.force
 	request.Confirmed = flags.yes
 	request.Provider = flags.provider
+	request.DryRun = flags.dryRun
+	if flags.dryRun {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpExport:
+		default:
+			return usageError(stdout, stderr, flags.json, "--dry-run is only valid for ingest, rebuild, sync and export")
+		}
+	}
+	if flags.noInput && request.Op != contractv1.OpExport {
+		return usageError(stdout, stderr, flags.json, "--no-input is only valid for export")
+	}
 	if flags.provider != "" {
 		switch request.Op {
 		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpShow,
@@ -184,7 +196,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		if format == "encrypted" && flags.keyID == "" {
 			return usageError(stdout, stderr, flags.json, "encrypted export requires --key-id")
 		}
-		if format == "raw" && !flags.yes && !flags.json && stdinIsTerminal() {
+		if format == "raw" && !flags.yes && !flags.dryRun && !flags.noInput && !flags.json && stdinIsTerminal() {
 			fmt.Fprintf(stderr, "WARNING: raw export writes plaintext document bodies to %s\nContinue? [y/N] ", flags.out)
 			answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 			answer = strings.ToLower(strings.TrimSpace(answer))
@@ -292,6 +304,8 @@ type flags struct {
 	force        bool
 	yes          bool
 	provider     string
+	dryRun       bool
+	noInput      bool
 	cacheDir     string
 	configPath   string
 	noConfig     bool
@@ -487,6 +501,10 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.provider = value
+		case "--dry-run":
+			result.dryRun = true
+		case "--no-input":
+			result.noInput = true
 		case "--config":
 			value, next, err := flagValue(args, index, "--config")
 			if err != nil {
@@ -933,6 +951,9 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		return 0
 	case contractv1.OpExport:
 		report := result.(contractv1.ExportReport)
+		if report.DryRun {
+			fmt.Fprintln(stdout, "dry run: no files written")
+		}
 		fmt.Fprintf(stdout, "exported %d documents to %s (%s)\n", report.Documents, report.Out, report.Format)
 		fmt.Fprintf(stdout, "encrypted=%d tokenized=%d hashed=%d\n", report.Encrypted, report.Tokenized, report.Hashed)
 		return 0
@@ -1068,12 +1089,18 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		return 0
 	case contractv1.OpIngest, contractv1.OpRebuild:
 		report := result.(contractv1.IngestReport)
+		if report.DryRun {
+			fmt.Fprintln(stdout, "dry run: no changes written")
+		}
 		fmt.Fprintf(stdout, "%s: %d documents, %d edges (%s)\n",
 			report.Bundle, report.Documents, report.Edges, report.Mode)
 		fmt.Fprintf(stdout, "db: %s\n", report.DB)
 		return 0
 	case contractv1.OpSync:
 		report := result.(contractv1.SyncReport)
+		if report.DryRun {
+			fmt.Fprintln(stdout, "dry run: no changes written")
+		}
 		fmt.Fprintf(stdout, "%s: %d documents (%d added, %d updated, %d removed, %d skipped)\n",
 			report.Bundle, report.Documents, report.Added, report.Updated, report.Removed, report.Skipped)
 		fmt.Fprintf(stdout, "db: %s (%s)\n", report.DB, report.Mode)

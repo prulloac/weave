@@ -1483,6 +1483,9 @@
 					"items": {
 						"$ref": "#/$defs/SourceReport"
 					}
+				},
+				"dry_run": {
+					"type": "boolean"
 				}
 			}
 		},
@@ -1548,6 +1551,9 @@
 					"items": {
 						"$ref": "#/$defs/SourceReport"
 					}
+				},
+				"dry_run": {
+					"type": "boolean"
 				}
 			}
 		},
@@ -1979,6 +1985,9 @@
 					"type": "integer"
 				},
 				"confirmation_required": {
+					"type": "boolean"
+				},
+				"dry_run": {
 					"type": "boolean"
 				}
 			}
