@@ -111,6 +111,10 @@ func Open(path string) (*Store, error) {
 			db.Close()
 			return nil, err
 		}
+		if err := migrateV4toV5(db); err != nil {
+			db.Close()
+			return nil, err
+		}
 		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
 			db.Close()
 			return nil, err
@@ -124,12 +128,29 @@ func Open(path string) (*Store, error) {
 			db.Close()
 			return nil, err
 		}
+		if err := migrateV4toV5(db); err != nil {
+			db.Close()
+			return nil, err
+		}
 		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
 			db.Close()
 			return nil, err
 		}
 	case 3:
 		if err := migrateV3toV4(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+		if err := migrateV4toV5(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
+			db.Close()
+			return nil, err
+		}
+	case 4:
+		if err := migrateV4toV5(db); err != nil {
 			db.Close()
 			return nil, err
 		}

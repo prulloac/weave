@@ -82,6 +82,11 @@ func populateSearchTokens(
 				root, field, token, encodePostings(postings[field][token])); err != nil {
 				return err
 			}
+			if _, err := tx.ExecContext(ctx, `
+				INSERT OR IGNORE INTO search_vocabulary (bundle_root, field, token)
+				VALUES (?, ?, ?)`, root, field, token); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -213,12 +218,22 @@ func updateSearchTokens(
 					root, field, token); err != nil {
 					return err
 				}
+				if _, err := tx.ExecContext(ctx,
+					"DELETE FROM search_vocabulary WHERE bundle_root = ? AND field = ? AND token = ?",
+					root, field, token); err != nil {
+					return err
+				}
 				continue
 			}
 			if _, err := tx.ExecContext(ctx, `
 				INSERT OR REPLACE INTO search_tokens (bundle_root, field, token, postings)
 				VALUES (?, ?, ?, ?)`,
 				root, field, token, encodePostings(posting)); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `
+				INSERT OR IGNORE INTO search_vocabulary (bundle_root, field, token)
+				VALUES (?, ?, ?)`, root, field, token); err != nil {
 				return err
 			}
 		}

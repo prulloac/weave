@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
-	"sync"
+	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/compression"
@@ -44,30 +44,16 @@ func (s *Store) FuzzyHits(
 		return []contractv1.FuzzyHit{}, nil
 	}
 
-	var count int
-	if err := s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM search_tokens WHERE bundle_root = ?", root).Scan(&count); err != nil {
-		return nil, err
-	}
-	if count == 0 {
-		return nil, ErrSearchIndexUnavailable
-	}
-	var private int
-	if err := s.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM documents WHERE bundle_root = ? AND privacy_policy != 'none'", root).Scan(&private); err != nil {
-		return nil, err
-	}
-	if private > 0 {
-		return nil, ErrSearchIndexUnavailable
-	}
-
 	documentIDs, err := s.searchDocumentIDs(ctx, root)
 	if err != nil {
 		return nil, err
 	}
-	postings, err := s.searchTokenPostings(ctx, root)
+	vocabulary, err := s.searchVocabulary(ctx, root)
 	if err != nil {
 		return nil, err
+	}
+	if len(vocabulary) == 0 {
+		return nil, ErrSearchIndexUnavailable
 	}
 
 	fields := []contractv1.SearchField{
@@ -75,48 +61,45 @@ func (s *Store) FuzzyHits(
 		contractv1.FieldDescription,
 		contractv1.FieldBody,
 	}
+	candidates := fuzzyCandidateScores(vocabulary, queryTokens, fields)
+	postings, err := s.searchPostingsFor(ctx, root, candidates)
+	if err != nil {
+		return nil, err
+	}
+
 	fieldScores := make([]map[int32][]float64, len(fields))
 	for index := range fieldScores {
 		fieldScores[index] = make(map[int32][]float64)
 	}
 	bodyTokens := make(map[int32][]string)
-
-	var wait sync.WaitGroup
 	for fieldIndex, field := range fields {
-		fieldIndex, field := fieldIndex, field
-		wait.Add(1)
-		go func() {
-			defer wait.Done()
-			for queryPosition, queryToken := range queryTokens {
-				profile := search.NewTokenProfile(queryToken)
-				for token, posting := range postings[string(field)] {
-					similarity := profile.Similarity(token)
-					if similarity < search.FuzzyThreshold {
-						continue
+		for token, values := range candidates[string(field)] {
+			posting := postings[string(field)][token]
+			for queryPosition, similarity := range values {
+				if similarity == 0 {
+					continue
+				}
+				for _, documentIndex := range posting {
+					current := fieldScores[fieldIndex][documentIndex]
+					if len(current) == 0 {
+						current = make([]float64, len(queryTokens))
 					}
-					for _, documentIndex := range posting {
-						values := fieldScores[fieldIndex][documentIndex]
-						if len(values) == 0 {
-							values = make([]float64, len(queryTokens))
-						}
-						if similarity > values[queryPosition] {
-							values[queryPosition] = similarity
-							if field == contractv1.FieldBody {
-								bodyValues := bodyTokens[documentIndex]
-								if len(bodyValues) == 0 {
-									bodyValues = make([]string, len(queryTokens))
-								}
-								bodyValues[queryPosition] = token
-								bodyTokens[documentIndex] = bodyValues
+					if similarity > current[queryPosition] {
+						current[queryPosition] = similarity
+						if field == contractv1.FieldBody {
+							bodyValues := bodyTokens[documentIndex]
+							if len(bodyValues) == 0 {
+								bodyValues = make([]string, len(queryTokens))
 							}
+							bodyValues[queryPosition] = token
+							bodyTokens[documentIndex] = bodyValues
 						}
-						fieldScores[fieldIndex][documentIndex] = values
 					}
+					fieldScores[fieldIndex][documentIndex] = current
 				}
 			}
-		}()
+		}
 	}
-	wait.Wait()
 
 	seen := make(map[int32]bool)
 	for fieldIndex := range fields {
@@ -237,28 +220,99 @@ func (s *Store) searchDocument(ctx context.Context, root, id string) (searchDocu
 	return document, nil
 }
 
-func (s *Store) searchTokenPostings(ctx context.Context, root string) (map[string]map[string][]int32, error) {
+func fuzzyCandidateScores(
+	vocabulary map[string][]string,
+	queryTokens []string,
+	fields []contractv1.SearchField,
+) map[string]map[string][]float64 {
+	candidates := make(map[string]map[string][]float64, len(fields))
+	for _, field := range fields {
+		candidates[string(field)] = make(map[string][]float64)
+		for queryPosition, queryToken := range queryTokens {
+			profile := search.NewTokenProfile(queryToken)
+			for _, token := range vocabulary[string(field)] {
+				similarity := profile.Similarity(token)
+				if similarity < search.FuzzyThreshold {
+					continue
+				}
+				values := candidates[string(field)][token]
+				if values == nil {
+					values = make([]float64, len(queryTokens))
+				}
+				if similarity > values[queryPosition] {
+					values[queryPosition] = similarity
+				}
+				candidates[string(field)][token] = values
+			}
+		}
+	}
+	return candidates
+}
+
+func (s *Store) searchVocabulary(ctx context.Context, root string) (map[string][]string, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT field, token, postings
-		FROM search_tokens
-		WHERE bundle_root = ?`, root)
+		SELECT field, token FROM search_vocabulary WHERE bundle_root = ?`, root)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	postings := make(map[string]map[string][]int32)
+	vocabulary := make(map[string][]string)
 	for rows.Next() {
 		var field, token string
-		var blob []byte
-		if err := rows.Scan(&field, &token, &blob); err != nil {
+		if err := rows.Scan(&field, &token); err != nil {
+			return nil, err
+		}
+		vocabulary[field] = append(vocabulary[field], token)
+	}
+	return vocabulary, rows.Err()
+}
+
+func (s *Store) searchPostingsFor(
+	ctx context.Context,
+	root string,
+	candidates map[string]map[string][]float64,
+) (map[string]map[string][]int32, error) {
+	postings := make(map[string]map[string][]int32)
+	for field, tokens := range candidates {
+		if len(tokens) == 0 {
+			continue
+		}
+		names := make([]string, 0, len(tokens))
+		args := make([]any, 0, len(tokens)+2)
+		args = append(args, root, field)
+		for token := range tokens {
+			names = append(names, token)
+			args = append(args, token)
+		}
+		query := "SELECT token, postings FROM search_tokens WHERE bundle_root = ? AND field = ? AND token IN (" +
+			strings.TrimSuffix(strings.Repeat("?,", len(names)), ",") + ")"
+		if len(names) > 400 {
+			query = "SELECT token, postings FROM search_tokens WHERE bundle_root = ? AND field = ?"
+			args = []any{root, field}
+		}
+		rows, err := s.db.QueryContext(ctx, query, args...)
+		if err != nil {
 			return nil, err
 		}
 		if postings[field] == nil {
 			postings[field] = make(map[string][]int32)
 		}
-		postings[field][token] = decodePostings(blob)
+		for rows.Next() {
+			var token string
+			var blob []byte
+			if err := rows.Scan(&token, &blob); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			postings[field][token] = decodePostings(blob)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		rows.Close()
 	}
-	return postings, rows.Err()
+	return postings, nil
 }
 
 func (s *Store) searchBodyText(ctx context.Context, root, id string) (string, error) {

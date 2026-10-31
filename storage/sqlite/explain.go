@@ -31,11 +31,11 @@ func (s *Store) ExplainFuzzy(
 	if documentIndex >= len(documentIDs) || documentIDs[documentIndex] != target {
 		return contractv1.ExplainFuzzy{}, search.ErrConceptNotFound
 	}
-	postings, err := s.searchTokenPostings(ctx, root)
+	vocabulary, err := s.searchVocabulary(ctx, root)
 	if err != nil {
 		return contractv1.ExplainFuzzy{}, err
 	}
-	if len(postings) == 0 {
+	if len(vocabulary) == 0 {
 		return contractv1.ExplainFuzzy{}, ErrSearchIndexUnavailable
 	}
 
@@ -43,6 +43,11 @@ func (s *Store) ExplainFuzzy(
 		contractv1.FieldTitle,
 		contractv1.FieldDescription,
 		contractv1.FieldBody,
+	}
+	candidates := fuzzyCandidateScores(vocabulary, queryTokens, fields)
+	postings, err := s.searchPostingsFor(ctx, root, candidates)
+	if err != nil {
+		return contractv1.ExplainFuzzy{}, err
 	}
 	fieldScores := make([]float64, len(fields))
 	fieldTokens := make([][]string, len(fields))
@@ -53,19 +58,17 @@ func (s *Store) ExplainFuzzy(
 		values := make([]float64, len(queryTokens))
 		tokens := make([]string, len(queryTokens))
 		for queryPosition, queryToken := range queryTokens {
-			profile := search.NewTokenProfile(queryToken)
 			bestSimilarity := 0.0
 			bestToken := ""
-			for token, posting := range postings[string(field)] {
-				if !containsPosting(posting, targetIndex) {
+			for token, similarities := range candidates[string(field)] {
+				similarity := similarities[queryPosition]
+				if similarity == 0 || !containsPosting(postings[string(field)][token], targetIndex) {
 					continue
 				}
-				similarity := profile.Similarity(token)
-				if similarity < search.FuzzyThreshold || similarity <= bestSimilarity {
-					continue
+				if similarity > bestSimilarity {
+					bestSimilarity = similarity
+					bestToken = token
 				}
-				bestSimilarity = similarity
-				bestToken = token
 			}
 			values[queryPosition] = bestSimilarity
 			tokens[queryPosition] = bestToken

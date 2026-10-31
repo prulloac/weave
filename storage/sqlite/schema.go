@@ -2,7 +2,7 @@ package sqlite
 
 import "database/sql"
 
-const schemaVersion = 4
+const schemaVersion = 5
 
 func userVersion(db *sql.DB) (int, error) {
 	var version int
@@ -45,6 +45,17 @@ CREATE TABLE IF NOT EXISTS search_tokens (
     field TEXT NOT NULL,
     token TEXT NOT NULL,
     postings BLOB NOT NULL,
+    PRIMARY KEY (bundle_root, field, token)
+);`)
+	return err
+}
+
+func migrateV4toV5(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS search_vocabulary (
+    bundle_root TEXT NOT NULL,
+    field TEXT NOT NULL,
+    token TEXT NOT NULL,
     PRIMARY KEY (bundle_root, field, token)
 );`)
 	return err
@@ -120,6 +131,12 @@ CREATE TABLE IF NOT EXISTS search_tokens (
     field TEXT NOT NULL,
     token TEXT NOT NULL,
     postings BLOB NOT NULL,
+    PRIMARY KEY (bundle_root, field, token)
+);
+CREATE TABLE IF NOT EXISTS search_vocabulary (
+    bundle_root TEXT NOT NULL,
+    field TEXT NOT NULL,
+    token TEXT NOT NULL,
     PRIMARY KEY (bundle_root, field, token)
 );
 CREATE TABLE IF NOT EXISTS enrichments (
