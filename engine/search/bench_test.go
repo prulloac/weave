@@ -22,7 +22,9 @@ func openCorpus(b *testing.B, name string) *engine.Engine {
 	if len(bundle.Concepts) == 0 {
 		b.Fatal("empty bundle")
 	}
-	return engine.FromBundle(bundle)
+	eng := engine.FromBundle(bundle)
+	eng.SearchIndex()
+	return eng
 }
 
 func BenchmarkSearchCorpus(b *testing.B) {
@@ -39,15 +41,30 @@ func BenchmarkSearchCorpus(b *testing.B) {
 	for _, item := range modes {
 		item := item
 		b.Run("mode="+item.name, func(b *testing.B) {
+			query := "term0001 term0002"
+			if item.mode == contractv1.SearchKeyword {
+				query = "kw000 kw001"
+			}
 			b.ReportAllocs()
 			b.SetBytes(manifest.Profiles["10k"].BodyBytes)
 			for index := 0; index < b.N; index++ {
-				response, err := eng.Search("term0001 term0002", item.mode, 10)
+				response, err := eng.Search(query, item.mode, 10)
 				if err != nil {
 					b.Fatal(err)
 				}
-				if len(response.Hybrid) == 0 && len(response.Keyword) == 0 && len(response.Fuzzy) == 0 {
-					b.Fatal("empty search response")
+				switch item.mode {
+				case contractv1.SearchKeyword:
+					if len(response.Keyword) == 0 {
+						b.Fatal("empty keyword response")
+					}
+				case contractv1.SearchFuzzy:
+					if len(response.Fuzzy) == 0 {
+						b.Fatal("empty fuzzy response")
+					}
+				default:
+					if len(response.Hybrid) == 0 {
+						b.Fatal("empty hybrid response")
+					}
 				}
 			}
 		})
@@ -63,8 +80,9 @@ func BenchmarkSearchBuild10K(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		if engine.FromBundle(bundle) == nil {
-			b.Fatal("nil engine")
+		eng := engine.FromBundle(bundle)
+		if eng == nil || eng.SearchIndex() == nil {
+			b.Fatal("nil engine or index")
 		}
 	}
 }

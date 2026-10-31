@@ -11,6 +11,65 @@ import (
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
+func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.OperationRequest) any {
+	topK := 10
+	if request.TopK != nil {
+		topK = *request.TopK
+	}
+	if topK < 1 || topK > 100 {
+		return failure(contractv1.ErrInvalidRequest, "top_k must be between 1 and 100", map[string]any{
+			"top_k": topK,
+		})
+	}
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
+	store, err := sqlitestore.OpenExisting(dbPath)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"db": dbPath})
+	}
+	defer store.Close()
+	indexed, err := store.HasBundle(ctx, request.Path)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
+	if !indexed {
+		return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
+			"path": request.Path,
+		})
+	}
+	hits, err := store.KeywordHits(ctx, request.Path, request.Query, topK)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
+	hybrid := make([]contractv1.HybridHit, 0, len(hits))
+	for _, hit := range hits {
+		hybrid = append(hybrid, contractv1.HybridHit{
+			ID:              hit.ID,
+			Title:           hit.Title,
+			Path:            hit.Path,
+			Type:            hit.Type,
+			KeywordScore:    hit.Score,
+			FuzzyScore:      0,
+			TotalScore:      search.RoundScore(0.5 * hit.Score),
+			MatchedKeywords: hit.MatchedKeywords,
+			MatchedFields:   []contractv1.SearchField{},
+		})
+	}
+	return success(contractv1.SearchResponse{
+		Query:   request.Query,
+		Mode:    contractv1.SearchKeyword,
+		TopK:    topK,
+		Keyword: hits,
+		Fuzzy:   []contractv1.FuzzyHit{},
+		Hybrid:  hybrid,
+	})
+}
+
 func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationRequest) any {
 	if request.NoDB {
 		return failure(contractv1.ErrInvalidRequest, "bm25 requires persistent storage; remove --no-db", map[string]any{

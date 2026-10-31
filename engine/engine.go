@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"sync"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
@@ -21,12 +22,16 @@ type Options struct {
 	OnCacheHit  func(path string)
 }
 
-// Engine is an immutable parsed bundle with graph and search views.
+// Engine is an immutable parsed bundle with a graph and lazy search views.
 type Engine struct {
 	root   string
 	bundle *contractv1.Bundle
 	graph  *graph.Graph
-	search *search.Index
+
+	searchOnce  sync.Once
+	searchIndex *search.Index
+	keywordOnce sync.Once
+	keywordIdx  *search.Index
 }
 
 // Open parses a bundle and builds its graph and search index once.
@@ -46,25 +51,30 @@ func Open(ctx context.Context, root string, options Options) (*Engine, error) {
 	return FromBundle(bundle), nil
 }
 
-// FromBundle builds an engine from an already parsed bundle.
+// FromBundle builds an engine from an already parsed bundle. Graph is built
+// eagerly; search structures are built on first use.
 func FromBundle(bundle *contractv1.Bundle) *Engine {
-	nodeGraph := graph.Build(bundle)
-	searchIndex := search.Build(bundle, nodeGraph)
 	return &Engine{
 		root:   bundle.Root,
 		bundle: bundle,
-		graph:  nodeGraph,
-		search: searchIndex,
+		graph:  graph.Build(bundle),
 	}
 }
 
 func (e *Engine) Root() string               { return e.root }
 func (e *Engine) Bundle() *contractv1.Bundle { return e.bundle }
 func (e *Engine) Graph() *graph.Graph        { return e.graph }
-func (e *Engine) SearchIndex() *search.Index { return e.search }
+
+// SearchIndex returns the full keyword, fuzzy and trigram index.
+func (e *Engine) SearchIndex() *search.Index {
+	e.searchOnce.Do(func() {
+		e.searchIndex = search.Build(e.bundle, e.graph)
+	})
+	return e.searchIndex
+}
 
 func (e *Engine) Search(query string, mode contractv1.SearchMode, topK int) (contractv1.SearchResponse, error) {
-	return search.Search(e.search, query, mode, topK)
+	return search.Search(e.indexForMode(mode), query, mode, topK)
 }
 
 func (e *Engine) Explain(
@@ -73,7 +83,17 @@ func (e *Engine) Explain(
 	topK int,
 	target string,
 ) (contractv1.ExplainResult, error) {
-	return search.Explain(e.search, query, mode, topK, target)
+	return search.Explain(e.indexForMode(mode), query, mode, topK, target)
+}
+
+func (e *Engine) indexForMode(mode contractv1.SearchMode) *search.Index {
+	if mode == contractv1.SearchKeyword {
+		e.keywordOnce.Do(func() {
+			e.keywordIdx = search.BuildKeywords(e.bundle)
+		})
+		return e.keywordIdx
+	}
+	return e.SearchIndex()
 }
 
 func (e *Engine) List(filters nav.ListFilters) []contractv1.ListResult {

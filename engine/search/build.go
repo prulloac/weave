@@ -20,13 +20,11 @@ type Document struct {
 	ID            string
 	Title         string
 	Description   string
-	Body          string
 	BodyText      string
 	Type          string
 	Path          string
 	Keywords      []string
 	KeywordOrigin map[string]string
-	FieldTokens   map[contractv1.SearchField][]string
 }
 
 // Index is the in-memory keyword and fuzzy index.
@@ -37,19 +35,38 @@ type Index struct {
 	TrigramIndex    map[contractv1.SearchField]map[string]map[string]bool
 }
 
+// BuildOptions controls which search structures are materialized.
+type BuildOptions struct {
+	KeywordOnly bool
+	Trigrams    bool
+}
+
 // Build indexes a parsed bundle. The graph is accepted for future
 // relationship-aware ranking but is not used by the v1 scoring formula.
-func Build(bundle *contractv1.Bundle, _ *graph.Graph) *Index {
+func Build(bundle *contractv1.Bundle, graph *graph.Graph) *Index {
+	return BuildWithOptions(bundle, graph, BuildOptions{Trigrams: true})
+}
+
+// BuildKeywords indexes only the frontmatter keyword dimension.
+func BuildKeywords(bundle *contractv1.Bundle) *Index {
+	return BuildWithOptions(bundle, nil, BuildOptions{KeywordOnly: true})
+}
+
+// BuildWithOptions indexes a parsed bundle with explicit structure choices.
+func BuildWithOptions(bundle *contractv1.Bundle, _ *graph.Graph, options BuildOptions) *Index {
 	index := &Index{
 		Documents:       make([]Document, 0, len(bundle.Concepts)),
 		KeywordPostings: make(map[string]map[int]bool),
-		TokenPostings:   make(map[contractv1.SearchField]map[string]map[int]bool),
-		TrigramIndex:    make(map[contractv1.SearchField]map[string]map[string]bool),
 	}
-	for _, field := range Fields {
-		index.TokenPostings[field] = make(map[string]map[int]bool)
-		index.TrigramIndex[field] = make(map[string]map[string]bool)
+	if !options.KeywordOnly {
+		index.TokenPostings = make(map[contractv1.SearchField]map[string]map[int]bool)
+		index.TrigramIndex = make(map[contractv1.SearchField]map[string]map[string]bool)
+		for _, field := range Fields {
+			index.TokenPostings[field] = make(map[string]map[int]bool)
+			index.TrigramIndex[field] = make(map[string]map[string]bool)
+		}
 	}
+	trigramCache := make(map[string][]string)
 
 	concepts := make([]contractv1.OkfConcept, 0, len(bundle.Concepts))
 	for _, concept := range bundle.Concepts {
@@ -76,37 +93,44 @@ func Build(bundle *contractv1.Bundle, _ *graph.Graph) *Index {
 			ID:            concept.ID,
 			Title:         title,
 			Description:   description,
-			Body:          concept.Body,
-			BodyText:      StripMarkdown(concept.Body),
 			Type:          concept.Type,
 			Path:          concept.Path,
 			Keywords:      concept.Keywords,
 			KeywordOrigin: make(map[string]string),
-			FieldTokens:   make(map[contractv1.SearchField][]string),
 		}
 
-		fieldText := map[contractv1.SearchField]string{
-			contractv1.FieldTitle:       title,
-			contractv1.FieldDescription: description,
-			contractv1.FieldBody:        document.BodyText,
-		}
-		for _, field := range Fields {
-			tokens := uniqueTokens(Tokenize(fieldText[field]))
-			document.FieldTokens[field] = tokens
-			for _, token := range tokens {
-				posting := index.TokenPostings[field][token]
-				if posting == nil {
-					posting = make(map[int]bool)
-					index.TokenPostings[field][token] = posting
-				}
-				posting[position] = true
-				for _, trigram := range trigrams(token) {
-					tokenSet := index.TrigramIndex[field][trigram]
-					if tokenSet == nil {
-						tokenSet = make(map[string]bool)
-						index.TrigramIndex[field][trigram] = tokenSet
+		if !options.KeywordOnly {
+			document.BodyText = StripMarkdown(concept.Body)
+			fieldText := map[contractv1.SearchField]string{
+				contractv1.FieldTitle:       title,
+				contractv1.FieldDescription: description,
+				contractv1.FieldBody:        document.BodyText,
+			}
+			for _, field := range Fields {
+				tokens := uniqueTokens(Tokenize(fieldText[field]))
+				for _, token := range tokens {
+					posting := index.TokenPostings[field][token]
+					if posting == nil {
+						posting = make(map[int]bool)
+						index.TokenPostings[field][token] = posting
 					}
-					tokenSet[token] = true
+					posting[position] = true
+					if !options.Trigrams {
+						continue
+					}
+					cached, ok := trigramCache[token]
+					if !ok {
+						cached = trigrams(token)
+						trigramCache[token] = cached
+					}
+					for _, trigram := range cached {
+						tokenSet := index.TrigramIndex[field][trigram]
+						if tokenSet == nil {
+							tokenSet = make(map[string]bool)
+							index.TrigramIndex[field][trigram] = tokenSet
+						}
+						tokenSet[token] = true
+					}
 				}
 			}
 		}

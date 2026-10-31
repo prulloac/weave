@@ -183,6 +183,12 @@ func explainKeyword(
 	return RoundScore(total / float64(len(queryTokens))), matchedKeywords, tokens
 }
 
+// KeywordTokenScore returns the exact or prefix score for one query token.
+func KeywordTokenScore(queryToken, token string) float64 {
+	score, _ := keywordTokenScore(queryToken, token)
+	return score
+}
+
 func keywordTokenScore(queryToken, token string) (float64, contractv1.ExplainKeywordMatch) {
 	switch {
 	case token == queryToken:

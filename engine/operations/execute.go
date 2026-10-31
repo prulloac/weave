@@ -132,6 +132,10 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		return handler(e, ctx, request)
 	}
 
+	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchKeyword &&
+		!request.NoDB && request.Rerank == "" {
+		return e.searchKeywordStore(ctx, request)
+	}
 	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchBM25 {
 		return e.searchBM25(ctx, request)
 	}

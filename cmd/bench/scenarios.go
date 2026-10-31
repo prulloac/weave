@@ -435,6 +435,7 @@ func runSpace(
 	var before, after runtime.MemStats
 	runtime.ReadMemStats(&before)
 	eng := engine.FromBundle(corpus.Bundle)
+	eng.SearchIndex()
 	runtime.GC()
 	runtime.ReadMemStats(&after)
 	if corpus.Summary.BodyBytes > 0 {
