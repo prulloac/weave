@@ -223,6 +223,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 29 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | Stretch | stretch |
 | 30 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / P2 | shipped |
 | 31 | Pluggable scoring | [extension-scoring.md](docs/specs/extension-scoring.md) | Tier 7 | search, extension IPC, contract | Post-GA | deferred |
+| 32 | Extension data API | [extension-data.md](docs/specs/extension-data.md) | Tier 7 | extension IPC, storage, contract | Post-GA | deferred |
 
 Rules:
 
@@ -458,6 +459,8 @@ needed.
 - No semantic/vector search in core. Fuzzy handles typos, not meaning.
 - No custom retrieval or index extensions. Post-GA pluggable scoring reorders a bounded core
   candidate set.
+- No native asset ingestion. The post-GA extension data API stores opaque extension-owned bytes
+  without parsing or indexing them.
 - No synonyms/stemming yet.
 - No PDF/HTML/web ingestion.
 - No writes to source bundles.

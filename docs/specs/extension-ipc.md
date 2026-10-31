@@ -268,4 +268,5 @@ checked-in scripts with explicit shebangs.
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
 - [BM25 Ranking](./bm25-ranking.md)
 - [Pluggable Scoring](./extension-scoring.md) — post-GA custom scorer contract
+- [Extension Data](./extension-data.md) — post-GA opaque artifact API
 - [ROADMAP](../../ROADMAP.md)
