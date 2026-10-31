@@ -1,0 +1,47 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/bench/v1.json",
+	"title": "WeaveBenchReport",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schema", "commit", "go", "runner", "gomaxprocs", "corpus", "results"],
+	"properties": {
+		"schema": { "type": "string", "const": "weave.bench/v1" },
+		"commit": { "type": "string" },
+		"go": { "type": "string" },
+		"runner": { "type": "string" },
+		"gomaxprocs": { "type": "integer", "minimum": 1 },
+		"corpus": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name", "sha256", "documents", "body_bytes", "edges"],
+			"properties": {
+				"name": { "type": "string" },
+				"sha256": { "type": "string" },
+				"documents": { "type": "integer", "minimum": 0 },
+				"body_bytes": { "type": "integer", "minimum": 0 },
+				"edges": { "type": "integer", "minimum": 0 }
+			}
+		},
+		"results": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "unit", "aggregate", "value", "status"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^WEAVE-B-" },
+					"unit": { "type": "string" },
+					"aggregate": { "type": "string", "enum": ["p50", "p95", "ratio", "value"] },
+					"value": { "type": "number" },
+					"samples": {
+						"type": "array",
+						"items": { "type": "number" }
+					},
+					"budget": { "type": ["number", "null"] },
+					"status": { "type": "string", "enum": ["pass", "fail", "baseline", "skip"] }
+				}
+			}
+		}
+	}
+}

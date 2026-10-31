@@ -1,0 +1,33 @@
+{
+	"seed": 20261031,
+	"profiles": {
+		"100": {
+			"documents": 100,
+			"body_bytes": 274728,
+			"edges": 210,
+			"keywords": 149,
+			"sha256": "2fb0abf9e4fadee27c6af75c3e09bb9895955d59547d6b9d3f58b797970f7ffd"
+		},
+		"10k": {
+			"documents": 10000,
+			"body_bytes": 27269314,
+			"edges": 21689,
+			"keywords": 500,
+			"sha256": "b1e3aaf481d816d7782f5d5e803132abb92f3bcf9cbac8e28b9dcaebcf2338fe"
+		},
+		"1k": {
+			"documents": 1000,
+			"body_bytes": 2734807,
+			"edges": 2116,
+			"keywords": 431,
+			"sha256": "50f974b14272d0a0e2c031e1183a244dfc46e8ed43896310ceca9a75016f077c"
+		},
+		"dirty-10k": {
+			"documents": 10000,
+			"body_bytes": 27269314,
+			"edges": 21689,
+			"keywords": 500,
+			"sha256": "7f01c967e760d868cc858f4dc88b207a8d85958894be2c9e467f1865a49c4a6d"
+		}
+	}
+}

@@ -21,6 +21,12 @@ playwright-report/
 .env
 .env.production
 
+# generated benchmark corpora
+benchmarks/corpus/100/
+benchmarks/corpus/1k/
+benchmarks/corpus/10k/
+benchmarks/corpus/dirty-10k/
+
 # macOS-specific files
 .DS_Store
 

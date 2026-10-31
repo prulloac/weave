@@ -1,0 +1,41 @@
+// Package benchmarks centralizes benchmark IDs shared by the harness and report.
+package benchmarks
+
+const (
+	CLIVersionCold = "WEAVE-B-CLI-VERSION-COLD"
+
+	OKFParse1K      = "WEAVE-B-OKF-PARSE-1K"
+	OKFParse10K     = "WEAVE-B-OKF-PARSE-10K"
+	OKFParse10KCold = "WEAVE-B-OKF-PARSE-10K-COLD"
+	OKFParse10KWarm = "WEAVE-B-OKF-PARSE-10K-WARM"
+
+	StoreIngest10K   = "WEAVE-B-STORE-INGEST-10K"
+	StoreSync10KNone = "WEAVE-B-STORE-SYNC-10K-NONE"
+	StoreSync10K1Pct = "WEAVE-B-STORE-SYNC-10K-1PCT"
+	StoreLoad10K     = "WEAVE-B-STORE-LOAD-10K"
+	StoreBM2510K     = "WEAVE-B-STORE-BM25-10K"
+	StoreExplain10K  = "WEAVE-B-STORE-EXPLAIN-10K"
+	CLISearchKeyword = "WEAVE-B-CLI-SEARCH-KEYWORD-10K"
+	CLISearchFuzzy   = "WEAVE-B-CLI-SEARCH-FUZZY-10K"
+	CLISearchBM25    = "WEAVE-B-CLI-SEARCH-BM25-10K"
+	CLISearchHybrid  = "WEAVE-B-CLI-SEARCH-HYBRID-10K"
+	CLIExplain       = "WEAVE-B-CLI-EXPLAIN-10K"
+	CLIAudit         = "WEAVE-B-CLI-AUDIT-10K"
+	CLIExportRaw     = "WEAVE-B-CLI-EXPORT-RAW-10K"
+	CompEncodeZstd4K = "WEAVE-B-COMP-ENCODE-ZSTD-4K"
+	SearchBuild10K   = "WEAVE-B-SEARCH-BUILD-10K"
+	NavList10K       = "WEAVE-B-NAV-LIST-10K"
+	NavShow10K       = "WEAVE-B-NAV-SHOW-10K"
+	NavBacklinks10K  = "WEAVE-B-NAV-BACKLINKS-10K"
+	Relate10K        = "WEAVE-B-RELATE-10K"
+	SpaceDB10K       = "WEAVE-B-SPACE-DB-10K"
+	SpaceDBDocs10K   = "WEAVE-B-SPACE-DB-DOCS-10K"
+	SpaceDBFTS10K    = "WEAVE-B-SPACE-DB-FTS-10K"
+	SpaceDBEdges10K  = "WEAVE-B-SPACE-DB-EDGES-10K"
+	SpaceDBFree10K   = "WEAVE-B-SPACE-DB-FREE-10K"
+	SpaceDBWAL10K    = "WEAVE-B-SPACE-DB-WAL-10K"
+	SpaceZstdRatio   = "WEAVE-B-SPACE-ZSTD-RATIO"
+	SpaceBinary      = "WEAVE-B-SPACE-BINARY"
+	MemIndex10K      = "WEAVE-B-MEM-INDEX-10K"
+	MemPeakIngest10K = "WEAVE-B-MEM-PEAK-INGEST-10K"
+)
