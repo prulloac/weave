@@ -1,143 +1,225 @@
 ---
 type: specification
 title: "Weave AI Extension Specification"
-description: "Optional subprocess extension for inferred keywords, enrichment and optional embedding-based reranking."
+description: "Reference weave-ai subprocess extension: Ollama, OpenAI-compatible and Gemini providers, enrichment, reranking and sensitive redaction."
 tags:
   - "specification"
   - "extension"
   - "ai"
-  - "enrichment"
+  - "privacy"
   - "v1"
 generated:
   by: opencode/deepseek-v4.1-flash
-  at: "2026-10-27T00:00:00Z"
+  at: "2026-10-30T00:00:00Z"
 status: draft
 ---
 
 # Specification: Weave AI Extension
 
+Status: **Proposed**
+Target: **v1.0**
+
 ## 1. Overview
 
-`weave-ai` is an optional extension that runs outside the Weave core. It can infer keywords,
-produce a summary or custom metadata during sync, and optionally rerank search candidates.
+`weave-ai` is an optional reference extension shipped in this repository as `cmd/weave-ai`. It speaks
+the `weave.cli/v1` subprocess protocol from [Extension Subprocess IPC](./extension-ipc.md) and
+provides:
 
-It is never required by the core engine.
+- keyword and summary enrichment during `ingest`, `rebuild` and `sync`;
+- optional reranking during `search`.
+
+Core never depends on the plugin: missing binaries, provider outages, timeouts, malformed output and
+non-zero exits fall back to deterministic core behavior.
+
+Non-goals:
+
+- Bundling model weights, a runtime or provider SDKs.
+- Streaming responses, tool calling or conversation state.
+- Auto-promoting inferred keywords into source files.
+- Bypassing core privacy redaction.
+- Prompt tuning per bundle beyond the config file.
+
+## 2. Contract
+
+### 2.1 Installation and invocation
 
 ```sh
-weave sync <path> --with-enricher ai --json
-weave search <path> <query> --rerank ai --json
+weave ingest <path> --with-enricher ai --db ~/.weave/index.db
+weave search <path> "<query>" --rerank ai
 ```
 
-## 2. Goals and Non-Goals
+- The binary is named `weave-ai`, installed in `$PATH` or `<bundle>/.weave/bin/`.
+- One request per process, JSON on stdin and stdout, `v: weave.cli/v1`.
+- The plugin honors the runner timeout; it also applies its own provider timeout.
+- Exit `0` with a valid response on success; any other exit is a failed extension call.
 
-### Goals
+### 2.2 Enrichment
 
-- Add enrichment without growing the core dependency tree.
-- Support a local provider (Ollama) and opt-in cloud providers.
-- Keep sensitive content inside explicit privacy boundaries.
-- Preserve deterministic fallback when the extension is unavailable.
-- Reuse the subprocess IPC contract from Privacy & Extensions.
-
-### Non-Goals
-
-- Bundling model weights or a runtime in core.
-- Sending encrypted content to providers without explicit permission.
-- Replacing BM25/fuzzy ranking.
-- Automatic keyword mutation of source files.
-
-## 3. Extension Contract
-
-The extension is an executable named `weave-ai` in `$PATH` or `.weave/bin/`.
-
-- Enrichment: `weave sync --with-enricher ai`.
-- Reranking: `weave search --rerank ai`.
-- Protocol: `weave.cli/v1` JSON over stdin/stdout.
-- Timeout: 5 seconds default; configurable `--timeout`.
-- Failure: core continues with deterministic scores and logs a warning.
-
-### Enrichment request
-
-Same shape as the [Privacy & Extensions](./privacy-and-extensions.md) enrichment request:
-document id, title, frontmatter, body. Sensitive spans are redacted unless allowed.
-
-### Enrichment response
+Request (from core, already redacted):
 
 ```json
 {
   "v": "weave.cli/v1",
-  "inferred_keywords": ["sqlite", "zero-cgo", "wal"],
-  "custom_metadata": {
-    "summary": "Selection of pure-Go SQLite for static builds."
-  }
+  "type": "enrichment_request",
+  "doc_id": "docs/adr-004.md",
+  "title": "Database Storage Selection",
+  "frontmatter": {"type": "adr", "keywords": ["database"]},
+  "body": "We decided to adopt pure-Go SQLite..."
 }
 ```
 
-`inferred_keywords` are stored as enrichment metadata, never as authoritative frontmatter keywords.
-The operator may review and promote them.
+Response:
 
-### Rerank request/response
-
-Uses the generic rerank contract from Privacy & Extensions. `rerank_score` is normalized to `[0,1]`
-and blended by the configured hybrid weight `c`.
-
-## 4. Configuration
-
-`.weave/ai.yaml`:
-
-```yaml
-provider: ollama          # ollama | gemini | openai
-model: qwen2.5:7b
-base_url: http://127.0.0.1:11434
-allow_sensitive: false
-timeout: 5s
+```json
+{
+  "v": "weave.cli/v1",
+  "inferred_keywords": ["sqlite", "cgo-free", "wal"],
+  "custom_metadata": {"summary": "Selection of pure-Go SQLite for static builds."}
+}
 ```
 
-- Local `ollama` is the default.
-- Cloud providers require explicit API key environment variables.
-- `allow_sensitive: false` prevents encrypted/tokenized spans from being sent.
-- Configuration is read only by the extension, not by the core.
+- Prompt requests a strict JSON object with `inferred_keywords` and `custom_metadata`.
+- Keywords are trimmed, de-duplicated case-insensitively and capped at 32 by core.
+- Non-JSON or malformed model output is an error; core keeps the previous enrichment.
+- `temperature: 0` and JSON response modes are requested where the provider supports them.
 
-## 5. Privacy Rules
+### 2.3 Reranking
 
-- Encrypted blocks are redacted before IPC.
-- Tokenized/hashed fields remain as stored; no reverse mapping is available.
-- Cloud providers are opt-in per document via `privacy.ai.send: true` or a global explicit flag.
-- Audit warns if AI enrichment is configured while sensitive documents are present without a
-  policy.
-- The core never logs request bodies.
+Request:
 
-## 6. Failure and Fallback
+```json
+{
+  "v": "weave.cli/v1",
+  "type": "rerank_request",
+  "query": "zero cgo database",
+  "candidates": [
+    {"id": "a", "keyword_score": 0.8, "lexical_score": 0.7, "fuzzy_score": 0.4}
+  ]
+}
+```
 
-- Missing binary: enrichment/rerank is skipped with a warning.
-- Non-zero exit: fallback to core scores.
-- Timeout: fallback, warning.
-- Invalid JSON: fallback, warning.
-- Partial enrichment: store only valid fields.
-- Reranker output missing candidates: retain core order for missing ids.
+Response:
 
-## 7. Testing
+```json
+{
+  "v": "weave.cli/v1",
+  "ranked_candidates": [{"id": "a", "rerank_score": 0.92}]
+}
+```
 
-- Mock extension returning deterministic keywords.
-- Mock reranker reordering candidates.
-- Timeout and invalid JSON fallback.
-- Sensitive redaction.
-- Provider config validation.
-- No extension installed.
-- Conformance of enrichment/rerank payloads.
-- Race/concurrency with multiple documents.
+- The plugin sends the query, candidate ids and scores to the model and asks for a score in `[0,1]`.
+- Scores are clamped; ids must match the input set exactly. Core validates coverage again.
+- Missing ids or duplicates are an error; core keeps the core ordering.
 
-## 8. Acceptance Criteria
+### 2.4 Configuration
 
-- Core works identically when `weave-ai` is absent.
-- Inferred keywords are enrichment metadata, not contract keywords.
-- Reranking modifies order only when valid scores are returned.
-- Sensitive content is never sent when disallowed.
-- Failures degrade gracefully and are logged.
-- Protocol payloads validate against the extension contract.
+```yaml
+# <bundle>/.weave/ai.yaml or $WEAVE_AI_CONFIG
+provider: ollama          # ollama | openai | gemini
+model: qwen2.5:7b
+base_url: http://127.0.0.1:11434
+api_key_env: WEAVE_AI_API_KEY
+allow_sensitive: false
+timeout: 30s
+```
+
+| Field | Default | Override |
+| --- | --- | --- |
+| `provider` | `ollama` | `WEAVE_AI_PROVIDER` |
+| `model` | `qwen2.5:7b` | `WEAVE_AI_MODEL` |
+| `base_url` | provider default | `WEAVE_AI_BASE_URL` |
+| `api_key_env` | `WEAVE_AI_API_KEY` | — |
+| `allow_sensitive` | `false` | `WEAVE_AI_ALLOW_SENSITIVE` |
+| `timeout` | `30s` | `WEAVE_AI_TIMEOUT` |
+
+- Defaults: Ollama `http://127.0.0.1:11434`, OpenAI `https://api.openai.com/v1`,
+  Gemini `https://generativelanguage.googleapis.com`.
+- Missing config is valid; defaults apply.
+- Unknown fields are ignored; invalid provider, duration or URL exits non-zero.
+- `allow_sensitive` is advisory: core redacts before IPC, so the plugin cannot recover protected
+  text. It controls whether the plugin logs that redaction occurred.
+- API keys come from the environment named by `api_key_env`; keys never appear in config, errors or
+  logs.
+
+### 2.5 Provider shapes
+
+| Provider | Endpoint | Request | Response |
+| --- | --- | --- | --- |
+| `ollama` | `POST /api/chat` | `model`, `messages`, `stream:false`, `format:"json"` | `message.content` |
+| `openai` | `POST <base_url>/chat/completions` | `model`, `messages`, `temperature:0`, `response_format` | `choices[0].message.content` |
+| `gemini` | `POST <base_url>/v1beta/models/<model>:generateContent` | `contents`, `generationConfig` | `candidates[0].content.parts[0].text` |
+
+- OpenAI authorization uses `Authorization: Bearer <key>`.
+- Gemini uses `x-goog-api-key`; the key is never placed in the URL.
+- HTTP non-2xx, timeouts and invalid JSON are errors with provider name and status only.
+
+### 2.6 Privacy
+
+- Core redaction rules:
+  - documents with `encrypt`, `tokenize` or `hash` directives send `[redacted]` instead of the body;
+  - mixed documents replace protected inline spans with `[redacted]` and keep surrounding prose;
+  - metadata (title, keywords, frontmatter) is public and may be sent.
+- Per-document opt-in is `privacy.ai.send: true` in frontmatter; it sends the body unredacted.
+- The plugin never receives key material, ciphertext or `.weave/index.db`.
+- Plugin logs and errors never include document bodies or keys.
+- Cloud providers are expected to be chosen deliberately by the operator; no heuristic detection.
+
+## 3. Behavior
+
+1. Read and bound stdin to 1 MiB.
+2. Load config from `WEAVE_AI_CONFIG` or `<cwd>/.weave/ai.yaml`.
+3. Dispatch on `type` (`enrichment_request`, `rerank_request`).
+4. Build a deterministic prompt with temperature 0 and a JSON response format.
+5. Call the provider with the configured timeout.
+6. Extract and validate the JSON object.
+7. Emit the `weave.cli/v1` response on stdout; exit `0`.
+8. On any failure, write a bounded diagnostic to stderr and exit `1`.
+
+## 4. Data Flow
+
+```text
+core concept -> privacy redaction -> weave-ai subprocess -> provider HTTP
+             -> JSON response -> core validation -> keywords/rerank
+```
+
+## 5. Validation and Errors
+
+| Condition | Behavior |
+| --- | --- |
+| Missing config | Defaults |
+| Invalid provider/duration/URL | Exit `1`, no stdout |
+| Missing API key for cloud provider | Exit `1`, provider name only |
+| Provider non-2xx | Exit `1`, status only |
+| Provider timeout | Exit `1` |
+| Malformed model JSON | Exit `1` |
+| Unknown request type | Exit `1` |
+| Oversized stdin | Exit `1` |
+
+Core reports these as `EXTENSION_FAILED` or `EXTENSION_TIMEOUT` warnings and continues.
+
+## 6. Testing
+
+- `cmd/weave-ai` unit tests with `httptest` for Ollama, OpenAI and Gemini shapes.
+- Enrichment and rerank protocol round-trips, including clamping and malformed output.
+- Config defaults, env overrides and invalid values.
+- No API key or body content in errors.
+- Core redaction: encrypted/tokenized/hashed bodies become `[redacted]`; `privacy.ai.send: true`
+  passes plaintext; mixed spans preserve surrounding prose.
+- End-to-end: fake extension proves enrichment keywords are persisted and rerank reorders.
+- Full gate and calibration unchanged.
+
+## 7. Acceptance Criteria
+
+- `weave-ai` runs as a standalone extension with no core dependency.
+- Ollama works by default; OpenAI-compatible and Gemini providers work with configured endpoints.
+- Inferred keywords and rerank scores are validated by core and degrade safely on failure.
+- Protected content never reaches the plugin without `privacy.ai.send: true`.
+- Keys and bodies never appear in logs or errors.
+- The full verification gate stays green.
 
 ## Related Documents
 
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Extension Subprocess IPC](./extension-ipc.md)
+- [Privacy Directives](./privacy-directives.md)
 - [BM25 Ranking](./bm25-ranking.md)
-- [Storage & Sync](./storage-and-sync.md)
 - [ROADMAP](../../ROADMAP.md)
