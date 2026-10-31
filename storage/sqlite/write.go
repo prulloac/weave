@@ -125,6 +125,9 @@ func (s *Store) writeBundle(
 	if err := populateFTS(ctx, tx, root); err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	if err := populateSearchTokens(ctx, tx, root, bundle); err != nil {
+		return contractv1.IngestReport{}, err
+	}
 
 	if err := tx.Commit(); err != nil {
 		return contractv1.IngestReport{}, err

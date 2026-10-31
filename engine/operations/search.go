@@ -11,6 +11,84 @@ import (
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
+func (e *Executor) searchPersistent(ctx context.Context, request contractv1.OperationRequest) (any, bool) {
+	topK := 10
+	if request.TopK != nil {
+		topK = *request.TopK
+	}
+	if topK < 1 || topK > 100 {
+		return failure(contractv1.ErrInvalidRequest, "top_k must be between 1 and 100", map[string]any{
+			"top_k": topK,
+		}), true
+	}
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil), true
+	}
+	store, err := sqlitestore.OpenExisting(dbPath)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"db": dbPath}), true
+	}
+	defer store.Close()
+	indexed, err := store.HasBundle(ctx, request.Path)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path}), true
+	}
+	if !indexed {
+		return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
+			"path": request.Path,
+		}), true
+	}
+	fuzzy, err := store.FuzzyHits(ctx, request.Path, request.Query, topK)
+	if err != nil {
+		if errors.Is(err, sqlitestore.ErrSearchIndexUnavailable) {
+			return nil, false
+		}
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path}), true
+	}
+
+	explicitHybrid := request.Mode == contractv1.SearchHybrid
+	mode := request.Mode
+	if mode == "" {
+		mode = contractv1.SearchHybrid
+	}
+	if explicitHybrid {
+		lexical, err := store.SearchBM25(ctx, request.Path, request.Query, topK)
+		if err != nil {
+			if errors.Is(err, search.ErrInvalidTopK) {
+				return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK}), true
+			}
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path}), true
+		}
+		return success(contractv1.SearchResponse{
+			Query:   request.Query,
+			Mode:    contractv1.SearchHybrid,
+			TopK:    topK,
+			Keyword: []contractv1.KeywordHit{},
+			Fuzzy:   fuzzy,
+			Hybrid:  search.HybridBM25(lexical, fuzzy, topK),
+			Lexical: lexical,
+		}), true
+	}
+
+	keyword, err := store.KeywordHits(ctx, request.Path, request.Query, topK)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path}), true
+	}
+	return success(contractv1.SearchResponse{
+		Query:   request.Query,
+		Mode:    mode,
+		TopK:    topK,
+		Keyword: keyword,
+		Fuzzy:   fuzzy,
+		Hybrid:  search.CombineHybrid(keyword, fuzzy, topK),
+	}), true
+}
+
 func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.OperationRequest) any {
 	topK := 10
 	if request.TopK != nil {

@@ -2,7 +2,7 @@ package sqlite
 
 import "database/sql"
 
-const schemaVersion = 3
+const schemaVersion = 4
 
 func userVersion(db *sql.DB) (int, error) {
 	var version int
@@ -36,6 +36,18 @@ func migrateV2toV3(db *sql.DB) error {
 		}
 	}
 	return nil
+}
+
+func migrateV3toV4(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS search_tokens (
+    bundle_root TEXT NOT NULL,
+    field TEXT NOT NULL,
+    token TEXT NOT NULL,
+    postings BLOB NOT NULL,
+    PRIMARY KEY (bundle_root, field, token)
+);`)
+	return err
 }
 
 func createSchema(db *sql.DB) error {
@@ -102,6 +114,13 @@ CREATE VIRTUAL TABLE IF NOT EXISTS fts_trigrams USING fts5 (
     field UNINDEXED,
     token,
     tokenize = 'trigram'
+);
+CREATE TABLE IF NOT EXISTS search_tokens (
+    bundle_root TEXT NOT NULL,
+    field TEXT NOT NULL,
+    token TEXT NOT NULL,
+    postings BLOB NOT NULL,
+    PRIMARY KEY (bundle_root, field, token)
 );
 CREATE TABLE IF NOT EXISTS enrichments (
     bundle_root TEXT NOT NULL,

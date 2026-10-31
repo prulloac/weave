@@ -166,6 +166,9 @@ func (s *Store) Sync(
 	if err := populateFTS(ctx, tx, root); err != nil {
 		return contractv1.SyncReport{}, err
 	}
+	if err := populateSearchTokens(ctx, tx, root, bundle); err != nil {
+		return contractv1.SyncReport{}, err
+	}
 
 	if err := tx.Commit(); err != nil {
 		return contractv1.SyncReport{}, err

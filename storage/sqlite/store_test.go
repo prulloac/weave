@@ -14,6 +14,58 @@ import (
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
+func TestMigrateV3AddsSearchTokens(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "index.db")
+	store, err := sqlitestore.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec("DROP TABLE search_tokens"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec("PRAGMA user_version = 3"); err != nil {
+		t.Fatal(err)
+	}
+	if err := raw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	store, err = sqlitestore.Open(dbPath)
+	if err != nil {
+		t.Fatalf("migrate v3: %v", err)
+	}
+	defer store.Close()
+	var version int
+	if err := storeTestDB(t, dbPath).QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version != 4 {
+		t.Fatalf("user_version = %d, want 4", version)
+	}
+	var count int
+	if err := storeTestDB(t, dbPath).QueryRow("SELECT COUNT(*) FROM search_tokens").Scan(&count); err != nil {
+		t.Fatalf("search_tokens missing: %v", err)
+	}
+}
+
+func storeTestDB(t *testing.T, path string) *sql.DB {
+	t.Helper()
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return db
+}
+
 func TestIngestLoadBundleRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()

@@ -44,7 +44,7 @@ type BuildOptions struct {
 // Build indexes a parsed bundle. The graph is accepted for future
 // relationship-aware ranking but is not used by the v1 scoring formula.
 func Build(bundle *contractv1.Bundle, graph *graph.Graph) *Index {
-	return BuildWithOptions(bundle, graph, BuildOptions{Trigrams: true})
+	return BuildWithOptions(bundle, graph, BuildOptions{})
 }
 
 // BuildKeywords indexes only the frontmatter keyword dimension.

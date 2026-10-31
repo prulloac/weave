@@ -89,6 +89,28 @@ func BenchmarkBM25Corpus(b *testing.B) {
 	}
 }
 
+func BenchmarkFuzzyHitsCorpus(b *testing.B) {
+	bundle := corpusBundle(b, "10k")
+	db := filepath.Join(b.TempDir(), "index.db")
+	store, err := sqlitestore.Open(db)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := store.Ingest(context.Background(), bundle, sqlitestore.IngestOptions{
+		Mode: "strict", Codec: "zstd",
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for index := 0; index < b.N; index++ {
+		if _, err := store.FuzzyHits(context.Background(), bundle.Root, "term0001x", 10); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func BenchmarkSyncNoChangeCorpus(b *testing.B) {
 	bundle := corpusBundle(b, "10k")
 	db := filepath.Join(b.TempDir(), "index.db")

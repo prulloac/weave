@@ -132,6 +132,14 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		return handler(e, ctx, request)
 	}
 
+	if request.Op == contractv1.OpSearch && !request.NoDB && request.Rerank == "" {
+		switch request.Mode {
+		case "", contractv1.SearchFuzzy, contractv1.SearchHybrid:
+			if result, ok := e.searchPersistent(ctx, request); ok {
+				return result
+			}
+		}
+	}
 	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchKeyword &&
 		!request.NoDB && request.Rerank == "" {
 		return e.searchKeywordStore(ctx, request)

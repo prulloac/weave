@@ -19,6 +19,13 @@ const (
 	keywordWeight  = 0.50
 	fuzzyWeight    = 0.50
 	fieldWeightSum = 1.90
+
+	// FuzzyThreshold is the minimum token similarity for a fuzzy candidate.
+	FuzzyThreshold = fuzzyThreshold
+	// FuzzyFieldThreshold is the minimum weighted field score for a matched field.
+	FuzzyFieldThreshold = fieldThreshold
+	// FuzzyFieldWeightSum normalizes weighted field scores.
+	FuzzyFieldWeightSum = fieldWeightSum
 )
 
 var (
@@ -269,6 +276,12 @@ func fuzzyCandidates(index *Index, field contractv1.SearchField, queryToken stri
 	if _, ok := index.TokenPostings[field][queryToken]; ok {
 		candidates[queryToken] = true
 	}
+	if len(index.TrigramIndex[field]) == 0 {
+		for token := range index.TokenPostings[field] {
+			candidates[token] = true
+		}
+		return candidates
+	}
 	for _, trigram := range trigrams(queryToken) {
 		for token := range index.TrigramIndex[field][trigram] {
 			candidates[token] = true
@@ -348,6 +361,93 @@ func hybridSearch(
 		}
 		return results[i].ID < results[j].ID
 	})
+	if len(results) > topK {
+		results = results[:topK]
+	}
+	return results
+}
+
+// FuzzyFieldWeight returns the ranking weight for one field.
+func FuzzyFieldWeight(field contractv1.SearchField) float64 {
+	return fuzzyWeights[field]
+}
+
+// Snippet returns a short body excerpt around the matched terms.
+func Snippet(body string, terms []string) *string {
+	return snippet(body, terms)
+}
+
+// CombineHybrid merges keyword and fuzzy hits using the v1 0.5/0.5 formula.
+func CombineHybrid(
+	keywordHits []contractv1.KeywordHit,
+	fuzzyHits []contractv1.FuzzyHit,
+	topK int,
+) []contractv1.HybridHit {
+	type identity struct {
+		title string
+		path  string
+		kind  string
+	}
+	keywordByID := make(map[string]contractv1.KeywordHit, len(keywordHits))
+	fuzzyByID := make(map[string]contractv1.FuzzyHit, len(fuzzyHits))
+	identities := make(map[string]identity)
+	for _, hit := range keywordHits {
+		keywordByID[hit.ID] = hit
+		identities[hit.ID] = identity{hit.Title, hit.Path, hit.Type}
+	}
+	for _, hit := range fuzzyHits {
+		fuzzyByID[hit.ID] = hit
+		if _, exists := identities[hit.ID]; !exists {
+			identities[hit.ID] = identity{hit.Title, hit.Path, hit.Type}
+		}
+	}
+	results := make([]contractv1.HybridHit, 0, len(identities))
+	for id, identity := range identities {
+		keywordHit, hasKeyword := keywordByID[id]
+		fuzzyHit, hasFuzzy := fuzzyByID[id]
+		keywordScore := 0.0
+		if hasKeyword {
+			keywordScore = keywordHit.Score
+		}
+		fuzzyScore := 0.0
+		if hasFuzzy {
+			fuzzyScore = fuzzyHit.Score
+		}
+		hit := contractv1.HybridHit{
+			ID:              id,
+			Title:           identity.title,
+			Path:            identity.path,
+			Type:            identity.kind,
+			KeywordScore:    keywordScore,
+			FuzzyScore:      fuzzyScore,
+			TotalScore:      RoundScore(keywordWeight*keywordScore + fuzzyWeight*fuzzyScore),
+			MatchedKeywords: []string{},
+			MatchedFields:   []contractv1.SearchField{},
+		}
+		if hasKeyword {
+			hit.MatchedKeywords = keywordHit.MatchedKeywords
+		}
+		if hasFuzzy {
+			hit.MatchedFields = fuzzyHit.MatchedFields
+			hit.Snippet = fuzzyHit.Snippet
+		}
+		results = append(results, hit)
+	}
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].TotalScore != results[j].TotalScore {
+			return results[i].TotalScore > results[j].TotalScore
+		}
+		if results[i].FuzzyScore != results[j].FuzzyScore {
+			return results[i].FuzzyScore > results[j].FuzzyScore
+		}
+		if results[i].KeywordScore != results[j].KeywordScore {
+			return results[i].KeywordScore > results[j].KeywordScore
+		}
+		return results[i].ID < results[j].ID
+	})
+	if topK <= 0 {
+		topK = defaultTopK
+	}
 	if len(results) > topK {
 		results = results[:topK]
 	}
