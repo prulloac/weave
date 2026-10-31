@@ -22,14 +22,14 @@ title: "Secret"
 keywords:
   - "alpha"
 privacy:
-  policy: encrypt
-  provider: aes-256-gcm
-  key_id: ops-prod-key
+  policy: tokenize
+  provider: hmac-sha256
+  key_id: tenant-salt
 ` + ai + `---
 
 # Secret
 
-The launch code is zanzibar-secret.
+Account internal-client-alpha owns the workspace.
 `
 	if err := os.WriteFile(filepath.Join(root, "secret.md"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -53,7 +53,7 @@ func aiKeywordHit(t *testing.T, root, db, query string) bool {
 }
 
 func TestAIEnricherReceivesRedactedBody(t *testing.T) {
-	t.Setenv("WEAVE_KEY_OPS_PROD_KEY", strings.Repeat("ab", 32))
+	t.Setenv("WEAVE_KEY_TENANT_SALT", strings.Repeat("cd", 32))
 	root := t.TempDir()
 	aiDoc(t, root, false)
 	installExtension(t, root, "leak", "leak.sh")
@@ -70,12 +70,18 @@ func TestAIEnricherReceivesRedactedBody(t *testing.T) {
 		t.Fatal("enricher must not see encrypted plaintext")
 	}
 	if !aiKeywordHit(t, root, db, "safe") {
-		t.Fatal("enricher must receive a redacted body")
+		code, stdout, _ := invokeRaw(t, "show", root, "secret", "--db", db, "--json")
+		if code != 0 {
+			t.Fatalf("show exit=%d", code)
+		}
+		var view contractv1.ShowResult
+		_ = json.Unmarshal(decodeEnvelope(t, stdout).Result, &view)
+		t.Fatalf("enricher must receive a redacted body; keywords=%v", view.Keywords)
 	}
 }
 
 func TestAIEnricherOptInUnredacts(t *testing.T) {
-	t.Setenv("WEAVE_KEY_OPS_PROD_KEY", strings.Repeat("ab", 32))
+	t.Setenv("WEAVE_KEY_TENANT_SALT", strings.Repeat("cd", 32))
 	root := t.TempDir()
 	aiDoc(t, root, true)
 	installExtension(t, root, "leak", "leak.sh")
