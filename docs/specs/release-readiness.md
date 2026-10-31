@@ -286,7 +286,7 @@ Extend `cmd/docs-lint` with stable rule IDs and failing fixtures:
 | `DL009` | Every spec has a register owner and a BDD set, or an explicit exemption |
 | `DL010` | Every document is reachable from an index |
 | `DL011` | Referenced ADR, spec, phase, wave and milestone IDs exist |
-| `DL012` | Code fences and tables are closed; headings are internally consistent |
+| `DL012` | Code fences are balanced |
 
 The linter prints the rule ID, file, line and a remediation hint. It exits non-zero on any
 violation. Each rule has at least one fixture that must fail and one that must pass.
