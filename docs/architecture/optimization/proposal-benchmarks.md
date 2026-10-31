@@ -17,13 +17,14 @@ status: draft
 
 ## Context and goals
 
-The [optimization spec](../../specs/optimization.md) puts measurement first (O1) and gates later
-slices on a 10% regression. Weave has tests and calibration, but no reproducible corpus, end-to-end
-harness or published numbers; this proposal designs measurement, not optimizations.
+The [optimization spec](../../specs/optimization.md) runs measurement third (O3), after
+maintainability (O1) and UX (O2), and gates later slices on a 10% regression. Weave has tests and
+calibration, but no reproducible corpus, end-to-end harness or published numbers; this proposal
+designs measurement, not optimizations.
 
 Goals: a deterministic corpus and query set; one registry of IDs, tiers and budgets; package
 benchmarks plus `cmd/bench`; budgets mapped to IDs; advisory CI then a blocking >10% gate; stable
-IDs for O2/O3. Success: every optimization PR reports before/after numbers without changing ranking,
+IDs for O4/O5. Success: every optimization PR reports before/after numbers without changing ranking,
 contract or storage semantics.
 
 ## Current state
@@ -49,7 +50,7 @@ Package `benchmarks/corpus` and `benchmarks/corpus/gen`; bundles under
 | --- | ---: | ---: | --- |
 | 100 | 100 | ~0.3 MiB | smoke test |
 | 1k | 1,000 | ~2.8 MiB | parse, microbenchmarks |
-| 10k | 10,000 | ~28 MiB | budgets, O2/O3 |
+| 10k | 10,000 | ~28 MiB | budgets, O4/O5 |
 
 - Frontmatter: `type`; 3–6 `keywords` from a 500-term Zipf vocabulary; 60–160 character
   description; 10% with `tags`/`status`. Body: 1–4 KiB (mean 2.5 KiB) of Markdown over a 2,000-term
@@ -114,7 +115,7 @@ Spec budgets govern; derived targets gate at B2.
 | `WEAVE-B-SPACE-BINARY` | binary < 25 MB |
 
 Derived: parse 10k < 20 s, hybrid < 180 ms, audit < 5 s, export < 30 s; DB and peak RSS are
-baseline-only until O3. Search p95 is nearest-rank over 40 queries × 5 invocations; long scenarios
+baseline-only until O5. Search p95 is nearest-rank over 40 queries × 5 invocations; long scenarios
 use p50/20; cold means no cache.
 
 ## CI design
@@ -173,13 +174,13 @@ tuning; committed corpora; auto-updated baselines; replacing calibration, golden
 
 ## Hand-off: IDs for the time/space proposal
 
-Time (O2): `WEAVE-B-CLI-VERSION-COLD`; `WEAVE-B-OKF-PARSE-{1K,10K,10K-COLD,10K-WARM}`;
+Time (O4): `WEAVE-B-CLI-VERSION-COLD`; `WEAVE-B-OKF-PARSE-{1K,10K,10K-COLD,10K-WARM}`;
 `WEAVE-B-STORE-{INGEST-10K,SYNC-10K-NONE,SYNC-10K-1PCT,LOAD-10K,BM25-10K,EXPLAIN-10K}`;
 `WEAVE-B-CLI-SEARCH-{KEYWORD,FUZZY,BM25,HYBRID}-10K`; `WEAVE-B-CLI-EXPLAIN-10K`;
 `WEAVE-B-CLI-AUDIT-10K`; `WEAVE-B-CLI-EXPORT-RAW-10K`; `WEAVE-B-COMP-ENCODE-ZSTD-4K`;
 `WEAVE-B-SEARCH-BUILD-10K`; `WEAVE-B-NAV-{LIST,SHOW,BACKLINKS}-10K`; `WEAVE-B-RELATE-10K`.
 
-Space (O3): `WEAVE-B-SPACE-DB-10K`; `WEAVE-B-SPACE-DB-{DOCS,FTS,EDGES,FREE,WAL}-10K`;
+Space (O5): `WEAVE-B-SPACE-DB-10K`; `WEAVE-B-SPACE-DB-{DOCS,FTS,EDGES,FREE,WAL}-10K`;
 `WEAVE-B-SPACE-ZSTD-RATIO`; `WEAVE-B-SPACE-BINARY`; `WEAVE-B-MEM-INDEX-10K`;
 `WEAVE-B-MEM-PEAK-INGEST-10K`.
 

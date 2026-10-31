@@ -20,7 +20,7 @@ status: draft
 
 The [optimization spec](../../specs/optimization.md) sets 10k-document budgets: ingest 30 s, 1% sync
 2 s, BM25 p95 150 ms, index memory 3x body bytes, stored zstd bodies 60% of raw, cold start 50 ms.
-This proposal covers O2 (time) and O3 (space). Baselines come from planned
+This proposal covers O4 (time) and O5 (space). Baselines come from planned
 `proposal-benchmarks.md`; IDs below are `WEAVE-B-OKF-PARSE-10K`,
 `WEAVE-B-STORE-INGEST-10K`, `WEAVE-B-STORE-SYNC-10K-NOOP`, `WEAVE-B-STORE-SYNC-10K-1PCT`, `WEAVE-B-CLI-LIST-10K`, `WEAVE-B-CLI-SHOW-10K`,
 `WEAVE-B-MCP-WARM`, `WEAVE-B-WATCH-TICK`, `WEAVE-B-SPACE-DB-10K`, `WEAVE-B-MEM-INDEX-10K`, `WEAVE-B-MEM-ALLOCS-INGEST`

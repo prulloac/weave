@@ -155,7 +155,7 @@ Execution waves:
 6. Extension runner, enrichment and rerank (done); sensitive MCP (done).
 7. AI plugin (done), external crypto (done).
 8. Release automation (done), bundle export (done), multiple bundle sources (done).
-9. Optimization program (benchmarks, budgets, refactors) and global configuration/UX (config done).
+9. Maintainability and UX (config done), then benchmarks and time/space.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 

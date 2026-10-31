@@ -352,12 +352,13 @@ privacy directives ──┬── show --decrypt
 2. bundle export (raw with confirmation, encrypted; shipped),
 3. multiple bundle sources (aliases and merged search; CLI and MCP shipped).
 
-**Wave 8 — optimization program (continuous):**
+**Wave 8 — optimization program (qualitative first, then measured):**
 
+- maintainability refactors and analysis gates,
+- UX optimization (help, errors, safety; global configuration shipped),
 - benchmarks and budgets,
 - time/space hotspots,
-- maintainability refactors and the performance gate,
-- UX optimization with global configuration and environment variables (shipped).
+- continuous performance gate.
 
 **Critical path:**
 

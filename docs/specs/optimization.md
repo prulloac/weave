@@ -25,8 +25,8 @@ This is a cross-cutting program, not a user-facing feature. It establishes measu
 a repeatable workflow so time, space, startup, maintainability and user experience improve without
 changing search ranking, the contract or storage semantics.
 
-The program ships in measured slices; every slice records a before/after number and keeps the full
-verification gate green.
+The program ships in slices ordered **maintainability → UX → benchmarks → time/space**. Every
+time/space slice records a before/after number; every slice keeps the full verification gate green.
 
 Non-goals:
 
@@ -112,14 +112,45 @@ Measured on the standard CI runner with the 10,000-document corpus unless noted:
 
 ## 3. Behavior
 
-### 3.1 O1 — Measure
+### 3.1 O1 — Maintainability
+
+Ordered first so later measurement and UX work land on a tractable codebase.
+
+- Split hotspot files by responsibility without behavior changes; goldens, BDD and calibration must
+  stay unchanged.
+- Consolidate CLI test helpers and error-code assertions into one harness.
+- Add CI static analysis (golangci-lint/staticcheck), vulnerability scanning and a coverage trend.
+- Add an executable dependency-direction check (forbidden imports between packages).
+- Consolidate error-code mapping per boundary and keep `weave contract --json` in sync.
+- Keep `go vet`, gofmt across every package, docs-lint and markdownlint in the required gate.
+- Details and exit criteria: [Proposal: maintainability](../architecture/optimization/proposal-maintainability.md).
+
+### 3.2 O2 — User experience
+
+Global configuration is shipped; the remaining UX work precedes benchmarks because it changes the
+commands and output the benchmarks exercise.
+
+- Rewrite top-level and per-command help; add `weave help <cmd>` and help topics; accept
+  `--opt=value` and global flags before or after the command.
+- Unify the error/exit contract: stable code, exit status, message and remediation hint in human and
+  JSON modes; make empty-result exits consistent.
+- Add `--dry-run` to write commands and `--no-input` for non-interactive confirmation failures.
+- Finish configuration UX (XDG paths, DB location, typed `config show`, optional project config).
+- Pin machine-output schemas and add `quiet`/`verbose`/`NO_COLOR` feedback controls.
+- Improve onboarding, completion and local-first/privacy messaging.
+- Details and exit criteria: [Proposal: UX](../architecture/optimization/proposal-ux.md).
+
+### 3.3 O3 — Benchmarks
+
+Runs after the qualitative foundations so corpus, harness and command output are stable.
 
 - Add benchmarks and `cmd/bench`, generate the corpus, and publish
   `docs/architecture/performance.md` with the baseline table.
 - Record CPU, allocations, DB size, index memory and binary size.
 - No production behavior changes in this phase.
+- Details and IDs: [Proposal: benchmarks](../architecture/optimization/proposal-benchmarks.md).
 
-### 3.2 O2 — Time
+### 3.4 O4 — Time
 
 Candidates, validated by profiles before implementation:
 
@@ -132,9 +163,9 @@ Candidates, validated by profiles before implementation:
 - Reduce CLI startup work: defer DB and cache setup until the command needs it.
 
 Each candidate PR includes `benchstat`-style before/after numbers and is reverted if it regresses a
-tracked budget beyond the 10% gate.
+tracked budget beyond the 10% gate. Details: [Proposal: time and space](../architecture/optimization/proposal-time-space.md).
 
-### 3.3 O3 — Space
+### 3.5 O5 — Space
 
 - Tune zstd level and window for the measured document size distribution; keep determinism.
 - Remove duplicate index rows where FTS5 already covers a field.
@@ -142,35 +173,6 @@ tracked budget beyond the 10% gate.
   stays out of scope until then.
 - Report database size split by documents, FTS and edges in `cmd/bench`.
 - Never trade correctness or privacy for size: ciphertext stays uncompressed and hashes stay salted.
-
-### 3.4 O4 — Maintainability
-
-- Split hotspot files by responsibility without behavior changes; goldens and BDD suites must stay
-  unchanged.
-- Consolidate CLI test helpers and error-code assertions.
-- Add a dependency-direction check to CI (forbidden imports between packages).
-- Keep `go vet`, gofmt, docs-lint and markdownlint in the required gate.
-- Track TODO/FIXME density and package count in the performance report; no hard gate in v1.0.
-
-### 3.5 O5 — User experience
-
-The first slice is **global configuration**: a YAML file plus `WEAVE_*` environment variables with
-deterministic precedence and `weave config show|path|init`, specified in
-[Configuration](./configuration.md).
-
-Subsequent UX candidates, ordered by measured friction:
-
-- Replace repeated flags in docs and examples with configuration-driven flows.
-- Add remediation hints to common errors (`BUNDLE_NOT_INDEXED`, `PRIVACY_KEY_UNAVAILABLE`,
-  `EXTENSION_NOT_FOUND`, `CONFIG_INVALID`).
-- Teach configuration in `--help` and shell completions.
-- Improve first-run behavior: empty database, missing `.weave` directory and missing extension
-  messages.
-- Coherent human output spacing and summary lines without breaking JSON.
-- Defer shell completion generation to a follow-up if it needs a new dependency.
-
-UX changes are validated by CLI tests and docs updates; they never alter the contract or default
-behavior for existing flags.
 
 ### 3.6 O6 — Continuous gate
 
@@ -184,11 +186,10 @@ behavior for existing flags.
 ## 4. Data Flow
 
 ```text
-benchmarks/corpus generator
-  -> cmd/bench (ingest, sync, search, explain, audit, export)
-  -> baseline JSON + performance.md
-  -> CI perf job compares against baseline
-  -> optimization PRs move budgets and split hotspots
+O1 maintainability (guards, splits, harness)
+  -> O2 UX (help, errors, safety, config)
+  -> O3 benchmarks/corpus -> cmd/bench -> baseline JSON + performance.md
+  -> O4/O5 time/space optimization PRs -> CI perf job compares against baseline
 ```
 
 ## 5. Validation and Errors
