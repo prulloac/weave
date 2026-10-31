@@ -5,8 +5,8 @@
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
-shipped on `main`; external crypto providers, bundle export, global configuration and the
-optimization program remain.
+shipped on `main`; external crypto providers, global configuration and the optimization program
+remain.
 
 ## 1. What Weave Is
 
@@ -79,7 +79,7 @@ waves, not product versions.
 | Graph relate | v1.0 | Shipped: bounded depth/direction subgraphs |
 | MCP server | v1.0 | Tools, transport, auth, resources, watch reload and sensitive access shipped |
 | Release automation | v1.0 | Shipped: tag-driven verified builds and draft GitHub Releases |
-| Bundle export | v1.0 | Raw plaintext export with confirmation; encrypted OKF export |
+| Bundle export | v1.0 | Shipped: raw plaintext (confirmed) and encrypted OKF export |
 | Multiple bundle sources | v1.0 | Shipped: repeatable `--source` aliases across CLI and MCP |
 | Optimization program | v1.0 | Benchmarks, budgets, maintainability and UX targets |
 | Global configuration | v1.0 | YAML config plus `WEAVE_*` variables and `weave config` |
@@ -103,6 +103,7 @@ weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k 
 weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
 weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
 weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--watch [--events]] --json
+weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] --json
 weave extensions list [<path>] --json
 weave mcp --bundle <path> [--stdio|--listen <addr>] [--token <t>] [--db <file>] [--watch]
 weave version --json
@@ -114,7 +115,6 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ### Planned v1.0 — remaining surface
 
 ```sh
-weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] --json
 weave search <path> [--source <alias=path> ...] <query> --json
 weave ingest <path> [--source <alias=path> ...] --json
 weave config show|path|init [--json]
@@ -241,7 +241,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 23 | MCP resources | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP transport | 6 / Phase 6 | shipped |
 | 24 | MCP watch reload | [watch-mode.md](docs/specs/watch-mode.md), [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | incremental sync, MCP persistent | 4 / Phase 3 | shipped |
 | 25 | Release automation | [release-automation.md](docs/specs/release-automation.md) | Tier 7 | contract, CI | 7 / Phase 7 (P1) | shipped |
-| 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | red |
+| 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | shipped |
 | 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | shipped |
 | 30 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / Phase 7 (P3) | shipped |
 | 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
@@ -350,7 +350,7 @@ privacy directives ──┬── show --decrypt
 **Wave 7 — delivery and data portability (priority order):**
 
 1. release automation (shipped),
-2. bundle export (raw with confirmation, encrypted),
+2. bundle export (raw with confirmation, encrypted; shipped),
 3. multiple bundle sources (aliases and merged search; CLI and MCP shipped).
 
 **Wave 8 — optimization program (continuous):**

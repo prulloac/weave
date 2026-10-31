@@ -265,6 +265,24 @@ SIGINT/SIGTERM exits cleanly.
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Watch Mode](docs/specs/watch-mode.md).
 
+#### `weave export`
+
+Reconstruct bundle files from the index.
+
+```sh
+weave export ~/notes --out ./export --format raw --yes --json
+weave export ~/notes --out ./export --format encrypted --key-id export-2026 --json
+```
+
+- `raw` writes plaintext after confirmation (`--yes` for automation) and reports tokenized/hashed
+  documents that cannot be reversed. Missing keys abort before writing.
+- `encrypted` re-encrypts every body with `--key-id` and sets `privacy.encoded: true`; the result is a
+  re-ingestable OKF bundle that never exposes plaintext.
+- Targets may not overlap the source; non-empty targets require `--force`.
+- `weave-export.json` is written last as the completion marker.
+
+Spec: [Bundle Export](docs/specs/bundle-export.md).
+
 #### Privacy directives
 
 Declare per-document policies in frontmatter or protect inline spans with HTML comments. Weave

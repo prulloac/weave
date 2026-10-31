@@ -16,7 +16,7 @@ status: draft
 
 # Specification: Bundle Export
 
-Status: **Proposed**
+Status: **Implemented** (raw with confirmation, encrypted re-ingestable export, manifests and safety checks).
 Target: **v1.0**
 
 ## 1. Overview
@@ -139,10 +139,10 @@ privacy:
 
 ```text
 WARNING: raw export writes plaintext document bodies to <out>
-Encrypted documents: 3 (keys required)
-Tokenized/hashed documents: 2 (irreversible aliases)
 Continue? [y/N]
 ```
+
+The report lists encrypted, tokenized and hashed counts after the export.
 
 ### 2.6 Contract
 

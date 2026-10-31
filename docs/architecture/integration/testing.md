@@ -110,6 +110,8 @@ MRR@10 = 1.0.
   `engine/privacy/redact_test.go` and `cmd/weave/ai_bdd_test.go` cover AI redaction and opt-in.
   `cmd/weave/sync_watch_bdd_test.go` covers sync watch validation, initial sync, updates, JSONL
   events and clean shutdown.
+  `cmd/weave/export_bdd_test.go` covers raw/encrypted export, confirmation, key preflight, target
+  safety and re-ingestion; `engine/privacy` covers the encoded directive.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
