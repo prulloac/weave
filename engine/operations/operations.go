@@ -46,6 +46,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
 	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive", "codec"}, Result: "SyncReport"},
 	{Op: contractv1.OpExtensions, Fields: []string{"path"}, Result: "ExtensionList"},
+	{Op: contractv1.OpExport, Fields: []string{"path", "out", "format", "key_id", "db", "force", "confirmed"}, Result: "ExportReport"},
 }
 
 var operationErrors = []contractv1.ErrorCode{
@@ -63,6 +64,7 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrExtensionTimeout,
 	contractv1.ErrExtensionFailed,
 	contractv1.ErrExtensionProto,
+	contractv1.ErrConfirmation,
 	contractv1.ErrInternal,
 }
 
@@ -114,6 +116,10 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 
 	if request.Op == contractv1.OpExtensions {
 		return success(e.listExtensions(request.Path))
+	}
+
+	if request.Op == contractv1.OpExport {
+		return e.export(ctx, request)
 	}
 
 	if len(request.Sources) > 1 {

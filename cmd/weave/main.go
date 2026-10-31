@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -119,6 +120,37 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		return usageError(stdout, stderr, flags.json, "--events requires --watch")
 	}
 
+	request.Out = flags.out
+	request.Format = flags.format
+	request.KeyID = flags.keyID
+	request.Force = flags.force
+	request.Confirmed = flags.yes
+	if request.Op != contractv1.OpExport {
+		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.force || flags.yes {
+			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for export")
+		}
+	} else {
+		format := strings.ToLower(strings.TrimSpace(flags.format))
+		if format == "" {
+			return usageError(stdout, stderr, flags.json, "export requires --format raw|encrypted")
+		}
+		if format != "raw" && format != "encrypted" {
+			return usageError(stdout, stderr, flags.json, "--format must be raw or encrypted")
+		}
+		if format == "encrypted" && flags.keyID == "" {
+			return usageError(stdout, stderr, flags.json, "encrypted export requires --key-id")
+		}
+		if format == "raw" && !flags.yes && !flags.json && stdinIsTerminal() {
+			fmt.Fprintf(stderr, "WARNING: raw export writes plaintext document bodies to %s\nContinue? [y/N] ", flags.out)
+			answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+			answer = strings.ToLower(strings.TrimSpace(answer))
+			if answer != "y" && answer != "yes" {
+				return usageError(stdout, stderr, false, "raw export cancelled")
+			}
+			request.Confirmed = true
+		}
+	}
+
 	if flags.watch {
 		mode := ""
 		if flags.strict {
@@ -209,6 +241,11 @@ type flags struct {
 	sources     []string
 	watch       bool
 	events      bool
+	out         string
+	format      string
+	keyID       string
+	force       bool
+	yes         bool
 	positionals []string
 }
 
@@ -364,6 +401,31 @@ func parseFlags(args []string) (flags, error) {
 			result.watch = true
 		case "--events":
 			result.events = true
+		case "--out":
+			value, next, err := flagValue(args, index, "--out")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.out = value
+		case "--format":
+			value, next, err := flagValue(args, index, "--format")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.format = value
+		case "--key-id":
+			value, next, err := flagValue(args, index, "--key-id")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.keyID = value
+		case "--force":
+			result.force = true
+		case "--yes":
+			result.yes = true
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -409,6 +471,14 @@ func parseFlags(args []string) (flags, error) {
 		return result, fmt.Errorf("--timeout requires --with-enricher or --rerank")
 	}
 	return result, nil
+}
+
+func stdinIsTerminal() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeCharDevice != 0
 }
 
 func buildSourceSpecs(primary string, extras []string) ([]contractv1.SourceSpec, error) {
@@ -647,6 +717,14 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Op:   contractv1.OpExtensions,
 			Path: path,
 		}, 0, nil
+	case "export":
+		if err := requirePositional(command, flags, 1); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:   contractv1.OpExport,
+			Path: flags.positional(0),
+		}, 0, nil
 	case "sync":
 		if err := requirePositional(command, flags, 1); err != nil {
 			return contractv1.OperationRequest{}, 0, err
@@ -704,7 +782,8 @@ func writeJSON(writer io.Writer, value any) error {
 
 func exitCodeFor(code contractv1.ErrorCode) int {
 	switch code {
-	case contractv1.ErrInvalidRequest, contractv1.ErrInvalidRoot, contractv1.ErrPrivacyDirective:
+	case contractv1.ErrInvalidRequest, contractv1.ErrInvalidRoot, contractv1.ErrPrivacyDirective,
+		contractv1.ErrConfirmation:
 		return 2
 	case contractv1.ErrPermissionDenied, contractv1.ErrPrivacyKey,
 		contractv1.ErrPrivacyProvider, contractv1.ErrPrivacyDecrypt:
@@ -782,6 +861,11 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		for _, extension := range list.Extensions {
 			fmt.Fprintf(stdout, "%-24s %-8s %s\n", extension.Name, extension.Source, extension.Path)
 		}
+		return 0
+	case contractv1.OpExport:
+		report := result.(contractv1.ExportReport)
+		fmt.Fprintf(stdout, "exported %d documents to %s (%s)\n", report.Documents, report.Out, report.Format)
+		fmt.Fprintf(stdout, "encrypted=%d tokenized=%d hashed=%d\n", report.Encrypted, report.Tokenized, report.Hashed)
 		return 0
 	case contractv1.OpParse:
 		switch value := result.(type) {
@@ -1142,6 +1226,7 @@ usage:
   weave rebuild <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
   weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--watch [--events]] [--json] [--no-cache]
   weave extensions list [<path>] [--json]
+  weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] [--json]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
   weave --version | --help
