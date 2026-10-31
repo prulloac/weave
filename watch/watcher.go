@@ -22,6 +22,7 @@ type Options struct {
 	Root     string
 	Store    *sqlitestore.Store
 	Mode     string
+	Codec    string
 	Interval time.Duration
 	OnSync   func(contractv1.SyncReport)
 	OnError  func(error)
@@ -32,6 +33,7 @@ type Watcher struct {
 	root     string
 	store    *sqlitestore.Store
 	mode     string
+	codec    string
 	interval time.Duration
 	onSync   func(contractv1.SyncReport)
 	onError  func(error)
@@ -52,6 +54,7 @@ func New(options Options) (*Watcher, error) {
 		root:     options.Root,
 		store:    options.Store,
 		mode:     options.Mode,
+		codec:    options.Codec,
 		interval: options.Interval,
 		onSync:   options.OnSync,
 		onError:  options.OnError,
@@ -93,7 +96,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 }
 
 func (w *Watcher) sync(ctx context.Context) error {
-	report, err := w.store.Sync(ctx, w.root, sqlitestore.SyncOptions{Mode: w.mode})
+	report, err := w.store.Sync(ctx, w.root, sqlitestore.SyncOptions{Mode: w.mode, Codec: w.codec})
 	if err != nil {
 		return err
 	}

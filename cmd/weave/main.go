@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
@@ -100,6 +102,42 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		request.Sources = specs
 	}
 
+	if flags.watch {
+		if request.Op != contractv1.OpSync {
+			return usageError(stdout, stderr, flags.json, "--watch is only valid for sync")
+		}
+		if flags.noDB || flags.db == "" {
+			return usageError(stdout, stderr, flags.json, "--watch requires --db")
+		}
+		if flags.events && !flags.json {
+			return usageError(stdout, stderr, flags.json, "--events requires --json")
+		}
+		if len(flags.sources) > 0 || flags.enricher != "" || flags.rerank != "" {
+			return usageError(stdout, stderr, flags.json, "--watch does not support --source, --with-enricher or --rerank")
+		}
+	} else if flags.events {
+		return usageError(stdout, stderr, flags.json, "--events requires --watch")
+	}
+
+	if flags.watch {
+		mode := ""
+		if flags.strict {
+			mode = "strict"
+		} else if flags.permissive {
+			mode = "permissive"
+		}
+		watchContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return runSyncWatch(watchContext, syncWatchOptions{
+			Root:   request.Path,
+			DB:     flags.db,
+			Mode:   mode,
+			Codec:  flags.codec,
+			JSON:   flags.json,
+			Events: flags.events,
+		}, stdout, stderr)
+	}
+
 	if !flags.json && request.Path != "" {
 		if warning := privacy.SecurityFileWarning(request.Path); warning != "" {
 			fmt.Fprintf(stderr, "weave: %s\n", warning)
@@ -169,6 +207,8 @@ type flags struct {
 	timeout     time.Duration
 	timeoutSet  bool
 	sources     []string
+	watch       bool
+	events      bool
 	positionals []string
 }
 
@@ -320,6 +360,10 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.sources = append(result.sources, value)
+		case "--watch":
+			result.watch = true
+		case "--events":
+			result.events = true
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -1096,7 +1140,7 @@ usage:
   weave explain <path> [--source <alias=path> ...] <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
   weave ingest <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
   weave rebuild <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
-  weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
+  weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--watch [--events]] [--json] [--no-cache]
   weave extensions list [<path>] [--json]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
