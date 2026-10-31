@@ -35,6 +35,25 @@ func (s *Store) Sync(
 		return contractv1.SyncReport{}, fmt.Errorf("mode must be strict or permissive")
 	}
 
+	existing, err := s.documentHashes(ctx, root)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	scanned, err := scanBundleHashes(root)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	addedPaths, updatedPaths, removedPaths := changedPaths(existing, scanned)
+	if len(addedPaths) == 0 && len(updatedPaths) == 0 && len(removedPaths) == 0 {
+		return contractv1.SyncReport{
+			DB:        s.path,
+			Bundle:    root,
+			Mode:      mode,
+			Documents: len(existing),
+			Skipped:   len(existing),
+		}, nil
+	}
+
 	bundle, err := okf.ParseBundle(ctx, root, okf.Options{Permissive: mode == "permissive"})
 	if err != nil {
 		return contractv1.SyncReport{}, err
@@ -45,10 +64,6 @@ func (s *Store) Sync(
 		current[concept.Path] = concept
 	}
 
-	existing, err := s.documentHashes(ctx, root)
-	if err != nil {
-		return contractv1.SyncReport{}, err
-	}
 	codecs, err := s.documentCodecs(ctx, root)
 	if err != nil {
 		return contractv1.SyncReport{}, err
@@ -84,8 +99,18 @@ func (s *Store) Sync(
 
 	now := time.Now().Unix()
 	privacySkipped := 0
+	changedIDs := make([]string, 0, len(addedPaths)+len(updatedPaths))
+	changedConcepts := make([]contractv1.OkfConcept, 0, len(addedPaths)+len(updatedPaths))
+	for _, path := range append(append([]string{}, updatedPaths...), removedPaths...) {
+		if err := deleteFTSByPath(ctx, tx, root, path); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	}
 	for path, concept := range current {
-		hash := contentHash(root, concept)
+		hash := scanned[path]
+		if hash == "" {
+			hash = contentHash(root, concept)
+		}
 		oldHash, exists := existing[path]
 		codec := options.Codec
 		if codec == "" {
@@ -107,6 +132,8 @@ func (s *Store) Sync(
 				return contractv1.SyncReport{}, err
 			}
 			added++
+			changedIDs = append(changedIDs, concept.ID)
+			changedConcepts = append(changedConcepts, concept)
 		case oldHash != hash:
 			previous, err := loadEnrichments(ctx, tx, root, concept.ID)
 			if err != nil {
@@ -133,6 +160,8 @@ func (s *Store) Sync(
 				}
 			}
 			updated++
+			changedIDs = append(changedIDs, concept.ID)
+			changedConcepts = append(changedConcepts, concept)
 		default:
 			skipped++
 		}
@@ -163,13 +192,20 @@ func (s *Store) Sync(
 			return contractv1.SyncReport{}, err
 		}
 	}
-	if err := populateFTS(ctx, tx, root); err != nil {
-		return contractv1.SyncReport{}, err
+	for _, id := range changedIDs {
+		if err := insertFTSDoc(ctx, tx, root, id); err != nil {
+			return contractv1.SyncReport{}, err
+		}
 	}
-	if err := populateSearchTokens(ctx, tx, root, bundle); err != nil {
-		return contractv1.SyncReport{}, err
+	if added > 0 || removed > 0 {
+		if err := populateSearchTokens(ctx, tx, root, bundle); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	} else if updated > 0 {
+		if err := updateSearchTokens(ctx, tx, root, bundle, changedConcepts); err != nil {
+			return contractv1.SyncReport{}, err
+		}
 	}
-
 	if err := tx.Commit(); err != nil {
 		return contractv1.SyncReport{}, err
 	}

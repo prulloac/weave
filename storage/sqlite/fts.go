@@ -18,19 +18,20 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 		return err
 	}
 	rows, err := tx.QueryContext(ctx, `
-		SELECT id, title, keywords_json, description, body_compressed, body_codec, privacy_policy
+		SELECT rowid, id, title, keywords_json, description, body_compressed, body_codec, privacy_policy
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return err
 	}
 	type ftsRow struct {
+		rowid                                    int64
 		id, title, keywords, body, policy, codec string
 		description                              sql.NullString
 	}
 	entries := make([]ftsRow, 0)
 	for rows.Next() {
 		var entry ftsRow
-		if err := rows.Scan(&entry.id, &entry.title, &entry.keywords, &entry.description,
+		if err := rows.Scan(&entry.rowid, &entry.id, &entry.title, &entry.keywords, &entry.description,
 			&entry.body, &entry.codec, &entry.policy); err != nil {
 			rows.Close()
 			return err
@@ -56,15 +57,62 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 			return err
 		}
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO fts_documents (bundle_root, id, title, keywords, description, body)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-			root, entry.id, entry.title, strings.Join(keywords, " "),
+			INSERT INTO fts_documents (rowid, bundle_root, id, title, keywords, description, body)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			entry.rowid, root, entry.id, entry.title, strings.Join(keywords, " "),
 			entry.description.String, search.StripMarkdown(string(decoded)))
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func deleteFTSByPath(ctx context.Context, tx *sql.Tx, root, path string) error {
+	var rowid int64
+	err := tx.QueryRowContext(ctx,
+		"SELECT rowid FROM documents WHERE bundle_root = ? AND file_path = ?", root, path).Scan(&rowid)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, "DELETE FROM fts_documents WHERE rowid = ?", rowid)
+	return err
+}
+
+func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string) error {
+	var rowid int64
+	var title, keywordsJSON, body, codec, policy string
+	var description sql.NullString
+	err := tx.QueryRowContext(ctx, `
+		SELECT rowid, title, keywords_json, description, body_compressed, body_codec, privacy_policy
+		FROM documents WHERE bundle_root = ? AND id = ?`, root, id).Scan(
+		&rowid, &title, &keywordsJSON, &description, &body, &codec, &policy)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if contractv1.PrivacyPolicy(policy) == contractv1.PrivacyEncrypt {
+		return nil
+	}
+	decoded, err := compression.Decode(compression.Codec(codec), []byte(body))
+	if err != nil {
+		decoded = nil
+	}
+	var keywords []string
+	if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO fts_documents (rowid, bundle_root, id, title, keywords, description, body)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		rowid, root, id, title, strings.Join(keywords, " "), description.String,
+		search.StripMarkdown(string(decoded)))
+	return err
 }
 
 // SearchBM25 returns lexical hits for a bundle.

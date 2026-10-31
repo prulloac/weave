@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -46,6 +47,65 @@ func TestKeywordStoreMatchesInMemory(t *testing.T) {
 		}
 		if !reflect.DeepEqual(persistent.Hybrid, memory.Hybrid) {
 			t.Fatalf("%s hybrid mismatch\npersistent: %+v\nmemory: %+v", query, persistent.Hybrid, memory.Hybrid)
+		}
+	}
+}
+
+func TestIncrementalSyncKeepsSearchParity(t *testing.T) {
+	root := copyStorageBundle(t, storageFixture("bundle-a"))
+	incrementalDB := filepath.Join(t.TempDir(), "incremental.db")
+	if code, _, stderr := Invoke(t, "ingest", root, "--db", incrementalDB, "--strict", "--json"); code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+
+	content := "---\ntype: Concept\ntitle: \"B Updated\"\nkeywords:\n  - \"beta\"\n  - \"delta\"\n---\n\n# B Updated\n\nbeta updated search body\n"
+	if err := os.WriteFile(filepath.Join(root, "b.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, stderr := Invoke(t, "sync", root, "--db", incrementalDB, "--json"); code != 0 {
+		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
+	}
+
+	fullDB := filepath.Join(t.TempDir(), "full.db")
+	if code, _, stderr := Invoke(t, "ingest", root, "--db", fullDB, "--strict", "--json"); code != 0 {
+		t.Fatalf("full ingest exit=%d stderr=%q", code, stderr)
+	}
+
+	for _, mode := range []string{"keyword", "fuzzy", "bm25"} {
+		code, incrementalOut, stderr := Invoke(t, "search", root, "beta", "--db", incrementalDB, "--mode", mode, "--json")
+		if code != 0 {
+			t.Fatalf("%s incremental exit=%d stderr=%q", mode, code, stderr)
+		}
+		code, fullOut, stderr := Invoke(t, "search", root, "beta", "--db", fullDB, "--mode", mode, "--json")
+		if code != 0 {
+			t.Fatalf("%s full exit=%d stderr=%q", mode, code, stderr)
+		}
+		var incremental, full contractv1.SearchResponse
+		if err := json.Unmarshal(decodeEnvelope(t, incrementalOut).Result, &incremental); err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(decodeEnvelope(t, fullOut).Result, &full); err != nil {
+			t.Fatal(err)
+		}
+		for index := range incremental.Fuzzy {
+			incremental.Fuzzy[index].Snippet = nil
+		}
+		for index := range full.Fuzzy {
+			full.Fuzzy[index].Snippet = nil
+		}
+		switch mode {
+		case "keyword":
+			if !reflect.DeepEqual(incremental.Keyword, full.Keyword) {
+				t.Fatalf("keyword parity failed\nincremental: %+v\nfull: %+v", incremental.Keyword, full.Keyword)
+			}
+		case "fuzzy":
+			if !reflect.DeepEqual(incremental.Fuzzy, full.Fuzzy) {
+				t.Fatalf("fuzzy parity failed\nincremental: %+v\nfull: %+v", incremental.Fuzzy, full.Fuzzy)
+			}
+		case "bm25":
+			if !reflect.DeepEqual(incremental.Lexical, full.Lexical) {
+				t.Fatalf("bm25 parity failed\nincremental: %+v\nfull: %+v", incremental.Lexical, full.Lexical)
+			}
 		}
 	}
 }
