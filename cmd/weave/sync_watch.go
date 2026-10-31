@@ -16,12 +16,13 @@ import (
 )
 
 type syncWatchOptions struct {
-	Root   string
-	DB     string
-	Mode   string
-	Codec  string
-	JSON   bool
-	Events bool
+	Root     string
+	DB       string
+	Mode     string
+	Codec    string
+	Provider string
+	JSON     bool
+	Events   bool
 }
 
 func runSyncWatch(ctx context.Context, options syncWatchOptions, stdout, stderr io.Writer) int {
@@ -48,12 +49,21 @@ func runSyncWatch(ctx context.Context, options syncWatchOptions, stdout, stderr 
 			"bundle is not indexed; run: weave ingest "+options.Root)
 	}
 
+	provider, err := privacy.ResolveProvider(options.Root, options.Provider)
+	if err != nil {
+		return syncWatchFailure(stdout, stderr, options.JSON, contractv1.ErrPrivacyKey, err.Error())
+	}
+	if provider != nil {
+		defer provider.Close()
+	}
+
 	initial := true
 	watchOptions := watch.Options{
-		Root:  options.Root,
-		Store: store,
-		Mode:  options.Mode,
-		Codec: options.Codec,
+		Root:     options.Root,
+		Store:    store,
+		Mode:     options.Mode,
+		Codec:    options.Codec,
+		Provider: provider,
 		OnSync: func(report contractv1.SyncReport) {
 			if initial {
 				initial = false

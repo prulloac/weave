@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -73,6 +74,13 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path})
 	}
+	provider, err := e.resolveProvider(root, request.Provider)
+	if err != nil {
+		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
+	}
+	if provider != nil {
+		defer provider.Close()
+	}
 
 	out, err := filepath.Abs(request.Out)
 	if err != nil {
@@ -86,7 +94,7 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		})
 	}
 
-	if err := preflightExportKeys(root, bundle, format, request.KeyID); err != nil {
+	if err := preflightExportKeys(root, bundle, format, request.KeyID, provider); err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
 			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"path": request.Path})
 		}
@@ -143,7 +151,7 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 
 		if format == "raw" {
 			if conceptPolicy(concept) == contractv1.PrivacyEncrypt {
-				plain, err := privacy.DecryptBody(root, body, concept.Privacy, nil)
+				plain, err := privacy.DecryptBodyWith(ctx, root, body, concept.Privacy, nil, provider)
 				if err != nil {
 					cleanup()
 					return failure(exportPrivacyCode(err), err.Error(), map[string]any{"concept": concept.ID})
@@ -152,7 +160,7 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			}
 		} else {
 			if conceptPolicy(concept) == contractv1.PrivacyEncrypt {
-				plain, err := privacy.DecryptBody(root, body, concept.Privacy, nil)
+				plain, err := privacy.DecryptBodyWith(ctx, root, body, concept.Privacy, nil, provider)
 				if err != nil {
 					cleanup()
 					return failure(exportPrivacyCode(err), err.Error(), map[string]any{"concept": concept.ID})
@@ -248,7 +256,7 @@ func conceptPolicy(concept contractv1.OkfConcept) contractv1.PrivacyPolicy {
 	return concept.Privacy.Policy
 }
 
-func preflightExportKeys(root string, bundle *contractv1.Bundle, format, keyID string) error {
+func preflightExportKeys(root string, bundle *contractv1.Bundle, format, keyID string, provider privacy.Provider) error {
 	if format == "encrypted" {
 		if _, err := privacy.ResolveKey(root, keyID); err != nil {
 			return err
@@ -260,6 +268,25 @@ func preflightExportKeys(root string, bundle *contractv1.Bundle, format, keyID s
 			continue
 		}
 		if concept.Privacy == nil || concept.Privacy.KeyID == "" {
+			continue
+		}
+		if concept.Privacy.ProviderName != "" {
+			resolved := provider
+			if resolved == nil || resolved.Name() != concept.Privacy.ProviderName {
+				var err error
+				resolved, err = privacy.ResolveProvider(root, concept.Privacy.ProviderName)
+				if err != nil {
+					return err
+				}
+				defer resolved.Close()
+			}
+			capabilities, err := resolved.Capabilities(context.Background())
+			if err != nil {
+				return err
+			}
+			if len(capabilities.KeyIDs) > 0 && !slices.Contains(capabilities.KeyIDs, concept.Privacy.KeyID) {
+				return fmt.Errorf("%w: %s key %s", privacy.ErrKeyUnavailable, resolved.Name(), concept.Privacy.KeyID)
+			}
 			continue
 		}
 		if _, err := privacy.ResolveKey(root, concept.Privacy.KeyID); err != nil {

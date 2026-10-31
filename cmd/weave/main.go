@@ -125,6 +125,15 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.KeyID = flags.keyID
 	request.Force = flags.force
 	request.Confirmed = flags.yes
+	request.Provider = flags.provider
+	if flags.provider != "" {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpShow,
+			contractv1.OpAudit, contractv1.OpExport:
+		default:
+			return usageError(stdout, stderr, flags.json, "--provider is not supported for this command")
+		}
+	}
 	if request.Op != contractv1.OpExport {
 		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.force || flags.yes {
 			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for export")
@@ -161,12 +170,13 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		watchContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		return runSyncWatch(watchContext, syncWatchOptions{
-			Root:   request.Path,
-			DB:     flags.db,
-			Mode:   mode,
-			Codec:  flags.codec,
-			JSON:   flags.json,
-			Events: flags.events,
+			Root:     request.Path,
+			DB:       flags.db,
+			Mode:     mode,
+			Codec:    flags.codec,
+			Provider: flags.provider,
+			JSON:     flags.json,
+			Events:   flags.events,
 		}, stdout, stderr)
 	}
 
@@ -246,6 +256,7 @@ type flags struct {
 	keyID       string
 	force       bool
 	yes         bool
+	provider    string
 	positionals []string
 }
 
@@ -426,6 +437,13 @@ func parseFlags(args []string) (flags, error) {
 			result.force = true
 		case "--yes":
 			result.yes = true
+		case "--provider":
+			value, next, err := flagValue(args, index, "--provider")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.provider = value
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -1216,17 +1234,17 @@ usage:
   weave graph <path> [--source <alias=path> ...] [--json] [--no-cache]
   weave search <path> <query> [--source <alias=path> ...] [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--rerank <name>] [--timeout <d>] [--json] [--no-cache]
   weave list <path> [--source <alias=path> ...] [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
-  weave show <path> [--source <alias=path> ...] <id|file> [--decrypt] [--json] [--no-cache]
+  weave show <path> [--source <alias=path> ...] <id|file> [--decrypt] [--provider <name>] [--json] [--no-cache]
   weave backlinks <path> [--source <alias=path> ...] <id|file> [--json] [--no-cache]
   weave path <path> [--source <alias=path> ...] <id|file> <id|file> [--json] [--no-cache]
-  weave audit <path> [--source <alias=path> ...] [--fail-on error|warning|none] [--verify-keys] [--json] [--no-cache]
+  weave audit <path> [--source <alias=path> ...] [--fail-on error|warning|none] [--verify-keys] [--provider <name>] [--json] [--no-cache]
   weave relate <path> [--source <alias=path> ...] <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
   weave explain <path> [--source <alias=path> ...] <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
-  weave ingest <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
-  weave rebuild <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--json] [--no-cache]
-  weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--watch [--events]] [--json] [--no-cache]
+  weave ingest <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--json] [--no-cache]
+  weave rebuild <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--json] [--no-cache]
+  weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--watch [--events]] [--json] [--no-cache]
   weave extensions list [<path>] [--json]
-  weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] [--json]
+  weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--provider <name>] [--yes] [--force] [--json]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
   weave --version | --help

@@ -24,7 +24,7 @@ import (
 	"github.com/prulloac/weave/engine/search"
 )
 
-const schemaVersion = 2
+const schemaVersion = 3
 
 var (
 	// ErrBundleNotIndexed is returned when a bundle is absent from the database.
@@ -42,6 +42,7 @@ type IngestOptions struct {
 	Mode     string // strict | permissive
 	Codec    string // zstd | lz4 | none
 	Enricher Enricher
+	Provider privacy.Provider
 }
 
 // SyncOptions controls incremental synchronization.
@@ -49,6 +50,7 @@ type SyncOptions struct {
 	Mode     string // empty keeps the stored mode
 	Codec    string // zstd | lz4 | none | empty inherits per row
 	Enricher Enricher
+	Provider privacy.Provider
 }
 
 // EnrichmentApply is the merged result of one enrichment call.
@@ -119,6 +121,19 @@ func Open(path string) (*Store, error) {
 	case schemaVersion:
 	case 1:
 		if err := migrateV1toV2(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+		if err := migrateV2toV3(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
+			db.Close()
+			return nil, err
+		}
+	case 2:
+		if err := migrateV2toV3(db); err != nil {
 			db.Close()
 			return nil, err
 		}
@@ -290,7 +305,7 @@ func (s *Store) Sync(
 		}
 		switch {
 		case !exists:
-			warnings, _, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, now)
+			warnings, _, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
 			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
@@ -309,7 +324,7 @@ func (s *Store) Sync(
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
 			}
-			warnings, enriched, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, now)
+			warnings, enriched, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
 			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
@@ -545,7 +560,8 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, file_path, title, description, doc_type, keywords_json,
 		       frontmatter_json, tags_json, status, links_json, body_compressed,
-		       privacy_policy, privacy_provider, privacy_key_id, body_codec
+		       privacy_policy, privacy_provider, privacy_key_id, privacy_provider_name,
+		       privacy_key_version, body_codec
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return nil, err
@@ -668,7 +684,7 @@ func (s *Store) writeBundle(
 	}
 
 	now := time.Now().Unix()
-	prepared, skipped, err := prepareConcepts(ctx, root, bundle.Concepts, mode == "permissive", codec, options.Enricher)
+	prepared, skipped, err := prepareConcepts(ctx, root, bundle.Concepts, mode == "permissive", codec, options.Enricher, options.Provider)
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
@@ -1198,11 +1214,13 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 			bundle_root, id, file_path, content_hash, title, description, doc_type,
 			keywords_json, frontmatter_json, tags_json, status, links_json,
 			body_compressed, body_codec, privacy_policy, privacy_provider,
-			privacy_key_id, redacted, privacy_spans_json, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			privacy_key_id, privacy_provider_name, privacy_key_version, redacted,
+			privacy_spans_json, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, concept.ID, concept.Path, contentHash(root, concept), title, description, concept.Type,
 		string(keywords), string(frontmatter), string(tags), status, string(links),
-		blob, string(storedCodec), policy, provider, keyID, boolInt(item.redacted), string(spans), now)
+		blob, string(storedCodec), policy, provider, keyID, item.providerName, item.keyVersion,
+		boolInt(item.redacted), string(spans), now)
 	return err
 }
 
@@ -1213,19 +1231,22 @@ func insertSyncedConcept(
 	concept contractv1.OkfConcept,
 	codec string,
 	enricher Enricher,
+	provider privacy.Provider,
 	now int64,
 ) (int, bool, error) {
-	result, err := privacy.Apply(root, concept)
+	result, err := privacy.ApplyWith(ctx, root, concept, provider)
 	if err != nil {
 		return 0, false, err
 	}
 	item := preparedConcept{
-		concept:   concept,
-		body:      result.Body,
-		codec:     codec,
-		directive: result.Directive,
-		redacted:  result.Redacted,
-		spans:     result.Spans,
+		concept:      concept,
+		body:         result.Body,
+		codec:        codec,
+		directive:    result.Directive,
+		redacted:     result.Redacted,
+		spans:        result.Spans,
+		providerName: result.ProviderName,
+		keyVersion:   result.KeyVersion,
 	}
 	warnings := 0
 	if enricher != nil {
@@ -1258,14 +1279,16 @@ func insertEnrichment(ctx context.Context, tx *sql.Tx, root, docID, enricherID s
 }
 
 type preparedConcept struct {
-	concept    contractv1.OkfConcept
-	body       string
-	codec      string
-	directive  *contractv1.PrivacyDirective
-	redacted   bool
-	spans      []privacy.Span
-	enricherID string
-	enrichment []byte
+	concept      contractv1.OkfConcept
+	body         string
+	codec        string
+	directive    *contractv1.PrivacyDirective
+	redacted     bool
+	spans        []privacy.Span
+	providerName string
+	keyVersion   int
+	enricherID   string
+	enrichment   []byte
 }
 
 func prepareConcepts(
@@ -1275,11 +1298,12 @@ func prepareConcepts(
 	permissive bool,
 	codec string,
 	enricher Enricher,
+	provider privacy.Provider,
 ) ([]preparedConcept, int, error) {
 	prepared := make([]preparedConcept, 0, len(concepts))
 	warnings := 0
 	for _, concept := range concepts {
-		result, err := privacy.Apply(root, concept)
+		result, err := privacy.ApplyWith(ctx, root, concept, provider)
 		if err != nil {
 			if errors.Is(err, privacy.ErrKeyUnavailable) && permissive {
 				warnings++
@@ -1288,12 +1312,14 @@ func prepareConcepts(
 			return nil, 0, err
 		}
 		item := preparedConcept{
-			concept:   concept,
-			body:      result.Body,
-			codec:     codec,
-			directive: result.Directive,
-			redacted:  result.Redacted,
-			spans:     result.Spans,
+			concept:      concept,
+			body:         result.Body,
+			codec:        codec,
+			directive:    result.Directive,
+			redacted:     result.Redacted,
+			spans:        result.Spans,
+			providerName: result.ProviderName,
+			keyVersion:   result.KeyVersion,
 		}
 		if enricher != nil {
 			apply, err := enricher(ctx, concept)
@@ -1375,6 +1401,8 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 		title                                              string
 		description, docType, status                       sql.NullString
 		policy, provider, keyID                            sql.NullString
+		providerName                                       sql.NullString
+		keyVersion                                         sql.NullInt64
 		codec                                              string
 		keywordsJSON, frontmatterJSON, tagsJSON, linksJSON string
 		body                                               []byte
@@ -1382,7 +1410,7 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 	if err := rows.Scan(
 		&concept.ID, &concept.Path, &title, &description, &docType,
 		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &body,
-		&policy, &provider, &keyID, &codec,
+		&policy, &provider, &keyID, &providerName, &keyVersion, &codec,
 	); err != nil {
 		return contractv1.OkfConcept{}, "", err
 	}
@@ -1398,9 +1426,11 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 	concept.Body = string(decoded)
 	if policy.Valid && policy.String != "" && policy.String != "none" {
 		concept.Privacy = &contractv1.PrivacyDirective{
-			Policy:   contractv1.PrivacyPolicy(policy.String),
-			Provider: provider.String,
-			KeyID:    keyID.String,
+			Policy:       contractv1.PrivacyPolicy(policy.String),
+			Provider:     provider.String,
+			KeyID:        keyID.String,
+			ProviderName: providerName.String,
+			KeyVersion:   int(keyVersion.Int64),
 		}
 	}
 	if err := json.Unmarshal([]byte(keywordsJSON), &concept.Keywords); err != nil {
@@ -1520,6 +1550,18 @@ func migrateV1toV2(db *sql.DB) error {
 	return nil
 }
 
+func migrateV2toV3(db *sql.DB) error {
+	for _, statement := range []string{
+		"ALTER TABLE documents ADD COLUMN privacy_provider_name TEXT DEFAULT ''",
+		"ALTER TABLE documents ADD COLUMN privacy_key_version INTEGER DEFAULT 0",
+	} {
+		if _, err := db.Exec(statement); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func createSchema(db *sql.DB) error {
 	_, err := db.Exec(`
 CREATE TABLE IF NOT EXISTS bundles (
@@ -1548,6 +1590,8 @@ CREATE TABLE IF NOT EXISTS documents (
     privacy_policy TEXT DEFAULT 'none',
     privacy_provider TEXT DEFAULT '',
     privacy_key_id TEXT DEFAULT '',
+    privacy_provider_name TEXT DEFAULT '',
+    privacy_key_version INTEGER DEFAULT 0,
     redacted INTEGER DEFAULT 0,
     privacy_spans_json TEXT DEFAULT '[]',
     updated_at INTEGER NOT NULL,

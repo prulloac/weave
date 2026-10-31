@@ -12,6 +12,7 @@ import (
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/privacy"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
@@ -23,6 +24,7 @@ type Options struct {
 	Store    *sqlitestore.Store
 	Mode     string
 	Codec    string
+	Provider privacy.Provider
 	Interval time.Duration
 	OnSync   func(contractv1.SyncReport)
 	OnError  func(error)
@@ -34,6 +36,7 @@ type Watcher struct {
 	store    *sqlitestore.Store
 	mode     string
 	codec    string
+	provider privacy.Provider
 	interval time.Duration
 	onSync   func(contractv1.SyncReport)
 	onError  func(error)
@@ -55,6 +58,7 @@ func New(options Options) (*Watcher, error) {
 		store:    options.Store,
 		mode:     options.Mode,
 		codec:    options.Codec,
+		provider: options.Provider,
 		interval: options.Interval,
 		onSync:   options.OnSync,
 		onError:  options.OnError,
@@ -96,7 +100,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 }
 
 func (w *Watcher) sync(ctx context.Context) error {
-	report, err := w.store.Sync(ctx, w.root, sqlitestore.SyncOptions{Mode: w.mode, Codec: w.codec})
+	report, err := w.store.Sync(ctx, w.root, sqlitestore.SyncOptions{Mode: w.mode, Codec: w.codec, Provider: w.provider})
 	if err != nil {
 		return err
 	}

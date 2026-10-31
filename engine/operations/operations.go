@@ -222,7 +222,7 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 			Limit:  limit,
 		}))
 	case contractv1.OpShow:
-		result, ok, err := eng.ShowWithOptions(request.Target, engine.ShowOptions{Decrypt: request.Decrypt})
+		result, ok, err := eng.ShowWithOptions(request.Target, engine.ShowOptions{Decrypt: request.Decrypt, Provider: request.Provider})
 		if err != nil {
 			switch {
 			case errors.Is(err, privacy.ErrKeyUnavailable):
@@ -267,10 +267,21 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		if failOn == "" {
 			failOn = contractv1.AuditFailOnError
 		}
+		provider, err := e.resolveProvider(request.Path, request.Provider)
+		if request.Provider == "" && !request.VerifyKeys {
+			provider, err = nil, nil
+		}
+		if err != nil {
+			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
+		}
+		if provider != nil {
+			defer provider.Close()
+		}
 		return success(audit.Build(eng.Bundle(), eng.Graph(), audit.Options{
 			FailOn:     failOn,
 			VerifyKeys: request.VerifyKeys,
 			Permissive: request.Permissive,
+			Provider:   provider,
 		}))
 	case contractv1.OpRelate:
 		id, ok := nav.NormalizeTarget(eng.Bundle(), request.Target)
@@ -415,6 +426,13 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"extension": request.Enricher,
 		})
 	}
+	provider, err := e.resolveProvider(request.Path, request.Provider)
+	if err != nil {
+		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
+	}
+	if provider != nil {
+		defer provider.Close()
+	}
 	options := e.Options
 	options.Permissive = permissive
 	eng, err := engine.Open(ctx, request.Path, options)
@@ -437,9 +455,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher, Provider: provider})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher, Provider: provider})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -495,7 +513,14 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			"extension": request.Enricher,
 		})
 	}
-	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode, Codec: request.Codec, Enricher: enricher})
+	provider, err := e.resolveProvider(request.Path, request.Provider)
+	if err != nil {
+		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
+	}
+	if provider != nil {
+		defer provider.Close()
+	}
+	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode, Codec: request.Codec, Enricher: enricher, Provider: provider})
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {
 			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
@@ -853,6 +878,13 @@ func mapStorageError(err error) (contractv1.ErrorCode, string) {
 		return contractv1.ErrInvalidRequest, "database does not exist: " + err.Error()
 	}
 	return contractv1.ErrInvalidRequest, "cannot open database: " + err.Error()
+}
+
+func (e *Executor) resolveProvider(root, name string) (privacy.Provider, error) {
+	if root == "" {
+		return nil, nil
+	}
+	return privacy.ResolveProvider(root, name)
 }
 
 func (e *Executor) warn(format string, args ...any) {
