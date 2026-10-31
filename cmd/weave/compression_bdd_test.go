@@ -74,12 +74,7 @@ func parsedBody(bundle contractv1.Bundle, id string) string {
 
 func compressionRaw(t *testing.T, path string) *sql.DB {
 	t.Helper()
-	raw, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	t.Cleanup(func() { _ = raw.Close() })
-	return raw
+	return HarnessOpenDB(t, path)
 }
 
 func storedCodec(t *testing.T, raw *sql.DB, root, id string) string {

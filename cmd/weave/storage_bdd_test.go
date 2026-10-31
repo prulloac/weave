@@ -27,7 +27,7 @@ type bddStorageReport struct {
 
 func invokePersistent(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
-	return invokeRaw(t, args...)
+	return HarnessInvokePersistent(t, args...)
 }
 
 func storageHome(t *testing.T) string {

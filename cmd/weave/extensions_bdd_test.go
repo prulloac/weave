@@ -66,12 +66,7 @@ func installExtension(t *testing.T, root, name, script string) string {
 
 func extensionRaw(t *testing.T, path string) *sql.DB {
 	t.Helper()
-	raw, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	t.Cleanup(func() { _ = raw.Close() })
-	return raw
+	return HarnessOpenDB(t, path)
 }
 
 func extensionRoot(t *testing.T, root string) string {

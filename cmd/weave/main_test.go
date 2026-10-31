@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -30,14 +29,7 @@ func invoke(t *testing.T, args ...string) (int, string, string) {
 
 func invokeRaw(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
-	if os.Getenv("WEAVE_CACHE_DIR") == "" {
-		t.Setenv("WEAVE_CACHE_DIR", t.TempDir())
-	}
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	code := run(args, &stdout, &stderr)
-	return code, stdout.String(), stderr.String()
+	return HarnessInvoke(t, args...)
 }
 
 func withInMemory(args []string) []string {
