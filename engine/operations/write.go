@@ -61,7 +61,7 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	}
 	enricher, err := e.newEnricher(request)
 	if err != nil {
-		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Enricher,
 		})
 	}
@@ -167,7 +167,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	}
 	enricher, err := e.newEnricher(request)
 	if err != nil {
-		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Enricher,
 		})
 	}

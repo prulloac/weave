@@ -63,7 +63,7 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 		Lexical: hits,
 	}
 	if err := e.applyRerank(ctx, request, &response); err != nil {
-		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Rerank,
 		})
 	}
@@ -133,7 +133,7 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 		Lexical: lexical,
 	}
 	if err := e.applyRerank(ctx, request, &response); err != nil {
-		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Rerank,
 		})
 	}

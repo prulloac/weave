@@ -45,7 +45,7 @@ func (e *Executor) readSearch(ctx context.Context, eng *engine.Engine, request c
 		})
 	}
 	if err := e.applyRerank(ctx, request, &result); err != nil {
-		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Rerank,
 		})
 	}
@@ -73,9 +73,15 @@ func (e *Executor) readShow(_ context.Context, eng *engine.Engine, request contr
 	if err != nil {
 		switch {
 		case errors.Is(err, privacy.ErrKeyUnavailable):
-			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"target": request.Target})
+			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{
+				"target":   request.Target,
+				"provider": request.Provider,
+			})
 		case errors.Is(err, privacy.ErrDecrypt):
-			return failure(contractv1.ErrPrivacyDecrypt, err.Error(), map[string]any{"target": request.Target})
+			return failure(contractv1.ErrPrivacyDecrypt, err.Error(), map[string]any{
+				"target":   request.Target,
+				"provider": request.Provider,
+			})
 		default:
 			return failure(contractv1.ErrInternal, err.Error(), map[string]any{"target": request.Target})
 		}
