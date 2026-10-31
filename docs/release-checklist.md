@@ -10,8 +10,8 @@ This checklist records the release state. The tag and publish steps are owner ac
 - [x] Markdown lint: 0 issues across 88 files.
 - [x] Regression gate: shuffled race suite, vet, staticcheck, govulncheck, fuzzing and built-binary
   smoke.
-- [x] CI on `main`: run `41222775088` passed.
-- [x] Release dry run `v1.0.0-rc.2`: run `41224147316` passed on Linux, macOS and Windows.
+- [x] CI on `main`: run `41225010841` passed.
+- [x] Release dry run `v1.0.0-rc.3`: run `41225227470` passed on Linux, macOS and Windows.
 - [x] Dry run produced all six archives, checksums and build info without creating a release.
 - [x] Linux archive inspected: `weave`, `README.md`, `LICENSE`.
 
