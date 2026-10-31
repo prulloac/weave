@@ -57,12 +57,13 @@ on:
 2. **Build** (matrix): compile static binaries with `CGO_ENABLED=0`, `-trimpath` and
    `-ldflags "-s -w -X main.version=<version>"`.
 3. **Package**: archive each binary, generate SHA-256 checksums and a build-info file.
-4. **Release** (ubuntu-latest, tag events only): create a draft GitHub Release and attach all
-   artifacts; generate notes from commits since the previous tag.
-5. **Verify artifacts**: download the linux/amd64 archive and run `weave version --json` and
-   `weave contract --json` as a smoke test.
+4. **Artifact smoke** (matrix): extract the Linux amd64, macOS arm64 and Windows amd64 archives;
+   run `weave version --json`, `weave contract --json` and the full built-binary smoke suite from
+   each extracted binary.
+5. **Release** (ubuntu-latest, tag events only): verify checksums and build info, create a draft
+   GitHub Release and attach all artifacts; generate notes from commits since the previous tag.
 
-Builds fail closed: a failed verification job blocks build and release.
+Builds fail closed: a failed verification, build or artifact-smoke job blocks release.
 
 ## 4. Build Matrix and Artifacts
 
@@ -83,8 +84,8 @@ weave_<version>_buildinfo.txt
 
 - `<version>` omits the leading `v` (`v1.2.3` → `weave_1.2.3_linux_amd64.tar.gz`).
 - Archives contain a single `weave` binary (`weave.exe` on Windows) and `README.md`; `LICENSE` is
-  included when the repository has one. Weave currently ships without a license file, so release
-  archives omit it until licensing is decided.
+  included when the repository has one. The license decision is tracked in the
+  [release readiness spec](./release-readiness.md); archives omit it until that decision is made.
 - `checksums.txt` lists every archive with lowercase SHA-256, sorted by filename.
 - `buildinfo.txt` records version, commit SHA, Go version and build timestamp.
 - `weave version` prints the tag version, never `dev`.

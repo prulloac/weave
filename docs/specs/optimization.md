@@ -141,7 +141,7 @@ commands and output the benchmarks exercise.
   JSON modes; make empty-result exits consistent.
 - Add `--dry-run` to write commands and `--no-input` for non-interactive confirmation failures.
 - Finish configuration UX (platform paths, DB location decision, typed `config show`; project
-  config deferred to v1.1).
+  config deferred until after GA).
 - Pin machine-output schemas and add `quiet`/`verbose`/`NO_COLOR` feedback controls.
 - Improve onboarding, completion and local-first/privacy messaging.
 - Details and exit criteria: [Proposal: UX](../architecture/optimization/proposal-ux.md).

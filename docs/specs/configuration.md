@@ -34,7 +34,7 @@ Secrets are never read from the configuration file; privacy keys stay in `WEAVE_
 
 Non-goals:
 
-- Project-local configuration files in v1.0; `.weave/config.yaml` is deferred to v1.1 by
+- Project-local configuration files in v1.0; `.weave/config.yaml` is deferred until after GA by
   [ADR 0002](../architecture/adr/0002-config-paths-and-db-location.md).
 - Moving the default database to an XDG state directory in v1.0; `~/.weave/index.db` remains the
   storage invariant until a migration is specified.

@@ -43,7 +43,7 @@ compatibility policy, schemas and a regression check rather than informal stabil
 | D1 | Resolve config with the platform config directory |
 | D2 | Resolve the parse cache with the platform cache directory |
 | D3 | Keep `~/.weave/index.db` as the v1.0 default database |
-| D4 | Defer project-local `.weave/config.yaml` to v1.1 |
+| D4 | Defer project-local `.weave/config.yaml` until after GA |
 | D5 | Type config results, add `config get`, and print the next command after `init` |
 | D6 | Make `weave.cli/v1` output additive-only with schemas, goldens and a schema diff |
 
@@ -107,8 +107,8 @@ database path and `weave config get db` makes the value scriptable.
 
 ### Decision
 
-v1.0 keeps one global configuration file. A project-local `.weave/config.yaml` is deferred to
-v1.1. Precedence remains explicit CLI flag, then environment, then file, then default.
+v1.0 keeps one global configuration file. A project-local `.weave/config.yaml` is deferred until
+after GA. Precedence remains explicit CLI flag, then environment, then file, then default.
 
 ### Rationale
 

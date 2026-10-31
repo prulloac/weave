@@ -93,7 +93,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | x | x | stretch |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
-| Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | - | in-progress |
+| Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | x | green |
 
 ## Cross-cutting
 

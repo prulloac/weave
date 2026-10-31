@@ -11,7 +11,7 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-31T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Release Readiness
@@ -39,9 +39,9 @@ Non-goals:
 - A UI, HTTP service, daemon or mount.
 - Rewriting every prose document; the work is targeted reconciliation and structural enforcement.
 
-Current gaps this specification closes:
+Baseline at approval (the R1–R4 slices close these gaps):
 
-| Area | Current state |
+| Area | Baseline |
 | --- | --- |
 | Local gate | `scripts/verify.sh` runs race, vet, build, gofmt and link checks only; staticcheck, govulncheck, smoke and `actionlint` are absent or run only in CI |
 | Smoke | `InvokeBinary` is used only for `version`; no end-to-end built-binary scenario exists |
@@ -400,17 +400,17 @@ ROADMAP (status) --links--> specs (contract) --links--> BDD (behavior) --links--
 Each slice is an atomic conventional commit or a stacked PR. R1–R3 may ship as one documentation
 stack; R4–R5 as one test stack; R6–R7 as the release stack.
 
-## 13. Open Decisions
+## 13. Decisions
 
-| Decision | Recommended default |
+| Decision | Outcome |
 | --- | --- |
-| License | Decide before the first tag; include `LICENSE` in archives if chosen |
-| ADR numbering | Renumber `0003`/`0004` to `0001`/`0002`, add an ADR index, update references |
-| Feature IDs | Renumber the register contiguously and sort ascending |
-| Phase and wave axes | Keep both only if all referenced phases exist; otherwise collapse to waves |
-| Optimization | Stretch goal, post-GA; no v1.0 gate |
-| MCP M4 polish | Defer rate limits, metrics and service examples; mark the milestone honestly |
-| Markdown lint | Keep the Node action in CI; document it as a CI-only gate if `verify.sh` stays Go-only |
+| License | Open; decide before the first tag and include `LICENSE` in archives if chosen |
+| ADR numbering | Adopted: `0001`/`0002` contiguous, ADR index added, references updated |
+| Feature IDs | Adopted: register contiguous from 1 and sorted ascending |
+| Phase and wave axes | Adopted: phases 1–6 remain; wave 7–8 references use the wave names |
+| Optimization | Adopted: post-GA stretch goal; no v1.0 gate |
+| MCP M4 polish | Adopted: rate limits, metrics and service examples deferred until after GA |
+| Markdown lint | Adopted: Node action in CI and release verification; `verify.sh` stays Go-first |
 
 ## 14. Related Documents
 

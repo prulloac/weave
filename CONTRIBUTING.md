@@ -1,7 +1,8 @@
 # Contributing to Weave
 
-Weave is a Go engine and CLI for keyword and weighted fuzzy search over OKF bundles. There is no
-browser UI.
+Weave is a Go engine and CLI for local-first related-document search over OKF bundles, with optional
+SQLite persistence, privacy directives, subprocess extensions and an MCP server. There is no browser
+UI.
 
 ## Prerequisites
 
@@ -47,11 +48,15 @@ never write tests before the specification.
 | `go test ./...` | Unit, contract, conformance and CLI tests |
 | `go test -race ./...` | Race suite |
 | `go vet ./...` | Static checks |
+| `go test ./cmd/weave -run '^TestSmoke$'` | Built-binary end-to-end smoke suite |
+| `go test ./engine/okf -run '^$' -fuzz FuzzExtractFrontmatter -fuzztime=5s` | Parser fuzzing |
 | `go build ./cmd/weave` | Build the CLI |
 | `go run ./cmd/contract-export` | Regenerate golden output |
 | `go test ./engine/search -run TestCalibration -v` | Ranking calibration |
-| `go run ./cmd/docs-lint` | Check relative Markdown links |
-| `./scripts/verify.sh` | Full local gate |
+| `go run ./cmd/docs-lint` | Documentation links, status, numbering and cross-reference gate |
+| `./scripts/verify.sh` | Full local gate used by CI and release |
+
+Documentation rules are in the [documentation style guide](docs/STYLE.md).
 
 ## Code Style
 

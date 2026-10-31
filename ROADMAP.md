@@ -430,7 +430,7 @@ needed.
 - **Storage:** the SQLite schema uses `PRAGMA user_version` with explicit migrations, independent of
   the product and contract versions.
 - **Feature status:** the roadmap uses `shipped`, `stretch`, `deferred` and `planned`; the backlog
-  uses pipeline states. There are no v1.1 or v2 feature labels.
+  uses pipeline states. There are no versioned feature labels beyond v1.0.
 
 ### Quality gates
 
