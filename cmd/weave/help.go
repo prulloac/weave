@@ -120,15 +120,16 @@ var commandHelpText = map[string]commandHelp{
 		},
 	},
 	"config": {
-		Usage:   "weave config show|path|init [flags]",
+		Usage:   "weave config show|get|path|init [flags]",
 		Summary: "Inspect or initialize global configuration.",
 		Flags: []string{
-			"--config <file> / --no-config       select or ignore the file",
+			"--config <file> / --no-config       select or ignore the file (WEAVE_CONFIG)",
 			"--strict-config                    reject unknown config keys",
 			"--force                            overwrite on init",
 		},
 		Examples: []string{
 			`weave config show --json`,
+			`weave config get top_k --json`,
 			`weave config init`,
 		},
 	},
@@ -201,7 +202,7 @@ global flags:
   --json                  one weave.cli/v1 envelope on stdout
   --db <file>             persistent database (~/.weave/index.db by default)
   --no-db                 transient in-memory parsing
-  --config <file>         global config file (see weave config show)
+  --config <file>         global config file (WEAVE_CONFIG; see weave config show)
   --no-config             ignore the config file; environment still applies
   --strict-config         reject unknown config keys
   --no-cache              disable the parse cache
@@ -242,6 +243,7 @@ func printConfigHelp(writer io.Writer) {
 
 usage:
   weave config show [--json]
+  weave config get <key> [--json]
   weave config path [--json]
   weave config init [--force]
 
@@ -252,6 +254,9 @@ flags:
   --force               overwrite on init
   --json                machine-readable output
 
+paths (Linux): XDG_CONFIG_HOME or ~/.config; macOS: Application Support;
+Windows: %AppData%. WEAVE_CONFIG overrides the config file.
+database: ~/.weave/index.db in v1.0; use --db or WEAVE_DB to move it.
 precedence: explicit CLI flag > WEAVE_* environment > config file > default
 `)
 }

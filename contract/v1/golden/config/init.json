@@ -1,0 +1,5 @@
+{
+	"path": "<config>",
+	"created": true,
+	"next_command": "weave config show"
+}

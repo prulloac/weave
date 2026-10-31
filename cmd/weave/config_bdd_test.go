@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -12,10 +13,12 @@ import (
 
 type bddConfigShow struct {
 	ConfigPath string `json:"config_path"`
+	Exists     bool   `json:"exists"`
 	Entries    []struct {
 		Key    string `json:"key"`
 		Value  any    `json:"value"`
 		Source string `json:"source"`
+		Origin string `json:"origin"`
 	} `json:"entries"`
 }
 
@@ -225,7 +228,10 @@ func TestConfigInit(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	path := filepath.Join(home, ".config", "weave", "config.yaml")
+	if runtime.GOOS == "windows" {
+		t.Setenv("AppData", filepath.Join(home, "appdata"))
+	}
+	path := defaultConfigPath()
 
 	code, _, stderr := invokeRaw(t, "config", "init", "--json")
 	if code != 0 {
@@ -235,7 +241,7 @@ func TestConfigInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("config not created: %v", err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("config mode = %o, want 600", info.Mode().Perm())
 	}
 

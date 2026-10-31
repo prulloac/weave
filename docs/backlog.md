@@ -90,7 +90,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Release automation | [release-automation.md](specs/release-automation.md) | - | x | x | x | green |
 | Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | x | x | green |
 | Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
-| Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | - | - | backlog |
+| Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | x | x | in-progress |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
 
 ## Cross-cutting
@@ -101,6 +101,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Go test infrastructure: unit, conformance, calibration, CLI process tests
 - [x] CI workflow: contract export diff, `go test -race`, vet, gofmt, build, docs lint
 - [x] `scripts/verify.sh` full local gate
+- [x] Qualitative optimization: config paths/provenance and additive machine output
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 )
 
@@ -30,12 +31,26 @@ type parseCache struct {
 	dirty    bool
 }
 
+func defaultCacheDir() string {
+	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+		if dir := os.Getenv("XDG_CACHE_HOME"); dir != "" && !filepath.IsAbs(dir) {
+			if home, err := os.UserHomeDir(); err == nil {
+				return filepath.Join(home, ".cache", "weave", "okf")
+			}
+		}
+	}
+	if dir, err := os.UserCacheDir(); err == nil && dir != "" {
+		return filepath.Join(dir, "weave", "okf")
+	}
+	return filepath.Join(os.TempDir(), "weave-okf-cache")
+}
+
 func openParseCache(root, directory string) (*parseCache, error) {
 	if directory == "" {
 		directory = os.Getenv("WEAVE_CACHE_DIR")
 	}
 	if directory == "" {
-		directory = filepath.Join(os.TempDir(), "weave-okf-cache")
+		directory = defaultCacheDir()
 	}
 
 	hash := sha256.Sum256([]byte(root))

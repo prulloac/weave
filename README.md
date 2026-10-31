@@ -64,8 +64,8 @@ Global flags:
   overrides the 5s default.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
 - `--provider <name>` selects a `weave-crypto-<name>` provider for ingest/sync/show/audit/export.
-- `--config <file>` selects a config file; `--no-config` ignores it; `--strict-config` rejects
-  unknown keys. See [Configuration](#configuration).
+- `--config <file>` selects a config file (`WEAVE_CONFIG` also works); `--no-config` ignores it;
+  `--strict-config` rejects unknown keys. See [Configuration](#configuration).
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -76,14 +76,16 @@ Global flags:
 Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file → default.
 
 ```sh
-weave config init                 # ~/.config/weave/config.yaml (0600)
-weave config show --json          # values and sources
+weave config init                 # platform config dir, 0600; prints the next command
+weave config show --json          # values, sources and origins
+weave config get top_k --json     # one resolved key
 weave config path --json
 weave --config ./weave.yaml list ~/notes --no-db
 ```
 
 ```yaml
 db: ~/.weave/index.db
+cache_dir: ""            # empty uses the platform cache directory
 codec: zstd
 search_mode: hybrid
 top_k: 10
@@ -93,8 +95,15 @@ enricher: ""
 rerank: ""
 ```
 
-- Environment keys mirror the file: `WEAVE_DB`, `WEAVE_CODEC`, `WEAVE_SEARCH_MODE`,
-  `WEAVE_TOP_K`, `WEAVE_INGEST_MODE`, `WEAVE_TIMEOUT`, `WEAVE_ENRICHER`, `WEAVE_RERANK`.
+- Environment keys mirror the file: `WEAVE_DB`, `WEAVE_CACHE_DIR`, `WEAVE_CODEC`,
+  `WEAVE_SEARCH_MODE`, `WEAVE_TOP_K`, `WEAVE_INGEST_MODE`, `WEAVE_TIMEOUT`, `WEAVE_ENRICHER`,
+  `WEAVE_RERANK`; `WEAVE_CONFIG` selects the file.
+- Config resolves through `os.UserConfigDir` (XDG on Linux, `%AppData%` on Windows, Application
+  Support on macOS). The parse cache uses `os.UserCacheDir`.
+- v1.0 keeps the database at `~/.weave/index.db`; use `--db`, `WEAVE_DB` or the `db` key to move
+  it. XDG state migration is deferred (see
+  [ADR 0004](docs/architecture/adr/0004-config-paths-and-db-location.md)).
+- `config show` and `config get` report every value with `source` and `origin`.
 - Secrets are never read from configuration; keys stay in `WEAVE_KEY_*` or `.weave/security.yaml`.
 - Invalid or reserved keys exit `2`; unknown keys warn unless `--strict-config`.
 

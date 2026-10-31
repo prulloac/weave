@@ -65,7 +65,7 @@ The detailed contract and algorithms are in
 | --- | --- | --- | --- |
 | CLI processes | Any language or runtime | Primary | argv, stdout/stderr, exit codes, `weave.cli/v1` |
 | Go package API | Go hosts | Optional | Engine/store packages |
-| MCP tool harness | Go hosts, MCP clients | M1–M3 available | `mcp.Server` + stdio/TCP transport |
+| MCP tool harness | Go hosts, MCP clients | Available | `mcp.Server` + stdio/TCP transport |
 | TCP MCP server | MCP clients | Available | newline JSON-RPC over TCP |
 | Browser presentation | — | **Retired** | Removed by ADR 0003 |
 
@@ -81,8 +81,8 @@ remains the compatibility promise.
 | C — Cleanup | remove UI, old search and TypeScript implementation; finalize v1 docs | Complete |
 | D — Introspection | `weave audit`, `weave relate`, `weave explain` | Complete |
 | E — Storage & sync | SQLite persistence, incremental sync, watch | Complete |
-| F — Privacy & extensions | Explicit privacy directives and subprocess plugins | Directives, IPC, enrichment and rerank complete; crypto providers planned |
-| G — MCP | MCP tools over operations | M1–M4 complete; sensitive/polish next |
+| F — Privacy & extensions | Explicit privacy directives and subprocess plugins | Directives, IPC, enrichment, rerank, crypto providers and AI plugin complete |
+| G — MCP | MCP tools over operations | Tools, transport, resources, multi-source and sensitive access complete |
 
 ## Dependency Rules
 
@@ -118,11 +118,13 @@ remains the compatibility promise.
 | Contract version | New v1 replaces the previous v1 in place |
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
-| Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory |
+| Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory; XDG state migration deferred (ADR 0004) |
+| Config paths | Platform config dir (`os.UserConfigDir`), platform cache dir, `~/.weave/index.db` for v1.0 |
+| Machine output | Additive `weave.cli/v1` schemas, goldens and schema-diff gate |
 | Ranking | Persistent hybrid BM25 + fuzzy; `--no-db` legacy keyword + fuzzy |
 | Privacy | v1.0 explicit encrypt/tokenize/hash directives |
 | Extensions | v1.0 subprocess IPC over `weave.cli/v1` |
-| Integration | CLI first; Go package optional; MCP M1 harness shipped; TCP pending |
+| Integration | CLI first; Go package optional; MCP tools, transport, resources, multi-source and sensitive access shipped |
 | Presentation | Cancelled and removed |
 
 ## Documents
@@ -130,6 +132,7 @@ remains the compatibility promise.
 | Document | Purpose |
 | --- | --- |
 | [ADR 0003](adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | New purpose, keywords, fuzzy search and UI retirement |
+| [ADR 0004](adr/0004-config-paths-and-db-location.md) | Config/cache/DB paths and additive machine output |
 | [Keyword + Fuzzy Search spec](../specs/keyword-fuzzy-search.md) | Detailed data model, algorithms, CLI and calibration |
 | [Contract layer](layers/contract.md) | Documents, keywords, graph and search contract |
 | [Engine layer](layers/engine-go.md) | Parser, graph, search and navigation |
@@ -192,8 +195,9 @@ Permissive ingestion synthesizes metadata for dirty Markdown, `weave sync` recon
 by SHA-256 hash, and persistent hybrid search combines normalized BM25 with fuzzy scores.
 Calibration passes its baseline. The UI and old TypeScript stack are removed.
 
-The remaining v1.0 scope — external crypto providers, the AI plugin, MCP sensitive access and
-`weave sync --watch` — is specified but not implemented. MCP tools, stdio/TCP transport, auth,
-resources and watch reload are available, privacy directives ship with encrypted, tokenized and
-hashed storage, bodies use zstd by default, and `weave-<name>` extensions enrich writes and rerank
-searches.
+The v1.0 feature set is shipped, including external crypto providers, the AI plugin, MCP sensitive
+access and `weave sync --watch`. MCP tools, stdio/TCP transport, auth, resources and watch reload
+are available, privacy directives ship with encrypted, tokenized and hashed storage, bodies use
+zstd by default, and `weave-<name>` extensions enrich writes and rerank searches. The remaining
+v1.0 work is the [optimization program](../specs/optimization.md): benchmarks, measured time/space
+work and the continuous performance gate.

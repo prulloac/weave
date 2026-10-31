@@ -1,0 +1,72 @@
+{
+	"config_path": "<config>",
+	"exists": true,
+	"entries": [
+		{
+			"key": "db",
+			"value": "/srv/weave/index.db",
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "no_db",
+			"value": false,
+			"source": "default",
+			"origin": "default"
+		},
+		{
+			"key": "cache",
+			"value": false,
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "cache_dir",
+			"value": "",
+			"source": "default",
+			"origin": "default"
+		},
+		{
+			"key": "codec",
+			"value": "lz4",
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "search_mode",
+			"value": "keyword",
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "top_k",
+			"value": 7,
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "ingest_mode",
+			"value": "strict",
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "timeout",
+			"value": "2s",
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "enricher",
+			"value": "ai",
+			"source": "file",
+			"origin": "file <config>"
+		},
+		{
+			"key": "rerank",
+			"value": "ai",
+			"source": "file",
+			"origin": "file <config>"
+		}
+	]
+}

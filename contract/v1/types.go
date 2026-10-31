@@ -561,6 +561,52 @@ type VersionInfo struct {
 	CLI           string `json:"cli"`
 }
 
+// ConfigEntry is one resolved configuration key with provenance.
+type ConfigEntry struct {
+	Key    string `json:"key"`
+	Value  any    `json:"value"`
+	Source string `json:"source"`
+	Origin string `json:"origin,omitempty"`
+}
+
+// ConfigShow is the typed result of `weave config show --json`.
+type ConfigShow struct {
+	ConfigPath string        `json:"config_path"`
+	Exists     bool          `json:"exists"`
+	Entries    []ConfigEntry `json:"entries"`
+}
+
+// ConfigGet is the typed result of `weave config get <key> --json`.
+type ConfigGet struct {
+	Key    string `json:"key"`
+	Value  any    `json:"value"`
+	Source string `json:"source"`
+	Origin string `json:"origin,omitempty"`
+}
+
+// ConfigPath is the typed result of `weave config path --json`.
+type ConfigPath struct {
+	Path   string `json:"path"`
+	Exists bool   `json:"exists"`
+}
+
+// ConfigInit is the typed result of `weave config init --json`.
+type ConfigInit struct {
+	Path        string `json:"path"`
+	Created     bool   `json:"created"`
+	NextCommand string `json:"next_command,omitempty"`
+}
+
+// WatchEvent is one JSONL event emitted by `weave sync --watch --events --json`.
+type WatchEvent struct {
+	Event   string `json:"event"`
+	At      string `json:"at"`
+	Added   int    `json:"added"`
+	Updated int    `json:"updated"`
+	Removed int    `json:"removed"`
+	Errors  int    `json:"errors"`
+}
+
 // SourceSpec is one bundle source passed to a multi-source invocation.
 type SourceSpec struct {
 	Alias string `json:"alias"`

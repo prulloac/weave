@@ -29,6 +29,15 @@ func usageError(stdout io.Writer, stderr io.Writer, jsonMode bool, message strin
 	return 2
 }
 
+func successEnvelope(result any) contractv1.SuccessEnvelope {
+	return contractv1.SuccessEnvelope{
+		Contract: operations.ContractVersion,
+		CLI:      operations.CLIVersion,
+		OK:       true,
+		Result:   result,
+	}
+}
+
 func writeJSON(writer io.Writer, value any) error {
 	data, err := json.Marshal(value)
 	if err != nil {

@@ -1757,6 +1757,58 @@
 				},
 				"permissive": {
 					"type": "boolean"
+				},
+				"decrypt": {
+					"type": "boolean"
+				},
+				"codec": {
+					"type": "string",
+					"enum": [
+						"zstd",
+						"lz4",
+						"none"
+					]
+				},
+				"enricher": {
+					"type": "string"
+				},
+				"rerank": {
+					"type": "string"
+				},
+				"timeout_ms": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"sources": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/SourceSpec"
+					}
+				},
+				"out": {
+					"type": "string"
+				},
+				"format": {
+					"type": "string",
+					"enum": [
+						"raw",
+						"encrypted"
+					]
+				},
+				"key_id": {
+					"type": "string"
+				},
+				"provider": {
+					"type": "string"
+				},
+				"force": {
+					"type": "boolean"
+				},
+				"confirmed": {
+					"type": "boolean"
+				},
+				"dry_run": {
+					"type": "boolean"
 				}
 			}
 		},
@@ -1989,6 +2041,186 @@
 				},
 				"dry_run": {
 					"type": "boolean"
+				}
+			}
+		},
+		"SourceSpec": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"alias",
+				"path"
+			],
+			"properties": {
+				"alias": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				}
+			}
+		},
+		"ConfigSource": {
+			"type": "string",
+			"enum": [
+				"default",
+				"file",
+				"env",
+				"flag"
+			]
+		},
+		"ConfigValue": {
+			"oneOf": [
+				{
+					"type": "string"
+				},
+				{
+					"type": "boolean"
+				},
+				{
+					"type": "integer"
+				}
+			]
+		},
+		"ConfigEntry": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"key",
+				"value",
+				"source"
+			],
+			"properties": {
+				"key": {
+					"type": "string"
+				},
+				"value": {
+					"$ref": "#/$defs/ConfigValue"
+				},
+				"source": {
+					"$ref": "#/$defs/ConfigSource"
+				},
+				"origin": {
+					"type": "string"
+				}
+			}
+		},
+		"ConfigShow": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"config_path",
+				"exists",
+				"entries"
+			],
+			"properties": {
+				"config_path": {
+					"type": "string"
+				},
+				"exists": {
+					"type": "boolean"
+				},
+				"entries": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ConfigEntry"
+					}
+				}
+			}
+		},
+		"ConfigGet": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"key",
+				"value",
+				"source"
+			],
+			"properties": {
+				"key": {
+					"type": "string"
+				},
+				"value": {
+					"$ref": "#/$defs/ConfigValue"
+				},
+				"source": {
+					"$ref": "#/$defs/ConfigSource"
+				},
+				"origin": {
+					"type": "string"
+				}
+			}
+		},
+		"ConfigPath": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"path",
+				"exists"
+			],
+			"properties": {
+				"path": {
+					"type": "string"
+				},
+				"exists": {
+					"type": "boolean"
+				}
+			}
+		},
+		"ConfigInit": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"path",
+				"created"
+			],
+			"properties": {
+				"path": {
+					"type": "string"
+				},
+				"created": {
+					"type": "boolean"
+				},
+				"next_command": {
+					"type": "string"
+				}
+			}
+		},
+		"WatchEvent": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"event",
+				"at",
+				"added",
+				"updated",
+				"removed",
+				"errors"
+			],
+			"properties": {
+				"event": {
+					"type": "string",
+					"const": "sync"
+				},
+				"at": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"added": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"updated": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"removed": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"errors": {
+					"type": "integer",
+					"minimum": 0
 				}
 			}
 		}

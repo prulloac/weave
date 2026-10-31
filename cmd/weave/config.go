@@ -5,11 +5,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,6 +28,7 @@ type appConfig struct {
 	Enricher   string
 	Rerank     string
 	Sources    map[string]string
+	Origins    map[string]string
 	Path       string
 	Exists     bool
 }
@@ -39,8 +42,8 @@ var reservedConfigKeys = []string{"keys", "security", "token", "api_key"}
 
 func defaultAppConfig() appConfig {
 	db := ""
-	if home, err := os.UserHomeDir(); err == nil {
-		db = filepath.Join(home, ".weave", "index.db")
+	if path, err := sqlitestore.DefaultPath(); err == nil {
+		db = path
 	}
 	return appConfig{
 		DB:         db,
@@ -51,38 +54,54 @@ func defaultAppConfig() appConfig {
 		IngestMode: "permissive",
 		Timeout:    5 * time.Second,
 		Sources:    map[string]string{},
+		Origins:    map[string]string{},
 	}
 }
 
+// defaultConfigPath resolves the global config file with the platform config
+// directory. Unix honors XDG_CONFIG_HOME only when it is absolute; Windows
+// uses %AppData% and macOS uses Application Support through os.UserConfigDir.
 func defaultConfigPath() string {
-	if home := os.Getenv("XDG_CONFIG_HOME"); home != "" {
-		return filepath.Join(home, "weave", "config.yaml")
+	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+		if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
+			if filepath.IsAbs(dir) {
+				return filepath.Join(dir, "weave", "config.yaml")
+			}
+			if home, err := os.UserHomeDir(); err == nil {
+				return filepath.Join(home, ".config", "weave", "config.yaml")
+			}
+		}
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ".weave/config.yaml"
+	if dir, err := os.UserConfigDir(); err == nil && dir != "" {
+		return filepath.Join(dir, "weave", "config.yaml")
 	}
-	if appData := os.Getenv("AppData"); appData != "" {
-		return filepath.Join(appData, "weave", "config.yaml")
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".config", "weave", "config.yaml")
 	}
-	return filepath.Join(home, ".config", "weave", "config.yaml")
+	return filepath.Join(".weave", "config.yaml")
 }
 
-func loadAppConfig(path string, noConfig, strict bool) (appConfig, []string, error) {
-	cfg := defaultAppConfig()
-	for _, key := range configKeys {
-		cfg.Sources[key] = "default"
-	}
+func resolveConfigPath(path string) (string, bool) {
 	if strings.TrimSpace(path) == "" {
 		path = os.Getenv("WEAVE_CONFIG")
 	}
 	if strings.TrimSpace(path) == "" {
 		path = defaultConfigPath()
 	}
-	cfg.Path = path
+	exists := false
 	if info, err := os.Stat(path); err == nil && !info.IsDir() {
-		cfg.Exists = true
+		exists = true
 	}
+	return path, exists
+}
+
+func loadAppConfig(path string, noConfig, strict bool) (appConfig, []string, error) {
+	cfg := defaultAppConfig()
+	for _, key := range configKeys {
+		cfg.Sources[key] = "default"
+		cfg.Origins[key] = "default"
+	}
+	cfg.Path, cfg.Exists = resolveConfigPath(path)
 
 	warnings := make([]string, 0)
 	if !noConfig && cfg.Exists {
@@ -114,7 +133,7 @@ func loadAppConfig(path string, noConfig, strict bool) (appConfig, []string, err
 				warnings = append(warnings, message)
 				continue
 			}
-			if err := applyConfigValue(&cfg, key, value, "file"); err != nil {
+			if err := applyConfigValue(&cfg, key, value, "file", "file "+path); err != nil {
 				return cfg, nil, err
 			}
 		}
@@ -142,18 +161,21 @@ func loadAppConfig(path string, noConfig, strict bool) (appConfig, []string, err
 				continue
 			}
 		}
-		if err := applyConfigValue(&cfg, key, value, "env"); err != nil {
+		if err := applyConfigValue(&cfg, key, value, "env", "env "+name); err != nil {
 			return cfg, nil, fmt.Errorf("CONFIG_INVALID: %s: %s", name, strings.TrimPrefix(err.Error(), "CONFIG_INVALID: "))
 		}
 	}
 	return cfg, warnings, nil
 }
 
-func applyConfigValue(cfg *appConfig, key string, value any, source string) error {
+func applyConfigValue(cfg *appConfig, key string, value any, source, origin string) error {
 	invalid := func(reason string) error {
 		return fmt.Errorf("CONFIG_INVALID: %s %s", key, reason)
 	}
-	set := func() { cfg.Sources[key] = source }
+	set := func() {
+		cfg.Sources[key] = source
+		cfg.Origins[key] = origin
+	}
 	switch key {
 	case "db":
 		text, ok := value.(string)
@@ -318,7 +340,9 @@ func contractSearchMode(value string) contractv1.SearchMode {
 }
 
 func runConfigCommand(args []string, stdout, stderr io.Writer) int {
-	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help") {
+	args = expandFlagEquals(args)
+	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help" ||
+		contains(args, "--help") || contains(args, "-h")) {
 		printConfigHelp(stdout)
 		return 0
 	}
@@ -351,12 +375,56 @@ func runConfigCommand(args []string, stdout, stderr io.Writer) int {
 			positionals = append(positionals, args[index])
 		}
 	}
-	if len(positionals) != 1 {
-		return usageError(stdout, stderr, jsonMode, "config requires show, path or init")
+	subcommand := ""
+	if len(positionals) > 0 {
+		subcommand = positionals[0]
+	}
+	switch subcommand {
+	case "show", "path", "init":
+		if len(positionals) != 1 {
+			return usageError(stdout, stderr, jsonMode, "config "+subcommand+" takes no arguments")
+		}
+	case "get":
+		if len(positionals) != 2 {
+			return usageError(stdout, stderr, jsonMode, "config get requires a key")
+		}
+	default:
+		return usageError(stdout, stderr, jsonMode, "config requires show, get, path or init")
 	}
 	if configPath != "" && noConfig {
 		return usageError(stdout, stderr, jsonMode, "--config and --no-config are mutually exclusive")
 	}
+	switch subcommand {
+	case "path":
+		path, exists := resolveConfigPath(configPath)
+		result := contractv1.ConfigPath{Path: path, Exists: exists}
+		if jsonMode {
+			_ = writeJSON(stdout, successEnvelope(result))
+			return 0
+		}
+		fmt.Fprintf(stdout, "%s (exists=%t)\n", path, exists)
+		return 0
+	case "init":
+		path, exists := resolveConfigPath(configPath)
+		if exists && !force {
+			return usageError(stdout, stderr, jsonMode, "config file exists; pass --force")
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			return usageError(stdout, stderr, jsonMode, err.Error())
+		}
+		if err := os.WriteFile(path, []byte(defaultConfigTemplate), 0o600); err != nil {
+			return usageError(stdout, stderr, jsonMode, err.Error())
+		}
+		const nextCommand = "weave config show"
+		result := contractv1.ConfigInit{Path: path, Created: true, NextCommand: nextCommand}
+		if jsonMode {
+			_ = writeJSON(stdout, successEnvelope(result))
+			return 0
+		}
+		fmt.Fprintf(stdout, "wrote %s\nnext: %s\n", path, nextCommand)
+		return 0
+	}
+
 	cfg, warnings, err := loadAppConfig(configPath, noConfig, strict)
 	if err != nil {
 		return usageError(stdout, stderr, jsonMode, err.Error())
@@ -364,68 +432,68 @@ func runConfigCommand(args []string, stdout, stderr io.Writer) int {
 	for _, warning := range warnings {
 		fmt.Fprintf(stderr, "%s\n", warning)
 	}
-	switch positionals[0] {
+	switch subcommand {
 	case "show":
-		entries := make([]map[string]any, 0, len(configKeys))
-		for _, key := range configKeys {
-			entries = append(entries, map[string]any{
-				"key":    key,
-				"value":  configValue(cfg, key),
-				"source": cfg.Sources[key],
-			})
-		}
-		result := map[string]any{"config_path": cfg.Path, "entries": entries}
+		result := configShowResult(cfg)
 		if jsonMode {
-			_ = writeJSON(stdout, contractv1.SuccessEnvelope{
-				Contract: "weave.contract/v1",
-				CLI:      "weave.cli/v1",
-				OK:       true,
-				Result:   result,
-			})
+			_ = writeJSON(stdout, successEnvelope(result))
 			return 0
 		}
 		fmt.Fprintf(stdout, "config: %s\n", cfg.Path)
-		for _, entry := range entries {
-			fmt.Fprintf(stdout, "%-14s %-10s %v\n", entry["key"], entry["source"], entry["value"])
+		for _, entry := range result.Entries {
+			display := fmt.Sprintf("%v", entry.Value)
+			if text, ok := entry.Value.(string); ok && text == "" {
+				display = `""`
+			}
+			fmt.Fprintf(stdout, "%-14s %-8s %s", entry.Key, entry.Source, display)
+			if entry.Origin != "" && entry.Origin != entry.Source {
+				fmt.Fprintf(stdout, "  (%s)", entry.Origin)
+			}
+			fmt.Fprintln(stdout)
 		}
 		return 0
-	case "path":
-		result := map[string]any{"path": cfg.Path, "exists": cfg.Exists}
-		if jsonMode {
-			_ = writeJSON(stdout, contractv1.SuccessEnvelope{
-				Contract: "weave.contract/v1",
-				CLI:      "weave.cli/v1",
-				OK:       true,
-				Result:   result,
-			})
-			return 0
+	case "get":
+		key := positionals[1]
+		if !contains(configKeys, key) {
+			return usageError(stdout, stderr, jsonMode,
+				fmt.Sprintf("unknown config key %q; known keys: %s", key, strings.Join(configKeys, ", ")))
 		}
-		fmt.Fprintf(stdout, "%s (exists=%t)\n", cfg.Path, cfg.Exists)
-		return 0
-	case "init":
-		if cfg.Exists && !force {
-			return usageError(stdout, stderr, jsonMode, "config file exists; pass --force")
-		}
-		if err := os.MkdirAll(filepath.Dir(cfg.Path), 0o700); err != nil {
-			return usageError(stdout, stderr, jsonMode, err.Error())
-		}
-		if err := os.WriteFile(cfg.Path, []byte(defaultConfigTemplate), 0o600); err != nil {
-			return usageError(stdout, stderr, jsonMode, err.Error())
+		result := contractv1.ConfigGet{
+			Key:    key,
+			Value:  configValue(cfg, key),
+			Source: cfg.Sources[key],
+			Origin: cfg.Origins[key],
 		}
 		if jsonMode {
-			_ = writeJSON(stdout, contractv1.SuccessEnvelope{
-				Contract: "weave.contract/v1",
-				CLI:      "weave.cli/v1",
-				OK:       true,
-				Result:   map[string]any{"path": cfg.Path, "created": true},
-			})
+			_ = writeJSON(stdout, successEnvelope(result))
 			return 0
 		}
-		fmt.Fprintf(stdout, "wrote %s\n", cfg.Path)
+		display := fmt.Sprintf("%v", result.Value)
+		if text, ok := result.Value.(string); ok && text == "" {
+			display = `""`
+		}
+		provenance := result.Source
+		if result.Origin != "" && result.Origin != result.Source {
+			provenance = result.Origin
+		}
+		fmt.Fprintf(stdout, "%s: %s (%s)\n", key, display, provenance)
 		return 0
 	default:
-		return usageError(stdout, stderr, jsonMode, "unknown config command: "+positionals[0])
+		return usageError(stdout, stderr, jsonMode, "config requires show, get, path or init")
 	}
+}
+
+func configShowResult(cfg appConfig) contractv1.ConfigShow {
+	entries := make([]contractv1.ConfigEntry, 0, len(configKeys))
+	for _, key := range configKeys {
+		entries = append(entries, contractv1.ConfigEntry{
+			Key:    key,
+			Value:  configValue(cfg, key),
+			Source: cfg.Sources[key],
+			Origin: cfg.Origins[key],
+		})
+	}
+	return contractv1.ConfigShow{ConfigPath: cfg.Path, Exists: cfg.Exists, Entries: entries}
 }
 
 func scanConfigArgs(args []string) (string, bool, bool, error) {
@@ -496,11 +564,12 @@ func configValue(cfg appConfig, key string) any {
 
 const defaultConfigTemplate = `# Weave global configuration
 # Values here are defaults; WEAVE_* environment variables and explicit CLI flags win.
+# Set WEAVE_CONFIG to use a different file.
 
-# db: ~/.weave/index.db
+# db: ~/.weave/index.db  # v1.0 keeps the legacy path; use --db or WEAVE_DB
 # no_db: false
 # cache: true
-# cache_dir: ""
+# cache_dir: ""           # empty uses the user cache directory
 # codec: zstd            # zstd | lz4 | none
 # search_mode: hybrid    # hybrid | keyword | fuzzy | bm25
 # top_k: 10

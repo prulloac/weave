@@ -135,10 +135,16 @@ commands and output the benchmarks exercise.
 - Unify the error/exit contract: stable code, exit status, message and remediation hint in human and
   JSON modes; make empty-result exits consistent.
 - Add `--dry-run` to write commands and `--no-input` for non-interactive confirmation failures.
-- Finish configuration UX (XDG paths, DB location, typed `config show`, optional project config).
+- Finish configuration UX (platform paths, DB location decision, typed `config show`; project
+  config deferred to v1.1).
 - Pin machine-output schemas and add `quiet`/`verbose`/`NO_COLOR` feedback controls.
 - Improve onboarding, completion and local-first/privacy messaging.
 - Details and exit criteria: [Proposal: UX](../architecture/optimization/proposal-ux.md).
+
+Delivered so far: help/errors/safety, platform config and cache paths, `config get`, typed
+provenance and goldens, `WatchEvent` JSONL, the additive schema gate and the
+[database location decision](../architecture/adr/0004-config-paths-and-db-location.md). Feedback
+controls (`quiet`/`verbose`/`NO_COLOR`) and onboarding remain.
 
 ### 3.3 O3 — Benchmarks
 

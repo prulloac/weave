@@ -355,7 +355,7 @@ privacy directives ──┬── show --decrypt
 **Wave 8 — optimization program (qualitative first, then measured):**
 
 - maintainability refactors and analysis gates,
-- UX optimization (help, errors, safety; global configuration shipped),
+- UX optimization (help, errors, safety, config paths/provenance, pinned machine output),
 - benchmarks and budgets,
 - time/space hotspots,
 - continuous performance gate.

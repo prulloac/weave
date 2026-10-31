@@ -4,7 +4,8 @@ Human-readable behavior cases for the global config file, environment variables 
 commands.
 
 **Spec reference:** [configuration.md](../specs/configuration.md)
-**Go tests:** `cmd/weave/config_bdd_test.go`
+**Go tests:** `cmd/weave/config_bdd_test.go`, `cmd/weave/config_ux_bdd_test.go`,
+`cmd/weave/config_golden_test.go`
 
 Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file → default.
 
@@ -79,24 +80,85 @@ Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file
 
 ---
 
+## Feature: Paths
+
+### Scenario: Config uses the platform config directory
+
+- **Given** no `--config` or `WEAVE_CONFIG`
+- **When** I run `weave config path --json`
+- **Then** the path is under `os.UserConfigDir()/weave/config.yaml`
+- **And** on Unix a stray `AppData` value is ignored
+
+### Scenario: Relative XDG_CONFIG_HOME is ignored
+
+- **Given** `XDG_CONFIG_HOME` is a relative path
+- **When** I resolve the config path
+- **Then** the path falls back to `~/.config/weave/config.yaml` on Linux/Unix
+
+### Scenario: WEAVE_CONFIG selects the file
+
+- **Given** `WEAVE_CONFIG` points at a file
+- **When** I run `weave config path --json`
+- **Then** that file is reported
+
+### Scenario: Parse cache uses the user cache directory
+
+- **Given** `cache_dir` and `WEAVE_CACHE_DIR` are empty
+- **When** the parser caches a bundle
+- **Then** the cache lives under `os.UserCacheDir()/weave/okf`
+
+### Scenario: Database stays at the v1.0 path
+
+- **Given** no `--db`, `WEAVE_DB` or `db` key
+- **Then** the database is `~/.weave/index.db`
+- **And** no state-directory migration runs
+
+---
+
 ## Feature: Inspection
 
-### Scenario: Show reports values and sources
+### Scenario: Show reports typed values, sources and origins
 
 - **When** I run `weave config show --json`
-- **Then** entries carry `key`, `value` and `source`
-- **And** environment values report `source: "env"`
+- **Then** entries carry `key`, `value`, `source` and `origin`
+- **And** the result carries `config_path` and `exists`
+- **And** environment values report `source: "env"` and `origin: "env WEAVE_<NAME>"`
+- **And** file values report `origin: "file <path>"`
+
+### Scenario: Get returns one key
+
+- **When** I run `weave config get top_k --json`
+- **Then** it reports the effective value, source and origin
+- **When** the key is unknown
+- **Then** it exits `2`
+- **And** lists the known keys
 
 ### Scenario: Path reports the resolved file
 
 - **When** I run `weave config path --json`
 - **Then** it reports the path and whether it exists
+- **And** it does not parse an invalid file
 
-### Scenario: Init writes a default file
+### Scenario: Init repairs an invalid file with force
+
+- **Given** the config file contains an invalid value
+- **When** I run `weave config init --force --json`
+- **Then** it succeeds and replaces the file
+
+### Scenario: Init writes a default file and next command
 
 - **When** I run `weave config init`
 - **Then** the file is created with `0600` permissions
+- **And** output ends with `next: weave config show`
+- **And** JSON includes `next_command`
 - **When** I run it again
 - **Then** it exits `2`
 - **When** I pass `--force`
 - **Then** the file is replaced
+
+### Scenario: Config JSON matches goldens
+
+- **When** I run `config show`, `config get`, `config path` or `config init` with `--json`
+- **Then** stdout is one envelope
+- **And** the result validates against `config.schema.json`
+- **And** show/get/path/init match their committed goldens after path normalization

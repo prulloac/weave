@@ -1,0 +1,11 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/contract/v1/config.schema.json",
+	"title": "ConfigResult",
+	"oneOf": [
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigShow" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigGet" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigPath" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigInit" }
+	]
+}
