@@ -94,6 +94,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | x | x | stretch |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
 | Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | x | green |
+| Pluggable scoring (post-GA) | [extension-scoring.md](specs/extension-scoring.md) | - | x | - | - | backlog |
 
 ## Cross-cutting
 
@@ -169,6 +170,7 @@ Execution waves:
 8. Release automation (done), bundle export (done), multiple bundle sources (done).
 9. Release readiness: documentation integrity, regression hardening and the built-binary smoke suite.
 10. Stretch: maintainability and UX follow-ups, benchmarks, time and space.
+11. Post-GA: pluggable scoring extensions with document context and configurable blend weights.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 

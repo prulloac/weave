@@ -267,4 +267,5 @@ checked-in scripts with explicit shebangs.
 - [Storage & Sync](./storage-and-sync.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
 - [BM25 Ranking](./bm25-ranking.md)
+- [Pluggable Scoring](./extension-scoring.md) — post-GA custom scorer contract
 - [ROADMAP](../../ROADMAP.md)

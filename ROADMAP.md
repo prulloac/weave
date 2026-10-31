@@ -222,6 +222,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 28 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / P3 | shipped |
 | 29 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | Stretch | stretch |
 | 30 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / P2 | shipped |
+| 31 | Pluggable scoring | [extension-scoring.md](docs/specs/extension-scoring.md) | Tier 7 | search, extension IPC, contract | Post-GA | deferred |
 
 Rules:
 
@@ -455,6 +456,8 @@ needed.
 - The shipped core is in-memory; v1.0 adds optional SQLite persistence. It is not an enterprise
   search cluster.
 - No semantic/vector search in core. Fuzzy handles typos, not meaning.
+- No custom retrieval or index extensions. Post-GA pluggable scoring reorders a bounded core
+  candidate set.
 - No synonyms/stemming yet.
 - No PDF/HTML/web ingestion.
 - No writes to source bundles.
