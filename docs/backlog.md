@@ -106,6 +106,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Feedback and onboarding: quiet/verbose/progress/ASCII, start screen, empty states, completion
 - [x] Local-first trust: no-telemetry statement, `config paths`, extension search paths
 - [x] Benchmarks: deterministic corpus, registry, package benchmarks, `cmd/bench`, baseline and advisory CI
+- [x] O4 first slice: metadata keyword search, lazy search index and slimmer projections
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)

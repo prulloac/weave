@@ -30,7 +30,7 @@ B0 (local harness) is delivered. B1 (advisory CI) is wired through
 | Go | `go1.27.3` |
 | GOMAXPROCS | 16 (local); CI pins 4 |
 | GOGC | 100 |
-| Commit | `c31dbc6` |
+| Commit | `28046fa` (O4 slice on top) |
 | Seed | `20261031` |
 
 ## Corpus
@@ -58,20 +58,20 @@ CI refreshes the baseline on the pinned runner with higher sample counts.
 | `WEAVE-B-OKF-PARSE-10K` | p95 | 0.218 s | 20 s | pass |
 | `WEAVE-B-OKF-PARSE-10K-COLD` | p95 | 0.218 s | 20 s | pass |
 | `WEAVE-B-OKF-PARSE-10K-WARM` | p95 | 0.217 s | — | baseline |
-| `WEAVE-B-STORE-INGEST-10K` | p50 | 8.731 s | 30 s | pass |
-| `WEAVE-B-STORE-LOAD-10K` | p50 | 825.626 ms | — | baseline |
-| `WEAVE-B-STORE-BM25-10K` | p95 | 67.386 ms | — | baseline |
-| `WEAVE-B-STORE-EXPLAIN-10K` | p95 | 180.510 ms | — | baseline |
-| `WEAVE-B-STORE-SYNC-10K-NONE` | p50 | 6.109 s | — | baseline |
-| `WEAVE-B-STORE-SYNC-10K-1PCT` | p50 | 6.021 s | 2 s | **fail** |
-| `WEAVE-B-CLI-VERSION-COLD` | p95 | 4.239 ms | 50 ms | pass |
-| `WEAVE-B-CLI-SEARCH-KEYWORD-10K` | p95 | 8,313.875 ms | 80 ms | **fail** |
-| `WEAVE-B-CLI-SEARCH-FUZZY-10K` | p95 | 8,464.041 ms | 120 ms | **fail** |
-| `WEAVE-B-CLI-SEARCH-BM25-10K` | p95 | 74.840 ms | 150 ms | pass |
-| `WEAVE-B-CLI-SEARCH-HYBRID-10K` | p95 | 8,112.505 ms | 180 ms | **fail** |
-| `WEAVE-B-CLI-EXPLAIN-10K` | p95 | 8,770.970 ms | 150 ms | **fail** |
-| `WEAVE-B-CLI-AUDIT-10K` | p95 | 8.135 s | 5 s | **fail** |
-| `WEAVE-B-CLI-EXPORT-RAW-10K` | p95 | 1.404 s | 30 s | pass |
+| `WEAVE-B-STORE-INGEST-10K` | p50 | 7.573 s | 30 s | pass |
+| `WEAVE-B-STORE-LOAD-10K` | p50 | 771.356 ms | — | baseline |
+| `WEAVE-B-STORE-BM25-10K` | p95 | 59.207 ms | — | baseline |
+| `WEAVE-B-STORE-EXPLAIN-10K` | p95 | 157.093 ms | — | baseline |
+| `WEAVE-B-STORE-SYNC-10K-NONE` | p50 | 6.343 s | — | baseline |
+| `WEAVE-B-STORE-SYNC-10K-1PCT` | p50 | 5.549 s | 2 s | **fail** |
+| `WEAVE-B-CLI-VERSION-COLD` | p95 | 4.165 ms | 50 ms | pass |
+| `WEAVE-B-CLI-SEARCH-KEYWORD-10K` | p95 | 52.483 ms | 80 ms | pass |
+| `WEAVE-B-CLI-SEARCH-FUZZY-10K` | p95 | 6,568.647 ms | 120 ms | **fail** |
+| `WEAVE-B-CLI-SEARCH-BM25-10K` | p95 | 69.830 ms | 150 ms | pass |
+| `WEAVE-B-CLI-SEARCH-HYBRID-10K` | p95 | 6,448.245 ms | 180 ms | **fail** |
+| `WEAVE-B-CLI-EXPLAIN-10K` | p95 | 7,032.025 ms | 150 ms | **fail** |
+| `WEAVE-B-CLI-AUDIT-10K` | p95 | 0.908 s | 5 s | pass |
+| `WEAVE-B-CLI-EXPORT-RAW-10K` | p95 | 1.267 s | 30 s | pass |
 
 ## Microbenchmarks
 
@@ -79,22 +79,22 @@ CI refreshes the baseline on the pinned runner with higher sample counts.
 
 | Benchmark | Time | Allocated |
 | --- | ---: | ---: |
-| `ParseCorpus/corpus=1k/cache=off` | 39.8 ms | 42.0 MB |
-| `ParseCorpus/corpus=1k/cache=on` | 19.7 ms | 14.3 MB |
-| `ParseCorpus/corpus=10k/cache=off` | 248.0 ms | 382.7 MB |
-| `ParseCorpus/corpus=10k/cache=on` | 199.8 ms | 144.2 MB |
-| `SearchCorpus/mode=keyword` | 212.5 ms | 49.6 MB |
-| `SearchCorpus/mode=fuzzy` | 212.1 ms | 49.7 MB |
-| `SearchCorpus/mode=hybrid` | 211.9 ms | 49.7 MB |
-| `SearchBuild10K` | 7.30 s | 1.86 GB |
-| `Navigation10K/list` | 3.9 ms | 5.7 MB |
-| `Navigation10K/show` | 0.06 ms | 1.1 KB |
+| `ParseCorpus/corpus=1k/cache=off` | 33.4 ms | 41.1 MB |
+| `ParseCorpus/corpus=1k/cache=on` | 22.3 ms | 14.3 MB |
+| `ParseCorpus/corpus=10k/cache=off` | 198.1 ms | 383.9 MB |
+| `ParseCorpus/corpus=10k/cache=on` | 190.7 ms | 144.2 MB |
+| `SearchCorpus/mode=keyword` | 29.8 ms | 15.2 MB |
+| `SearchCorpus/mode=fuzzy` | 197.8 ms | 50.1 MB |
+| `SearchCorpus/mode=hybrid` | 196.7 ms | 50.1 MB |
+| `SearchBuild10K` | 5.72 s | 1.57 GB |
+| `Navigation10K/list` | 3.2 ms | 5.7 MB |
+| `Navigation10K/show` | 0.05 ms | 1.1 KB |
 | `Navigation10K/backlinks` | 0.05 ms | 0.9 KB |
-| `Navigation10K/relate` | 0.20 ms | 49.6 KB |
-| `IngestCorpus` | 8.98 s | 19.1 GB |
-| `LoadCorpus` | 891 ms | 425 MB |
-| `BM25Corpus` | 86.8 ms | 7.8 KB |
-| `SyncNoChangeCorpus` | 6.26 s | 1.23 GB |
+| `Navigation10K/relate` | 0.11 ms | 49.6 KB |
+| `IngestCorpus` | 7.86 s | 19.1 GB |
+| `LoadCorpus` | 801 ms | 425 MB |
+| `BM25Corpus` | 83.7 ms | 7.8 KB |
+| `SyncNoChangeCorpus` | 5.71 s | 1.23 GB |
 
 ## Space and memory
 
@@ -108,17 +108,19 @@ CI refreshes the baseline on the pinned runner with higher sample counts.
 | WAL after close | 0.000 MB | — | baseline |
 | Stored / raw body ratio (zstd) | 0.245 | < 0.60 | pass |
 | Release binary | 14.329 MB | < 25 MB | pass |
-| Index / body ratio | 6.845× | < 3.0× | **fail** |
-| Peak RSS during ingest | 474.062 MB | — | baseline |
+| Index / body ratio | 4.617× | < 3.0× | **fail** |
+| Peak RSS during ingest | 480.754 MB | — | baseline |
 
 ## Findings for O4/O5
 
-- **O4 — time.** Keyword, fuzzy, hybrid, explain and audit each rebuild the in-memory search
-  index per CLI invocation on the 10k corpus (~8 s). BM25 is already fast because it stays in
-  SQLite FTS. Sync re-hashes the full 10k tree even when 1% changed.
-- **O5 — space.** FTS dominates the database (47 MB of 74 MB) and the in-memory index is 6.8× the
-  body bytes. Both need targeted reductions before the 3×/60% budgets can gate.
-- **Keep.** Parse, ingest, export, version, zstd ratio and binary size already meet their budgets.
+- **O4 — time.** Keyword now answers from SQLite metadata in 52 ms; audit dropped to 0.9 s after
+  making the search index lazy. Fuzzy, hybrid and explain still rebuild the full in-memory index
+  per CLI invocation (~6.5–7.0 s). Sync re-hashes the full 10k tree even when 1% changed.
+- **O5 — space.** FTS dominates the database (47 MB of 74 MB). Removing the dead
+  `Document.Body`/`FieldTokens` projections cut in-memory index overhead from 6.8× to 4.6× body
+  bytes; the 3× budget still needs a compact postings or trigram representation.
+- **Keep.** Parse, ingest, BM25, export, version, zstd ratio and binary size already meet their
+  budgets.
 
 ## Reproduce
 
@@ -138,6 +140,7 @@ regression. Baselines change only through a `perf:` PR.
 | Date | Commit | Change |
 | --- | --- | --- |
 | 2026-10-31 | `c31dbc6` | Initial B0 corpus, harness, microbenchmarks and baseline |
+| 2026-10-31 | O4 slice | Metadata keyword search, lazy search, slimmer index; keyword and audit budgets pass |
 
 ## Related Documents
 

@@ -1,6 +1,6 @@
 {
 	"schema": "weave.bench/v1",
-	"commit": "c31dbc6e5dfe4686d9afe9fe74e93505ad0b4ab2",
+	"commit": "28046fa5b26571a0de524a660a8f78c05e383565",
 	"go": "go1.27.3",
 	"runner": "linux/amd64",
 	"gomaxprocs": 16,
@@ -16,9 +16,9 @@
 			"id": "WEAVE-B-OKF-PARSE-10K",
 			"unit": "s",
 			"aggregate": "p95",
-			"value": 0.218333772,
+			"value": 0.175242035,
 			"samples": [
-				0.218333772
+				0.175242035
 			],
 			"budget": 20,
 			"status": "pass"
@@ -27,9 +27,9 @@
 			"id": "WEAVE-B-OKF-PARSE-10K-COLD",
 			"unit": "s",
 			"aggregate": "p95",
-			"value": 0.218333772,
+			"value": 0.175242035,
 			"samples": [
-				0.218333772
+				0.175242035
 			],
 			"budget": 20,
 			"status": "pass"
@@ -38,9 +38,9 @@
 			"id": "WEAVE-B-OKF-PARSE-10K-WARM",
 			"unit": "s",
 			"aggregate": "p95",
-			"value": 0.217243701,
+			"value": 0.183300378,
 			"samples": [
-				0.217243701
+				0.183300378
 			],
 			"status": "baseline"
 		},
@@ -48,9 +48,9 @@
 			"id": "WEAVE-B-STORE-INGEST-10K",
 			"unit": "s",
 			"aggregate": "p50",
-			"value": 8.730853903,
+			"value": 7.573268338,
 			"samples": [
-				8.730853903
+				7.573268338
 			],
 			"budget": 30,
 			"status": "pass"
@@ -59,9 +59,9 @@
 			"id": "WEAVE-B-STORE-LOAD-10K",
 			"unit": "ms",
 			"aggregate": "p50",
-			"value": 825.626,
+			"value": 771.356,
 			"samples": [
-				825.626
+				771.356
 			],
 			"status": "baseline"
 		},
@@ -69,18 +69,18 @@
 			"id": "WEAVE-B-STORE-BM25-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 67.386,
+			"value": 59.207,
 			"samples": [
-				67.386,
-				17.872,
-				13.819,
-				13.064,
-				12.482,
-				11.657,
-				42.489,
-				13.706,
-				24.507,
-				11.909
+				59.207,
+				14.784,
+				11.801,
+				10.695,
+				10.478,
+				10.024,
+				31.101,
+				11.264,
+				21.073,
+				9.509
 			],
 			"status": "baseline"
 		},
@@ -88,18 +88,18 @@
 			"id": "WEAVE-B-STORE-EXPLAIN-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 180.51,
+			"value": 157.093,
 			"samples": [
-				180.51,
-				37.326,
-				32.78,
-				28.788,
-				28.025,
-				25.882,
-				54.303,
-				32.216,
-				53.748,
-				23.324
+				157.093,
+				33.636,
+				26.942,
+				24.595,
+				22.998,
+				21.792,
+				44.92,
+				25.341,
+				47.184,
+				19.7
 			],
 			"status": "baseline"
 		},
@@ -107,9 +107,9 @@
 			"id": "WEAVE-B-STORE-SYNC-10K-NONE",
 			"unit": "s",
 			"aggregate": "p50",
-			"value": 6.109257513,
+			"value": 6.343147987,
 			"samples": [
-				6.109257513
+				6.343147987
 			],
 			"status": "baseline"
 		},
@@ -117,9 +117,9 @@
 			"id": "WEAVE-B-STORE-SYNC-10K-1PCT",
 			"unit": "s",
 			"aggregate": "p50",
-			"value": 6.020591517,
+			"value": 5.549312369,
 			"samples": [
-				6.020591517
+				5.549312369
 			],
 			"budget": 2,
 			"status": "fail"
@@ -128,9 +128,9 @@
 			"id": "WEAVE-B-CLI-VERSION-COLD",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 4.239,
+			"value": 4.165,
 			"samples": [
-				4.239
+				4.165
 			],
 			"budget": 50,
 			"status": "pass"
@@ -139,24 +139,24 @@
 			"id": "WEAVE-B-CLI-SEARCH-KEYWORD-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 8313.875,
+			"value": 52.483,
 			"samples": [
-				8110.673,
-				8079.677,
-				8313.875
+				52.483,
+				51.26,
+				49.873
 			],
 			"budget": 80,
-			"status": "fail"
+			"status": "pass"
 		},
 		{
 			"id": "WEAVE-B-CLI-SEARCH-FUZZY-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 8464.041,
+			"value": 6568.647,
 			"samples": [
-				8464.041,
-				8216.539,
-				8255.327
+				6568.647,
+				6511.168,
+				6460.65
 			],
 			"budget": 120,
 			"status": "fail"
@@ -165,18 +165,18 @@
 			"id": "WEAVE-B-CLI-SEARCH-BM25-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 74.84,
+			"value": 69.83,
 			"samples": [
-				74.84,
-				25.273,
-				22.464,
-				21.023,
-				20.266,
-				22.471,
-				45.423,
-				19.478,
-				33.528,
-				19.343
+				69.83,
+				23.254,
+				22.535,
+				19.892,
+				19.981,
+				19.656,
+				42.388,
+				18.746,
+				30.341,
+				17.531
 			],
 			"budget": 150,
 			"status": "pass"
@@ -185,11 +185,11 @@
 			"id": "WEAVE-B-CLI-SEARCH-HYBRID-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 8112.505,
+			"value": 6448.245,
 			"samples": [
-				8112.505,
-				8044.144,
-				8090.795
+				6448.245,
+				6431.503,
+				6386.079
 			],
 			"budget": 180,
 			"status": "fail"
@@ -198,11 +198,11 @@
 			"id": "WEAVE-B-CLI-EXPLAIN-10K",
 			"unit": "ms",
 			"aggregate": "p95",
-			"value": 8770.97,
+			"value": 7032.025,
 			"samples": [
-				8555.815,
-				8770.97,
-				8648.303
+				7032.025,
+				6933.7,
+				6949.191
 			],
 			"budget": 150,
 			"status": "fail"
@@ -211,22 +211,22 @@
 			"id": "WEAVE-B-CLI-AUDIT-10K",
 			"unit": "s",
 			"aggregate": "p95",
-			"value": 8.135481,
+			"value": 0.907537,
 			"samples": [
-				8.135481,
-				7.848612
+				0.907537,
+				0.904519
 			],
 			"budget": 5,
-			"status": "fail"
+			"status": "pass"
 		},
 		{
 			"id": "WEAVE-B-CLI-EXPORT-RAW-10K",
 			"unit": "s",
 			"aggregate": "p95",
-			"value": 1.403742,
+			"value": 1.266508,
 			"samples": [
-				1.3802480000000001,
-				1.403742
+				1.266508,
+				1.265386
 			],
 			"budget": 30,
 			"status": "pass"
@@ -306,9 +306,9 @@
 			"id": "WEAVE-B-SPACE-BINARY",
 			"unit": "MB",
 			"aggregate": "value",
-			"value": 14.328749656677246,
+			"value": 14.351502418518066,
 			"samples": [
-				14.328749656677246
+				14.351502418518066
 			],
 			"budget": 25,
 			"status": "pass"
@@ -317,9 +317,9 @@
 			"id": "WEAVE-B-MEM-INDEX-10K",
 			"unit": "ratio",
 			"aggregate": "ratio",
-			"value": 6.844585235990902,
+			"value": 4.617332727915341,
 			"samples": [
-				6.844585235990902
+				4.617332727915341
 			],
 			"budget": 3,
 			"status": "fail"
@@ -328,9 +328,9 @@
 			"id": "WEAVE-B-MEM-PEAK-INGEST-10K",
 			"unit": "MB",
 			"aggregate": "value",
-			"value": 474.0625,
+			"value": 480.75390625,
 			"samples": [
-				474.0625
+				480.75390625
 			],
 			"status": "baseline"
 		}

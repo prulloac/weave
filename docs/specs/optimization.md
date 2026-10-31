@@ -180,6 +180,11 @@ Candidates, validated by profiles before implementation:
 - Avoid re-parsing the bundle for enrichment by passing the parsed concepts through.
 - Reduce CLI startup work: defer DB and cache setup until the command needs it.
 
+Delivered first slice: keyword search answers from SQLite metadata, graph/search views are lazy,
+the search index dropped dead body/token projections, and trigram construction is cached.
+`WEAVE-B-CLI-SEARCH-KEYWORD-10K` is now 52 ms (pass) and `WEAVE-B-CLI-AUDIT-10K` 0.9 s (pass);
+fuzzy/hybrid/explain and incremental sync remain O4 work.
+
 Each candidate PR includes `benchstat`-style before/after numbers and is reverted if it regresses a
 tracked budget beyond the 10% gate. Details: [Proposal: time and space](../architecture/optimization/proposal-time-space.md).
 
