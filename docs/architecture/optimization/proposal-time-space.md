@@ -194,5 +194,5 @@ maps stay until a compact representation exists.
 - [Storage and sync](../../specs/storage-and-sync.md)
 - [BM25 ranking](../../specs/bm25-ranking.md)
 - [Compression](../../specs/compression.md)
-- `proposal-benchmarks.md` (planned)
-- `docs/architecture/performance.md` (planned)
+- [Benchmark proposal](proposal-benchmarks.md)
+- [Performance baseline](../performance.md)

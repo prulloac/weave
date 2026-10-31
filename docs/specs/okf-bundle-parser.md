@@ -143,7 +143,7 @@ SSD.
 - Contract golden conformance (`engine/conformance_test.go`).
 - Cache hit/invalidation tests.
 - Race suite.
-- Frontmatter/link fuzz tests (planned).
+- Frontmatter/link fuzz targets in `engine/okf/fuzz_test.go`.
 
 ## Related Concepts
 

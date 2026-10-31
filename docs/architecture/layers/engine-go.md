@@ -137,7 +137,7 @@ the calibration/benchmark suite; the 10k-file budgets in the spec remain the rel
 - Calibration corpus with NDCG@K and MRR@K baselines.
 - Cache hit/invalidation and race tests.
 - CLI process tests.
-- Fuzz tests for frontmatter, links and ids (planned).
+- Fuzz targets for frontmatter, links and ids in `engine/okf/fuzz_test.go`.
 
 ## Related Documents
 

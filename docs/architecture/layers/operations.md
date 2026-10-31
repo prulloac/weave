@@ -18,14 +18,14 @@ status: draft
 
 ## Purpose
 
-The operations layer defines what Weave can do independently of transport. The CLI uses it today;
-a future MCP server can reuse it without changing engine semantics.
+The operations layer defines what Weave can do independently of transport. The CLI and
+`weave mcp` both use it without changing engine semantics.
 
 ```text
 engine/operations
    ↑            ↑
-cmd/weave     future weave mcp
-(argv)        (TCP, MCP tools)
+cmd/weave     weave mcp
+(CLI)         (stdio/TCP, MCP tools)
 ```
 
 ## Request Model
@@ -36,7 +36,7 @@ type OperationRequest struct {
     Op     OperationName
     Path   string
     Query  string
-    Mode   SearchMode   // keyword | fuzzy | hybrid
+    Mode   SearchMode   // keyword | fuzzy | hybrid | bm25
     TopK   *int         // 1..100, default 10
     Target string
     From   string

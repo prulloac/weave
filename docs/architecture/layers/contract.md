@@ -18,8 +18,8 @@ status: draft
 
 ## Purpose
 
-The contract defines the language-neutral wire model shared by the Go engine, CLI and future
-transports. It is the single source of truth for documents, keywords, graph nodes and search
+The contract defines the language-neutral wire model shared by the Go engine, CLI, MCP server and
+extensions. It is the single source of truth for documents, keywords, graph nodes and search
 results.
 
 The previous v1 is overridden in place by [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md).

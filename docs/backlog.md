@@ -109,6 +109,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Local-first trust: no-telemetry statement, `config paths`, extension search paths
 - [x] Benchmarks: deterministic corpus, registry, package benchmarks, `cmd/bench`, baseline and advisory CI
 - [x] O4 slices: metadata keyword search, lazy/slim index, persistent fuzzy/hybrid/explain evidence, vocabulary prefilter and incremental sync
+- [x] Documentation integrity: indexes, contiguous numbering, one status source and `cmd/docs-lint` rules
+- [x] Built-binary smoke suite: CLI, sync, export, privacy, multi-source and MCP stdio
+- [x] Regression hardening: shuffled race suite, injected progress timing and parser fuzz targets
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)

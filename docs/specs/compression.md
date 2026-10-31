@@ -112,7 +112,7 @@ weave sync <path> [--codec lz4|zstd|none] [--strict|--permissive] --json
 
 The v1 in-memory index stores postings as token maps, and SQLite FTS5 owns lexical storage. Delta and
 variable-byte posting compression is deferred until the index gains a compact posting representation.
-The following remain future requirements:
+The following are post-GA requirements:
 
 - Document ids delta-encoded and sorted.
 - Integers variable-byte encoded.

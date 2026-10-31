@@ -446,7 +446,7 @@ needed.
 
 - Go 1.27 module.
 - Pure Go binary: `go build -o weave ./cmd/weave`.
-- Zero CGO in core and planned SQLite (`modernc.org/sqlite`).
+- Zero CGO in core and SQLite (`modernc.org/sqlite`).
 - No Node, Bun, Python or UI runtime dependencies.
 - `weave.cli/v1` is authoritative across CLI, MCP and extensions.
 

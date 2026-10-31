@@ -182,7 +182,7 @@ remains the compatibility promise.
 4. Engine and store/search implementation.
 5. Operations and CLI.
 6. Integration contracts and testing.
-7. Historical ADRs only if needed.
+7. ADRs when you need decision context.
 
 ## Non-Goals
 
