@@ -187,9 +187,7 @@ func NormalizeTarget(bundle *contractv1.Bundle, input string) (string, bool) {
 
 	cleaned = strings.TrimSuffix(cleaned, ".md")
 	cleaned = strings.TrimPrefix(cleaned, "./")
-	if strings.HasPrefix(cleaned, "/") {
-		cleaned = strings.TrimPrefix(cleaned, "/")
-	}
+	cleaned = strings.TrimPrefix(cleaned, "/")
 
 	for _, concept := range bundle.Concepts {
 		if concept.ID == cleaned {

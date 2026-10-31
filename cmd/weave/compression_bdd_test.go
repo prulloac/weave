@@ -268,7 +268,7 @@ func TestCompressionRebuildMigration(t *testing.T) {
 		t.Fatal("rebuilt body did not round-trip")
 	}
 
-	code, stdout, stderr = invokeRaw(t, "rebuild", root, "--db", db, "--codec", "none", "--json")
+	code, _, stderr = invokeRaw(t, "rebuild", root, "--db", db, "--codec", "none", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("rebuild none exit=%d stderr=%q", code, stderr)
 	}
@@ -300,7 +300,7 @@ func TestCompressionSyncPreservesCodec(t *testing.T) {
 	}
 
 	writeCompressionDoc(t, root, "large", "Large", "# Large\n\nupdated again "+strings.Repeat("compressible phrase. ", 200), "")
-	code, stdout, stderr = invokeRaw(t, "sync", root, "--db", db, "--codec", "zstd", "--json")
+	code, _, stderr = invokeRaw(t, "sync", root, "--db", db, "--codec", "zstd", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("sync zstd exit=%d stderr=%q", code, stderr)
 	}

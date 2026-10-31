@@ -34,13 +34,6 @@ type rpcError struct {
 	Data    any    `json:"data,omitempty"`
 }
 
-type rpcResponse struct {
-	JSONRPC string    `json:"jsonrpc"`
-	ID      any       `json:"id,omitempty"`
-	Result  any       `json:"result,omitempty"`
-	Error   *rpcError `json:"error,omitempty"`
-}
-
 type sessionState struct {
 	initialized bool
 }

@@ -10,16 +10,6 @@ func RoundScore(score float64) float64 {
 	return math.Round(score*10000) / 10000
 }
 
-func clamp(value float64) float64 {
-	if value < 0 {
-		return 0
-	}
-	if value > 1 {
-		return 1
-	}
-	return value
-}
-
 func tokenSimilarity(a, b string) float64 {
 	if a == b {
 		return 1

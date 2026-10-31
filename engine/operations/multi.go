@@ -374,10 +374,8 @@ func (e *Executor) multiTarget(
 			sub.To = toTarget
 		}
 		if fromQualified || toQualified {
-			source := sources[0]
-			if fromQualified {
-				source = fromSource
-			} else {
+			source := fromSource
+			if !fromQualified {
 				source = toSource
 			}
 			sub = singleSourceRequest(request, source)
