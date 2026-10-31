@@ -88,10 +88,11 @@ Measured on the standard CI runner with the 10,000-document corpus unless noted:
 
 ### 2.4 Maintainability targets
 
-- No Go source file above 1,200 lines; any file that grows past it must be split in the same PR.
-- Current hotspots to split: `storage/sqlite/store.go` (schema/read/write/search),
-  `engine/operations/operations.go` (dispatch, search, write, extensions) and `cmd/weave/main.go`
-  (flags, dispatch, output).
+- No Go source file above 600 lines; any file that grows past it must be split in the same PR.
+- Completed hotspot splits: `storage/sqlite` (`store`, `schema`, `write`, `sync`, `read`, `fts`,
+  `enrichment`), `engine/operations` (`execute`, `read`, `write`, `search`, `extensions`, `multi`,
+  `multi_read`, `multi_target`, `multi_write`, `export`, `helpers`) and `cmd/weave` (`main`,
+  `flags`, `output`, `request`, `sources`, `config`, `help`). `Executor.Execute` is table-driven.
 - One shared CLI test harness for envelope decoding, temp bundles and DB inspection replaces
   duplicated per-feature helpers.
 - Error mapping lives in one table per boundary (operations, CLI, MCP) instead of scattered switches.
