@@ -2,34 +2,34 @@ goos: linux
 goarch: amd64
 pkg: github.com/prulloac/weave/engine/okf
 cpu: AMD Ryzen 9 6900HX with Radeon Graphics        
-BenchmarkParseCorpus/corpus=1k/cache=off-16         	       1	  57486429 ns/op	44014560 B/op	  197997 allocs/op
-BenchmarkParseCorpus/corpus=1k/cache=on-16          	       1	  21774949 ns/op	14329328 B/op	   64829 allocs/op
-BenchmarkParseCorpus/corpus=10k/cache=off-16        	       1	 234250464 ns/op	383265304 B/op	 1966830 allocs/op
-BenchmarkParseCorpus/corpus=10k/cache=on-16         	       1	 211702599 ns/op	144162544 B/op	  652522 allocs/op
+BenchmarkParseCorpus/corpus=1k/cache=off-16         	       1	  46724391 ns/op	41961448 B/op	  197321 allocs/op
+BenchmarkParseCorpus/corpus=1k/cache=on-16          	       1	  20081225 ns/op	14327624 B/op	   64814 allocs/op
+BenchmarkParseCorpus/corpus=10k/cache=off-16        	       1	 269072940 ns/op	383043488 B/op	 1966793 allocs/op
+BenchmarkParseCorpus/corpus=10k/cache=on-16         	       1	 207631117 ns/op	144163480 B/op	  652507 allocs/op
 PASS
-ok  	github.com/prulloac/weave/engine/okf	1.133s
+ok  	github.com/prulloac/weave/engine/okf	1.270s
 goos: linux
 goarch: amd64
 pkg: github.com/prulloac/weave/engine/search
 cpu: AMD Ryzen 9 6900HX with Radeon Graphics        
-BenchmarkSearchCorpus/mode=keyword-16         	       1	  28378543 ns/op	 960.91 MB/s	25666672 B/op	  117241 allocs/op
-BenchmarkSearchCorpus/mode=fuzzy-16           	       1	 241539185 ns/op	 112.90 MB/s	49605600 B/op	   96500 allocs/op
-BenchmarkSearchCorpus/mode=hybrid-16          	       1	 226373535 ns/op	 120.46 MB/s	49605568 B/op	   96498 allocs/op
-BenchmarkSearchBuild10K-16                    	       1	1624187088 ns/op	893289312 B/op	 5569220 allocs/op
-BenchmarkNavigation10K/list-16                	       1	   3575737 ns/op	 5651272 B/op	      22 allocs/op
-BenchmarkNavigation10K/show-16                	       1	     63931 ns/op	    1056 B/op	      11 allocs/op
-BenchmarkNavigation10K/backlinks-16           	       1	     71925 ns/op	     880 B/op	      10 allocs/op
-BenchmarkNavigation10K/relate-16              	       1	    155810 ns/op	   49648 B/op	     107 allocs/op
+BenchmarkSearchCorpus/mode=keyword-16         	       1	  32578702 ns/op	 837.03 MB/s	25666656 B/op	  117240 allocs/op
+BenchmarkSearchCorpus/mode=fuzzy-16           	       1	 248201170 ns/op	 109.87 MB/s	49605616 B/op	   96501 allocs/op
+BenchmarkSearchCorpus/mode=hybrid-16          	       1	 241882456 ns/op	 112.74 MB/s	49605568 B/op	   96498 allocs/op
+BenchmarkSearchBuild10K-16                    	       1	1736842142 ns/op	893209944 B/op	 5569281 allocs/op
+BenchmarkNavigation10K/list-16                	       1	   8545135 ns/op	 5651272 B/op	      22 allocs/op
+BenchmarkNavigation10K/show-16                	       1	     54846 ns/op	    1056 B/op	      11 allocs/op
+BenchmarkNavigation10K/backlinks-16           	       1	     70055 ns/op	     880 B/op	      10 allocs/op
+BenchmarkNavigation10K/relate-16              	       1	    136914 ns/op	   49648 B/op	     107 allocs/op
 PASS
-ok  	github.com/prulloac/weave/engine/search	5.515s
+ok  	github.com/prulloac/weave/engine/search	5.781s
 goos: linux
 goarch: amd64
 pkg: github.com/prulloac/weave/storage/sqlite
 cpu: AMD Ryzen 9 6900HX with Radeon Graphics        
-BenchmarkIngestCorpus-16          	       1	10745103304 ns/op	19182917576 B/op	 8036193 allocs/op
-BenchmarkLoadCorpus-16            	       1	 904398398 ns/op	425160304 B/op	 1458793 allocs/op
-BenchmarkBM25Corpus-16            	       1	  91522114 ns/op	    7816 B/op	     169 allocs/op
-BenchmarkFuzzyHitsCorpus-16       	       1	 134859418 ns/op	35876352 B/op	  355892 allocs/op
-BenchmarkSyncNoChangeCorpus-16    	       1	5044343691 ns/op	1322111176 B/op	 7220511 allocs/op
+BenchmarkIngestCorpus-16          	       1	8438481098 ns/op	19182702720 B/op	 8036410 allocs/op
+BenchmarkLoadCorpus-16            	       1	 920497612 ns/op	425136376 B/op	 1458695 allocs/op
+BenchmarkBM25Corpus-16            	       1	  94922143 ns/op	    7832 B/op	     169 allocs/op
+BenchmarkFuzzyHitsCorpus-16       	       1	 138155246 ns/op	35897352 B/op	  355910 allocs/op
+BenchmarkSyncNoChangeCorpus-16    	       1	5284747464 ns/op	1322559472 B/op	 7220918 allocs/op
 PASS
-ok  	github.com/prulloac/weave/storage/sqlite	48.255s
+ok  	github.com/prulloac/weave/storage/sqlite	49.445s
