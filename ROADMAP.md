@@ -5,8 +5,8 @@
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
-shipped on `main`; external crypto providers, `weave sync --watch`, bundle export, global
-configuration and the optimization program remain.
+shipped on `main`; external crypto providers, bundle export, global configuration and the
+optimization program remain.
 
 ## 1. What Weave Is
 
@@ -102,7 +102,7 @@ weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] --json
 weave explain <path> <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] --json
 weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
 weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
-weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
+weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--watch [--events]] --json
 weave extensions list [<path>] --json
 weave mcp --bundle <path> [--stdio|--listen <addr>] [--token <t>] [--db <file>] [--watch]
 weave version --json
@@ -114,7 +114,6 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ### Planned v1.0 — remaining surface
 
 ```sh
-weave sync <path> --watch [--with-enricher <ext>] --json
 weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] --json
 weave search <path> [--source <alias=path> ...] <query> --json
 weave ingest <path> [--source <alias=path> ...] --json
@@ -395,8 +394,8 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 - `weave ingest`, `weave rebuild`, `weave sync` and `--mode bm25` shipped.
 - `sha256` content hashes, cascading graph updates and a polling watch loop shipped; `fsnotify`
   event delivery remains an optimization.
-- Body compression shipped with zstd by default and LZ4 opt-in; `weave sync --watch` CLI wiring and
-  posting compression remain.
+- Body compression shipped with zstd by default and LZ4 opt-in; `weave sync --watch` and
+  `weave mcp --watch` are wired; posting compression remains.
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 [Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),

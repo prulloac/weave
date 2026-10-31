@@ -256,10 +256,14 @@ weave sync ~/notes --strict --json
 weave sync ~/notes --db /tmp/notes.db --json
 weave sync ~/notes --codec lz4 --json
 weave sync ~/notes --with-enricher keywords --json
+weave sync ~/notes --db ~/.weave/index.db --watch --json --events
 ```
 
-Spec: [Storage & Sync](docs/specs/storage-and-sync.md). Watch mode drives incremental sync from a
-polling loop; the `weave sync --watch` CLI flag is a follow-up.
+`--watch` requires an indexed bundle and an explicit `--db`. The first sync prints one result, then
+the process polls every 500 ms; with `--json --events`, later syncs are emitted as JSONL events.
+SIGINT/SIGTERM exits cleanly.
+
+Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Watch Mode](docs/specs/watch-mode.md).
 
 #### Privacy directives
 

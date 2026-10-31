@@ -15,8 +15,8 @@ status: stable
 
 # Specification: Watch Mode
 
-Status: **Polling watcher and MCP reload implemented**. `weave sync --watch` CLI wiring remains a
-follow-up; the shared watcher is shipped.
+Status: **Polling watcher, `weave mcp --watch` and `weave sync --watch` implemented**. `fsnotify`
+event delivery and `--fail-fast` remain follow-ups.
 
 ## 1. Overview
 
@@ -24,7 +24,7 @@ Watch mode keeps a v1.0 persistent index current while files change. It is built
 sync engine and is used by both `weave sync --watch` and `weave mcp --watch`.
 
 ```sh
-weave sync <path> --watch --json      # CLI wiring follow-up
+weave sync <path> --watch --db <file> [--events] [--json]
 weave mcp --bundle <path> --db .weave/index.db --watch
 ```
 
@@ -96,7 +96,7 @@ good content.
 - Sync failure: report through `OnError`, retain the last good index, and retry on the next tick.
 - Parse error: sync keeps the previous document version and reports the error.
 - Shutdown: stop polling, finish any in-flight sync, and let the caller close the database.
-- `--fail-fast` and database-backoff retries are deferred with the CLI wiring.
+- `--fail-fast` and database-backoff retries remain deferred with the `fsnotify` slice.
 
 ## 7. Output
 
@@ -106,8 +106,14 @@ Initial sync result is passed to `OnSync` as a `contractv1.SyncReport`:
 {"db":"/home/u/.weave/index.db","bundle":"/notes","mode":"strict","documents":3,"added":0,"updated":0,"removed":0,"skipped":3,"warnings":0,"errors":0}
 ```
 
-Status events, `--events` JSONL and `--fail-fast` exit codes belong to the `weave sync --watch` CLI
-follow-up; `weave mcp --watch` writes watch diagnostics to stderr.
+With `--json --events`, one initial `weave.cli/v1` success envelope is printed, then JSONL events:
+
+```json
+{"event":"sync","at":"2026-10-30T12:00:00Z","added":1,"updated":2,"removed":0,"errors":0}
+```
+
+Without `--events`, later syncs are silent in JSON mode. Human mode prints one summary per sync.
+`--fail-fast` exit codes remain deferred; `weave mcp --watch` writes watch diagnostics to stderr.
 
 ## 8. Testing
 

@@ -132,6 +132,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] MCP multiple sources: sourced tools, qualified targets and `weave://source/<alias>/...` resources
 - [x] MCP sensitive access: redacted defaults, opt-in decryption and audit key checks
 - [x] AI plugin: `weave-ai` with Ollama/OpenAI/Gemini providers, redaction and opt-in
+- [x] Sync watch CLI: `weave sync --watch` with JSONL events and clean shutdown
 - [x] Body compression: zstd default, LZ4 opt-in, per-row codec and decode recovery
 
 ## Dependency Order
@@ -149,7 +150,7 @@ Execution waves:
 4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), MCP in-memory (done), MCP persistent (done).
 5. Watch (done) and privacy directives (done).
 6. Extension runner, enrichment and rerank (done); sensitive MCP (done).
-7. AI plugin (done), external crypto, `weave sync --watch` CLI wiring.
+7. AI plugin (done), external crypto.
 8. Release automation (done), bundle export, multiple bundle sources.
 9. Optimization program (benchmarks, budgets, refactors) and global configuration/UX.
 
