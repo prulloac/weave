@@ -2,33 +2,34 @@ goos: linux
 goarch: amd64
 pkg: github.com/prulloac/weave/engine/okf
 cpu: AMD Ryzen 9 6900HX with Radeon Graphics        
-BenchmarkParseCorpus/corpus=1k/cache=off-16         	       1	  34805210 ns/op	41846096 B/op	  197283 allocs/op
-BenchmarkParseCorpus/corpus=1k/cache=on-16          	       1	  20367616 ns/op	14329888 B/op	   64821 allocs/op
-BenchmarkParseCorpus/corpus=10k/cache=off-16        	       1	 203182192 ns/op	384559424 B/op	 1967158 allocs/op
-BenchmarkParseCorpus/corpus=10k/cache=on-16         	       1	 202930653 ns/op	144159880 B/op	  652515 allocs/op
+BenchmarkParseCorpus/corpus=1k/cache=off-16         	       1	  57486429 ns/op	44014560 B/op	  197997 allocs/op
+BenchmarkParseCorpus/corpus=1k/cache=on-16          	       1	  21774949 ns/op	14329328 B/op	   64829 allocs/op
+BenchmarkParseCorpus/corpus=10k/cache=off-16        	       1	 234250464 ns/op	383265304 B/op	 1966830 allocs/op
+BenchmarkParseCorpus/corpus=10k/cache=on-16         	       1	 211702599 ns/op	144162544 B/op	  652522 allocs/op
 PASS
-ok  	github.com/prulloac/weave/engine/okf	1.023s
+ok  	github.com/prulloac/weave/engine/okf	1.133s
 goos: linux
 goarch: amd64
 pkg: github.com/prulloac/weave/engine/search
 cpu: AMD Ryzen 9 6900HX with Radeon Graphics        
-BenchmarkSearchCorpus/mode=keyword-16         	       1	  29809870 ns/op	 914.77 MB/s	15200320 B/op	  117292 allocs/op
-BenchmarkSearchCorpus/mode=fuzzy-16           	       1	 197781838 ns/op	 137.88 MB/s	50105280 B/op	  278322 allocs/op
-BenchmarkSearchCorpus/mode=hybrid-16          	       1	 196659348 ns/op	 138.66 MB/s	50105248 B/op	  278320 allocs/op
-BenchmarkSearchBuild10K-16                    	       1	5718677995 ns/op	1568794280 B/op	 6081870 allocs/op
-BenchmarkNavigation10K/list-16                	       1	   3154362 ns/op	 5651272 B/op	      22 allocs/op
-BenchmarkNavigation10K/show-16                	       1	     45962 ns/op	    1056 B/op	      11 allocs/op
-BenchmarkNavigation10K/backlinks-16           	       1	     45911 ns/op	     880 B/op	      10 allocs/op
-BenchmarkNavigation10K/relate-16              	       1	    113572 ns/op	   49648 B/op	     107 allocs/op
+BenchmarkSearchCorpus/mode=keyword-16         	       1	  28378543 ns/op	 960.91 MB/s	25666672 B/op	  117241 allocs/op
+BenchmarkSearchCorpus/mode=fuzzy-16           	       1	 241539185 ns/op	 112.90 MB/s	49605600 B/op	   96500 allocs/op
+BenchmarkSearchCorpus/mode=hybrid-16          	       1	 226373535 ns/op	 120.46 MB/s	49605568 B/op	   96498 allocs/op
+BenchmarkSearchBuild10K-16                    	       1	1624187088 ns/op	893289312 B/op	 5569220 allocs/op
+BenchmarkNavigation10K/list-16                	       1	   3575737 ns/op	 5651272 B/op	      22 allocs/op
+BenchmarkNavigation10K/show-16                	       1	     63931 ns/op	    1056 B/op	      11 allocs/op
+BenchmarkNavigation10K/backlinks-16           	       1	     71925 ns/op	     880 B/op	      10 allocs/op
+BenchmarkNavigation10K/relate-16              	       1	    155810 ns/op	   49648 B/op	     107 allocs/op
 PASS
-ok  	github.com/prulloac/weave/engine/search	17.872s
+ok  	github.com/prulloac/weave/engine/search	5.515s
 goos: linux
 goarch: amd64
 pkg: github.com/prulloac/weave/storage/sqlite
 cpu: AMD Ryzen 9 6900HX with Radeon Graphics        
-BenchmarkIngestCorpus-16          	       1	7864274362 ns/op	19091072416 B/op	 4507935 allocs/op
-BenchmarkLoadCorpus-16            	       1	 801368973 ns/op	425330792 B/op	 1459028 allocs/op
-BenchmarkBM25Corpus-16            	       1	  83688903 ns/op	    7816 B/op	     169 allocs/op
-BenchmarkSyncNoChangeCorpus-16    	       1	5705314481 ns/op	1228030152 B/op	 3691408 allocs/op
+BenchmarkIngestCorpus-16          	       1	10745103304 ns/op	19182917576 B/op	 8036193 allocs/op
+BenchmarkLoadCorpus-16            	       1	 904398398 ns/op	425160304 B/op	 1458793 allocs/op
+BenchmarkBM25Corpus-16            	       1	  91522114 ns/op	    7816 B/op	     169 allocs/op
+BenchmarkFuzzyHitsCorpus-16       	       1	 134859418 ns/op	35876352 B/op	  355892 allocs/op
+BenchmarkSyncNoChangeCorpus-16    	       1	5044343691 ns/op	1322111176 B/op	 7220511 allocs/op
 PASS
-ok  	github.com/prulloac/weave/storage/sqlite	38.983s
+ok  	github.com/prulloac/weave/storage/sqlite	48.255s
