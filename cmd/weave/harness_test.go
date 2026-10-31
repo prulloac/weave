@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -17,7 +18,7 @@ import (
 // Shared CLI test harness. Feature suites should use these helpers instead of
 // inventing new invokers or database openers.
 
-func HarnessInvoke(t *testing.T, args ...string) (int, string, string) {
+func Invoke(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
 	if os.Getenv("WEAVE_CACHE_DIR") == "" && (len(args) == 0 || args[0] != "config") {
 		t.Setenv("WEAVE_CACHE_DIR", t.TempDir())
@@ -27,12 +28,34 @@ func HarnessInvoke(t *testing.T, args ...string) (int, string, string) {
 	return code, stdout.String(), stderr.String()
 }
 
-func HarnessInvokePersistent(t *testing.T, args ...string) (int, string, string) {
+func InvokePersistent(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
-	return HarnessInvoke(t, args...)
+	return Invoke(t, args...)
 }
 
-func HarnessOpenDB(t *testing.T, path string) *sql.DB {
+func InvokeRead(t *testing.T, args ...string) (int, string, string) {
+	t.Helper()
+	return Invoke(t, withInMemory(args)...)
+}
+
+func InvokeBinary(t *testing.T, binary string, args ...string) (int, string, string) {
+	t.Helper()
+	command := exec.Command(binary, args...)
+	command.Env = append(os.Environ(), "WEAVE_CACHE_DIR="+t.TempDir())
+	var stdout, stderr strings.Builder
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	err := command.Run()
+	code := 0
+	if exit, ok := err.(*exec.ExitError); ok {
+		code = exit.ExitCode()
+	} else if err != nil {
+		t.Fatalf("run %s: %v", binary, err)
+	}
+	return code, stdout.String(), stderr.String()
+}
+
+func OpenDB(t *testing.T, path string) *sql.DB {
 	t.Helper()
 	raw, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -42,13 +65,29 @@ func HarnessOpenDB(t *testing.T, path string) *sql.DB {
 	return raw
 }
 
-func HarnessDecode[T any](t *testing.T, data []byte) T {
+func Decode[T any](t *testing.T, data []byte) T {
 	t.Helper()
 	var value T
 	if err := json.Unmarshal(data, &value); err != nil {
 		t.Fatalf("decode JSON: %v\n%s", err, data)
 	}
 	return value
+}
+
+func withInMemory(args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	switch args[0] {
+	case "ingest", "rebuild", "sync":
+		return args
+	}
+	for _, arg := range args {
+		if arg == "--db" || arg == "--no-db" {
+			return args
+		}
+	}
+	return append(args, "--no-db")
 }
 
 var (

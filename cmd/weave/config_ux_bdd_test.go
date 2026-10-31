@@ -24,7 +24,7 @@ func TestConfigGetTypedResult(t *testing.T) {
 	config := writeConfig(t, "top_k: 7\ndb: /srv/weave/index.db\n")
 	t.Setenv("WEAVE_TOP_K", "9")
 
-	code, stdout, stderr := invokeRaw(t, "config", "get", "top_k", "--config", config, "--json")
+	code, stdout, stderr := Invoke(t, "config", "get", "top_k", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config get exit=%d stderr=%q", code, stderr)
 	}
@@ -40,7 +40,7 @@ func TestConfigGetTypedResult(t *testing.T) {
 		t.Fatalf("unexpected top_k provenance: %+v", result)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "config", "get", "db", "--config", config, "--json")
+	code, stdout, stderr = Invoke(t, "config", "get", "db", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config get db exit=%d stderr=%q", code, stderr)
 	}
@@ -55,7 +55,7 @@ func TestConfigGetTypedResult(t *testing.T) {
 		t.Fatalf("unexpected db origin: %q", result.Origin)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "config", "get", "codec", "--config", config, "--json")
+	code, stdout, stderr = Invoke(t, "config", "get", "codec", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config get codec exit=%d stderr=%q", code, stderr)
 	}
@@ -67,7 +67,7 @@ func TestConfigGetTypedResult(t *testing.T) {
 		t.Fatalf("unexpected codec result: %+v", result)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "config", "get", "top_k", "--config", config)
+	code, stdout, stderr = Invoke(t, "config", "get", "top_k", "--config", config)
 	if code != 0 || stderr != "" {
 		t.Fatalf("human config get exit=%d stderr=%q", code, stderr)
 	}
@@ -78,7 +78,7 @@ func TestConfigGetTypedResult(t *testing.T) {
 
 func TestConfigGetRejectsUnknownKey(t *testing.T) {
 	clearConfigEnv(t)
-	code, stdout, _ := invokeRaw(t, "config", "get", "nope", "--json")
+	code, stdout, _ := Invoke(t, "config", "get", "nope", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
@@ -91,7 +91,7 @@ func TestConfigGetRejectsUnknownKey(t *testing.T) {
 func TestConfigShowOrigins(t *testing.T) {
 	clearConfigEnv(t)
 	config := writeConfig(t, "top_k: 7\ndb: /srv/weave/index.db\n")
-	code, stdout, stderr := invokeRaw(t, "config", "show", "--config", config, "--json")
+	code, stdout, stderr := Invoke(t, "config", "show", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config show exit=%d stderr=%q", code, stderr)
 	}
@@ -121,7 +121,7 @@ func TestConfigInitPrintsNextCommand(t *testing.T) {
 		t.Setenv("AppData", filepath.Join(home, "appdata"))
 	}
 
-	code, stdout, stderr := invokeRaw(t, "config", "init", "--json")
+	code, stdout, stderr := Invoke(t, "config", "init", "--json")
 	if code != 0 {
 		t.Fatalf("init exit=%d stderr=%q", code, stderr)
 	}
@@ -134,7 +134,7 @@ func TestConfigInitPrintsNextCommand(t *testing.T) {
 		t.Fatalf("unexpected init result: %+v", result)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "config", "init", "--force")
+	code, stdout, stderr = Invoke(t, "config", "init", "--force")
 	if code != 0 || stderr != "" {
 		t.Fatalf("human init exit=%d stderr=%q", code, stderr)
 	}
@@ -207,7 +207,7 @@ func TestDefaultConfigPathIgnoresAppDataOnUnix(t *testing.T) {
 }
 
 func TestConfigSubcommandHelp(t *testing.T) {
-	code, stdout, stderr := invokeRaw(t, "config", "get", "--help")
+	code, stdout, stderr := Invoke(t, "config", "get", "--help")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config get --help exit=%d stderr=%q", code, stderr)
 	}
@@ -219,7 +219,7 @@ func TestConfigSubcommandHelp(t *testing.T) {
 func TestConfigShowWarningsStayOnStderr(t *testing.T) {
 	clearConfigEnv(t)
 	config := writeConfig(t, "unknown_key: true\n")
-	code, stdout, stderr := invokeRaw(t, "config", "show", "--config", config, "--json")
+	code, stdout, stderr := Invoke(t, "config", "show", "--config", config, "--json")
 	if code != 0 {
 		t.Fatalf("config show exit=%d", code)
 	}
@@ -233,13 +233,13 @@ func TestConfigPathAndInitIgnoreInvalidFile(t *testing.T) {
 	clearConfigEnv(t)
 	config := writeConfig(t, "top_k: 101\n")
 
-	code, stdout, stderr := invokeRaw(t, "config", "path", "--config", config, "--json")
+	code, stdout, stderr := Invoke(t, "config", "path", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config path exit=%d stderr=%q", code, stderr)
 	}
 	validateCLIJSON(t, stdout, "config.schema.json")
 
-	code, stdout, stderr = invokeRaw(t, "config", "init", "--config", config, "--force", "--json")
+	code, stdout, stderr = Invoke(t, "config", "init", "--config", config, "--force", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config init --force exit=%d stderr=%q", code, stderr)
 	}
@@ -251,7 +251,7 @@ func TestConfigPathUsesWeaveConfig(t *testing.T) {
 	config := writeConfig(t, "top_k: 5\n")
 	t.Setenv("WEAVE_CONFIG", config)
 
-	code, stdout, stderr := invokeRaw(t, "config", "path", "--json")
+	code, stdout, stderr := Invoke(t, "config", "path", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config path exit=%d stderr=%q", code, stderr)
 	}
@@ -264,7 +264,7 @@ func TestConfigPathUsesWeaveConfig(t *testing.T) {
 		t.Fatalf("unexpected config path: %+v", result)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "config", "path", "--config="+config, "--json")
+	code, stdout, stderr = Invoke(t, "config", "path", "--config="+config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config path --config= exit=%d stderr=%q", code, stderr)
 	}

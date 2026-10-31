@@ -42,7 +42,7 @@ func runBM25(t *testing.T, bundle, query string, extra ...string) (int, bddBM25R
 
 	args := []string{"search", bundle, query, "--mode", "bm25", "--json"}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr)
 	}
@@ -188,7 +188,7 @@ Alpha content after sync.
 
 	t.Run("BM25 requires persistent storage", func(t *testing.T) {
 		storageHome(t)
-		code, stdout, _ := invokePersistent(t, "search", bm25Fixture(), "alpha",
+		code, stdout, _ := InvokePersistent(t, "search", bm25Fixture(), "alpha",
 			"--mode", "bm25", "--no-db", "--json")
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -202,7 +202,7 @@ Alpha content after sync.
 		bundle := bm25Fixture()
 		ingestBM25(t, bundle)
 
-		code, _, _ := invokePersistent(t, "search", bundle, "", "--mode", "bm25", "--json")
+		code, _, _ := InvokePersistent(t, "search", bundle, "", "--mode", "bm25", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
 		}

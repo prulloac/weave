@@ -64,7 +64,7 @@ func TestPermissiveIngestionBehavior(t *testing.T) {
 
 	t.Run("permissive and strict are mutually exclusive", func(t *testing.T) {
 		storageHome(t)
-		code, stdout, _ := invokePersistent(t, "ingest", permissiveFixture(),
+		code, stdout, _ := InvokePersistent(t, "ingest", permissiveFixture(),
 			"--permissive", "--strict", "--json")
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -133,7 +133,7 @@ func TestPermissiveIngestionBehavior(t *testing.T) {
 		storageHome(t)
 		runStorageJSON(t, "ingest", permissiveFixture(), "--json")
 
-		code, _, stderr := invokePersistent(t, "search", permissiveFixture(),
+		code, _, stderr := InvokePersistent(t, "search", permissiveFixture(),
 			"plain", "--mode", "keyword", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
@@ -161,7 +161,7 @@ func TestPermissiveIngestionBehavior(t *testing.T) {
 		storageHome(t)
 		runStorageJSON(t, "ingest", permissiveFixture(), "--json")
 
-		code, stdout, stderr := invokePersistent(t, "graph", permissiveFixture(), "--json")
+		code, stdout, stderr := InvokePersistent(t, "graph", permissiveFixture(), "--json")
 		if code != 0 || stderr != "" {
 			t.Fatalf("exit=%d stderr=%q", code, stderr)
 		}
@@ -241,7 +241,7 @@ func permissiveSearch(t *testing.T, path, query string, extra ...string) contrac
 
 	args := []string{"search", path, query, "--json"}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -258,7 +258,7 @@ func permissiveAudit(t *testing.T, extra ...string) (int, bddAuditReport) {
 
 	args := []string{"audit", permissiveFixture()}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr)
 	}

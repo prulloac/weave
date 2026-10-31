@@ -35,7 +35,7 @@ func exportFixture(t *testing.T) (root, db string) {
 	write("secret", "privacy:\n  policy: encrypt\n  provider: aes-256-gcm\n  key_id: ops-prod-key\n", "The launch code is zanzibar-secret.")
 
 	db = filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -44,7 +44,7 @@ func exportFixture(t *testing.T) (root, db string) {
 
 func runExport(t *testing.T, args ...string) (int, testEnvelope, bddExportReport) {
 	t.Helper()
-	code, stdout, _ := invokeRaw(t, append([]string{"export"}, args...)...)
+	code, stdout, _ := Invoke(t, append([]string{"export"}, args...)...)
 	envelope := decodeEnvelope(t, stdout)
 	var report bddExportReport
 	if envelope.OK {
@@ -87,11 +87,11 @@ func TestExportRaw(t *testing.T) {
 	}
 
 	db2 := filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", out, "--db", db2, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", out, "--db", db2, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("re-ingest exit=%d stderr=%q", code, stderr)
 	}
-	code, stdout, stderr := invokeRaw(t, "show", out, "secret", "--db", db2, "--decrypt", "--json")
+	code, stdout, stderr := Invoke(t, "show", out, "secret", "--db", db2, "--decrypt", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}
@@ -160,11 +160,11 @@ func TestExportEncrypted(t *testing.T) {
 	}
 
 	db2 := filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", out, "--db", db2, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", out, "--db", db2, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("re-ingest exit=%d stderr=%q", code, stderr)
 	}
-	code, stdout, stderr := invokeRaw(t, "show", out, "plain", "--db", db2, "--decrypt", "--json")
+	code, stdout, stderr := Invoke(t, "show", out, "plain", "--db", db2, "--decrypt", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}

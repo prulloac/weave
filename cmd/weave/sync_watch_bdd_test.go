@@ -45,11 +45,11 @@ func waitForOutput(t *testing.T, buffer *syncBuffer, substring string) {
 
 func TestSyncWatchRequiresDB(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
-	code, _, _ := invokeRaw(t, "sync", root, "--watch", "--json")
+	code, _, _ := Invoke(t, "sync", root, "--watch", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 without --db, got %d", code)
 	}
-	code, _, _ = invokeRaw(t, "sync", root, "--watch", "--no-db", "--json")
+	code, _, _ = Invoke(t, "sync", root, "--watch", "--no-db", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 with --no-db, got %d", code)
 	}
@@ -58,11 +58,11 @@ func TestSyncWatchRequiresDB(t *testing.T) {
 func TestSyncWatchRejectsUnsupportedFlags(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, _, _ := invokeRaw(t, "sync", root, "--watch", "--with-enricher", "echo", "--db", db)
+	code, _, _ := Invoke(t, "sync", root, "--watch", "--with-enricher", "echo", "--db", db)
 	if code != 2 {
 		t.Fatalf("expected exit 2 for enricher, got %d", code)
 	}
-	code, _, _ = invokeRaw(t, "sync", root, "--events", "--json")
+	code, _, _ = Invoke(t, "sync", root, "--events", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 for --events without --watch, got %d", code)
 	}
@@ -72,7 +72,7 @@ func TestSyncWatchRequiresIndexedBundle(t *testing.T) {
 	rootA := copyStorageBundle(t, storageFixture("bundle-a"))
 	rootB := copyStorageBundle(t, storageFixture("bundle-b"))
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", rootA, "--db", db, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", rootA, "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -94,7 +94,7 @@ func TestSyncWatchRequiresIndexedBundle(t *testing.T) {
 func TestSyncWatchInitialAndUpdates(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -122,7 +122,7 @@ func TestSyncWatchInitialAndUpdates(t *testing.T) {
 func TestSyncWatchJSONEvents(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}

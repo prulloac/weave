@@ -44,7 +44,7 @@ func clearConfigEnv(t *testing.T) {
 
 func configShow(t *testing.T, args ...string) (int, bddConfigShow, string) {
 	t.Helper()
-	code, stdout, stderr := invokeRaw(t, append([]string{"config", "show"}, args...)...)
+	code, stdout, stderr := Invoke(t, append([]string{"config", "show"}, args...)...)
 	var show bddConfigShow
 	if stdout != "" {
 		envelope := decodeEnvelope(t, stdout)
@@ -63,11 +63,11 @@ func TestConfigPrecedence(t *testing.T) {
 	db := filepath.Join(t.TempDir(), "config.db")
 	config := writeConfig(t, "db: "+db+"\nsearch_mode: keyword\ntop_k: 2\n")
 
-	code, _, stderr := invokeRaw(t, "ingest", root, "--config", config, "--strict", "--json")
+	code, _, stderr := Invoke(t, "ingest", root, "--config", config, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
-	code, stdout, stderr := invokeRaw(t, "search", root, "alpha", "--config", config, "--json")
+	code, stdout, stderr := Invoke(t, "search", root, "alpha", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -81,7 +81,7 @@ func TestConfigPrecedence(t *testing.T) {
 
 	t.Setenv("WEAVE_SEARCH_MODE", "hybrid")
 	t.Setenv("WEAVE_TOP_K", "1")
-	code, stdout, stderr = invokeRaw(t, "search", root, "alpha", "--config", config, "--json")
+	code, stdout, stderr = Invoke(t, "search", root, "alpha", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("env search exit=%d stderr=%q", code, stderr)
 	}
@@ -92,7 +92,7 @@ func TestConfigPrecedence(t *testing.T) {
 		t.Fatalf("env did not override file: mode=%s top_k=%d", response.Mode, response.TopK)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "search", root, "alpha", "--config", config,
+	code, stdout, stderr = Invoke(t, "search", root, "alpha", "--config", config,
 		"--mode", "keyword", "--top-k", "3", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("flag search exit=%d stderr=%q", code, stderr)
@@ -112,7 +112,7 @@ func TestConfigDatabaseAndEnv(t *testing.T) {
 	envDB := filepath.Join(t.TempDir(), "env.db")
 	config := writeConfig(t, "db: "+fileDB+"\n")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--config", config, "--strict", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--config", config, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -125,7 +125,7 @@ func TestConfigDatabaseAndEnv(t *testing.T) {
 	}
 
 	t.Setenv("WEAVE_DB", envDB)
-	code, stdout, stderr = invokeRaw(t, "ingest", root, "--config", config, "--strict", "--json")
+	code, stdout, stderr = Invoke(t, "ingest", root, "--config", config, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("env ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -142,19 +142,19 @@ func TestConfigValidation(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 
 	badTopK := writeConfig(t, "top_k: 101\n")
-	code, _, stderr := invokeRaw(t, "list", root, "--config", badTopK, "--json")
+	code, _, stderr := Invoke(t, "list", root, "--config", badTopK, "--json")
 	if code != 2 || !strings.Contains(stderr, "top_k") {
 		t.Fatalf("expected top_k error, code=%d stderr=%q", code, stderr)
 	}
 
 	reserved := writeConfig(t, "keys:\n  secret: value\n")
-	code, _, stderr = invokeRaw(t, "list", root, "--config", reserved, "--json")
+	code, _, stderr = Invoke(t, "list", root, "--config", reserved, "--json")
 	if code != 2 || !strings.Contains(stderr, "reserved") {
 		t.Fatalf("expected reserved key error, code=%d stderr=%q", code, stderr)
 	}
 
 	good := writeConfig(t, "top_k: 5\n")
-	code, _, _ = invokeRaw(t, "list", root, "--config", good, "--no-config", "--json")
+	code, _, _ = Invoke(t, "list", root, "--config", good, "--no-config", "--json")
 	if code != 2 {
 		t.Fatalf("expected --config/--no-config conflict, got %d", code)
 	}
@@ -165,7 +165,7 @@ func TestConfigUnknownKeys(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	config := writeConfig(t, "top_k: 5\nunknown_key: true\n")
 
-	code, _, stderr := invokeRaw(t, "list", root, "--config", config, "--no-db", "--json")
+	code, _, stderr := Invoke(t, "list", root, "--config", config, "--no-db", "--json")
 	if code != 0 {
 		t.Fatalf("unknown key must warn, code=%d stderr=%q", code, stderr)
 	}
@@ -173,7 +173,7 @@ func TestConfigUnknownKeys(t *testing.T) {
 		t.Fatalf("missing warning: %q", stderr)
 	}
 
-	code, _, _ = invokeRaw(t, "list", root, "--config", config, "--strict-config", "--no-db", "--json")
+	code, _, _ = Invoke(t, "list", root, "--config", config, "--strict-config", "--no-db", "--json")
 	if code != 2 {
 		t.Fatalf("strict config must fail, got %d", code)
 	}
@@ -207,7 +207,7 @@ func TestConfigShowAndPath(t *testing.T) {
 		t.Fatalf("expected default source for codec: %+v", show.Entries)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "config", "path", "--config", config, "--json")
+	code, stdout, stderr := Invoke(t, "config", "path", "--config", config, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config path exit=%d stderr=%q", code, stderr)
 	}
@@ -233,7 +233,7 @@ func TestConfigInit(t *testing.T) {
 	}
 	path := defaultConfigPath()
 
-	code, _, stderr := invokeRaw(t, "config", "init", "--json")
+	code, _, stderr := Invoke(t, "config", "init", "--json")
 	if code != 0 {
 		t.Fatalf("init exit=%d stderr=%q", code, stderr)
 	}
@@ -245,11 +245,11 @@ func TestConfigInit(t *testing.T) {
 		t.Fatalf("config mode = %o, want 600", info.Mode().Perm())
 	}
 
-	code, _, _ = invokeRaw(t, "config", "init", "--json")
+	code, _, _ = Invoke(t, "config", "init", "--json")
 	if code != 2 {
 		t.Fatalf("overwrite must fail, got %d", code)
 	}
-	code, _, _ = invokeRaw(t, "config", "init", "--force", "--json")
+	code, _, _ = Invoke(t, "config", "init", "--force", "--json")
 	if code != 0 {
 		t.Fatalf("force init failed: %d", code)
 	}
@@ -263,7 +263,7 @@ func TestConfigNoConfigIgnoresFile(t *testing.T) {
 	t.Setenv("WEAVE_CONFIG", envConfig)
 	t.Setenv("WEAVE_TOP_K", "4")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--no-config", "--strict", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--no-config", "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -275,7 +275,7 @@ func TestConfigNoConfigIgnoresFile(t *testing.T) {
 		t.Fatal("--no-config must ignore the file database")
 	}
 
-	code, _, _ = invokeRaw(t, "search", root, "alpha", "--no-config", "--db", report.DB, "--json")
+	code, _, _ = Invoke(t, "search", root, "alpha", "--no-config", "--db", report.DB, "--json")
 	if code != 0 {
 		t.Fatalf("search exit=%d", code)
 	}

@@ -83,7 +83,7 @@ func privacyDB(t *testing.T) string {
 
 func privacyIngest(t *testing.T, root, db string) testEnvelope {
 	t.Helper()
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q stdout=%s", code, stderr, stdout)
 	}
@@ -121,7 +121,7 @@ func privacyShow(t *testing.T, root, db, id string, extra ...string) (int, testE
 	t.Helper()
 	args := append([]string{"show", root, id, "--db", db}, extra...)
 	args = append(args, "--json")
-	code, stdout, stderr := invokeRaw(t, args...)
+	code, stdout, stderr := Invoke(t, args...)
 	envelope := decodeEnvelope(t, stdout)
 	var result bddShowResult
 	if envelope.OK {
@@ -136,7 +136,7 @@ func privacyShow(t *testing.T, root, db, id string, extra ...string) (int, testE
 
 func privacySearch(t *testing.T, root, db, query, mode string) contractv1.SearchResponse {
 	t.Helper()
-	code, stdout, stderr := invokeRaw(t, "search", root, query, "--db", db, "--mode", mode, "--json")
+	code, stdout, stderr := Invoke(t, "search", root, query, "--db", db, "--mode", mode, "--json")
 	if code == 1 && strings.Contains(stderr, "no matches") {
 		return contractv1.SearchResponse{}
 	}
@@ -202,7 +202,7 @@ func hasListedTitle(bundle contractv1.ListResults, title string) bool {
 func TestPrivacyParseDeclarations(t *testing.T) {
 	root := privacyFixture(t)
 
-	code, stdout, stderr := invokeRaw(t, "parse", root, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "parse", root, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
@@ -253,7 +253,7 @@ privacy:
 Untouched content.
 `)
 
-	code, stdout, stderr := invokeRaw(t, "parse", root, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "parse", root, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
@@ -319,7 +319,7 @@ func TestPrivacyEncryptedDocument(t *testing.T) {
 		t.Fatalf("expected decrypted state, got %+v", decrypted.Privacy)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "list", root, "--db", db, "--json")
+	code, stdout, stderr := Invoke(t, "list", root, "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("list exit=%d stderr=%q", code, stderr)
 	}
@@ -390,7 +390,7 @@ func TestPrivacyMissingKeyFails(t *testing.T) {
 	t.Setenv(privacyAuditKey, strings.Repeat("ef", 32))
 	os.Unsetenv(privacyOpsKey)
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 3 {
 		t.Fatalf("expected exit 3, got %d (stderr=%q stdout=%s)", code, stderr, stdout)
 	}
@@ -420,7 +420,7 @@ func TestPrivacyAuditVerifyKeys(t *testing.T) {
 	privacyIngest(t, root, db)
 
 	os.Unsetenv(privacyOpsKey)
-	code, stdout, stderr := invokeRaw(t, "audit", root, "--db", db, "--verify-keys", "--json")
+	code, stdout, stderr := Invoke(t, "audit", root, "--db", db, "--verify-keys", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("audit exit=%d stderr=%q", code, stderr)
 	}
@@ -470,7 +470,7 @@ keywords:
 The launch code is zanzibar-secret.
 `)
 
-	code, stdout, stderr := invokeRaw(t, "sync", root, "--db", db, "--json")
+	code, stdout, stderr := Invoke(t, "sync", root, "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
 	}

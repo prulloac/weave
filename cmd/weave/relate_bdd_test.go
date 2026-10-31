@@ -45,7 +45,7 @@ func runRelateJSON(t *testing.T, args ...string) (int, testEnvelope, bddRelateRe
 	t.Helper()
 
 	fullArgs := append([]string{"relate"}, args...)
-	code, stdout, stderr := invoke(t, fullArgs...)
+	code, stdout, stderr := InvokeRead(t, fullArgs...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr in JSON mode, got %q", stderr)
 	}
@@ -230,7 +230,7 @@ func TestRelateBehavior(t *testing.T) {
 	})
 
 	t.Run("missing root returns CONCEPT_NOT_FOUND", func(t *testing.T) {
-		code, stdout, _ := invoke(t, "relate", relateFixture("graph"), "concepts/missing", "--json")
+		code, stdout, _ := InvokeRead(t, "relate", relateFixture("graph"), "concepts/missing", "--json")
 
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
@@ -245,14 +245,14 @@ func TestRelateBehavior(t *testing.T) {
 	})
 
 	t.Run("invalid depth is a usage error", func(t *testing.T) {
-		code, _, _ := invoke(t, "relate", relateFixture("chain"), "concepts/x", "--depth", "6", "--json")
+		code, _, _ := InvokeRead(t, "relate", relateFixture("chain"), "concepts/x", "--depth", "6", "--json")
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
 		}
 	})
 
 	t.Run("invalid direction is a usage error", func(t *testing.T) {
-		code, _, _ := invoke(t, "relate", relateFixture("chain"), "concepts/x", "--direction", "sideways", "--json")
+		code, _, _ := InvokeRead(t, "relate", relateFixture("chain"), "concepts/x", "--direction", "sideways", "--json")
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
 		}
@@ -278,7 +278,7 @@ func TestRelateBehavior(t *testing.T) {
 	})
 
 	t.Run("human output groups outbound and inbound edges", func(t *testing.T) {
-		code, stdout, stderr := invoke(t,
+		code, stdout, stderr := InvokeRead(t,
 			"relate", relateFixture("graph"), "concepts/a", "--depth", "1", "--direction", "both")
 		if stderr != "" {
 			t.Fatalf("expected empty stderr, got %q", stderr)
@@ -301,7 +301,7 @@ func TestRelateBehavior(t *testing.T) {
 	})
 
 	t.Run("human output groups deeper hops", func(t *testing.T) {
-		code, stdout, stderr := invoke(t,
+		code, stdout, stderr := InvokeRead(t,
 			"relate", relateFixture("chain"), "concepts/x", "--depth", "2", "--direction", "out")
 		if stderr != "" {
 			t.Fatalf("expected empty stderr, got %q", stderr)

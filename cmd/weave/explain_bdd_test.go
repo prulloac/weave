@@ -77,7 +77,7 @@ func runExplainJSON(t *testing.T, args ...string) (int, testEnvelope, bddExplain
 	t.Helper()
 
 	fullArgs := append([]string{"explain"}, args...)
-	code, stdout, stderr := invoke(t, fullArgs...)
+	code, stdout, stderr := InvokeRead(t, fullArgs...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr in JSON mode, got %q", stderr)
 	}
@@ -101,7 +101,7 @@ func runSearchJSON(t *testing.T, path, query, mode string, topK int) contractv1.
 	if topK > 0 {
 		args = append(args, "--top-k", strconv.Itoa(topK))
 	}
-	code, stdout, stderr := invoke(t, args...)
+	code, stdout, stderr := InvokeRead(t, args...)
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -328,7 +328,7 @@ func TestExplainBehavior(t *testing.T) {
 	})
 
 	t.Run("unknown id returns CONCEPT_NOT_FOUND", func(t *testing.T) {
-		code, stdout, _ := invoke(t,
+		code, stdout, _ := InvokeRead(t,
 			"explain", explainFixture(), "oauth", "--id", "concepts/missing", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
@@ -343,14 +343,14 @@ func TestExplainBehavior(t *testing.T) {
 	})
 
 	t.Run("empty query exits 1", func(t *testing.T) {
-		code, _, _ := invoke(t, "explain", explainFixture(), "", "--json")
+		code, _, _ := InvokeRead(t, "explain", explainFixture(), "", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
 		}
 	})
 
 	t.Run("no matches exits 1", func(t *testing.T) {
-		code, _, _ := invoke(t, "explain", explainFixture(), "zzzz", "--json")
+		code, _, _ := InvokeRead(t, "explain", explainFixture(), "zzzz", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
 		}
@@ -369,7 +369,7 @@ func TestExplainBehavior(t *testing.T) {
 	})
 
 	t.Run("human output shows components and rank", func(t *testing.T) {
-		code, stdout, stderr := invoke(t, "explain", explainFixture(), "oauth")
+		code, stdout, stderr := InvokeRead(t, "explain", explainFixture(), "oauth")
 		if stderr != "" {
 			t.Fatalf("expected empty stderr, got %q", stderr)
 		}

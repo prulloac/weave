@@ -25,11 +25,6 @@ type bddStorageReport struct {
 	Errors    int    `json:"errors"`
 }
 
-func invokePersistent(t *testing.T, args ...string) (int, string, string) {
-	t.Helper()
-	return HarnessInvokePersistent(t, args...)
-}
-
 func storageHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
@@ -58,7 +53,7 @@ func runStorageJSON(t *testing.T, command string, args ...string) (int, testEnve
 	t.Helper()
 
 	fullArgs := append([]string{command}, args...)
-	code, stdout, stderr := invokePersistent(t, fullArgs...)
+	code, stdout, stderr := InvokePersistent(t, fullArgs...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr in JSON mode, got %q", stderr)
 	}
@@ -77,7 +72,7 @@ func runParseBundle(t *testing.T, args ...string) contractv1.Bundle {
 	t.Helper()
 
 	fullArgs := append([]string{"parse"}, args...)
-	code, stdout, stderr := invokePersistent(t, fullArgs...)
+	code, stdout, stderr := InvokePersistent(t, fullArgs...)
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
@@ -97,7 +92,7 @@ func runStorageSearch(t *testing.T, path string, extra ...string) contractv1.Sea
 
 	args := []string{"search", path, "alpha", "--json"}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -321,7 +316,7 @@ func TestStorageBehavior(t *testing.T) {
 	t.Run("missing database is a usage error", func(t *testing.T) {
 		storageHome(t)
 		missing := filepath.Join(t.TempDir(), "missing.db")
-		code, stdout, _ := invokePersistent(t, "parse", storageFixture("bundle-a"), "--db", missing, "--json")
+		code, stdout, _ := InvokePersistent(t, "parse", storageFixture("bundle-a"), "--db", missing, "--json")
 
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -335,7 +330,7 @@ func TestStorageBehavior(t *testing.T) {
 		storageHome(t)
 		runStorageJSON(t, "ingest", storageFixture("bundle-a"), "--strict", "--json")
 
-		code, stdout, _ := invokePersistent(t, "parse", storageFixture("bundle-b"), "--json")
+		code, stdout, _ := InvokePersistent(t, "parse", storageFixture("bundle-b"), "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
 		}
@@ -347,7 +342,7 @@ func TestStorageBehavior(t *testing.T) {
 	t.Run("--db and --no-db are mutually exclusive", func(t *testing.T) {
 		storageHome(t)
 		custom := filepath.Join(t.TempDir(), "custom.db")
-		code, stdout, _ := invokePersistent(t, "parse", storageFixture("bundle-a"),
+		code, stdout, _ := InvokePersistent(t, "parse", storageFixture("bundle-a"),
 			"--db", custom, "--no-db", "--json")
 
 		if code != 2 {
@@ -360,7 +355,7 @@ func TestStorageBehavior(t *testing.T) {
 
 	t.Run("ingest rejects --no-db", func(t *testing.T) {
 		storageHome(t)
-		code, stdout, _ := invokePersistent(t, "ingest", storageFixture("bundle-a"), "--no-db", "--json")
+		code, stdout, _ := InvokePersistent(t, "ingest", storageFixture("bundle-a"), "--no-db", "--json")
 
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -373,7 +368,7 @@ func TestStorageBehavior(t *testing.T) {
 	t.Run("invalid root is rejected", func(t *testing.T) {
 		storageHome(t)
 		missing := filepath.Join(t.TempDir(), "missing-root")
-		code, stdout, _ := invokePersistent(t, "ingest", missing, "--strict", "--json")
+		code, stdout, _ := InvokePersistent(t, "ingest", missing, "--strict", "--json")
 
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)

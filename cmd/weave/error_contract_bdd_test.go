@@ -12,7 +12,7 @@ import (
 func TestErrorContractHints(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 
-	code, _, stderr := invokeRaw(t, "show", root, "missing", "--no-db")
+	code, _, stderr := Invoke(t, "show", root, "missing", "--no-db")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -22,7 +22,7 @@ func TestErrorContractHints(t *testing.T) {
 		}
 	}
 
-	code, stdout, stderr := invokeRaw(t, "show", root, "missing", "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "show", root, "missing", "--no-db", "--json")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -41,7 +41,7 @@ func TestErrorContractHints(t *testing.T) {
 func TestEmptyListSucceeds(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 
-	code, stdout, stderr := invokeRaw(t, "list", root, "--no-db", "--type", "Nope", "--json")
+	code, stdout, stderr := Invoke(t, "list", root, "--no-db", "--type", "Nope", "--json")
 	if code != 0 {
 		t.Fatalf("expected JSON empty list exit 0, got %d stderr=%q", code, stderr)
 	}
@@ -53,7 +53,7 @@ func TestEmptyListSucceeds(t *testing.T) {
 		t.Fatalf("expected empty list, got %d", len(listed))
 	}
 
-	code, _, stderr = invokeRaw(t, "list", root, "--no-db", "--type", "Nope")
+	code, _, stderr = Invoke(t, "list", root, "--no-db", "--type", "Nope")
 	if code != 0 {
 		t.Fatalf("expected human empty list exit 0, got %d", code)
 	}
@@ -63,7 +63,7 @@ func TestEmptyListSucceeds(t *testing.T) {
 }
 
 func TestUsageErrorsHaveHints(t *testing.T) {
-	code, _, stderr := invokeRaw(t, "search", "only-path")
+	code, _, stderr := Invoke(t, "search", "only-path")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
@@ -75,7 +75,7 @@ func TestUsageErrorsHaveHints(t *testing.T) {
 }
 
 func TestContractListsAllErrorCodes(t *testing.T) {
-	code, stdout, stderr := invokeRaw(t, "contract", "--json")
+	code, stdout, stderr := Invoke(t, "contract", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("contract exit=%d stderr=%q", code, stderr)
 	}
@@ -101,11 +101,11 @@ func TestBundleNotIndexedHint(t *testing.T) {
 	rootA := copyStorageBundle(t, storageFixture("bundle-a"))
 	rootB := copyStorageBundle(t, storageFixture("bundle-b"))
 	db := filepath.Join(t.TempDir(), "index.db")
-	if code, _, stderr := invokeRaw(t, "ingest", rootA, "--db", db, "--strict", "--json"); code != 0 {
+	if code, _, stderr := Invoke(t, "ingest", rootA, "--db", db, "--strict", "--json"); code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
 
-	code, _, stderr := invokeRaw(t, "show", rootB, "a", "--db", db, "--json")
+	code, _, stderr := Invoke(t, "show", rootB, "a", "--db", db, "--json")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}

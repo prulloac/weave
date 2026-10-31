@@ -14,7 +14,7 @@ func TestDryRunIngest(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--dry-run", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--dry-run", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("dry-run exit=%d stderr=%q", code, stderr)
 	}
@@ -29,7 +29,7 @@ func TestDryRunIngest(t *testing.T) {
 		t.Fatalf("dry run must not create the database: %v", err)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "ingest", root, "--db", db, "--strict", "--dry-run")
+	code, stdout, stderr = Invoke(t, "ingest", root, "--db", db, "--strict", "--dry-run")
 	if code != 0 || stderr != "" {
 		t.Fatalf("human dry-run exit=%d stderr=%q", code, stderr)
 	}
@@ -41,7 +41,7 @@ func TestDryRunIngest(t *testing.T) {
 func TestDryRunSyncDoesNotWrite(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	db := filepath.Join(t.TempDir(), "index.db")
-	if code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json"); code != 0 {
+	if code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json"); code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
 	content := "---\ntype: Concept\ntitle: \"B Changed\"\nkeywords:\n  - \"changed\"\n---\n\n# B Changed\n\nChanged body.\n"
@@ -49,7 +49,7 @@ func TestDryRunSyncDoesNotWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "sync", root, "--db", db, "--dry-run", "--json")
+	code, stdout, stderr := Invoke(t, "sync", root, "--db", db, "--dry-run", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("dry-run sync exit=%d stderr=%q", code, stderr)
 	}
@@ -61,7 +61,7 @@ func TestDryRunSyncDoesNotWrite(t *testing.T) {
 		t.Fatalf("expected dry_run report: %+v", report)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "show", root, "b", "--db", db, "--json")
+	code, stdout, stderr = Invoke(t, "show", root, "b", "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}
@@ -78,7 +78,7 @@ func TestDryRunExport(t *testing.T) {
 	root, db := exportFixture(t)
 	out := filepath.Join(t.TempDir(), "export")
 
-	code, stdout, stderr := invokeRaw(t, "export", root, "--out", out, "--format", "raw", "--dry-run", "--db", db, "--json")
+	code, stdout, stderr := Invoke(t, "export", root, "--out", out, "--format", "raw", "--dry-run", "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("dry-run export exit=%d stderr=%q", code, stderr)
 	}
@@ -94,7 +94,7 @@ func TestDryRunExport(t *testing.T) {
 	}
 
 	os.Unsetenv("WEAVE_KEY_EXPORT_KEY")
-	code, _, stderr = invokeRaw(t, "export", root, "--out", out, "--format", "encrypted",
+	code, _, stderr = Invoke(t, "export", root, "--out", out, "--format", "encrypted",
 		"--key-id", "export-key", "--dry-run", "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("encrypted dry-run must not require keys: exit=%d stderr=%q", code, stderr)
@@ -104,7 +104,7 @@ func TestDryRunExport(t *testing.T) {
 func TestNoInputFailsInsteadOfPrompting(t *testing.T) {
 	root, db := exportFixture(t)
 	out := filepath.Join(t.TempDir(), "export")
-	code, stdout, _ := invokeRaw(t, "export", root, "--out", out, "--format", "raw",
+	code, stdout, _ := Invoke(t, "export", root, "--out", out, "--format", "raw",
 		"--no-input", "--db", db, "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
@@ -117,11 +117,11 @@ func TestNoInputFailsInsteadOfPrompting(t *testing.T) {
 
 func TestDryRunRejectsOtherCommands(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
-	code, _, _ := invokeRaw(t, "search", root, "alpha", "--no-db", "--dry-run", "--json")
+	code, _, _ := Invoke(t, "search", root, "alpha", "--no-db", "--dry-run", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 for search dry-run, got %d", code)
 	}
-	code, _, _ = invokeRaw(t, "sync", root, "--no-db", "--no-input", "--json")
+	code, _, _ = Invoke(t, "sync", root, "--no-db", "--no-input", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 for sync --no-input, got %d", code)
 	}

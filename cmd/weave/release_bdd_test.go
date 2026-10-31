@@ -29,7 +29,7 @@ func TestReleaseVersionInjection(t *testing.T) {
 		t.Fatalf("build: %v\n%s", err, output)
 	}
 
-	code, stdout, stderr := runBinary(t, binary, "version", "--json")
+	code, stdout, stderr := InvokeBinary(t, binary, "version", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("version exit=%d stderr=%q", code, stderr)
 	}
@@ -47,28 +47,11 @@ func TestReleaseVersionInjection(t *testing.T) {
 		t.Fatalf("binary_version = %q, want v9.9.9", info.BinaryVersion)
 	}
 
-	code, stdout, stderr = runBinary(t, binary, "--version")
+	code, stdout, stderr = InvokeBinary(t, binary, "--version")
 	if code != 0 || stderr != "" {
 		t.Fatalf("--version exit=%d stderr=%q", code, stderr)
 	}
 	if !strings.Contains(stdout, "v9.9.9") {
 		t.Fatalf("--version output missing injected version: %q", stdout)
 	}
-}
-
-func runBinary(t *testing.T, binary string, args ...string) (int, string, string) {
-	t.Helper()
-	command := exec.Command(binary, args...)
-	command.Env = append(os.Environ(), "WEAVE_CACHE_DIR="+t.TempDir())
-	var stdout, stderr strings.Builder
-	command.Stdout = &stdout
-	command.Stderr = &stderr
-	err := command.Run()
-	code := 0
-	if exit, ok := err.(*exec.ExitError); ok {
-		code = exit.ExitCode()
-	} else if err != nil {
-		t.Fatalf("run %s: %v", binary, err)
-	}
-	return code, stdout.String(), stderr.String()
 }

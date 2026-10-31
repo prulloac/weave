@@ -67,7 +67,7 @@ func TestConfigJSONGoldens(t *testing.T) {
 		{"path", []string{"config", "path", "--config", config, "--json"}},
 	}
 	for _, testCase := range cases {
-		code, stdout, stderr := invokeRaw(t, testCase.args...)
+		code, stdout, stderr := Invoke(t, testCase.args...)
 		if code != 0 || stderr != "" {
 			t.Fatalf("%s exit=%d stderr=%q", testCase.name, code, stderr)
 		}
@@ -86,7 +86,7 @@ func TestConfigJSONGoldens(t *testing.T) {
 	}
 
 	path := filepath.Join(t.TempDir(), "nested", "config.yaml")
-	code, stdout, stderr := invokeRaw(t, "config", "init", "--config", path, "--json")
+	code, stdout, stderr := Invoke(t, "config", "init", "--config", path, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("init exit=%d stderr=%q", code, stderr)
 	}

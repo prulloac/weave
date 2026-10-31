@@ -54,7 +54,7 @@ func TestExternalCryptoEncryptDecrypt(t *testing.T) {
 	installCryptoMock(t, root, "mock.py", "")
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q stdout=%s", code, stderr, stdout)
 	}
@@ -64,7 +64,7 @@ func TestExternalCryptoEncryptDecrypt(t *testing.T) {
 		t.Fatalf("expected provider ciphertext, got %q", stored)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "show", root, "secret", "--db", db, "--decrypt", "--json")
+	code, stdout, stderr = Invoke(t, "show", root, "secret", "--db", db, "--decrypt", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}
@@ -82,7 +82,7 @@ func TestExternalCryptoTokenizeAndHash(t *testing.T) {
 		root := cryptoFixture(t, policy, "tenant-salt", "internal-client-alpha")
 		installCryptoMock(t, root, "mock.py", "")
 		db := filepath.Join(t.TempDir(), "index.db")
-		code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+		code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 		if code != 0 {
 			t.Fatalf("%s ingest exit=%d stderr=%q", policy, code, stderr)
 		}
@@ -106,7 +106,7 @@ func TestExternalCryptoMissingProviderFails(t *testing.T) {
 	}
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, _ := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, stdout, _ := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 3 {
 		t.Fatalf("expected exit 3, got %d stdout=%s", code, stdout)
 	}
@@ -122,7 +122,7 @@ func TestExternalCryptoInvalidResponseFails(t *testing.T) {
 	t.Setenv("MOCK_BROKEN", "1")
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, _, _ := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json")
+	code, _, _ := Invoke(t, "ingest", root, "--db", db, "--strict", "--json")
 	if code != 3 {
 		t.Fatalf("expected exit 3 for invalid provider response, got %d", code)
 	}
@@ -144,7 +144,7 @@ func TestExternalCryptoLocalOverride(t *testing.T) {
 	installCryptoMock(t, root, "mock.py", "")
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--provider", "local", "--json")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--provider", "local", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -159,11 +159,11 @@ func TestExternalCryptoAudit(t *testing.T) {
 	root := cryptoFixture(t, "encrypt", "ops-prod-key", "zanzibar-secret")
 	installCryptoMock(t, root, "mock.py", "")
 	db := filepath.Join(t.TempDir(), "index.db")
-	if code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--json"); code != 0 {
+	if code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--json"); code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "audit", root, "--db", db, "--verify-keys", "--fail-on", "none", "--json")
+	code, stdout, stderr := Invoke(t, "audit", root, "--db", db, "--verify-keys", "--fail-on", "none", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("audit exit=%d stderr=%q", code, stderr)
 	}
@@ -178,7 +178,7 @@ func TestExternalCryptoAudit(t *testing.T) {
 	}
 
 	t.Setenv("MOCK_KEY_IDS", "other-key")
-	code, stdout, _ = invokeRaw(t, "audit", root, "--db", db, "--verify-keys", "--fail-on", "none", "--json")
+	code, stdout, _ = Invoke(t, "audit", root, "--db", db, "--verify-keys", "--fail-on", "none", "--json")
 	if code != 0 {
 		t.Fatalf("audit exit=%d", code)
 	}

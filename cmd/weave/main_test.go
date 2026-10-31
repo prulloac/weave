@@ -22,32 +22,6 @@ func fixturePath() string {
 	return filepath.Join("..", "..", "contract/v1/golden/bundles/okf-bundle")
 }
 
-func invoke(t *testing.T, args ...string) (int, string, string) {
-	t.Helper()
-	return invokeRaw(t, withInMemory(args)...)
-}
-
-func invokeRaw(t *testing.T, args ...string) (int, string, string) {
-	t.Helper()
-	return HarnessInvoke(t, args...)
-}
-
-func withInMemory(args []string) []string {
-	if len(args) == 0 {
-		return args
-	}
-	switch args[0] {
-	case "ingest", "rebuild", "sync":
-		return args
-	}
-	for _, arg := range args {
-		if arg == "--db" || arg == "--no-db" {
-			return args
-		}
-	}
-	return append(args, "--no-db")
-}
-
 func decodeEnvelope(t *testing.T, output string) testEnvelope {
 	t.Helper()
 
@@ -70,7 +44,7 @@ const (
 )
 
 func TestVersionJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "version", "--json")
+	code, stdout, stderr := InvokeRead(t, "version", "--json")
 	if code != 0 {
 		t.Fatalf("exit=%d stderr=%s", code, stderr)
 	}
@@ -91,7 +65,7 @@ func TestVersionJSON(t *testing.T) {
 }
 
 func TestContractJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "contract", "--json")
+	code, stdout, stderr := InvokeRead(t, "contract", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -106,7 +80,7 @@ func TestContractJSON(t *testing.T) {
 }
 
 func TestParseJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "parse", fixturePath(), "--json")
+	code, stdout, stderr := InvokeRead(t, "parse", fixturePath(), "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -126,7 +100,7 @@ func TestParseJSON(t *testing.T) {
 }
 
 func TestGraphJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "graph", fixturePath(), "--json")
+	code, stdout, stderr := InvokeRead(t, "graph", fixturePath(), "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -141,7 +115,7 @@ func TestGraphJSON(t *testing.T) {
 }
 
 func TestSearchJSONAndHuman(t *testing.T) {
-	code, stdout, stderr := invoke(t, "search", fixturePath(), "graph", "--json")
+	code, stdout, stderr := InvokeRead(t, "search", fixturePath(), "graph", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -154,7 +128,7 @@ func TestSearchJSONAndHuman(t *testing.T) {
 		t.Fatalf("unexpected results: %+v", response.Hybrid)
 	}
 
-	code, stdout, stderr = invoke(t, "search", fixturePath(), "graph")
+	code, stdout, stderr = InvokeRead(t, "search", fixturePath(), "graph")
 	if code != 0 || stderr != "" {
 		t.Fatalf("human exit=%d stderr=%q", code, stderr)
 	}
@@ -164,7 +138,7 @@ func TestSearchJSONAndHuman(t *testing.T) {
 }
 
 func TestSearchModesAndTopK(t *testing.T) {
-	code, stdout, stderr := invoke(t, "search", fixturePath(), "graph", "--mode", "keyword", "--top-k", "1", "--json")
+	code, stdout, stderr := InvokeRead(t, "search", fixturePath(), "graph", "--mode", "keyword", "--top-k", "1", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -177,7 +151,7 @@ func TestSearchModesAndTopK(t *testing.T) {
 		t.Fatalf("unexpected keyword response: %+v", response)
 	}
 
-	code, stdout, stderr = invoke(t, "search", fixturePath(), "graph", "--mode", "fuzzy", "--json")
+	code, stdout, stderr = InvokeRead(t, "search", fixturePath(), "graph", "--mode", "fuzzy", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -189,19 +163,19 @@ func TestSearchModesAndTopK(t *testing.T) {
 		t.Fatalf("unexpected fuzzy response: %+v", response)
 	}
 
-	code, _, stderr = invoke(t, "search", fixturePath(), "graph", "--top-k", "0", "--json")
+	code, _, stderr = InvokeRead(t, "search", fixturePath(), "graph", "--top-k", "0", "--json")
 	if code != 2 || !strings.Contains(stderr, "top-k") {
 		t.Fatalf("expected top-k usage error, got %d %q", code, stderr)
 	}
 
-	code, _, stderr = invoke(t, "search", fixturePath(), "graph", "--mode", "nope", "--json")
+	code, _, stderr = InvokeRead(t, "search", fixturePath(), "graph", "--mode", "nope", "--json")
 	if code != 2 || !strings.Contains(stderr, "mode") {
 		t.Fatalf("expected mode usage error, got %d %q", code, stderr)
 	}
 }
 
 func TestSearchNoMatchesJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "search", fixturePath(), "zzzz", "--json")
+	code, stdout, stderr := InvokeRead(t, "search", fixturePath(), "zzzz", "--json")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -215,7 +189,7 @@ func TestSearchNoMatchesJSON(t *testing.T) {
 }
 
 func TestListJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "list", fixturePath(), "--type", "Concept", "--json")
+	code, stdout, stderr := InvokeRead(t, "list", fixturePath(), "--type", "Concept", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -230,7 +204,7 @@ func TestListJSON(t *testing.T) {
 }
 
 func TestShowAndBacklinksJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "show", fixturePath(), "concepts/okf-bundle", "--json")
+	code, stdout, stderr := InvokeRead(t, "show", fixturePath(), "concepts/okf-bundle", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -243,7 +217,7 @@ func TestShowAndBacklinksJSON(t *testing.T) {
 		t.Fatalf("unexpected show: %+v", show)
 	}
 
-	code, stdout, stderr = invoke(t, "backlinks", fixturePath(), "concepts/search-index", "--json")
+	code, stdout, stderr = InvokeRead(t, "backlinks", fixturePath(), "concepts/search-index", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("backlinks exit=%d stderr=%q", code, stderr)
 	}
@@ -258,7 +232,7 @@ func TestShowAndBacklinksJSON(t *testing.T) {
 }
 
 func TestPathJSONAndNoRoute(t *testing.T) {
-	code, stdout, stderr := invoke(t, "path", fixturePath(), "concepts/okf-bundle", "tables/users", "--json")
+	code, stdout, stderr := InvokeRead(t, "path", fixturePath(), "concepts/okf-bundle", "tables/users", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -271,7 +245,7 @@ func TestPathJSONAndNoRoute(t *testing.T) {
 		t.Fatalf("unexpected route: %+v", route)
 	}
 
-	code, stdout, stderr = invoke(t, "path", fixturePath(), "concepts/okf-bundle", "concepts/missing-type", "--json")
+	code, stdout, stderr = InvokeRead(t, "path", fixturePath(), "concepts/okf-bundle", "concepts/missing-type", "--json")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -285,7 +259,7 @@ func TestPathJSONAndNoRoute(t *testing.T) {
 }
 
 func TestShowMissingJSON(t *testing.T) {
-	code, stdout, stderr := invoke(t, "show", fixturePath(), "does-not-exist", "--json")
+	code, stdout, stderr := InvokeRead(t, "show", fixturePath(), "does-not-exist", "--json")
 	if code != 1 {
 		t.Fatalf("expected exit 1, got %d", code)
 	}
@@ -299,7 +273,7 @@ func TestShowMissingJSON(t *testing.T) {
 }
 
 func TestUsageErrors(t *testing.T) {
-	code, stdout, stderr := invoke(t, "parse", "--json")
+	code, stdout, stderr := InvokeRead(t, "parse", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
@@ -311,7 +285,7 @@ func TestUsageErrors(t *testing.T) {
 		t.Fatalf("unexpected usage envelope: %+v", envelope)
 	}
 
-	code, _, stderr = invoke(t, "nope")
+	code, _, stderr = InvokeRead(t, "nope")
 	if code != 2 || !strings.Contains(stderr, "unknown command") {
 		t.Fatalf("unexpected unknown command result: %d %q", code, stderr)
 	}
@@ -321,7 +295,7 @@ func TestCacheDefaultAndNoCache(t *testing.T) {
 	cacheDir := t.TempDir()
 	t.Setenv("WEAVE_CACHE_DIR", cacheDir)
 
-	code, _, stderr := invoke(t, "search", fixturePath(), "graph", "--json")
+	code, _, stderr := InvokeRead(t, "search", fixturePath(), "graph", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
 	}
@@ -335,7 +309,7 @@ func TestCacheDefaultAndNoCache(t *testing.T) {
 
 	noCacheDir := t.TempDir()
 	t.Setenv("WEAVE_CACHE_DIR", noCacheDir)
-	code, _, stderr = invoke(t, "search", fixturePath(), "graph", "--json", "--no-cache")
+	code, _, stderr = InvokeRead(t, "search", fixturePath(), "graph", "--json", "--no-cache")
 	if code != 0 || stderr != "" {
 		t.Fatalf("no-cache exit=%d stderr=%q", code, stderr)
 	}
@@ -354,7 +328,7 @@ func TestHumanCommands(t *testing.T) {
 		{"show", fixturePath(), "concepts/okf-bundle"},
 		{"path", fixturePath(), "concepts/okf-bundle", "tables/users"},
 	} {
-		code, stdout, stderr := invoke(t, args...)
+		code, stdout, stderr := InvokeRead(t, args...)
 		if code != 0 {
 			t.Fatalf("%v: exit=%d stderr=%q", args, code, stderr)
 		}

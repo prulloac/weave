@@ -9,7 +9,7 @@ import (
 )
 
 func TestHelpDiscoversCommands(t *testing.T) {
-	code, stdout, stderr := invokeRaw(t, "help")
+	code, stdout, stderr := Invoke(t, "help")
 	if code != 0 || stderr != "" {
 		t.Fatalf("help exit=%d stderr=%q", code, stderr)
 	}
@@ -28,7 +28,7 @@ func TestCommandHelp(t *testing.T) {
 		{"help", "search"},
 		{"search", "--help"},
 	} {
-		code, stdout, stderr := invokeRaw(t, args...)
+		code, stdout, stderr := Invoke(t, args...)
 		if code != 0 || stderr != "" {
 			t.Fatalf("%v exit=%d stderr=%q", args, code, stderr)
 		}
@@ -39,7 +39,7 @@ func TestCommandHelp(t *testing.T) {
 		}
 	}
 
-	code, stdout, stderr := invokeRaw(t, "config", "--help")
+	code, stdout, stderr := Invoke(t, "config", "--help")
 	if code != 0 || stderr != "" {
 		t.Fatalf("config help exit=%d stderr=%q", code, stderr)
 	}
@@ -50,7 +50,7 @@ func TestCommandHelp(t *testing.T) {
 
 func TestFlagEqualsSyntax(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
-	code, stdout, stderr := invokeRaw(t, "list", root, "--no-db", "--type=Concept", "--limit=1", "--json")
+	code, stdout, stderr := Invoke(t, "list", root, "--no-db", "--type=Concept", "--limit=1", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("list exit=%d stderr=%q", code, stderr)
 	}
@@ -67,7 +67,7 @@ func TestConfigEqualsSyntax(t *testing.T) {
 	clearConfigEnv(t)
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	config := writeConfig(t, "top_k: 3\n")
-	code, _, stderr := invokeRaw(t, "list", root, "--no-db", "--config="+config, "--json")
+	code, _, stderr := Invoke(t, "list", root, "--no-db", "--config="+config, "--json")
 	if code != 0 {
 		t.Fatalf("list exit=%d stderr=%q", code, stderr)
 	}

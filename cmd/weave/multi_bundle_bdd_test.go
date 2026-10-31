@@ -54,7 +54,7 @@ func runMultiSearch(t *testing.T, rootA, rootB, query, mode string, extra ...str
 	args := []string{"search", rootA, query, "--source", "b=" + rootB, "--mode", mode, "--no-db"}
 	args = append(args, extra...)
 	args = append(args, "--json")
-	code, stdout, stderr := invokeRaw(t, args...)
+	code, stdout, stderr := Invoke(t, args...)
 	if code != 0 {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -89,7 +89,7 @@ func TestMultiBundleSearchMerge(t *testing.T) {
 
 func TestMultiBundleAmbiguousShow(t *testing.T) {
 	rootA, rootB := multiBundleFixture(t)
-	code, stdout, stderr := invokeRaw(t, "show", rootA, "shared", "--source", "b="+rootB, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "show", rootA, "shared", "--source", "b="+rootB, "--no-db", "--json")
 	if code != 2 {
 		t.Fatalf("expected ambiguous target exit 2, got %d stderr=%q stdout=%s", code, stderr, stdout)
 	}
@@ -98,7 +98,7 @@ func TestMultiBundleAmbiguousShow(t *testing.T) {
 		t.Fatalf("expected INVALID_REQUEST, got %+v", envelope.Error)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "show", rootA, "b:shared", "--source", "b="+rootB, "--no-db", "--json")
+	code, stdout, stderr = Invoke(t, "show", rootA, "b:shared", "--source", "b="+rootB, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("qualified show exit=%d stderr=%q", code, stderr)
 	}
@@ -113,7 +113,7 @@ func TestMultiBundleAmbiguousShow(t *testing.T) {
 
 func TestMultiBundleListAndAudit(t *testing.T) {
 	rootA, rootB := multiBundleFixture(t)
-	code, stdout, stderr := invokeRaw(t, "list", rootA, "--source", "b="+rootB, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "list", rootA, "--source", "b="+rootB, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("list exit=%d stderr=%q", code, stderr)
 	}
@@ -130,7 +130,7 @@ func TestMultiBundleListAndAudit(t *testing.T) {
 		}
 	}
 
-	code, stdout, stderr = invokeRaw(t, "audit", rootA, "--source", "b="+rootB, "--no-db", "--fail-on", "none", "--json")
+	code, stdout, stderr = Invoke(t, "audit", rootA, "--source", "b="+rootB, "--no-db", "--fail-on", "none", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("audit exit=%d stderr=%q", code, stderr)
 	}
@@ -156,7 +156,7 @@ func TestMultiBundleWrites(t *testing.T) {
 	rootA, rootB := multiBundleFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", rootA, "--source", "b="+rootB, "--db", db, "--strict", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", rootA, "--source", "b="+rootB, "--db", db, "--strict", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -172,7 +172,7 @@ func TestMultiBundleWrites(t *testing.T) {
 	}
 
 	writeMultiDoc(t, rootA, "common", "common", "common", "updated shared search term")
-	code, stdout, stderr = invokeRaw(t, "sync", rootA, "--source", "b="+rootB, "--db", db, "--json")
+	code, stdout, stderr = Invoke(t, "sync", rootA, "--source", "b="+rootB, "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
 	}
@@ -184,7 +184,7 @@ func TestMultiBundleWrites(t *testing.T) {
 		t.Fatalf("unexpected sync report: %+v", synced)
 	}
 
-	code, stdout, stderr = invokeRaw(t, "search", rootA, "common", "--source", "b="+rootB, "--db", db, "--mode", "bm25", "--json")
+	code, stdout, stderr = Invoke(t, "search", rootA, "common", "--source", "b="+rootB, "--db", db, "--mode", "bm25", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("bm25 exit=%d stderr=%q", code, stderr)
 	}
@@ -199,7 +199,7 @@ func TestMultiBundleWrites(t *testing.T) {
 
 func TestMultiBundleCrossSourcePathFails(t *testing.T) {
 	rootA, rootB := multiBundleFixture(t)
-	code, stdout, _ := invokeRaw(t, "path", rootA, "linker", "only-b", "--source", "b="+rootB, "--no-db", "--json")
+	code, stdout, _ := Invoke(t, "path", rootA, "linker", "only-b", "--source", "b="+rootB, "--no-db", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
@@ -211,7 +211,7 @@ func TestMultiBundleCrossSourcePathFails(t *testing.T) {
 
 func TestMultiBundleParseShape(t *testing.T) {
 	rootA, rootB := multiBundleFixture(t)
-	code, stdout, stderr := invokeRaw(t, "parse", rootA, "--source", "b="+rootB, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "parse", rootA, "--source", "b="+rootB, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
@@ -235,7 +235,7 @@ func TestMultiBundleAliasValidation(t *testing.T) {
 		{"list", rootA, "--source", "Bad=" + rootB, "--no-db", "--json"},
 	}
 	for _, args := range cases {
-		code, _, _ := invokeRaw(t, args...)
+		code, _, _ := Invoke(t, args...)
 		if code != 2 {
 			t.Fatalf("%v: expected exit 2, got %d", args, code)
 		}
@@ -244,7 +244,7 @@ func TestMultiBundleAliasValidation(t *testing.T) {
 
 func TestMultiBundleSingleSourceUnchanged(t *testing.T) {
 	rootA, _ := multiBundleFixture(t)
-	code, stdout, stderr := invokeRaw(t, "search", rootA, "common", "--mode", "keyword", "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "search", rootA, "common", "--mode", "keyword", "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}

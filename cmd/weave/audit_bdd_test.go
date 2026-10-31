@@ -51,7 +51,7 @@ func runAuditJSON(t *testing.T, args ...string) (int, testEnvelope, bddAuditRepo
 	t.Helper()
 
 	fullArgs := append([]string{"audit"}, args...)
-	code, stdout, stderr := invoke(t, fullArgs...)
+	code, stdout, stderr := InvokeRead(t, fullArgs...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr in JSON mode, got %q", stderr)
 	}
@@ -232,7 +232,7 @@ func TestAuditBehavior(t *testing.T) {
 
 	t.Run("invalid root returns a usage failure", func(t *testing.T) {
 		missing := filepath.Join(t.TempDir(), "missing")
-		code, stdout, _ := invoke(t, "audit", missing, "--json")
+		code, stdout, _ := InvokeRead(t, "audit", missing, "--json")
 
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -247,7 +247,7 @@ func TestAuditBehavior(t *testing.T) {
 	})
 
 	t.Run("human output summarizes findings", func(t *testing.T) {
-		code, stdout, stderr := invoke(t, "audit", auditFixture("graph-issues"))
+		code, stdout, stderr := InvokeRead(t, "audit", auditFixture("graph-issues"))
 		if stderr != "" {
 			t.Fatalf("expected empty stderr, got %q", stderr)
 		}
@@ -272,7 +272,7 @@ func TestAuditBehavior(t *testing.T) {
 		root := auditFixture("clean")
 		before := snapshotBundle(t, root)
 
-		code, stdout, stderr := invoke(t, "audit", root, "--json")
+		code, stdout, stderr := InvokeRead(t, "audit", root, "--json")
 		if code != 0 || stderr != "" {
 			t.Fatalf("exit=%d stderr=%q", code, stderr)
 		}

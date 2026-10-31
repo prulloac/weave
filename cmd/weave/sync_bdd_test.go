@@ -32,7 +32,7 @@ func runSyncJSON(t *testing.T, args ...string) (int, testEnvelope, bddSyncReport
 	t.Helper()
 
 	fullArgs := append([]string{"sync"}, args...)
-	code, stdout, stderr := invokePersistent(t, fullArgs...)
+	code, stdout, stderr := InvokePersistent(t, fullArgs...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr in JSON mode, got %q", stderr)
 	}
@@ -213,7 +213,7 @@ Added during sync.
 		storageHome(t)
 		runStorageJSON(t, "ingest", storageFixture("bundle-a"), "--strict", "--json")
 
-		code, stdout, _ := invokePersistent(t, "sync", storageFixture("bundle-b"), "--json")
+		code, stdout, _ := InvokePersistent(t, "sync", storageFixture("bundle-b"), "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
 		}
@@ -225,7 +225,7 @@ Added during sync.
 	t.Run("sync requires an existing database", func(t *testing.T) {
 		storageHome(t)
 		missing := filepath.Join(t.TempDir(), "missing.db")
-		code, stdout, _ := invokePersistent(t, "sync", storageFixture("bundle-a"), "--db", missing, "--json")
+		code, stdout, _ := InvokePersistent(t, "sync", storageFixture("bundle-a"), "--db", missing, "--json")
 
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -237,7 +237,7 @@ Added during sync.
 
 	t.Run("sync rejects --no-db", func(t *testing.T) {
 		storageHome(t)
-		code, stdout, _ := invokePersistent(t, "sync", storageFixture("bundle-a"), "--no-db", "--json")
+		code, stdout, _ := InvokePersistent(t, "sync", storageFixture("bundle-a"), "--no-db", "--json")
 
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -271,7 +271,7 @@ func runAuditFor(t *testing.T, path string, extra ...string) (int, bddAuditRepor
 
 	args := []string{"audit", path}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr)
 	}

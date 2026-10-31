@@ -66,7 +66,7 @@ func installExtension(t *testing.T, root, name, script string) string {
 
 func extensionRaw(t *testing.T, path string) *sql.DB {
 	t.Helper()
-	return HarnessOpenDB(t, path)
+	return OpenDB(t, path)
 }
 
 func extensionRoot(t *testing.T, root string) string {
@@ -93,7 +93,7 @@ func extensionIngestReport(t *testing.T, stdout string) contractv1.IngestReport 
 
 func extensionShow(t *testing.T, root, id string) contractv1.ShowResult {
 	t.Helper()
-	code, stdout, stderr := invokeRaw(t, "show", root, id, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "show", root, id, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}
@@ -118,7 +118,7 @@ func extensionSearchKeyword(t *testing.T, root, query string, extra ...string) b
 	}
 	args = append(args, extra...)
 	args = append(args, "--json")
-	code, stdout, stderr := invokeRaw(t, args...)
+	code, stdout, stderr := Invoke(t, args...)
 	if code != 0 {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -157,7 +157,7 @@ func TestExtensionsList(t *testing.T) {
 	}
 	t.Setenv("PATH", pathDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	code, stdout, stderr := invokeRaw(t, "extensions", "list", root, "--json")
+	code, stdout, stderr := Invoke(t, "extensions", "list", root, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("list exit=%d stderr=%q", code, stderr)
 	}
@@ -180,7 +180,7 @@ func TestExtensionsMissingFailsBeforeWrite(t *testing.T) {
 	root := extensionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, _ := invokeRaw(t, "ingest", root, "--db", db, "--with-enricher", "ghost", "--json")
+	code, stdout, _ := Invoke(t, "ingest", root, "--db", db, "--with-enricher", "ghost", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
@@ -198,13 +198,13 @@ func TestExtensionsEnrichmentMergesKeywords(t *testing.T) {
 	installExtension(t, root, "echo", "echo.sh")
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "echo", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "echo", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
 	extensionIngestReport(t, stdout)
 
-	code, stdout, stderr = invokeRaw(t, "show", root, "a", "--db", db, "--json")
+	code, stdout, stderr = Invoke(t, "show", root, "a", "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}
@@ -247,7 +247,7 @@ func TestExtensionsEnrichmentFailureFallsBack(t *testing.T) {
 	installExtension(t, root, "fail", "fail.sh")
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "fail", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "fail", "--json")
 	if code != 0 {
 		t.Fatalf("ingest must succeed on extension failure, exit=%d stderr=%q", code, stderr)
 	}
@@ -269,7 +269,7 @@ func TestExtensionsEnrichmentProtocolFallsBack(t *testing.T) {
 	installExtension(t, root, "bad", "badjson.sh")
 	db := filepath.Join(t.TempDir(), "index.db")
 
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "bad", "--json")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "bad", "--json")
 	if code != 0 {
 		t.Fatalf("ingest must succeed, exit=%d stderr=%q", code, stderr)
 	}
@@ -288,7 +288,7 @@ func TestExtensionsEnrichmentTimeout(t *testing.T) {
 	db := filepath.Join(t.TempDir(), "index.db")
 
 	started := time.Now()
-	code, stdout, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict",
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--strict",
 		"--with-enricher", "slow", "--timeout", "50ms", "--json")
 	elapsed := time.Since(started)
 	if code != 0 {
@@ -316,7 +316,7 @@ func TestExtensionsReadOnlyCommandsNeverInvoke(t *testing.T) {
 		{"show", root, "a", "--no-db", "--json"},
 		{"search", root, "alpha", "--no-db", "--mode", "keyword", "--json"},
 	} {
-		code, _, stderr := invokeRaw(t, args...)
+		code, _, stderr := Invoke(t, args...)
 		if code != 0 {
 			t.Fatalf("%v exit=%d stderr=%q", args, code, stderr)
 		}
@@ -326,7 +326,7 @@ func TestExtensionsReadOnlyCommandsNeverInvoke(t *testing.T) {
 	}
 
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, _, stderr := invokeRaw(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "echo", "--json")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "echo", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
 	}
@@ -338,13 +338,13 @@ func TestExtensionsReadOnlyCommandsNeverInvoke(t *testing.T) {
 func TestExtensionsTimeoutRequiresEnricher(t *testing.T) {
 	root := extensionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, _, _ := invokeRaw(t, "ingest", root, "--db", db, "--timeout", "5s", "--json")
+	code, _, _ := Invoke(t, "ingest", root, "--db", db, "--timeout", "5s", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 for --timeout without extension, got %d", code)
 	}
 
 	installExtension(t, root, "echo", "echo.sh")
-	code, _, _ = invokeRaw(t, "ingest", root, "--db", db, "--with-enricher", "echo", "--timeout", "soon", "--json")
+	code, _, _ = Invoke(t, "ingest", root, "--db", db, "--with-enricher", "echo", "--timeout", "soon", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2 for invalid timeout, got %d", code)
 	}
@@ -374,11 +374,11 @@ func TestExtensionsRerankDeterministic(t *testing.T) {
 	root := extensionFixture(t)
 	installExtension(t, root, "rerank", "rerank.sh")
 
-	code, first, stderr := invokeRaw(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "rerank", "--json")
+	code, first, stderr := Invoke(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "rerank", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
-	code, second, stderr := invokeRaw(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "rerank", "--json")
+	code, second, stderr := Invoke(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "rerank", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -391,7 +391,7 @@ func TestExtensionsRerankFailureKeepsCoreOrder(t *testing.T) {
 	root := extensionFixture(t)
 	installExtension(t, root, "fail", "fail.sh")
 
-	code, stdout, stderr := invokeRaw(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "fail", "--json")
+	code, stdout, stderr := Invoke(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "fail", "--json")
 	if code != 0 {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -440,7 +440,7 @@ func TestExtensionsRerankTimeoutKeepsCoreOrder(t *testing.T) {
 
 func TestExtensionsRerankMissingFails(t *testing.T) {
 	root := extensionFixture(t)
-	code, stdout, _ := invokeRaw(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "ghost", "--json")
+	code, stdout, _ := Invoke(t, "search", root, "alpha", "--no-db", "--mode", "keyword", "--rerank", "ghost", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}

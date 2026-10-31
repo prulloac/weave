@@ -27,7 +27,7 @@ func runHybrid(t *testing.T, bundle, query string, extra ...string) bddHybridRes
 
 	args := []string{"search", bundle, query, "--mode", "hybrid", "--json"}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if code != 0 || stderr != "" {
 		t.Fatalf("hybrid search exit=%d stderr=%q", code, stderr)
 	}

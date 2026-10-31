@@ -48,7 +48,7 @@ func writeCompressionDoc(t *testing.T, root, name, title, body, privacy string) 
 
 func compressionParse(t *testing.T, root string) contractv1.Bundle {
 	t.Helper()
-	code, stdout, stderr := invokeRaw(t, "parse", root, "--no-db", "--json")
+	code, stdout, stderr := Invoke(t, "parse", root, "--no-db", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
@@ -74,7 +74,7 @@ func parsedBody(bundle contractv1.Bundle, id string) string {
 
 func compressionRaw(t *testing.T, path string) *sql.DB {
 	t.Helper()
-	return HarnessOpenDB(t, path)
+	return OpenDB(t, path)
 }
 
 func storedCodec(t *testing.T, raw *sql.DB, root, id string) string {
@@ -114,7 +114,7 @@ func compressionIngest(t *testing.T, root, db string, extra ...string) {
 	t.Helper()
 	args := append([]string{"ingest", root, "--db", db}, extra...)
 	args = append(args, "--json")
-	code, stdout, stderr := invokeRaw(t, args...)
+	code, stdout, stderr := Invoke(t, args...)
 	if code != 0 || stderr != "" {
 		t.Fatalf("ingest exit=%d stderr=%q stdout=%s", code, stderr, stdout)
 	}
@@ -147,7 +147,7 @@ func TestCompressionDefaultZstd(t *testing.T) {
 		t.Fatalf("large body codec = %q, want zstd", codec)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "show", root, "large", "--db", db, "--json")
+	code, stdout, stderr := Invoke(t, "show", root, "large", "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show exit=%d stderr=%q", code, stderr)
 	}
@@ -170,7 +170,7 @@ func TestCompressionLZ4AndNone(t *testing.T) {
 	if codec := storedCodec(t, lz4Raw, root, "large"); codec != "lz4" {
 		t.Fatalf("lz4 codec = %q", codec)
 	}
-	code, stdout, stderr := invokeRaw(t, "show", root, "large", "--db", lz4DB, "--json")
+	code, stdout, stderr := Invoke(t, "show", root, "large", "--db", lz4DB, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("show lz4 exit=%d stderr=%q", code, stderr)
 	}
@@ -196,7 +196,7 @@ func TestCompressionLZ4AndNone(t *testing.T) {
 func TestCompressionRejectsUnknownCodec(t *testing.T) {
 	root := compressionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, stdout, _ := invokeRaw(t, "ingest", root, "--db", db, "--codec", "brotli", "--json")
+	code, stdout, _ := Invoke(t, "ingest", root, "--db", db, "--codec", "brotli", "--json")
 	if code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
@@ -222,7 +222,7 @@ func TestCompressionEncryptedBodyStaysPlainCiphertext(t *testing.T) {
 	}
 
 	bundle := compressionParse(t, root)
-	code, stdout, stderr := invokeRaw(t, "show", root, "encrypted", "--db", db, "--decrypt", "--json")
+	code, stdout, stderr := Invoke(t, "show", root, "encrypted", "--db", db, "--decrypt", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("decrypt exit=%d stderr=%q", code, stderr)
 	}
@@ -245,7 +245,7 @@ func TestCompressionRebuildMigration(t *testing.T) {
 		t.Fatalf("initial codec = %q", codec)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "rebuild", root, "--db", db, "--codec", "zstd", "--json")
+	code, stdout, stderr := Invoke(t, "rebuild", root, "--db", db, "--codec", "zstd", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("rebuild exit=%d stderr=%q", code, stderr)
 	}
@@ -256,7 +256,7 @@ func TestCompressionRebuildMigration(t *testing.T) {
 		t.Fatalf("rebuilt codec = %q", codec)
 	}
 
-	showCode, showOut, showErr := invokeRaw(t, "show", root, "large", "--db", db, "--json")
+	showCode, showOut, showErr := Invoke(t, "show", root, "large", "--db", db, "--json")
 	if showCode != 0 || showErr != "" {
 		t.Fatalf("show exit=%d stderr=%q", showCode, showErr)
 	}
@@ -268,7 +268,7 @@ func TestCompressionRebuildMigration(t *testing.T) {
 		t.Fatal("rebuilt body did not round-trip")
 	}
 
-	code, _, stderr = invokeRaw(t, "rebuild", root, "--db", db, "--codec", "none", "--json")
+	code, _, stderr = Invoke(t, "rebuild", root, "--db", db, "--codec", "none", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("rebuild none exit=%d stderr=%q", code, stderr)
 	}
@@ -285,7 +285,7 @@ func TestCompressionSyncPreservesCodec(t *testing.T) {
 
 	writeCompressionDoc(t, root, "large", "Large", "# Large\n\nupdated "+strings.Repeat("compressible phrase. ", 200), "")
 	writeCompressionDoc(t, root, "fresh", "Fresh", "# Fresh\n\n"+strings.Repeat("new phrase. ", 200), "")
-	code, stdout, stderr := invokeRaw(t, "sync", root, "--db", db, "--json")
+	code, stdout, stderr := Invoke(t, "sync", root, "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
 	}
@@ -300,7 +300,7 @@ func TestCompressionSyncPreservesCodec(t *testing.T) {
 	}
 
 	writeCompressionDoc(t, root, "large", "Large", "# Large\n\nupdated again "+strings.Repeat("compressible phrase. ", 200), "")
-	code, _, stderr = invokeRaw(t, "sync", root, "--db", db, "--codec", "zstd", "--json")
+	code, _, stderr = Invoke(t, "sync", root, "--db", db, "--codec", "zstd", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("sync zstd exit=%d stderr=%q", code, stderr)
 	}
@@ -322,7 +322,7 @@ func TestCompressionCorruptBodyWarns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	code, stdout, stderr := invokeRaw(t, "parse", root, "--db", db, "--json")
+	code, stdout, stderr := Invoke(t, "parse", root, "--db", db, "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
@@ -344,7 +344,7 @@ func TestCompressionCorruptBodyWarns(t *testing.T) {
 		t.Fatalf("corrupt body must decode empty, got %q", body)
 	}
 
-	showCode, _, showErr := invokeRaw(t, "show", root, "large", "--db", db, "--json")
+	showCode, _, showErr := Invoke(t, "show", root, "large", "--db", db, "--json")
 	if showCode != 0 {
 		t.Fatalf("show on corrupt body exit=%d stderr=%q", showCode, showErr)
 	}
@@ -363,7 +363,7 @@ func TestCompressionTruncatedBlobWarns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	code, stdout, _ := invokeRaw(t, "parse", root, "--db", db, "--json")
+	code, stdout, _ := Invoke(t, "parse", root, "--db", db, "--json")
 	if code != 0 {
 		t.Fatalf("parse exit=%d", code)
 	}
@@ -375,7 +375,7 @@ func TestCompressionTruncatedBlobWarns(t *testing.T) {
 		t.Fatalf("truncated body must decode empty, got %q", body)
 	}
 
-	searchCode, searchOut, searchErr := invokeRaw(t, "search", root, "compressible", "--db", db, "--mode", "fuzzy", "--json")
+	searchCode, searchOut, searchErr := Invoke(t, "search", root, "compressible", "--db", db, "--mode", "fuzzy", "--json")
 	if searchCode == 2 || searchCode == 3 {
 		t.Fatalf("search must not fail on corrupt bodies: exit=%d stderr=%q", searchCode, searchErr)
 	}
@@ -403,7 +403,7 @@ func TestCompressionSearchParity(t *testing.T) {
 	db := filepath.Join(t.TempDir(), "index.db")
 	compressionIngest(t, root, db)
 
-	code, stdout, stderr := invokeRaw(t, "search", root, "compressible", "--db", db, "--mode", "fuzzy", "--json")
+	code, stdout, stderr := Invoke(t, "search", root, "compressible", "--db", db, "--mode", "fuzzy", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("search exit=%d stderr=%q", code, stderr)
 	}
@@ -415,7 +415,7 @@ func TestCompressionSearchParity(t *testing.T) {
 		t.Fatal("expected fuzzy hits on compressed bodies")
 	}
 
-	code, stdout, stderr = invokeRaw(t, "search", root, "compressible", "--db", db, "--mode", "bm25", "--json")
+	code, stdout, stderr = Invoke(t, "search", root, "compressible", "--db", db, "--mode", "bm25", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("bm25 exit=%d stderr=%q", code, stderr)
 	}
@@ -433,7 +433,7 @@ func TestCompressionSearchParity(t *testing.T) {
 		t.Fatal("expected BM25 hits on decompressed bodies")
 	}
 
-	code, stdout, stderr = invokeRaw(t, "explain", root, "compressible", "--db", db, "--mode", "fuzzy", "--id", "large", "--json")
+	code, stdout, stderr = Invoke(t, "explain", root, "compressible", "--db", db, "--mode", "fuzzy", "--id", "large", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("explain exit=%d stderr=%q", code, stderr)
 	}

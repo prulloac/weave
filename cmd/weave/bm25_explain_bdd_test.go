@@ -42,7 +42,7 @@ func runBM25Explain(t *testing.T, bundle, query, id string, extra ...string) (in
 
 	args := []string{"explain", bundle, query, "--mode", "bm25", "--id", id, "--json"}
 	args = append(args, extra...)
-	code, stdout, stderr := invokePersistent(t, args...)
+	code, stdout, stderr := InvokePersistent(t, args...)
 	if stderr != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr)
 	}
@@ -113,7 +113,7 @@ func TestBM25ExplainBehavior(t *testing.T) {
 	t.Run("unknown id returns CONCEPT_NOT_FOUND", func(t *testing.T) {
 		bundle := bm25Fixture()
 		ingestBM25(t, bundle)
-		code, stdout, _ := invokePersistent(t, "explain", bundle, "alpha",
+		code, stdout, _ := InvokePersistent(t, "explain", bundle, "alpha",
 			"--mode", "bm25", "--id", "missing", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
@@ -126,7 +126,7 @@ func TestBM25ExplainBehavior(t *testing.T) {
 	t.Run("empty query exits 1", func(t *testing.T) {
 		bundle := bm25Fixture()
 		ingestBM25(t, bundle)
-		code, _, _ := invokePersistent(t, "explain", bundle, "", "--mode", "bm25", "--json")
+		code, _, _ := InvokePersistent(t, "explain", bundle, "", "--mode", "bm25", "--json")
 		if code != 1 {
 			t.Fatalf("expected exit 1, got %d", code)
 		}
@@ -134,7 +134,7 @@ func TestBM25ExplainBehavior(t *testing.T) {
 
 	t.Run("BM25 explain requires persistence", func(t *testing.T) {
 		storageHome(t)
-		code, stdout, _ := invokePersistent(t, "explain", bm25Fixture(), "alpha",
+		code, stdout, _ := InvokePersistent(t, "explain", bm25Fixture(), "alpha",
 			"--mode", "bm25", "--no-db", "--json")
 		if code != 2 {
 			t.Fatalf("expected exit 2, got %d", code)
@@ -157,7 +157,7 @@ func TestBM25ExplainBehavior(t *testing.T) {
 	t.Run("human output includes lexical evidence", func(t *testing.T) {
 		bundle := bm25Fixture()
 		ingestBM25(t, bundle)
-		code, stdout, stderr := invokePersistent(t, "explain", bundle, "alpha beta",
+		code, stdout, stderr := InvokePersistent(t, "explain", bundle, "alpha beta",
 			"--mode", "bm25", "--id", "both")
 		if stderr != "" {
 			t.Fatalf("expected empty stderr, got %q", stderr)
@@ -189,7 +189,7 @@ func TestBM25ExplainBehavior(t *testing.T) {
 			t.Fatalf("expected a hybrid hit with both components: %+v", hybrid.Hybrid)
 		}
 
-		code, stdout, stderr := invokePersistent(t, "explain", bundle, "alpha beta",
+		code, stdout, stderr := InvokePersistent(t, "explain", bundle, "alpha beta",
 			"--mode", "hybrid", "--id", hit.ID, "--json")
 		if code != 0 || stderr != "" {
 			t.Fatalf("explain exit=%d stderr=%q", code, stderr)
