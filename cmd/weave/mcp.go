@@ -135,7 +135,7 @@ func isLoopbackListen(address string) bool {
 	}
 }
 
-func runMCP(args []string, stdout io.Writer, stderr io.Writer) int {
+func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) int {
 	options, err := parseMCPOptions(args)
 	if err != nil {
 		fmt.Fprintf(stderr, "weave mcp: %s\n", err)
@@ -144,6 +144,9 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer) int {
 	if options.help {
 		printMCPHelp(stdout)
 		return 0
+	}
+	if options.db == "" && !cfg.NoDB && cfg.DB != "" && cfg.Sources["db"] != "default" {
+		options.db = cfg.DB
 	}
 
 	executor := operations.New(version, engine.Options{})

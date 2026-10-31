@@ -46,8 +46,22 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	command := args[0]
+	if command == "config" {
+		return runConfigCommand(args[1:], stdout, stderr)
+	}
 	if command == "mcp" {
-		return runMCP(args[1:], stdout, stderr)
+		configPath, noConfig, strict, err := scanConfigArgs(args[1:])
+		if err != nil {
+			return usageError(stdout, stderr, false, err.Error())
+		}
+		cfg, warnings, err := loadAppConfig(configPath, noConfig, strict)
+		if err != nil {
+			return usageError(stdout, stderr, false, err.Error())
+		}
+		for _, warning := range warnings {
+			fmt.Fprintln(stderr, warning)
+		}
+		return runMCP(stripConfigArgs(args[1:]), stdout, stderr, cfg)
 	}
 	jsonMode := contains(args[1:], "--json")
 	flags, err := parseFlags(args[1:])
@@ -58,6 +72,17 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		printCommandHelp(stdout, command)
 		return 0
 	}
+	if flags.configPath != "" && flags.noConfig {
+		return usageError(stdout, stderr, flags.json, "--config and --no-config are mutually exclusive")
+	}
+	cfg, warnings, err := loadAppConfig(flags.configPath, flags.noConfig, flags.strictConfig)
+	if err != nil {
+		return usageError(stdout, stderr, flags.json, err.Error())
+	}
+	for _, warning := range warnings {
+		fmt.Fprintln(stderr, warning)
+	}
+	applyConfigToFlags(&flags, cfg, command)
 
 	request, exitCode, err := buildRequest(command, flags)
 	if err != nil {
@@ -107,7 +132,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		if request.Op != contractv1.OpSync {
 			return usageError(stdout, stderr, flags.json, "--watch is only valid for sync")
 		}
-		if flags.noDB || flags.db == "" {
+		if flags.noDB || !flags.explicit["--db"] {
 			return usageError(stdout, stderr, flags.json, "--watch requires --db")
 		}
 		if flags.events && !flags.json {
@@ -186,7 +211,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		}
 	}
 
-	executor := operations.New(version, engine.Options{Cache: !flags.noCache})
+	executor := operations.New(version, engine.Options{Cache: !flags.noCache, CacheDir: flags.cacheDir})
 	executor.Warn = func(message string) {
 		fmt.Fprintf(stderr, "weave: %s\n", message)
 	}
@@ -224,47 +249,55 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 }
 
 type flags struct {
-	json        bool
-	noCache     bool
-	help        bool
-	limit       *int
-	topK        *int
-	mode        contractv1.SearchMode
-	types       []string
-	tags        []string
-	status      string
-	failOn      contractv1.AuditFailOn
-	verifyKeys  bool
-	decrypt     bool
-	depth       *int
-	direction   contractv1.RelateDirection
-	id          string
-	db          string
-	noDB        bool
-	strict      bool
-	permissive  bool
-	codec       string
-	enricher    string
-	rerank      string
-	timeout     time.Duration
-	timeoutSet  bool
-	sources     []string
-	watch       bool
-	events      bool
-	out         string
-	format      string
-	keyID       string
-	force       bool
-	yes         bool
-	provider    string
-	positionals []string
+	json         bool
+	noCache      bool
+	help         bool
+	limit        *int
+	topK         *int
+	mode         contractv1.SearchMode
+	types        []string
+	tags         []string
+	status       string
+	failOn       contractv1.AuditFailOn
+	verifyKeys   bool
+	decrypt      bool
+	depth        *int
+	direction    contractv1.RelateDirection
+	id           string
+	db           string
+	noDB         bool
+	strict       bool
+	permissive   bool
+	codec        string
+	enricher     string
+	rerank       string
+	timeout      time.Duration
+	timeoutSet   bool
+	sources      []string
+	watch        bool
+	events       bool
+	out          string
+	format       string
+	keyID        string
+	force        bool
+	yes          bool
+	provider     string
+	cacheDir     string
+	configPath   string
+	noConfig     bool
+	strictConfig bool
+	explicit     map[string]bool
+	positionals  []string
 }
 
 func parseFlags(args []string) (flags, error) {
-	var result flags
+	result := flags{explicit: map[string]bool{}}
 
 	for index := 0; index < len(args); index++ {
 		arg := args[index]
+		if strings.HasPrefix(arg, "--") {
+			result.explicit[arg] = true
+		}
 		switch arg {
 		case "--json":
 			result.json = true
@@ -444,6 +477,17 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.provider = value
+		case "--config":
+			value, next, err := flagValue(args, index, "--config")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.configPath = value
+		case "--no-config":
+			result.noConfig = true
+		case "--strict-config":
+			result.strictConfig = true
 		case "--depth":
 			value, next, err := flagValue(args, index, "--depth")
 			if err != nil {
@@ -1245,9 +1289,15 @@ usage:
   weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--watch [--events]] [--json] [--no-cache]
   weave extensions list [<path>] [--json]
   weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--provider <name>] [--yes] [--force] [--json]
+  weave config show|path|init [--json]
   weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
   weave version [--json]
   weave --version | --help
+
+global:
+  --config <file>       select the global config file
+  --no-config           ignore the config file (environment still applies)
+  --strict-config       reject unknown config keys
 
 contract: %s
 `, contractVersion)
