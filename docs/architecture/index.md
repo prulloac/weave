@@ -156,7 +156,8 @@ remains the compatibility promise.
 | [Release Automation spec](../../docs/specs/release-automation.md) | Tag-driven verified GitHub Releases |
 | [Bundle Export spec](../../docs/specs/bundle-export.md) | Raw and encrypted bundle reconstruction |
 | [Multiple Bundle Sources spec](../../docs/specs/multi-bundle.md) | Aliased multi-root reads and writes |
-| [Optimization spec](../../docs/specs/optimization.md) | Benchmarks, budgets and maintainability targets |
+| [Optimization spec](../specs/optimization.md) | Benchmarks, budgets and maintainability targets |
+| [Performance baseline](performance.md) | Corpus, baselines, budgets and O4/O5 findings |
 | [Configuration spec](../../docs/specs/configuration.md) | Global YAML config and `WEAVE_*` variables |
 | [External Crypto Providers spec](../../docs/specs/external-crypto-providers.md) | Age, Vault and KMS provider contract |
 | [Weave AI Extension spec](../../docs/specs/weave-ai-plugin.md) | Optional enrichment and reranking plugin |

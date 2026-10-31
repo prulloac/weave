@@ -1,0 +1,338 @@
+{
+	"schema": "weave.bench/v1",
+	"commit": "c31dbc6e5dfe4686d9afe9fe74e93505ad0b4ab2",
+	"go": "go1.27.3",
+	"runner": "linux/amd64",
+	"gomaxprocs": 16,
+	"corpus": {
+		"name": "10k",
+		"sha256": "b1e3aaf481d816d7782f5d5e803132abb92f3bcf9cbac8e28b9dcaebcf2338fe",
+		"documents": 10000,
+		"body_bytes": 27269314,
+		"edges": 21689
+	},
+	"results": [
+		{
+			"id": "WEAVE-B-OKF-PARSE-10K",
+			"unit": "s",
+			"aggregate": "p95",
+			"value": 0.218333772,
+			"samples": [
+				0.218333772
+			],
+			"budget": 20,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-OKF-PARSE-10K-COLD",
+			"unit": "s",
+			"aggregate": "p95",
+			"value": 0.218333772,
+			"samples": [
+				0.218333772
+			],
+			"budget": 20,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-OKF-PARSE-10K-WARM",
+			"unit": "s",
+			"aggregate": "p95",
+			"value": 0.217243701,
+			"samples": [
+				0.217243701
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-STORE-INGEST-10K",
+			"unit": "s",
+			"aggregate": "p50",
+			"value": 8.730853903,
+			"samples": [
+				8.730853903
+			],
+			"budget": 30,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-STORE-LOAD-10K",
+			"unit": "ms",
+			"aggregate": "p50",
+			"value": 825.626,
+			"samples": [
+				825.626
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-STORE-BM25-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 67.386,
+			"samples": [
+				67.386,
+				17.872,
+				13.819,
+				13.064,
+				12.482,
+				11.657,
+				42.489,
+				13.706,
+				24.507,
+				11.909
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-STORE-EXPLAIN-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 180.51,
+			"samples": [
+				180.51,
+				37.326,
+				32.78,
+				28.788,
+				28.025,
+				25.882,
+				54.303,
+				32.216,
+				53.748,
+				23.324
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-STORE-SYNC-10K-NONE",
+			"unit": "s",
+			"aggregate": "p50",
+			"value": 6.109257513,
+			"samples": [
+				6.109257513
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-STORE-SYNC-10K-1PCT",
+			"unit": "s",
+			"aggregate": "p50",
+			"value": 6.020591517,
+			"samples": [
+				6.020591517
+			],
+			"budget": 2,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-CLI-VERSION-COLD",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 4.239,
+			"samples": [
+				4.239
+			],
+			"budget": 50,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-CLI-SEARCH-KEYWORD-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 8313.875,
+			"samples": [
+				8110.673,
+				8079.677,
+				8313.875
+			],
+			"budget": 80,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-CLI-SEARCH-FUZZY-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 8464.041,
+			"samples": [
+				8464.041,
+				8216.539,
+				8255.327
+			],
+			"budget": 120,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-CLI-SEARCH-BM25-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 74.84,
+			"samples": [
+				74.84,
+				25.273,
+				22.464,
+				21.023,
+				20.266,
+				22.471,
+				45.423,
+				19.478,
+				33.528,
+				19.343
+			],
+			"budget": 150,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-CLI-SEARCH-HYBRID-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 8112.505,
+			"samples": [
+				8112.505,
+				8044.144,
+				8090.795
+			],
+			"budget": 180,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-CLI-EXPLAIN-10K",
+			"unit": "ms",
+			"aggregate": "p95",
+			"value": 8770.97,
+			"samples": [
+				8555.815,
+				8770.97,
+				8648.303
+			],
+			"budget": 150,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-CLI-AUDIT-10K",
+			"unit": "s",
+			"aggregate": "p95",
+			"value": 8.135481,
+			"samples": [
+				8.135481,
+				7.848612
+			],
+			"budget": 5,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-CLI-EXPORT-RAW-10K",
+			"unit": "s",
+			"aggregate": "p95",
+			"value": 1.403742,
+			"samples": [
+				1.3802480000000001,
+				1.403742
+			],
+			"budget": 30,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-SPACE-DB-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 74.32421875,
+			"samples": [
+				74.32421875
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-SPACE-DB-WAL-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 0,
+			"samples": [
+				0
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-SPACE-DB-FREE-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 0.5078125,
+			"samples": [
+				0.5078125
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-SPACE-DB-DOCS-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 17.23046875,
+			"samples": [
+				17.23046875
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-SPACE-DB-EDGES-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 2.08203125,
+			"samples": [
+				2.08203125
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-SPACE-DB-FTS-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 47.1953125,
+			"samples": [
+				47.1953125
+			],
+			"status": "baseline"
+		},
+		{
+			"id": "WEAVE-B-SPACE-ZSTD-RATIO",
+			"unit": "ratio",
+			"aggregate": "ratio",
+			"value": 0.24496285458446077,
+			"samples": [
+				0.24496285458446077
+			],
+			"budget": 0.6,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-SPACE-BINARY",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 14.328749656677246,
+			"samples": [
+				14.328749656677246
+			],
+			"budget": 25,
+			"status": "pass"
+		},
+		{
+			"id": "WEAVE-B-MEM-INDEX-10K",
+			"unit": "ratio",
+			"aggregate": "ratio",
+			"value": 6.844585235990902,
+			"samples": [
+				6.844585235990902
+			],
+			"budget": 3,
+			"status": "fail"
+		},
+		{
+			"id": "WEAVE-B-MEM-PEAK-INGEST-10K",
+			"unit": "MB",
+			"aggregate": "value",
+			"value": 474.0625,
+			"samples": [
+				474.0625
+			],
+			"status": "baseline"
+		}
+	]
+}

@@ -30,6 +30,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **AI extension**: optional `weave-ai` with Ollama, OpenAI-compatible and Gemini providers.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
+- **Reproducible benchmarks**: deterministic 100/1K/10K corpus, `cmd/bench` and committed baselines.
 
 ## Requirements
 
@@ -540,13 +541,27 @@ go run ./cmd/contract-export
 
 Calibration corpus: `engine/search/testdata/calibration.json`.
 
+Benchmarks:
+
+```sh
+go run ./benchmarks/corpus/gen -out benchmarks/corpus
+go build -o /tmp/weave ./cmd/weave
+go run ./cmd/bench -corpus benchmarks/corpus/10k -scenario all -weave /tmp/weave
+```
+
+See the [performance baseline](docs/architecture/performance.md) and
+[benchmark harness](benchmarks/README.md).
+
 ## Project Structure
 
 ```text
 cmd/weave/              CLI
+cmd/bench/              end-to-end benchmark harness
 cmd/contract-export/    golden corpus generator
+cmd/schema-diff/        additive-only schema check
 cmd/release-package/    release archive and checksum builder
 cmd/weave-ai/           reference AI enrichment and rerank extension
+benchmarks/             corpus generator, registry, queries, baselines
 contract/v1/            schemas, Go types, fixtures
 engine/okf/             bundle parser, links, validation, cache
 engine/graph/           nodes, edges, traversal

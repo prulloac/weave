@@ -357,7 +357,7 @@ privacy directives ──┬── show --decrypt
 - maintainability refactors and analysis gates,
 - UX optimization (help, errors, safety, config paths/provenance, pinned machine output,
   feedback, onboarding, completion and local-first trust),
-- benchmarks and budgets,
+- benchmarks and budgets (corpus, harness, baseline and advisory CI shipped),
 - time/space hotspots,
 - continuous performance gate.
 

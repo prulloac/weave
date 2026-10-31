@@ -12,7 +12,7 @@ rm -f /tmp/weave-verify
 
 go run ./cmd/docs-lint
 
-unformatted="$(gofmt -l cmd contract engine)"
+unformatted="$(gofmt -l .)"
 if [ -n "$unformatted" ]; then
 	echo "gofmt needed:"
 	echo "$unformatted"

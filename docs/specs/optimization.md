@@ -163,6 +163,11 @@ Runs after the qualitative foundations so corpus, harness and command output are
 - No production behavior changes in this phase.
 - Details and IDs: [Proposal: benchmarks](../architecture/optimization/proposal-benchmarks.md).
 
+Delivered: the deterministic 100/1k/10k/dirty-10k corpus and manifest, 40 queries, the registry
+and ID constants, package benchmarks for parser/search/storage, `cmd/bench`, the 10k baseline and
+the advisory `perf.yml` workflow. Results and O4/O5 findings are in
+[Performance baseline](../architecture/performance.md).
+
 ### 3.4 O4 — Time
 
 Candidates, validated by profiles before implementation:

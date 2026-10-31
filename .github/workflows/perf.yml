@@ -1,0 +1,61 @@
+name: Perf
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  perf:
+    name: Benchmarks (advisory)
+    if: github.event_name != 'pull_request' || github.event.label.name == 'perf'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GOMAXPROCS: "4"
+      GOGC: "100"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Generate corpus
+        run: go run ./benchmarks/corpus/gen -out benchmarks/corpus
+
+      - name: Microbenchmarks
+        run: |
+          {
+            go test -run '^$' -bench 'BenchmarkParseCorpus|BenchmarkSearchCorpus|BenchmarkSearchBuild10K|BenchmarkNavigation10K' -benchtime=1x -benchmem ./engine/okf ./engine/search
+            go test -run '^$' -bench 'BenchmarkIngestCorpus|BenchmarkLoadCorpus|BenchmarkBM25Corpus|BenchmarkSyncNoChangeCorpus' -benchtime=1x -benchmem ./storage/sqlite
+          } > micro.txt 2>&1
+
+      - name: Build weave
+        run: go build -trimpath -o /tmp/weave ./cmd/weave
+
+      - name: End-to-end report
+        run: |
+          go run ./cmd/bench -corpus benchmarks/corpus/10k -scenario all -samples 1 \
+            -weave /tmp/weave -baseline= -json > bench.json || true
+          go env > env.json
+
+      - name: Baseline gate (advisory)
+        continue-on-error: true
+        run: |
+          go run ./cmd/bench -corpus benchmarks/corpus/10k -scenario all -samples 1 \
+            -weave /tmp/weave -baseline benchmarks/baseline/10k.json -json > gate.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perf
+          path: |
+            bench.json
+            gate.json
+            micro.txt
+            env.json
