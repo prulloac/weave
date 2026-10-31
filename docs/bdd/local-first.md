@@ -54,9 +54,11 @@ Human-readable behavior cases for telemetry, network, data paths and privacy dia
 
 ### Scenario: AI is explicit
 
-- **When** I use `weave-ai` without a configured endpoint or `privacy.ai.send`
-- **Then** no document is sent
-- **And** the extension reports a local configuration or consent error
+- **When** I use `weave-ai` without `privacy.ai.send`
+- **Then** the document body is redacted and not sent
+- **When** I run `weave-ai --describe`
+- **Then** the provider, endpoint and consent rule are printed
+- **And** the API key value is never printed
 
 ### Scenario: Third-party extensions are local subprocesses
 

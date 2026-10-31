@@ -121,6 +121,7 @@ remains the compatibility promise.
 | Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory; XDG state migration deferred (ADR 0004) |
 | Config paths | Platform config dir (`os.UserConfigDir`), platform cache dir, `~/.weave/index.db` for v1.0 |
 | Machine output | Additive `weave.cli/v1` schemas, goldens and schema-diff gate |
+| Local-first | No telemetry or network by default; `config paths`; network only through opt-in extensions |
 | Ranking | Persistent hybrid BM25 + fuzzy; `--no-db` legacy keyword + fuzzy |
 | Privacy | v1.0 explicit encrypt/tokenize/hash directives |
 | Extensions | v1.0 subprocess IPC over `weave.cli/v1` |

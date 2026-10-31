@@ -240,7 +240,7 @@ examples:
   weave search ~/notes "token rotation" --mode hybrid
   weave config show --json
 
-exit codes: 0 success · 1 runtime/no match · 2 usage/confirmation · 3 permission/privacy
+exit codes: 0 success | 1 runtime/no match | 2 usage/confirmation | 3 permission/privacy
 local-first: no telemetry, no network by default
 `)
 }
