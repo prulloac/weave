@@ -348,7 +348,7 @@ ROADMAP (status) --links--> specs (contract) --links--> BDD (behavior) --links--
 | Artifact smoke failure | Release job fails; draft remains for inspection |
 | Docs rule failure | Gate prints rule ID, file and line; no merge |
 | Flaky test | Treated as a failure; fix or quarantine before the tag |
-| Missing LICENSE | Release notes record the decision; archives omit it only if the owner explicitly accepts that |
+| Missing LICENSE | Artifact smoke fails; MIT requires the notice in distributions |
 | Existing tag or release | Release workflow refuses to overwrite |
 | Missing benchmark corpus | Stretch optimization only; does not block the release gate |
 
@@ -382,7 +382,8 @@ ROADMAP (status) --links--> specs (contract) --links--> BDD (behavior) --links--
 12. Coverage is reported and does not fall below the recorded baseline without an explanation.
 13. A `workflow_dispatch` release dry run produces the full matrix, archives, checksums and build
     info without creating a release.
-14. The license decision is recorded and the release checklist is complete before the first tag.
+14. The MIT license is included in the repository and each archive; the release checklist is complete
+    before the first tag.
 
 ## 12. Delivery Slices
 
@@ -404,7 +405,7 @@ stack; R4–R5 as one test stack; R6–R7 as the release stack.
 
 | Decision | Outcome |
 | --- | --- |
-| License | Open; decide before the first tag and include `LICENSE` in archives if chosen |
+| License | Adopted: MIT; `LICENSE` is included in release archives |
 | ADR numbering | Adopted: `0001`/`0002` contiguous, ADR index added, references updated |
 | Feature IDs | Adopted: register contiguous from 1 and sorted ascending |
 | Phase and wave axes | Adopted: phases 1–6 remain; wave 7–8 references use the wave names |

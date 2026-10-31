@@ -586,3 +586,7 @@ docs/                   architecture, specs, knowledge
 - [Architecture decisions](docs/architecture/adr/README.md)
 - [Roadmap](ROADMAP.md)
 - [Backlog](docs/backlog.md)
+
+## License
+
+Weave is released under the [MIT License](LICENSE).

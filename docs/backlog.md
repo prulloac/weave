@@ -112,6 +112,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Documentation integrity: indexes, contiguous numbering, one status source and `cmd/docs-lint` rules
 - [x] Built-binary smoke suite: CLI, sync, export, privacy, multi-source and MCP stdio
 - [x] Regression hardening: shuffled race suite, injected progress timing and parser fuzz targets
+- [x] License: MIT, included in release archives
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)

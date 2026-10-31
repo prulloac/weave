@@ -83,9 +83,8 @@ weave_<version>_buildinfo.txt
 ```
 
 - `<version>` omits the leading `v` (`v1.2.3` → `weave_1.2.3_linux_amd64.tar.gz`).
-- Archives contain a single `weave` binary (`weave.exe` on Windows) and `README.md`; `LICENSE` is
-  included when the repository has one. The license decision is tracked in the
-  [release readiness spec](./release-readiness.md); archives omit it until that decision is made.
+- Archives contain a single `weave` binary (`weave.exe` on Windows), `README.md` and `LICENSE`.
+  The repository is released under the MIT License.
 - `checksums.txt` lists every archive with lowercase SHA-256, sorted by filename.
 - `buildinfo.txt` records version, commit SHA, Go version and build timestamp.
 - `weave version` prints the tag version, never `dev`.
