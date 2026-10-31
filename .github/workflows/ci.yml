@@ -19,23 +19,12 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: go mod tidy
-      - run: git diff --exit-code -- go.mod go.sum
-      - run: go run ./cmd/contract-export
-      - run: go run ./cmd/schema-diff
-      - run: test -z "$(git status --porcelain -- contract/v1/golden/expected)"
-      - run: go test -race ./...
-      - run: go vet ./...
-      - run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
-      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+      - run: ./scripts/verify.sh
       - run: go test -coverpkg=./... -coverprofile=coverage.out ./...
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.out
-      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
-      - run: go build -o /tmp/weave ./cmd/weave
-      - run: go run ./cmd/docs-lint
 
   docs:
     name: Docs

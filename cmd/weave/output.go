@@ -50,15 +50,22 @@ func progressOperation(op contractv1.OperationName) bool {
 }
 
 func startProgress(writer io.Writer, op contractv1.OperationName, enabled bool) func() {
+	return startProgressEvery(writer, op, enabled, 500*time.Millisecond)
+}
+
+func startProgressEvery(writer io.Writer, op contractv1.OperationName, enabled bool, interval time.Duration) func() {
 	if !enabled || !progressOperation(op) {
 		return func() {}
+	}
+	if interval <= 0 {
+		interval = 500 * time.Millisecond
 	}
 	done := make(chan struct{})
 	finished := make(chan struct{})
 	started := time.Now()
 	go func() {
 		defer close(finished)
-		ticker := time.NewTicker(500 * time.Millisecond)
+		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {

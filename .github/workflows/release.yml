@@ -32,6 +32,15 @@ jobs:
           cache: true
       - name: Verify repository
         run: ./scripts/verify.sh
+      - uses: DavidAnson/markdownlint-cli2-action@v25
+        with:
+          config: .markdownlint-cli2.jsonc
+          globs: |
+            docs/**/*.md
+            README.md
+            ROADMAP.md
+            CONTRIBUTING.md
+            AGENTS.md
 
   build:
     needs: verify
@@ -115,6 +124,21 @@ jobs:
             -version "${RELEASE_TAG}" \
             -out dist \
             -buildinfo
+      - name: Verify checksums and build info
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          (cd dist && sha256sum -c "weave_${VERSION}_checksums.txt")
+          test -f "dist/weave_${VERSION}_buildinfo.txt"
+      - name: Smoke test the Linux artifact
+        env:
+          WEAVE_SMOKE_VERSION: ${{ env.RELEASE_TAG }}
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          mkdir -p smoke
+          tar -xzf "dist/weave_${VERSION}_linux_amd64.tar.gz" -C smoke
+          ./smoke/weave version --json
+          ./smoke/weave contract --json
+          WEAVE_SMOKE_BINARY="$PWD/smoke/weave" go test ./cmd/weave -run '^TestSmoke$' -count=1
       - name: Refuse to overwrite an existing release
         env:
           GH_TOKEN: ${{ github.token }}
