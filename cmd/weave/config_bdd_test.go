@@ -90,14 +90,14 @@ func TestConfigPrecedence(t *testing.T) {
 	}
 
 	code, stdout, stderr = invokeRaw(t, "search", root, "alpha", "--config", config,
-		"--mode", "fuzzy", "--top-k", "3", "--json")
+		"--mode", "keyword", "--top-k", "3", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("flag search exit=%d stderr=%q", code, stderr)
 	}
 	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.Mode != contractv1.SearchFuzzy || response.TopK != 3 {
+	if response.Mode != contractv1.SearchKeyword || response.TopK != 3 {
 		t.Fatalf("flags did not override env: mode=%s top_k=%d", response.Mode, response.TopK)
 	}
 }
@@ -162,7 +162,7 @@ func TestConfigUnknownKeys(t *testing.T) {
 	root := copyStorageBundle(t, storageFixture("bundle-a"))
 	config := writeConfig(t, "top_k: 5\nunknown_key: true\n")
 
-	code, _, stderr := invokeRaw(t, "list", root, "--config", config, "--json")
+	code, _, stderr := invokeRaw(t, "list", root, "--config", config, "--no-db", "--json")
 	if code != 0 {
 		t.Fatalf("unknown key must warn, code=%d stderr=%q", code, stderr)
 	}
@@ -170,7 +170,7 @@ func TestConfigUnknownKeys(t *testing.T) {
 		t.Fatalf("missing warning: %q", stderr)
 	}
 
-	code, _, _ = invokeRaw(t, "list", root, "--config", config, "--strict-config", "--json")
+	code, _, _ = invokeRaw(t, "list", root, "--config", config, "--strict-config", "--no-db", "--json")
 	if code != 2 {
 		t.Fatalf("strict config must fail, got %d", code)
 	}
