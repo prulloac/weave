@@ -227,6 +227,12 @@ benchmarks/corpus generator
 
 ## Related Documents
 
+- [Optimization research: maintainability](../architecture/optimization/research-maintainability.md)
+- [Optimization research: UX](../architecture/optimization/research-ux.md)
+- [Proposal: benchmarks](../architecture/optimization/proposal-benchmarks.md)
+- [Proposal: time and space](../architecture/optimization/proposal-time-space.md)
+- [Proposal: maintainability](../architecture/optimization/proposal-maintainability.md)
+- [Proposal: UX](../architecture/optimization/proposal-ux.md)
 - [Storage & Sync](./storage-and-sync.md)
 - [BM25 Ranking](./bm25-ranking.md)
 - [Compression](./compression.md)
