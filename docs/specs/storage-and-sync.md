@@ -42,10 +42,11 @@ The database records its own schema version with `PRAGMA user_version` (starting
 migrations bump this number independently of the product version and `weave.contract/v1`; a binary
 refuses to open a database with a newer `user_version`.
 
-Current schema is **4**. Version 4 adds `search_tokens` (`bundle_root`, `field`, `token`,
-`postings` BLOB) for the persistent fuzzy/hybrid path. A version 3 database migrates automatically;
-the table starts empty, and fuzzy/hybrid search falls back to the in-memory engine until the next
-ingest, rebuild or sync populates it.
+Current schema is **5**. Version 4 adds `search_tokens` (`bundle_root`, `field`, `token`,
+`postings` BLOB) for the persistent fuzzy/hybrid path. Version 5 adds `search_vocabulary`
+(`bundle_root`, `field`, `token`) so fuzzy queries only load postings for candidate tokens. Older
+databases migrate automatically; the tables start empty, and fuzzy/hybrid search falls back to the
+in-memory engine until the next ingest, rebuild or sync populates them.
 
 ```sql
 -- 0. Bundle Registry
