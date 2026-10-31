@@ -112,6 +112,9 @@ With `--json --events`, one initial `weave.cli/v1` success envelope is printed, 
 {"event":"sync","at":"2026-10-30T12:00:00Z","added":1,"updated":2,"removed":0,"errors":0}
 ```
 
+The event type is `contractv1.WatchEvent`, validated by `watch-event.schema.json`; the golden is
+`contract/v1/golden/watch/sync-event.json`.
+
 Without `--events`, later syncs are silent in JSON mode. Human mode prints one summary per sync.
 `--fail-fast` exit codes remain deferred; `weave mcp --watch` writes watch diagnostics to stderr.
 

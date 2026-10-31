@@ -23,6 +23,11 @@ contract/v1/
 │   ├── explain.schema.json
 │   ├── ingest.schema.json
 │   ├── sync.schema.json
+│   ├── export.schema.json
+│   ├── extensions.schema.json
+│   ├── config.schema.json
+│   ├── watch-event.schema.json
+│   ├── multi.schema.json
 │   ├── error.schema.json
 │   ├── envelope.schema.json
 │   └── cli.schema.json
@@ -30,7 +35,10 @@ contract/v1/
 └── golden/
     ├── manifest.json             # cases, search queries and nav operations
     ├── bundles/                  # input OKF fixtures with keywords
-    └── expected/                 # generated expected JSON
+    ├── expected/                 # generated expected JSON
+    ├── config/                   # CLI config output goldens
+    ├── watch/                    # JSONL watch-event golden
+    └── schema-baseline.json      # additive-only schema snapshot
 ```
 
 `defs.schema.json` is authoritative. The other schema files are entrypoint references for
@@ -51,6 +59,8 @@ Never hand-edit files under `golden/expected`; they are generated.
 
 ```sh
 go run ./cmd/contract-export   # regenerate expected JSON from fixtures
+go run ./cmd/schema-diff       # check additive-only schemas against the baseline
+go run ./cmd/schema-diff -write # regenerate the baseline after a reviewed addition
 go test ./contract/v1          # schema validation and struct round-trips
 go test ./engine/...           # conformance, search and calibration
 ```
@@ -83,9 +93,27 @@ Golden updates are reviewed like code. CI fails on drift.
 - `verified-frontmatter` verifies list-of-mappings YAML.
 - `reference-links` and `code-links` pin link extraction.
 
+## Compatibility
+
+`weave.cli/v1` output is additive inside v1.0:
+
+- no result field is removed and no field changes JSON type;
+- new fields are optional;
+- enum values may be added but not removed;
+- every `--json` success result validates against its schema, and every failure validates against
+  the envelope schema;
+- `weave sync --watch --events --json` writes one initial success envelope followed by JSONL
+  `WatchEvent` objects;
+- stdout contains only the envelope or JSONL stream; diagnostics go to stderr.
+
+`golden/schema-baseline.json` records definitions, properties and entrypoint variants.
+`cmd/schema-diff` rejects removals, changed property shapes and newly required properties, while
+allowing optional additions and new enum values. See
+[ADR 0004](../../docs/architecture/adr/0004-config-paths-and-db-location.md).
+
 ## Contract Version
 
 - Domain: `weave.contract/v1` (new in-place v1 with keywords and search).
 - CLI envelope: `weave.cli/v1`.
 - Until v1.0.0 GA, `contract/v1` may evolve in place. After GA, breaking changes require
-  `contract/v2`.
+  `contract/v2` or `cli/v2`.

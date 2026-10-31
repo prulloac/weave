@@ -464,6 +464,74 @@ func TestContractTypesValidate(t *testing.T) {
 	marshalValidate(t, compiler, "cli.schema.json", request)
 }
 
+func TestConfigAndWatchGoldensValidate(t *testing.T) {
+	compiler := newCompiler(t)
+
+	for _, file := range []string{"show.json", "get.json", "path.json", "init.json"} {
+		doc := readJSON(t, filepath.Join("golden", "config", file))
+		validate(t, compiler, "config.schema.json", doc)
+	}
+
+	doc := readJSON(t, filepath.Join("golden", "watch", "sync-event.json"))
+	validate(t, compiler, "watch-event.schema.json", doc)
+}
+
+func TestMachineOutputTypesValidate(t *testing.T) {
+	compiler := newCompiler(t)
+
+	show := ConfigShow{
+		ConfigPath: "/home/user/.config/weave/config.yaml",
+		Exists:     true,
+		Entries: []ConfigEntry{{
+			Key: "top_k", Value: 10, Source: "default", Origin: "default",
+		}},
+	}
+	marshalValidate(t, compiler, "config.schema.json", show)
+
+	get := ConfigGet{Key: "db", Value: "/srv/weave/index.db", Source: "env", Origin: "env WEAVE_DB"}
+	marshalValidate(t, compiler, "config.schema.json", get)
+
+	path := ConfigPath{Path: "/home/user/.config/weave/config.yaml", Exists: false}
+	marshalValidate(t, compiler, "config.schema.json", path)
+
+	init := ConfigInit{
+		Path: "/home/user/.config/weave/config.yaml", Created: true,
+		NextCommand: "weave config show",
+	}
+	marshalValidate(t, compiler, "config.schema.json", init)
+
+	event := WatchEvent{
+		Event: "sync", At: "2026-10-30T12:00:00Z",
+		Added: 1, Updated: 2, Removed: 0, Errors: 0,
+	}
+	marshalValidate(t, compiler, "watch-event.schema.json", event)
+
+	sourceBundles := SourceBundles{Sources: []SourceBundle{{
+		Source: "a", Bundle: &Bundle{
+			Root: "/a", Concepts: []OkfConcept{},
+			Validation: Validation{Concepts: []ConceptValidation{}, Warnings: []string{}},
+		},
+	}}}
+	marshalValidate(t, compiler, "multi.schema.json", sourceBundles)
+
+	sourceGraphs := SourceGraphs{Sources: []SourceGraph{{
+		Source: "a", Graph: Graph{
+			Nodes: []GraphNode{}, Edges: []GraphEdge{}, Dangling: map[string][]OkfLink{},
+		},
+	}}}
+	marshalValidate(t, compiler, "multi.schema.json", sourceGraphs)
+
+	request := OperationRequest{
+		Op: OpSync, Path: "/bundle", DB: "/tmp/index.db", Codec: "zstd",
+		Enricher: "ai", Rerank: "ai", TimeoutMS: 5000,
+		Sources: []SourceSpec{{Alias: "notes", Path: "/notes"}},
+		Out:     "/tmp/export", Format: "encrypted", KeyID: "export",
+		Provider: "vault", Force: true, Confirmed: true, DryRun: true,
+		Decrypt: true,
+	}
+	marshalValidate(t, compiler, "cli.schema.json", request)
+}
+
 func marshalValidate(t *testing.T, compiler *jsonschema.Compiler, schemaName string, value any) {
 	t.Helper()
 

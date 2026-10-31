@@ -68,12 +68,7 @@ func runSyncWatch(ctx context.Context, options syncWatchOptions, stdout, stderr 
 			if initial {
 				initial = false
 				if options.JSON {
-					_ = writeJSON(stdout, contractv1.SuccessEnvelope{
-						Contract: operations.ContractVersion,
-						CLI:      operations.CLIVersion,
-						OK:       true,
-						Result:   report,
-					})
+					_ = writeJSON(stdout, successEnvelope(report))
 					return
 				}
 				printSyncReport(stdout, report)
@@ -81,13 +76,13 @@ func runSyncWatch(ctx context.Context, options syncWatchOptions, stdout, stderr 
 			}
 			if options.JSON {
 				if options.Events {
-					event := map[string]any{
-						"event":   "sync",
-						"at":      time.Now().UTC().Format(time.RFC3339),
-						"added":   report.Added,
-						"updated": report.Updated,
-						"removed": report.Removed,
-						"errors":  report.Errors,
+					event := contractv1.WatchEvent{
+						Event:   "sync",
+						At:      time.Now().UTC().Format(time.RFC3339),
+						Added:   report.Added,
+						Updated: report.Updated,
+						Removed: report.Removed,
+						Errors:  report.Errors,
 					}
 					_ = writeJSON(stdout, event)
 				}

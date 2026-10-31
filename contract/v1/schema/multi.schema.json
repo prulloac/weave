@@ -1,0 +1,11 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/contract/v1/multi.schema.json",
+	"title": "MultiSourceResult",
+	"oneOf": [
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SourceBundles" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SourceGraphs" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/IngestReport" },
+		{ "$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SyncReport" }
+	]
+}

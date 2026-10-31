@@ -23,8 +23,8 @@ const (
 
 var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpContract, Fields: []string{}, Result: "ContractInfo"},
-	{Op: contractv1.OpParse, Fields: []string{"path"}, Result: "Bundle"},
-	{Op: contractv1.OpGraph, Fields: []string{"path"}, Result: "Graph"},
+	{Op: contractv1.OpParse, Fields: []string{"path"}, Result: "Bundle|SourceBundles"},
+	{Op: contractv1.OpGraph, Fields: []string{"path"}, Result: "Graph|SourceGraphs"},
 	{Op: contractv1.OpSearch, Fields: []string{"path", "query", "mode", "top_k"}, Result: "SearchResponse"},
 	{Op: contractv1.OpList, Fields: []string{"path", "types", "tags", "status", "limit"}, Result: "ListResults"},
 	{Op: contractv1.OpShow, Fields: []string{"path", "target"}, Result: "ShowResult"},

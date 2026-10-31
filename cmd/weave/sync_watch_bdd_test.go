@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	contractv1 "github.com/prulloac/weave/contract/v1"
 )
 
 type syncBuffer struct {
@@ -143,5 +146,29 @@ func TestSyncWatchJSONEvents(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), `"updated":1`) {
 		t.Fatalf("event missing update count:\n%s", stdout.String())
+	}
+
+	lines := strings.Split(strings.TrimSpace(stdout.String()), "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected an initial envelope and one event, got:\n%s", stdout.String())
+	}
+	validateCLIJSON(t, lines[0], "sync.schema.json")
+	for _, line := range lines[1:] {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var doc any
+		if err := json.Unmarshal([]byte(line), &doc); err != nil {
+			t.Fatalf("decode watch event: %v\n%s", err, line)
+		}
+		validateTestSchema(t, "watch-event.schema.json", doc)
+		var event contractv1.WatchEvent
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatal(err)
+		}
+		if event.Event != "sync" {
+			t.Fatalf("unexpected watch event: %+v", event)
+		}
 	}
 }
