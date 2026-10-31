@@ -255,6 +255,31 @@ func TestConfigInit(t *testing.T) {
 	}
 }
 
+func TestConfigShowDefaultPath(t *testing.T) {
+	clearConfigEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	if runtime.GOOS == "windows" {
+		t.Setenv("AppData", filepath.Join(home, "appdata"))
+	}
+	path := defaultConfigPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("top_k: 7\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	code, show, stderr := configShow(t, "--json")
+	if code != 0 {
+		t.Fatalf("config show exit=%d stderr=%q", code, stderr)
+	}
+	if show.ConfigPath != path || !show.Exists {
+		t.Fatalf("unexpected config path: %+v, want %s", show, path)
+	}
+}
+
 func TestConfigNoConfigIgnoresFile(t *testing.T) {
 	clearConfigEnv(t)
 	root := copyStorageBundle(t, storageFixture("bundle-a"))

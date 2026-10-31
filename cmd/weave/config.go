@@ -106,9 +106,9 @@ func loadAppConfig(path string, noConfig, strict bool) (appConfig, []string, err
 
 	warnings := make([]string, 0)
 	if !noConfig && cfg.Exists {
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(cfg.Path)
 		if err != nil {
-			return cfg, nil, fmt.Errorf("CONFIG_INVALID: cannot read %s", path)
+			return cfg, nil, fmt.Errorf("CONFIG_INVALID: cannot read %s", cfg.Path)
 		}
 		var values map[string]any
 		if err := yaml.Unmarshal(data, &values); err != nil {
