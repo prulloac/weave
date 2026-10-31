@@ -30,6 +30,7 @@ coverage; a scenario without a test is a documentation gap.
 | [Node graph engine](node-graph-engine.md) | [node-graph-engine.md](../specs/node-graph-engine.md) | `engine/conformance_test.go`, `engine/graph` tests |
 | [Onboarding](onboarding.md) | [configuration.md](../specs/configuration.md) | `cmd/weave/help_bdd_test.go`, `cmd/weave/feedback_bdd_test.go` |
 | [Permissive ingestion](permissive-ingestion.md) | [permissive-ingestion.md](../specs/permissive-ingestion.md) | `cmd/weave/permissive_bdd_test.go` |
+| [Pluggable scoring](extension-scoring.md) | [extension-scoring.md](../specs/extension-scoring.md) | planned: `cmd/weave/scoring_bdd_test.go`, `engine/extensions/scoring_test.go` |
 | [Privacy directives](privacy-directives.md) | [privacy-directives.md](../specs/privacy-directives.md) | `cmd/weave/privacy_bdd_test.go`, `engine/privacy/privacy_test.go` |
 | [Release automation](release-automation.md) | [release-automation.md](../specs/release-automation.md) | `release/release_test.go`, `cmd/weave/release_bdd_test.go` |
 | [Release readiness](release-readiness.md) | [release-readiness.md](../specs/release-readiness.md) | `cmd/docs-lint/main_test.go`, `cmd/weave/smoke_test.go`, `release/release_test.go` |

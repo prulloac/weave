@@ -6,8 +6,8 @@ This checklist records the release state. The tag and publish steps are owner ac
 
 - [x] Feature register shipped, with optimization marked post-GA stretch.
 - [x] MIT license added and included in release archives.
-- [x] Documentation gate: 89 documents, 653 links, 0 `docs-lint` violations.
-- [x] Markdown lint: 0 issues across 89 files.
+- [x] Documentation gate: `docs-lint` passes with 0 violations.
+- [x] Markdown lint: 0 issues.
 - [x] Regression gate: shuffled race suite, vet, staticcheck, govulncheck, fuzzing and built-binary
   smoke.
 - [x] CI on `main`: run `41225010841` passed.

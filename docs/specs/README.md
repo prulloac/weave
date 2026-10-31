@@ -29,7 +29,7 @@ maturity only.
 | [Configuration](configuration.md) | stable | [Configuration](../bdd/configuration.md), [Machine output](../bdd/machine-output.md), [Help](../bdd/help.md), [Feedback](../bdd/feedback.md), [Onboarding](../bdd/onboarding.md), [Local-first](../bdd/local-first.md), [Error contract](../bdd/error-contract.md), [Dry run](../bdd/dryrun.md) | 30 |
 | [Optimization Program](optimization.md) | draft | — | 29 (stretch) |
 | [Release Readiness](release-readiness.md) | stable | [Release readiness](../bdd/release-readiness.md) | release gate |
-| [Pluggable Scoring](extension-scoring.md) | draft | — | 31 (post-GA) |
+| [Pluggable Scoring](extension-scoring.md) | draft | [Scoring](../bdd/extension-scoring.md) | 31 (post-GA) |
 
 ## Ownership rules
 

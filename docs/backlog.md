@@ -94,7 +94,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | x | x | stretch |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
 | Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | x | green |
-| Pluggable scoring (post-GA) | [extension-scoring.md](specs/extension-scoring.md) | - | x | - | - | backlog |
+| Pluggable scoring (post-GA) | [extension-scoring.md](specs/extension-scoring.md) | - | x | x | - | backlog |
 
 ## Cross-cutting
 

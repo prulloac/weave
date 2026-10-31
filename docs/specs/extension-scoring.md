@@ -310,6 +310,8 @@ list.
 
 ## 7. Testing
 
+Behavior scenarios: [extension-scoring.md](../bdd/extension-scoring.md).
+
 - Unit tests for request construction, context bounds, privacy fields, score validation, weights
   `0`, `0.5` and `1`, candidate coverage and frame limits.
 - CLI process tests with a deterministic fixture scorer that reverses the candidate order.
