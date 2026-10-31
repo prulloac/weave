@@ -7,12 +7,16 @@ import (
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/extensions"
 )
 
 type EnrichmentApply struct {
-	Enricher string
-	Keywords []string
-	Data     []byte
+	Enricher       string
+	Keywords       []string
+	Data           []byte
+	ExtensionData  []extensions.DataFile
+	ExtensionReady bool
+	Warnings       int
 }
 
 // Enricher enriches one concept before it is stored.

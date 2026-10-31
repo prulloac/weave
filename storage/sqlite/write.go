@@ -15,6 +15,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/compression"
+	"github.com/prulloac/weave/engine/extensions"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/privacy"
 )
@@ -87,6 +88,9 @@ func (s *Store) writeBundle(
 	if _, err := tx.ExecContext(ctx, "DELETE FROM bundles WHERE bundle_root = ?", root); err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM extension_data WHERE bundle_root = ?", root); err != nil {
+		return contractv1.IngestReport{}, err
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?)`,
@@ -105,6 +109,11 @@ func (s *Store) writeBundle(
 		}
 		if item.enricherID != "" && len(item.enrichment) > 0 {
 			if err := insertEnrichment(ctx, tx, root, item.concept.ID, item.enricherID, item.enrichment); err != nil {
+				return contractv1.IngestReport{}, err
+			}
+		}
+		if item.extensionDataReady {
+			if err := s.applyExtensionDataTx(ctx, tx, root, item.enricherID, item.concept.ID, item.extensionData); err != nil {
 				return contractv1.IngestReport{}, err
 			}
 		}
@@ -222,10 +231,10 @@ func insertSyncedConcept(
 	enricher Enricher,
 	provider privacy.Provider,
 	now int64,
-) (int, bool, error) {
+) (int, bool, preparedConcept, error) {
 	result, err := privacy.ApplyWith(ctx, root, concept, provider)
 	if err != nil {
-		return 0, false, err
+		return 0, false, preparedConcept{}, err
 	}
 	item := preparedConcept{
 		concept:      concept,
@@ -246,18 +255,21 @@ func insertSyncedConcept(
 			item.concept.Keywords = apply.Keywords
 			item.enricherID = apply.Enricher
 			item.enrichment = apply.Data
+			item.extensionData = apply.ExtensionData
+			item.extensionDataReady = apply.ExtensionReady
+			warnings += apply.Warnings
 		}
 	}
 	if err := insertConcept(ctx, tx, root, item, now); err != nil {
-		return warnings, false, err
+		return warnings, false, preparedConcept{}, err
 	}
 	if item.enricherID != "" && len(item.enrichment) > 0 {
 		if err := insertEnrichment(ctx, tx, root, item.concept.ID, item.enricherID, item.enrichment); err != nil {
-			return warnings, false, err
+			return warnings, false, preparedConcept{}, err
 		}
-		return warnings, true, nil
+		return warnings, true, item, nil
 	}
-	return warnings, false, nil
+	return warnings, false, item, nil
 }
 
 func insertEnrichment(ctx context.Context, tx *sql.Tx, root, docID, enricherID string, data []byte) error {
@@ -268,16 +280,18 @@ func insertEnrichment(ctx context.Context, tx *sql.Tx, root, docID, enricherID s
 }
 
 type preparedConcept struct {
-	concept      contractv1.OkfConcept
-	body         string
-	codec        string
-	directive    *contractv1.PrivacyDirective
-	redacted     bool
-	spans        []privacy.Span
-	providerName string
-	keyVersion   int
-	enricherID   string
-	enrichment   []byte
+	concept            contractv1.OkfConcept
+	body               string
+	codec              string
+	directive          *contractv1.PrivacyDirective
+	redacted           bool
+	spans              []privacy.Span
+	providerName       string
+	keyVersion         int
+	enricherID         string
+	enrichment         []byte
+	extensionData      []extensions.DataFile
+	extensionDataReady bool
 }
 
 func prepareConcepts(
@@ -318,6 +332,9 @@ func prepareConcepts(
 				item.concept.Keywords = apply.Keywords
 				item.enricherID = apply.Enricher
 				item.enrichment = apply.Data
+				item.extensionData = apply.ExtensionData
+				item.extensionDataReady = apply.ExtensionReady
+				warnings += apply.Warnings
 			}
 		}
 		prepared = append(prepared, item)
