@@ -69,7 +69,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Extension subprocess IPC | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
 | Enrichment extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
 | Rerank extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
-| AI enrichment/reranking plugin | [weave-ai-plugin.md](specs/weave-ai-plugin.md) | - | x | - | - | backlog |
+| AI enrichment/reranking plugin | [weave-ai-plugin.md](specs/weave-ai-plugin.md) | - | x | x | - | red |
 
 ## Tier 6 — MCP
 
