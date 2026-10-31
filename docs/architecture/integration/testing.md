@@ -106,6 +106,8 @@ MRR@10 = 1.0.
   `mcp/multi_test.go` covers sourced tools, ambiguity, merged MCP reads and source resources.
   `mcp/sensitive_test.go` covers redacted defaults, opt-in decryption, in-memory redaction,
   missing-key failures and audit key verification.
+  `cmd/weave-ai/main_test.go` covers provider shapes, protocol handling and error hygiene;
+  `engine/privacy/redact_test.go` and `cmd/weave/ai_bdd_test.go` cover AI redaction and opt-in.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

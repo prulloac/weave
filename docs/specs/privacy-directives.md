@@ -94,6 +94,8 @@ Rules:
   export). It is valid only with `policy: encrypt`; the body is stored verbatim instead of being
   encrypted again. Any other combination is `PRIVACY_DIRECTIVE_INVALID`. This flag ships with
   [Bundle Export](./bundle-export.md).
+- `ai.send: true` allows an AI extension to receive the unredacted body. Without it, enrichers
+  receive `[redacted]` for protected documents. See [Weave AI Extension](./weave-ai-plugin.md).
 
 ### 2.2 Contract types
 

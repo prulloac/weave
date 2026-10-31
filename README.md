@@ -27,6 +27,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
 - **Extensions**: `weave-<name>` enrichment during writes and reranking during search.
+- **AI extension**: optional `weave-ai` with Ollama, OpenAI-compatible and Gemini providers.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 
@@ -311,6 +312,25 @@ weave search ~/notes "token rotation" --rerank keywords --json
 
 Spec: [Extension Subprocess IPC](docs/specs/extension-ipc.md).
 
+#### `weave-ai`
+
+The reference AI extension enriches writes and reranks searches. Build it into `$PATH` or the
+bundle's `.weave/bin/`, then use it like any extension:
+
+```sh
+go build -o "$HOME/.local/bin/weave-ai" ./cmd/weave-ai
+weave ingest ~/notes --db ~/.weave/index.db --with-enricher ai
+weave search ~/notes "token rotation" --rerank ai
+```
+
+- Providers: `ollama` (default, `http://127.0.0.1:11434`), `openai`, `gemini`.
+- Config: `<bundle>/.weave/ai.yaml` or `WEAVE_AI_CONFIG`; env overrides `WEAVE_AI_*`.
+- Core redacts encrypted/tokenized/hashed bodies before IPC; `privacy.ai.send: true` opts a
+  document in to sending its body.
+- Model or provider failures degrade to core results with a warning.
+
+Spec: [Weave AI Extension](docs/specs/weave-ai-plugin.md).
+
 #### `weave mcp`
 
 Serve read-only MCP tools and resources over stdio or TCP, using in-memory or persistent storage.
@@ -395,6 +415,7 @@ Calibration corpus: `engine/search/testdata/calibration.json`.
 cmd/weave/              CLI
 cmd/contract-export/    golden corpus generator
 cmd/release-package/    release archive and checksum builder
+cmd/weave-ai/           reference AI enrichment and rerank extension
 contract/v1/            schemas, Go types, fixtures
 engine/okf/             bundle parser, links, validation, cache
 engine/graph/           nodes, edges, traversal

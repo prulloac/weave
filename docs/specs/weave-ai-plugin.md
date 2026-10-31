@@ -16,7 +16,7 @@ status: draft
 
 # Specification: Weave AI Extension
 
-Status: **Proposed**
+Status: **Implemented** (`cmd/weave-ai` reference extension with Ollama, OpenAI-compatible and Gemini providers).
 Target: **v1.0**
 
 ## 1. Overview

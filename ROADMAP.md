@@ -5,8 +5,8 @@
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
-shipped on `main`; external crypto providers, the AI plugin, `weave sync --watch`, bundle export,
-global configuration and the optimization program remain.
+shipped on `main`; external crypto providers, `weave sync --watch`, bundle export, global
+configuration and the optimization program remain.
 
 ## 1. What Weave Is
 
@@ -73,6 +73,7 @@ waves, not product versions.
 | Enrichment extension | v1.0 | Shipped: `--with-enricher`, inferred keywords and metadata |
 | Rerank extension | v1.0 | Shipped: `--rerank`, 0.5/0.5 blend and fallback |
 | External crypto providers | v1.0 | Age, HashiCorp Vault and cloud KMS over provider IPC |
+| AI plugin | v1.0 | Shipped: `weave-ai` reference extension (Ollama, OpenAI, Gemini) |
 | Explainable search | v1.0 | Shipped: per-token/per-field `weave explain` |
 | Bundle audit | v1.0 | Shipped: stable finding codes, `--fail-on` gate, JSON and human reports |
 | Graph relate | v1.0 | Shipped: bounded depth/direction subgraphs |
@@ -231,7 +232,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 13 | Extension subprocess IPC | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | operations, contract | 5 / Phase 5 | shipped |
 | 14 | Enrichment extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | shipped |
 | 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | shipped |
-| 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | red |
+| 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | shipped |
 | 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
 | 18 | Sensitive MCP policies | [mcp-sensitive.md](docs/specs/mcp-sensitive.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | shipped |
 | 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) | shipped |
@@ -343,7 +344,7 @@ privacy directives ──┬── show --decrypt
 
 **Wave 6 — ecosystem and persistent MCP:**
 
-- AI plugin,
+- AI plugin (shipped),
 - external crypto plugins,
 - MCP persistent with storage/watch/privacy.
 
