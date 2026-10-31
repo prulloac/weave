@@ -1,3 +1,3 @@
-// Package engine will parse OKF bundles, build the graph and search index,
-// and expose navigation queries. The implementation lands in Phase 3.
+// Package engine parses bundles, builds graph and search views, and exposes
+// navigation and ranking queries.
 package engine

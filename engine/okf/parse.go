@@ -1,3 +1,4 @@
+// Package okf parses OKF bundles, validates concepts and extracts links.
 package okf
 
 import (

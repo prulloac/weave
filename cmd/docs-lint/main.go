@@ -1,3 +1,4 @@
+// Command docs-lint checks local links in project documentation.
 package main
 
 import (

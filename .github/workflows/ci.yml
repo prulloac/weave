@@ -25,7 +25,7 @@ jobs:
       - run: test -z "$(git status --porcelain -- contract/v1/golden/expected)"
       - run: go test -race ./...
       - run: go vet ./...
-      - run: test -z "$(gofmt -l cmd contract engine)" || (gofmt -l cmd contract engine && exit 1)
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go build -o /tmp/weave ./cmd/weave
       - run: go run ./cmd/docs-lint
 

@@ -318,6 +318,10 @@ func contractSearchMode(value string) contractv1.SearchMode {
 }
 
 func runConfigCommand(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help") {
+		printConfigHelp(stdout)
+		return 0
+	}
 	jsonMode := contains(args, "--json")
 	configPath := ""
 	noConfig := false

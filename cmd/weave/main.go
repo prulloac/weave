@@ -1,3 +1,5 @@
+// Command weave is the CLI entrypoint for parsing, searching and syncing
+// bundles.
 package main
 
 import (
@@ -36,7 +38,15 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		return 0
 	}
 
-	if args[0] == "--help" || args[0] == "-h" || args[0] == "help" {
+	if args[0] == "--help" || args[0] == "-h" {
+		printHelp(stdout)
+		return 0
+	}
+	if args[0] == "help" {
+		if len(args) > 1 {
+			printCommandHelp(stdout, args[1])
+			return 0
+		}
 		printHelp(stdout)
 		return 0
 	}
@@ -292,7 +302,7 @@ type flags struct {
 
 func parseFlags(args []string) (flags, error) {
 	result := flags{explicit: map[string]bool{}}
-
+	args = expandFlagEquals(args)
 	for index := 0; index < len(args); index++ {
 		arg := args[index]
 		if strings.HasPrefix(arg, "--") {
@@ -533,6 +543,21 @@ func parseFlags(args []string) (flags, error) {
 		return result, fmt.Errorf("--timeout requires --with-enricher or --rerank")
 	}
 	return result, nil
+}
+
+func expandFlagEquals(args []string) []string {
+	expanded := make([]string, 0, len(args))
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "--") && strings.Contains(arg, "=") {
+			parts := strings.SplitN(arg, "=", 2)
+			if parts[0] != "--" && parts[1] != "" {
+				expanded = append(expanded, parts[0], parts[1])
+				continue
+			}
+		}
+		expanded = append(expanded, arg)
+	}
+	return expanded
 }
 
 func stdinIsTerminal() bool {
@@ -1267,42 +1292,4 @@ func titleOrID(title *string, id string) string {
 		return id
 	}
 	return *title
-}
-
-func printHelp(writer io.Writer) {
-	fmt.Fprintf(writer, `weave — mount OKF bundles locally
-
-usage:
-  weave contract [--json]
-  weave parse <path> [--source <alias=path> ...] [--json] [--no-cache]
-  weave graph <path> [--source <alias=path> ...] [--json] [--no-cache]
-  weave search <path> <query> [--source <alias=path> ...] [--mode hybrid|keyword|fuzzy|bm25] [--top-k <n>] [--rerank <name>] [--timeout <d>] [--json] [--no-cache]
-  weave list <path> [--source <alias=path> ...] [--type <t>] [--tag <t>] [--status <s>] [--limit <n>] [--json] [--no-cache]
-  weave show <path> [--source <alias=path> ...] <id|file> [--decrypt] [--provider <name>] [--json] [--no-cache]
-  weave backlinks <path> [--source <alias=path> ...] <id|file> [--json] [--no-cache]
-  weave path <path> [--source <alias=path> ...] <id|file> <id|file> [--json] [--no-cache]
-  weave audit <path> [--source <alias=path> ...] [--fail-on error|warning|none] [--verify-keys] [--provider <name>] [--json] [--no-cache]
-  weave relate <path> [--source <alias=path> ...] <id|file> [--depth <n>] [--direction out|in|both] [--json] [--no-cache]
-  weave explain <path> [--source <alias=path> ...] <query> [--id <id>] [--mode hybrid|keyword|fuzzy] [--top-k <n>] [--json] [--no-cache]
-  weave ingest <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--json] [--no-cache]
-  weave rebuild <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--json] [--no-cache]
-  weave sync <path> [--source <alias=path> ...] [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--provider <name>] [--watch [--events]] [--json] [--no-cache]
-  weave extensions list [<path>] [--json]
-  weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--provider <name>] [--yes] [--force] [--json]
-  weave config show|path|init [--json]
-  weave mcp --bundle <path> [--db <file>] [--stdio | --listen <addr>] [--token <token>]
-  weave version [--json]
-  weave --version | --help
-
-global:
-  --config <file>       select the global config file
-  --no-config           ignore the config file (environment still applies)
-  --strict-config       reject unknown config keys
-
-contract: %s
-`, contractVersion)
-}
-
-func printCommandHelp(writer io.Writer, command string) {
-	fmt.Fprintf(writer, "weave %s: see `weave --help` for usage\n", command)
 }

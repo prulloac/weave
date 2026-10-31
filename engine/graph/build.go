@@ -1,3 +1,4 @@
+// Package graph builds concept nodes, edges and dangling-link metadata.
 package graph
 
 import (

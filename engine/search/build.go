@@ -1,3 +1,4 @@
+// Package search builds keyword, fuzzy and hybrid indexes and rankings.
 package search
 
 import (

@@ -1,3 +1,4 @@
+// Command contract-export regenerates the contract golden corpus.
 package main
 
 import (

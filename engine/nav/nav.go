@@ -1,3 +1,4 @@
+// Package nav implements list, show, backlinks and path queries.
 package nav
 
 import (
