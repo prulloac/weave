@@ -56,6 +56,7 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrParseError,
 	contractv1.ErrConceptNotFound,
 	contractv1.ErrPathNotFound,
+	contractv1.ErrBundleNotIndexed,
 	contractv1.ErrPrivacyDirective,
 	contractv1.ErrPrivacyKey,
 	contractv1.ErrPrivacyProvider,

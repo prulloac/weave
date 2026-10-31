@@ -250,7 +250,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 				fmt.Fprintf(stderr, "weave: %v\n", err)
 			}
 		}
-		fmt.Fprintf(stderr, "weave: %s\n", envelope.Error.Message)
+		printOperationError(stderr, envelope.Error.Code, envelope.Error.Message)
 		return exitCodeFor(envelope.Error.Code)
 	default:
 		fmt.Fprintln(stderr, "weave: internal error")
@@ -854,7 +854,7 @@ func usageError(stdout io.Writer, stderr io.Writer, jsonMode bool, message strin
 		}
 		_ = writeJSON(stdout, envelope)
 	}
-	fmt.Fprintf(stderr, "weave: %s\n", message)
+	printOperationError(stderr, contractv1.ErrInvalidRequest, message)
 	return 2
 }
 
@@ -865,21 +865,6 @@ func writeJSON(writer io.Writer, value any) error {
 	}
 	_, err = fmt.Fprintf(writer, "%s\n", data)
 	return err
-}
-
-func exitCodeFor(code contractv1.ErrorCode) int {
-	switch code {
-	case contractv1.ErrInvalidRequest, contractv1.ErrInvalidRoot, contractv1.ErrPrivacyDirective,
-		contractv1.ErrConfirmation:
-		return 2
-	case contractv1.ErrPermissionDenied, contractv1.ErrPrivacyKey,
-		contractv1.ErrPrivacyProvider, contractv1.ErrPrivacyDecrypt:
-		return 3
-	case contractv1.ErrExtensionMissing:
-		return 2
-	default:
-		return 1
-	}
 }
 
 func successExitCode(op contractv1.OperationName, result any) int {
@@ -921,9 +906,6 @@ func isEmptyResult(op contractv1.OperationName, result any) bool {
 		default:
 			return len(response.Hybrid) == 0
 		}
-	case contractv1.OpList:
-		values, ok := result.([]contractv1.ListResult)
-		return ok && len(values) == 0
 	default:
 		return false
 	}
@@ -1021,7 +1003,8 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		results := result.([]contractv1.ListResult)
 		if len(results) == 0 {
 			fmt.Fprintln(stderr, "weave: no concepts match the given filters")
-			return 1
+			fmt.Fprintln(stderr, "hint: adjust --type/--tag/--status or run `weave list <path>`")
+			return 0
 		}
 		for _, item := range results {
 			if item.Source != "" {
