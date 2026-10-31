@@ -28,6 +28,7 @@ type Options struct {
 	Interval time.Duration
 	OnSync   func(contractv1.SyncReport)
 	OnError  func(error)
+	OnReady  func()
 }
 
 // Watcher polls a bundle and syncs changed snapshots.
@@ -40,6 +41,7 @@ type Watcher struct {
 	interval time.Duration
 	onSync   func(contractv1.SyncReport)
 	onError  func(error)
+	onReady  func()
 }
 
 // New creates a polling watcher.
@@ -62,17 +64,23 @@ func New(options Options) (*Watcher, error) {
 		interval: options.Interval,
 		onSync:   options.OnSync,
 		onError:  options.OnError,
+		onReady:  options.OnReady,
 	}, nil
 }
 
 // Run performs the initial sync and then polls until the context is cancelled.
 func (w *Watcher) Run(ctx context.Context) error {
-	if err := w.sync(ctx); err != nil {
-		return err
-	}
+	// Snapshot before the initial sync. A change that lands during the sync is
+	// then visible on the next tick instead of being folded into the baseline.
 	snapshot, err := snapshotBundle(w.root)
 	if err != nil {
 		return err
+	}
+	if err := w.sync(ctx); err != nil {
+		return err
+	}
+	if w.onReady != nil {
+		w.onReady()
 	}
 
 	ticker := time.NewTicker(w.interval)

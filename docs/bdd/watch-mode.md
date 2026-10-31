@@ -18,6 +18,13 @@ Human-readable behavior cases for the polling watcher and MCP reload.
 - **Then** it runs one incremental sync
 - **And** reports the sync result
 
+### Scenario: A change during startup is not lost
+
+- **Given** an indexed bundle
+- **When** a document changes while the initial sync runs
+- **Then** the next poll detects the change
+- **And** the stored bundle reflects it without a restart
+
 ### Scenario: Modified files update the database
 
 - **Given** a running watcher

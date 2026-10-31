@@ -98,17 +98,12 @@ func TestWatchUpdatesAndDeletes(t *testing.T) {
 	defer store.Close()
 	ingestBundle(t, store, root)
 
-	var mu sync.Mutex
-	syncs := 0
+	ready := make(chan struct{})
 	watcher, err := watch.New(watch.Options{
 		Root:     root,
 		Store:    store,
 		Interval: 20 * time.Millisecond,
-		OnSync: func(report contractv1.SyncReport) {
-			mu.Lock()
-			syncs++
-			mu.Unlock()
-		},
+		OnReady:  func() { close(ready) },
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -116,11 +111,7 @@ func TestWatchUpdatesAndDeletes(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go watcher.Run(ctx)
-	waitFor(t, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return syncs >= 1
-	})
+	waitReady(t, ready)
 
 	writeFile(t, filepath.Join(root, "b.md"), `---
 type: Concept
@@ -155,6 +146,7 @@ func TestWatchCoalescesBurstsAndIgnoresGit(t *testing.T) {
 
 	var mu sync.Mutex
 	syncs := 0
+	ready := make(chan struct{})
 	watcher, err := watch.New(watch.Options{
 		Root:     root,
 		Store:    store,
@@ -164,6 +156,7 @@ func TestWatchCoalescesBurstsAndIgnoresGit(t *testing.T) {
 			syncs++
 			mu.Unlock()
 		},
+		OnReady: func() { close(ready) },
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -171,11 +164,7 @@ func TestWatchCoalescesBurstsAndIgnoresGit(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go watcher.Run(ctx)
-	waitFor(t, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return syncs >= 1
-	})
+	waitReady(t, ready)
 
 	for _, name := range []string{"b.md", "c.md"} {
 		writeFile(t, filepath.Join(root, name), `---
@@ -214,10 +203,12 @@ func TestWatchMCPReload(t *testing.T) {
 	defer store.Close()
 	ingestBundle(t, store, root)
 
+	ready := make(chan struct{})
 	watcher, err := watch.New(watch.Options{
 		Root:     root,
 		Store:    store,
 		Interval: 20 * time.Millisecond,
+		OnReady:  func() { close(ready) },
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -225,6 +216,7 @@ func TestWatchMCPReload(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go watcher.Run(ctx)
+	waitReady(t, ready)
 
 	executor := operations.New("test", engine.Options{})
 	server, err := mcp.New(executor, mcp.Options{Bundle: root, DB: dbPath})
@@ -253,6 +245,65 @@ Watch reload content.
 		response, ok := result.(contractv1.SearchResponse)
 		return ok && len(response.Keyword) > 0
 	})
+}
+
+func TestWatchChangeDuringInitialSyncIsNotLost(t *testing.T) {
+	root := copyBundle(t)
+	store, _ := openStore(t)
+	defer store.Close()
+	ingestBundle(t, store, root)
+
+	synced := make(chan struct{}, 2)
+	var once sync.Once
+	writeErr := make(chan error, 1)
+	watcher, err := watch.New(watch.Options{
+		Root:     root,
+		Store:    store,
+		Interval: 20 * time.Millisecond,
+		OnSync: func(report contractv1.SyncReport) {
+			synced <- struct{}{}
+			once.Do(func() {
+				writeErr <- os.WriteFile(filepath.Join(root, "b.md"), []byte(`---
+type: Concept
+title: "B During Sync"
+keywords:
+  - "duringsync"
+---
+
+# B During Sync
+
+Written while the initial sync runs.
+`), 0o644)
+			})
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go watcher.Run(ctx)
+
+	select {
+	case <-synced:
+	case <-time.After(2 * time.Second):
+		t.Fatal("initial sync did not run")
+	}
+	select {
+	case <-synced:
+	case <-time.After(2 * time.Second):
+		t.Fatal("change during initial sync was lost")
+	}
+	if err := <-writeErr; err != nil {
+		t.Fatal(err)
+	}
+	bundle, err := store.LoadBundle(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(conceptBody(bundle, "b"), "Written while the initial sync runs") {
+		t.Fatal("second sync did not apply the change")
+	}
 }
 
 func TestWatchRequiresIndexedBundle(t *testing.T) {
@@ -290,6 +341,15 @@ func waitFor(t *testing.T, condition func() bool) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatal("condition not met before timeout")
+}
+
+func waitReady(t *testing.T, ready <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-ready:
+	case <-time.After(2 * time.Second):
+		t.Fatal("watcher did not become ready")
+	}
 }
 
 func conceptBody(bundle *contractv1.Bundle, id string) string {

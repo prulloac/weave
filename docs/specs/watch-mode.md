@@ -66,6 +66,8 @@ weave mcp --bundle <path> --db .weave/index.db --watch
   files ending in `~`, `.tmp` or `.swp`.
 - Only Markdown files participate in snapshots and sync; other files never trigger a sync.
 - Coalesce bursts by polling: sync runs only when the snapshot differs from the last synced one.
+- Snapshot before the initial sync, then sync; a change during startup is detected on the next tick
+  instead of being folded into the baseline.
 - Treat editor atomic saves as modification.
 - Handle delete by pruning the document and cascading edges.
 - Handle rename as delete + create.
