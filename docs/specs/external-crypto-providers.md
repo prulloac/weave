@@ -16,6 +16,8 @@ status: draft
 
 # Specification: External Crypto Providers
 
+Status: **Implemented** (provider selection, capabilities, crypto IPC, key versions and audit integration; `local` remains the built-in default).
+
 ## 1. Overview
 
 Privacy directives declare *what* must be encrypted, tokenized or hashed. This spec declares *who*
@@ -58,7 +60,9 @@ External providers are opt-in. Without one, Weave uses the built-in local provid
 | `kms` | subprocess `weave-crypto-kms` | cloud KMS key id | managed keys, audit trails |
 
 - Only `local` is linked into the core binary.
-- `age`, `vault`, `kms` are extensions located in `$PATH` or `.weave/bin/`.
+- Every non-local provider resolves as `weave-crypto-<name>` in `$PATH` or `.weave/bin/`, or via
+  `providers.<name>.binary` in `.weave/crypto.yaml`.
+- `age`, `vault` and `kms` are the reference provider names; any stable name works.
 - Provider names are stable identifiers recorded in directives and audit output.
 
 ## 4. Provider Contract

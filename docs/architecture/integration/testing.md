@@ -112,6 +112,8 @@ MRR@10 = 1.0.
   events and clean shutdown.
   `cmd/weave/export_bdd_test.go` covers raw/encrypted export, confirmation, key preflight, target
   safety and re-ingestion; `engine/privacy` covers the encoded directive.
+  `cmd/weave/crypto_provider_bdd_test.go` covers provider selection, crypto IPC, tokenize/hash,
+  failures, local override and audit capabilities.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.

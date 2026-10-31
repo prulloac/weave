@@ -65,7 +65,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | BM25 explain evidence | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | x | x | green |
 | Privacy directives | [privacy-directives.md](specs/privacy-directives.md) | - | x | x | x | green |
-| External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | x | - | red |
+| External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | x | x | green |
 | Extension subprocess IPC | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
 | Enrichment extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
 | Rerank extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
@@ -134,6 +134,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] AI plugin: `weave-ai` with Ollama/OpenAI/Gemini providers, redaction and opt-in
 - [x] Sync watch CLI: `weave sync --watch` with JSONL events and clean shutdown
 - [x] Bundle export: raw plaintext with confirmation and re-ingestable encrypted export
+- [x] External crypto providers: `weave-crypto-<name>` selection, IPC, key versions and audit
 - [x] Body compression: zstd default, LZ4 opt-in, per-row codec and decode recovery
 
 ## Dependency Order
@@ -151,7 +152,7 @@ Execution waves:
 4. Parallel: sync (done), BM25 (done), BM25 calibration (done), BM25 explain (done), MCP in-memory (done), MCP persistent (done).
 5. Watch (done) and privacy directives (done).
 6. Extension runner, enrichment and rerank (done); sensitive MCP (done).
-7. AI plugin (done), external crypto.
+7. AI plugin (done), external crypto (done).
 8. Release automation (done), bundle export (done), multiple bundle sources (done).
 9. Optimization program (benchmarks, budgets, refactors) and global configuration/UX.
 

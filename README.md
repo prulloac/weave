@@ -63,6 +63,7 @@ Global flags:
 - `--with-enricher <name>` and `--rerank <name>` enable `weave-<name>` extensions; `--timeout`
   overrides the 5s default.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
+- `--provider <name>` selects a `weave-crypto-<name>` provider for ingest/sync/show/audit/export.
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
@@ -314,6 +315,30 @@ weave audit ~/notes --verify-keys --json
 ```
 
 Spec: [Privacy Directives](docs/specs/privacy-directives.md).
+
+#### External crypto providers
+
+The built-in `local` provider reads keys from `WEAVE_KEY_*` and `.weave/security.yaml`. External
+providers are `weave-crypto-<name>` extensions selected by `.weave/crypto.yaml` or `--provider`:
+
+```yaml
+# .weave/crypto.yaml
+default_provider: vault
+providers:
+  vault:
+    binary: weave-crypto-vault
+```
+
+```sh
+weave ingest ~/notes --db ~/.weave/index.db --provider vault
+weave show ~/notes secret --db ~/.weave/index.db --decrypt --provider vault
+weave audit ~/notes --db ~/.weave/index.db --verify-keys
+```
+
+Providers receive key ids only, return ciphertext and key versions, and are validated against their
+`--capabilities` handshake. Failures abort writes with `PRIVACY_KEY_UNAVAILABLE` (exit `3`).
+
+Spec: [External Crypto Providers](docs/specs/external-crypto-providers.md).
 
 #### `weave extensions`
 
