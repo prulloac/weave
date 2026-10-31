@@ -47,8 +47,8 @@ func TestMigrateV3AddsSearchTokens(t *testing.T) {
 	if err := storeTestDB(t, dbPath).QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 5 {
-		t.Fatalf("user_version = %d, want 5", version)
+	if version != 6 {
+		t.Fatalf("user_version = %d, want 6", version)
 	}
 	var count int
 	if err := storeTestDB(t, dbPath).QueryRow("SELECT COUNT(*) FROM search_tokens").Scan(&count); err != nil {
@@ -56,6 +56,9 @@ func TestMigrateV3AddsSearchTokens(t *testing.T) {
 	}
 	if err := storeTestDB(t, dbPath).QueryRow("SELECT COUNT(*) FROM search_vocabulary").Scan(&count); err != nil {
 		t.Fatalf("search_vocabulary missing: %v", err)
+	}
+	if err := storeTestDB(t, dbPath).QueryRow("SELECT COUNT(*) FROM extension_data").Scan(&count); err != nil {
+		t.Fatalf("extension_data missing: %v", err)
 	}
 }
 

@@ -122,7 +122,7 @@ func (s *Store) Sync(
 		}
 		switch {
 		case !exists:
-			warnings, _, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
+			warnings, _, item, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
 			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
@@ -130,6 +130,11 @@ func (s *Store) Sync(
 					continue
 				}
 				return contractv1.SyncReport{}, err
+			}
+			if item.extensionDataReady {
+				if err := s.applyExtensionDataTx(ctx, tx, root, item.enricherID, concept.ID, item.extensionData); err != nil {
+					return contractv1.SyncReport{}, err
+				}
 			}
 			added++
 			changedIDs = append(changedIDs, concept.ID)
@@ -143,7 +148,7 @@ func (s *Store) Sync(
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
 			}
-			warnings, enriched, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
+			warnings, enriched, item, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
 			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
@@ -159,6 +164,11 @@ func (s *Store) Sync(
 					}
 				}
 			}
+			if item.extensionDataReady {
+				if err := s.applyExtensionDataTx(ctx, tx, root, item.enricherID, concept.ID, item.extensionData); err != nil {
+					return contractv1.SyncReport{}, err
+				}
+			}
 			updated++
 			changedIDs = append(changedIDs, concept.ID)
 			changedConcepts = append(changedConcepts, concept)
@@ -169,6 +179,13 @@ func (s *Store) Sync(
 	for path := range existing {
 		if _, ok := current[path]; ok {
 			continue
+		}
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM extension_data
+			WHERE bundle_root = ? AND doc_id IN (
+				SELECT id FROM documents WHERE bundle_root = ? AND file_path = ?
+			)`, root, root, path); err != nil {
+			return contractv1.SyncReport{}, err
 		}
 		if _, err := tx.ExecContext(ctx,
 			"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {

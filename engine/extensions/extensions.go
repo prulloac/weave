@@ -142,6 +142,9 @@ type EnrichmentRequest struct {
 	V           string         `json:"v"`
 	Type        string         `json:"type"`
 	DocID       string         `json:"doc_id"`
+	DocPath     string         `json:"doc_path,omitempty"`
+	BundleRoot  string         `json:"bundle_root,omitempty"`
+	Workspace   string         `json:"workspace,omitempty"`
 	Title       string         `json:"title"`
 	Frontmatter map[string]any `json:"frontmatter"`
 	Body        string         `json:"body"`

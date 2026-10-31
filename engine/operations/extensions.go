@@ -81,8 +81,25 @@ func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore
 		if concept.Title != nil {
 			title = *concept.Title
 		}
+		workspace, err := os.MkdirTemp("", "weave-extension-*")
+		if err != nil {
+			e.warn("extension %s: %v", extension.Name, err)
+			return sqlitestore.EnrichmentApply{}, err
+		}
+		defer os.RemoveAll(workspace)
+		if err := os.MkdirAll(filepath.Join(workspace, "files"), 0o700); err != nil {
+			e.warn("extension %s: %v", extension.Name, err)
+			return sqlitestore.EnrichmentApply{}, err
+		}
+		bundleRoot, err := filepath.Abs(request.Path)
+		if err != nil {
+			bundleRoot = request.Path
+		}
 		response, err := runner.Enrich(ctx, extension, extensions.EnrichmentRequest{
 			DocID:       concept.ID,
+			DocPath:     concept.Path,
+			BundleRoot:  bundleRoot,
+			Workspace:   workspace,
 			Title:       title,
 			Frontmatter: concept.Frontmatter,
 			Body:        privacy.RedactForAI(concept),
@@ -99,11 +116,31 @@ func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore
 		if err != nil {
 			return sqlitestore.EnrichmentApply{}, err
 		}
-		return sqlitestore.EnrichmentApply{
+		apply := sqlitestore.EnrichmentApply{
 			Enricher: extension.Name,
 			Keywords: mergeKeywords(concept.Keywords, response.InferredKeywords),
 			Data:     data,
-		}, nil
+		}
+		files, err := extensions.ValidateWorkspace(workspace)
+		if err != nil {
+			e.warn("extension %s: %v", extension.Name, err)
+			apply.Warnings++
+			return apply, nil
+		}
+		if files != nil {
+			for index := range files {
+				content, err := os.ReadFile(files[index].SourcePath)
+				if err != nil {
+					e.warn("extension %s: %v", extension.Name, err)
+					apply.Warnings++
+					return apply, nil
+				}
+				files[index].Content = content
+			}
+			apply.ExtensionData = files
+			apply.ExtensionReady = true
+		}
+		return apply, nil
 	}, nil
 }
 

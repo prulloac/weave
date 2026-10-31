@@ -2,7 +2,7 @@ package sqlite
 
 import "database/sql"
 
-const schemaVersion = 5
+const schemaVersion = 6
 
 func userVersion(db *sql.DB) (int, error) {
 	var version int
@@ -58,6 +58,27 @@ CREATE TABLE IF NOT EXISTS search_vocabulary (
     token TEXT NOT NULL,
     PRIMARY KEY (bundle_root, field, token)
 );`)
+	return err
+}
+
+func migrateV5toV6(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS extension_data (
+    bundle_root TEXT NOT NULL,
+    extension TEXT NOT NULL,
+    doc_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    media_type TEXT,
+    metadata_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (bundle_root, extension, doc_id, key)
+);
+CREATE INDEX IF NOT EXISTS idx_extension_data_doc
+    ON extension_data(bundle_root, doc_id);
+CREATE INDEX IF NOT EXISTS idx_extension_data_blob
+    ON extension_data(bundle_root, sha256);`)
 	return err
 }
 
@@ -139,6 +160,22 @@ CREATE TABLE IF NOT EXISTS search_vocabulary (
     token TEXT NOT NULL,
     PRIMARY KEY (bundle_root, field, token)
 );
+CREATE TABLE IF NOT EXISTS extension_data (
+    bundle_root TEXT NOT NULL,
+    extension TEXT NOT NULL,
+    doc_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    media_type TEXT,
+    metadata_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (bundle_root, extension, doc_id, key)
+);
+CREATE INDEX IF NOT EXISTS idx_extension_data_doc
+    ON extension_data(bundle_root, doc_id);
+CREATE INDEX IF NOT EXISTS idx_extension_data_blob
+    ON extension_data(bundle_root, sha256);
 CREATE TABLE IF NOT EXISTS enrichments (
     bundle_root TEXT NOT NULL,
     doc_id TEXT NOT NULL,
