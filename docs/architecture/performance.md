@@ -55,23 +55,23 @@ CI refreshes the baseline on the pinned runner with higher sample counts.
 
 | ID | Aggregate | Baseline | Budget | Status |
 | --- | --- | ---: | ---: | --- |
-| `WEAVE-B-OKF-PARSE-10K` | p95 | 0.246 s | 20 s | pass |
-| `WEAVE-B-OKF-PARSE-10K-COLD` | p95 | 0.246 s | 20 s | pass |
-| `WEAVE-B-OKF-PARSE-10K-WARM` | p95 | 0.224 s | — | baseline |
-| `WEAVE-B-STORE-INGEST-10K` | p50 | 7.715 s | 30 s | pass |
-| `WEAVE-B-STORE-LOAD-10K` | p50 | 877.991 ms | — | baseline |
-| `WEAVE-B-STORE-BM25-10K` | p95 | 65.502 ms | — | baseline |
-| `WEAVE-B-STORE-EXPLAIN-10K` | p95 | 182.552 ms | — | baseline |
-| `WEAVE-B-STORE-SYNC-10K-NONE` | p50 | 5.011 s | — | baseline |
-| `WEAVE-B-STORE-SYNC-10K-1PCT` | p50 | 5.068 s | 2 s | **fail** |
-| `WEAVE-B-CLI-VERSION-COLD` | p95 | 4.483 ms | 50 ms | pass |
-| `WEAVE-B-CLI-SEARCH-KEYWORD-10K` | p95 | 67.563 ms | 80 ms | pass |
-| `WEAVE-B-CLI-SEARCH-FUZZY-10K` | p95 | 202.926 ms | 120 ms | **fail** |
-| `WEAVE-B-CLI-SEARCH-BM25-10K` | p95 | 88.644 ms | 150 ms | pass |
-| `WEAVE-B-CLI-SEARCH-HYBRID-10K` | p95 | 162.842 ms | 180 ms | pass |
-| `WEAVE-B-CLI-EXPLAIN-10K` | p95 | 471.602 ms | 150 ms | **fail** |
-| `WEAVE-B-CLI-AUDIT-10K` | p95 | 1.271 s | 5 s | pass |
-| `WEAVE-B-CLI-EXPORT-RAW-10K` | p95 | 1.609 s | 30 s | pass |
+| `WEAVE-B-OKF-PARSE-10K` | p95 | 0.237 s | 20 s | pass |
+| `WEAVE-B-OKF-PARSE-10K-COLD` | p95 | 0.237 s | 20 s | pass |
+| `WEAVE-B-OKF-PARSE-10K-WARM` | p95 | 0.291 s | — | baseline |
+| `WEAVE-B-STORE-INGEST-10K` | p50 | 8.088 s | 30 s | pass |
+| `WEAVE-B-STORE-LOAD-10K` | p50 | 821.379 ms | — | baseline |
+| `WEAVE-B-STORE-BM25-10K` | p95 | 60.063 ms | — | baseline |
+| `WEAVE-B-STORE-EXPLAIN-10K` | p95 | 166.032 ms | — | baseline |
+| `WEAVE-B-STORE-SYNC-10K-NONE` | p50 | 0.148 s | — | baseline |
+| `WEAVE-B-STORE-SYNC-10K-1PCT` | p50 | 1.237 s | 2 s | **pass** |
+| `WEAVE-B-CLI-VERSION-COLD` | p95 | 4.646 ms | 50 ms | pass |
+| `WEAVE-B-CLI-SEARCH-KEYWORD-10K` | p95 | 58.721 ms | 80 ms | pass |
+| `WEAVE-B-CLI-SEARCH-FUZZY-10K` | p95 | 179.934 ms | 120 ms | **fail** |
+| `WEAVE-B-CLI-SEARCH-BM25-10K` | p95 | 74.491 ms | 150 ms | pass |
+| `WEAVE-B-CLI-SEARCH-HYBRID-10K` | p95 | 143.758 ms | 180 ms | pass |
+| `WEAVE-B-CLI-EXPLAIN-10K` | p95 | 397.159 ms | 150 ms | **fail** |
+| `WEAVE-B-CLI-AUDIT-10K` | p95 | 0.992 s | 5 s | pass |
+| `WEAVE-B-CLI-EXPORT-RAW-10K` | p95 | 1.391 s | 30 s | pass |
 
 ## Microbenchmarks
 
@@ -79,23 +79,24 @@ CI refreshes the baseline on the pinned runner with higher sample counts.
 
 | Benchmark | Time | Allocated |
 | --- | ---: | ---: |
-| `ParseCorpus/corpus=1k/cache=off` | 46.7 ms | 42.0 MB |
-| `ParseCorpus/corpus=1k/cache=on` | 20.1 ms | 14.3 MB |
-| `ParseCorpus/corpus=10k/cache=off` | 269.1 ms | 383.0 MB |
-| `ParseCorpus/corpus=10k/cache=on` | 207.6 ms | 144.2 MB |
-| `SearchCorpus/mode=keyword` | 32.6 ms | 25.7 MB |
-| `SearchCorpus/mode=fuzzy` | 248.2 ms | 49.6 MB |
-| `SearchCorpus/mode=hybrid` | 241.9 ms | 49.6 MB |
-| `SearchBuild10K` | 1.74 s | 893.2 MB |
-| `Navigation10K/list` | 8.5 ms | 5.7 MB |
-| `Navigation10K/show` | 0.05 ms | 1.1 KB |
-| `Navigation10K/backlinks` | 0.07 ms | 0.9 KB |
-| `Navigation10K/relate` | 0.14 ms | 49.6 KB |
-| `IngestCorpus` | 8.44 s | 19.2 GB |
-| `LoadCorpus` | 920 ms | 425 MB |
-| `BM25Corpus` | 94.9 ms | 7.8 KB |
-| `FuzzyHitsCorpus` | 138.2 ms | 35.9 MB |
-| `SyncNoChangeCorpus` | 5.28 s | 1.32 GB |
+| `ParseCorpus/corpus=1k/cache=off` | 55.7 ms | 43.8 MB |
+| `ParseCorpus/corpus=1k/cache=on` | 28.9 ms | 14.3 MB |
+| `ParseCorpus/corpus=10k/cache=off` | 235.3 ms | 382.9 MB |
+| `ParseCorpus/corpus=10k/cache=on` | 202.5 ms | 144.2 MB |
+| `SearchCorpus/mode=keyword` | 31.9 ms | 25.7 MB |
+| `SearchCorpus/mode=fuzzy` | 224.7 ms | 49.6 MB |
+| `SearchCorpus/mode=hybrid` | 233.3 ms | 49.6 MB |
+| `SearchBuild10K` | 1.50 s | 893.4 MB |
+| `Navigation10K/list` | 3.6 ms | 5.7 MB |
+| `Navigation10K/show` | 0.06 ms | 1.1 KB |
+| `Navigation10K/backlinks` | 0.05 ms | 0.9 KB |
+| `Navigation10K/relate` | 0.11 ms | 49.6 KB |
+| `IngestCorpus` | 10.04 s | 19.2 GB |
+| `LoadCorpus` | 882 ms | 425 MB |
+| `BM25Corpus` | 89.1 ms | 7.8 KB |
+| `FuzzyHitsCorpus` | 134.2 ms | 35.9 MB |
+| `SyncNoChangeCorpus` | 0.169 s | 44.2 MB |
+| `Sync1PctCorpus` | 1.279 s | 693.3 MB |
 
 ## Space and memory
 
@@ -108,17 +109,17 @@ CI refreshes the baseline on the pinned runner with higher sample counts.
 | Free pages | 0.508 MB | — | baseline |
 | WAL after close | 0.000 MB | — | baseline |
 | Stored / raw body ratio (zstd) | 0.245 | < 0.60 | pass |
-| Release binary | 14.453 MB | < 25 MB | pass |
-| Index / body ratio | 3.409× | < 3.0× | **fail** |
-| Peak RSS during ingest | 445.414 MB | — | baseline |
+| Release binary | 14.485 MB | < 25 MB | pass |
+| Index / body ratio | 3.411× | < 3.0× | **fail** |
+| Peak RSS during ingest | 451.074 MB | — | baseline |
 
 ## Findings for O4/O5
 
-- **O4 — time.** Keyword answers from SQLite metadata in 68 ms. Fuzzy and hybrid use persistent
-  token postings (`search_tokens`): hybrid is 163 ms and passes; fuzzy is 203 ms and is within 1.7×
-  of its 120 ms budget. Explain now uses persistent BM25 and fuzzy evidence instead of rebuilding
-  the index: 472 ms, down from ~3.05 s, but still above 150 ms. Sync re-hashes the full 10k tree
-  even when 1% changed.
+- **O4 — time.** Keyword answers from SQLite metadata in 59 ms. Fuzzy and hybrid use persistent
+  token postings (`search_tokens`): hybrid is 144 ms and passes; fuzzy is 180 ms and is within 1.5×
+  of its 120 ms budget. Explain uses persistent BM25 and fuzzy evidence: 397 ms, down from ~3.05 s,
+  but still above 150 ms. Incremental sync now skips no-ops in 148 ms and applies a 1% change in
+  1.24 s; both sync budgets pass.
 - **O5 — space.** FTS dominates the database (47 MB of 84 MB); persistent token postings add about
   10 MB. Removing dead body/token projections and dropping eager trigrams cut in-memory index
   overhead from 6.8× to 3.4× body bytes; the 3× budget is close.
@@ -146,6 +147,7 @@ regression. Baselines change only through a `perf:` PR.
 | 2026-10-31 | O4 slice | Metadata keyword search, lazy search, slimmer index; keyword and audit budgets pass |
 | 2026-10-31 | O4 slice 2 | Persistent token postings and compact fuzzy/hybrid; hybrid budget passes |
 | 2026-10-31 | O4 slice 3 | Persistent explain evidence; explain 3.05 s → 472 ms |
+| 2026-10-31 | O4 slice 4 | Incremental sync; no-op 148 ms, 1% 1.24 s, both budgets pass |
 
 ## Related Documents
 

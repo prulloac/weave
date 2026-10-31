@@ -182,9 +182,9 @@ Candidates, validated by profiles before implementation:
 
 Delivered slices: keyword search answers from SQLite metadata, graph/search views are lazy, the
 in-memory index dropped dead body/token projections, fuzzy/hybrid use persistent token postings
-(`search_tokens`), and explain uses persistent BM25 plus fuzzy evidence. Keyword is 68 ms, hybrid
-163 ms, audit 1.3 s (all pass); fuzzy is 203 ms against 120 ms and explain 472 ms against 150 ms.
-Incremental sync remains O4 work.
+(`search_tokens`), explain uses persistent BM25 plus fuzzy evidence, and sync is incremental.
+Keyword is 59 ms, hybrid 144 ms, audit 1.0 s, no-op sync 148 ms and 1% sync 1.24 s (all pass);
+fuzzy is 180 ms against 120 ms and explain 397 ms against 150 ms.
 
 Each candidate PR includes `benchstat`-style before/after numbers and is reverted if it regresses a
 tracked budget beyond the 10% gate. Details: [Proposal: time and space](../architecture/optimization/proposal-time-space.md).
