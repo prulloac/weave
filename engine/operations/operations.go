@@ -894,7 +894,7 @@ func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore
 			DocID:       concept.ID,
 			Title:       title,
 			Frontmatter: concept.Frontmatter,
-			Body:        concept.Body,
+			Body:        privacy.RedactForAI(concept),
 		})
 		if err != nil {
 			e.warn("extension %s: %v", extension.Name, err)
