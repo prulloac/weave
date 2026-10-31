@@ -95,10 +95,10 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
 | Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | x | green |
 | Pluggable scoring (post-GA) | [extension-scoring.md](specs/extension-scoring.md) | - | x | x | - | backlog |
-| Extension data API (post-GA) | [extension-data.md](specs/extension-data.md) | - | x | - | - | backlog |
+| Extension data API (post-GA) | [extension-data.md](specs/extension-data.md) | - | x | x | - | backlog |
 
 Post-GA pluggable scoring: spec and BDD approved; TDD is deferred until after v1.0.0.
-Post-GA extension data: spec approved; BDD and TDD are deferred until after v1.0.0.
+Post-GA extension data: spec and BDD approved; TDD is deferred until after v1.0.0.
 
 ## Cross-cutting
 

@@ -15,6 +15,7 @@ coverage; a scenario without a test is a documentation gap.
 | [Dry run](dryrun.md) | [configuration.md](../specs/configuration.md) | `cmd/weave/dryrun_bdd_test.go` |
 | [Error contract](error-contract.md) | [configuration.md](../specs/configuration.md) | `cmd/weave/error_contract_bdd_test.go` |
 | [Extension IPC](extension-ipc.md) | [extension-ipc.md](../specs/extension-ipc.md) | `engine/extensions/extensions_test.go`, `cmd/weave/extensions_bdd_test.go` |
+| [Extension data](extension-data.md) | [extension-data.md](../specs/extension-data.md) | planned: `cmd/weave/extension_data_bdd_test.go`, `engine/extensions/extension_data_test.go`, `storage/sqlite/extension_data_test.go` |
 | [External crypto](external-crypto.md) | [external-crypto-providers.md](../specs/external-crypto-providers.md) | `cmd/weave/crypto_provider_bdd_test.go` |
 | [Feedback](feedback.md) | [configuration.md](../specs/configuration.md) | `cmd/weave/feedback_bdd_test.go` |
 | [Help](help.md) | [configuration.md](../specs/configuration.md) | `cmd/weave/help_bdd_test.go` |

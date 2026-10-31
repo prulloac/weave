@@ -116,8 +116,8 @@ The existing `enrichment_request` gains three optional fields:
 
 - The workspace contains an empty `files/` directory and an optional `manifest.json`.
 - The workspace is removed after import; extensions must not retain the path.
-- `bundle_root` is omitted for in-memory runs. In-memory runs do not import extension data; a
-  manifest is ignored with one warning.
+- `bundle_root` is omitted for in-memory runs. Extension data requires persistent storage; in-memory
+  operations do not run enrichers or import data.
 - Existing extensions ignore the new fields.
 
 ### 4.2 Extension data manifest
@@ -347,6 +347,8 @@ Search and graph flows do not change. An extension that wants extension data to 
 must add keywords to the host document through the existing enrichment response.
 
 ## 8. Testing
+
+Behavior scenarios: [extension-data.md](../bdd/extension-data.md).
 
 - Unit tests for manifest parsing, key/path validation, symlink rejection, hash mismatch, size and
   quota limits.
