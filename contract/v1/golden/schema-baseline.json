@@ -1,0 +1,2298 @@
+{
+	"version": 1,
+	"defs": {
+		"AuditFailOn": {
+			"type": "string",
+			"enum": [
+				"error",
+				"none",
+				"warning"
+			]
+		},
+		"AuditFinding": {
+			"type": "object",
+			"required": [
+				"code",
+				"message",
+				"severity"
+			],
+			"additional_properties": false,
+			"properties": {
+				"code": {
+					"ref": "#/$defs/AuditFindingCode"
+				},
+				"concept": {
+					"type": "string"
+				},
+				"message": {
+					"type": "string"
+				},
+				"severity": {
+					"ref": "#/$defs/AuditSeverity"
+				},
+				"source": {
+					"type": "string"
+				},
+				"target": {
+					"type": "string"
+				}
+			}
+		},
+		"AuditFindingCode": {
+			"type": "string",
+			"enum": [
+				"BROKEN_LINK",
+				"BROKEN_RELATED",
+				"DANGLING_EXTERNAL",
+				"EMPTY_BUNDLE",
+				"KEY_UNAVAILABLE",
+				"MISSING_FRONTMATTER",
+				"MISSING_INDEX_TARGET",
+				"MISSING_KEYWORDS",
+				"MISSING_TYPE",
+				"ORPHAN_CONCEPT",
+				"UNINDEXED_CONCEPT",
+				"UNSUPPORTED_OKF_VERSION"
+			]
+		},
+		"AuditReport": {
+			"type": "object",
+			"required": [
+				"fail_on",
+				"findings",
+				"ok",
+				"path",
+				"summary"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fail_on": {
+					"ref": "#/$defs/AuditFailOn"
+				},
+				"findings": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/AuditFinding"
+					}
+				},
+				"ok": {
+					"type": "boolean"
+				},
+				"path": {
+					"type": "string"
+				},
+				"summary": {
+					"ref": "#/$defs/AuditSummary"
+				}
+			}
+		},
+		"AuditSeverity": {
+			"type": "string",
+			"enum": [
+				"error",
+				"info",
+				"warning"
+			]
+		},
+		"AuditSummary": {
+			"type": "object",
+			"required": [
+				"broken_links",
+				"concepts",
+				"edges",
+				"missing_index_targets",
+				"missing_keywords",
+				"orphans",
+				"unindexed_concepts",
+				"valid"
+			],
+			"additional_properties": false,
+			"properties": {
+				"broken_links": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"concepts": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"edges": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"missing_index_targets": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"missing_keywords": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"orphans": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"unindexed_concepts": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"valid": {
+					"type": "boolean"
+				}
+			}
+		},
+		"Backlink": {
+			"type": "object",
+			"required": [
+				"from",
+				"title"
+			],
+			"additional_properties": false,
+			"properties": {
+				"from": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				}
+			}
+		},
+		"BacklinksResult": {
+			"type": "object",
+			"required": [
+				"backlinks",
+				"id"
+			],
+			"additional_properties": false,
+			"properties": {
+				"backlinks": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/Backlink"
+					}
+				},
+				"id": {
+					"type": "string"
+				}
+			}
+		},
+		"Bundle": {
+			"type": "object",
+			"required": [
+				"concepts",
+				"root",
+				"validation"
+			],
+			"additional_properties": false,
+			"properties": {
+				"concepts": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/OkfConcept"
+					}
+				},
+				"index": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/IndexEntry"
+					}
+				},
+				"okf_version": {
+					"ref": "#/$defs/OkfVersion"
+				},
+				"root": {
+					"type": "string"
+				},
+				"validation": {
+					"ref": "#/$defs/Validation"
+				}
+			}
+		},
+		"ConceptStatus": {
+			"type": "string",
+			"enum": [
+				"deprecated",
+				"draft",
+				"stable"
+			]
+		},
+		"ConceptValidation": {
+			"type": "object",
+			"required": [
+				"has_frontmatter",
+				"has_keywords",
+				"has_type",
+				"id",
+				"warnings"
+			],
+			"additional_properties": false,
+			"properties": {
+				"has_frontmatter": {
+					"type": "boolean"
+				},
+				"has_keywords": {
+					"type": "boolean"
+				},
+				"has_type": {
+					"type": "boolean"
+				},
+				"id": {
+					"type": "string"
+				},
+				"warnings": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"ConfigEntry": {
+			"type": "object",
+			"required": [
+				"key",
+				"source",
+				"value"
+			],
+			"additional_properties": false,
+			"properties": {
+				"key": {
+					"type": "string"
+				},
+				"origin": {
+					"type": "string"
+				},
+				"source": {
+					"ref": "#/$defs/ConfigSource"
+				},
+				"value": {
+					"ref": "#/$defs/ConfigValue"
+				}
+			}
+		},
+		"ConfigGet": {
+			"type": "object",
+			"required": [
+				"key",
+				"source",
+				"value"
+			],
+			"additional_properties": false,
+			"properties": {
+				"key": {
+					"type": "string"
+				},
+				"origin": {
+					"type": "string"
+				},
+				"source": {
+					"ref": "#/$defs/ConfigSource"
+				},
+				"value": {
+					"ref": "#/$defs/ConfigValue"
+				}
+			}
+		},
+		"ConfigInit": {
+			"type": "object",
+			"required": [
+				"created",
+				"path"
+			],
+			"additional_properties": false,
+			"properties": {
+				"created": {
+					"type": "boolean"
+				},
+				"next_command": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				}
+			}
+		},
+		"ConfigPath": {
+			"type": "object",
+			"required": [
+				"exists",
+				"path"
+			],
+			"additional_properties": false,
+			"properties": {
+				"exists": {
+					"type": "boolean"
+				},
+				"path": {
+					"type": "string"
+				}
+			}
+		},
+		"ConfigShow": {
+			"type": "object",
+			"required": [
+				"config_path",
+				"entries",
+				"exists"
+			],
+			"additional_properties": false,
+			"properties": {
+				"config_path": {
+					"type": "string"
+				},
+				"entries": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ConfigEntry"
+					}
+				},
+				"exists": {
+					"type": "boolean"
+				}
+			}
+		},
+		"ConfigSource": {
+			"type": "string",
+			"enum": [
+				"default",
+				"env",
+				"file",
+				"flag"
+			]
+		},
+		"ConfigValue": {
+			"variants": [
+				{
+					"type": "string"
+				},
+				{
+					"type": "boolean"
+				},
+				{
+					"type": "integer"
+				}
+			]
+		},
+		"ContractInfo": {
+			"type": "object",
+			"required": [
+				"binary_version",
+				"cli",
+				"contract",
+				"errors",
+				"operations"
+			],
+			"additional_properties": false,
+			"properties": {
+				"binary_version": {
+					"type": "string"
+				},
+				"cli": {
+					"type": "string",
+					"const": "weave.cli/v1"
+				},
+				"contract": {
+					"type": "string",
+					"const": "weave.contract/v1"
+				},
+				"errors": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ErrorCode"
+					}
+				},
+				"operations": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/OperationDescriptor"
+					}
+				}
+			}
+		},
+		"Envelope": {
+			"variants": [
+				{
+					"ref": "#/$defs/SuccessEnvelope"
+				},
+				{
+					"ref": "#/$defs/FailureEnvelope"
+				}
+			]
+		},
+		"ErrorCode": {
+			"type": "string",
+			"enum": [
+				"BUNDLE_NOT_INDEXED",
+				"CONCEPT_NOT_FOUND",
+				"CONFIRMATION_REQUIRED",
+				"EXTENSION_FAILED",
+				"EXTENSION_NOT_FOUND",
+				"EXTENSION_PROTOCOL",
+				"EXTENSION_TIMEOUT",
+				"INTERNAL",
+				"INVALID_REQUEST",
+				"INVALID_ROOT",
+				"PARSE_ERROR",
+				"PATH_NOT_FOUND",
+				"PERMISSION_DENIED",
+				"PRIVACY_DECRYPT_FAILED",
+				"PRIVACY_DIRECTIVE_INVALID",
+				"PRIVACY_KEY_UNAVAILABLE",
+				"PRIVACY_PROVIDER_UNSUPPORTED"
+			]
+		},
+		"ExplainFuzzy": {
+			"type": "object",
+			"required": [
+				"fields",
+				"matched_fields",
+				"score",
+				"tokens"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fields": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExplainFuzzyField"
+					}
+				},
+				"matched_fields": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SearchField"
+					}
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"snippet": {
+					"type": "string"
+				},
+				"tokens": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExplainFuzzyToken"
+					}
+				}
+			}
+		},
+		"ExplainFuzzyField": {
+			"type": "object",
+			"required": [
+				"contribution",
+				"field",
+				"score",
+				"weight"
+			],
+			"additional_properties": false,
+			"properties": {
+				"contribution": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"field": {
+					"ref": "#/$defs/SearchField"
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExplainFuzzyToken": {
+			"type": "object",
+			"required": [
+				"field",
+				"matched_token",
+				"query_token",
+				"similarity"
+			],
+			"additional_properties": false,
+			"properties": {
+				"field": {
+					"ref": "#/$defs/SearchField"
+				},
+				"matched_token": {
+					"type": "string"
+				},
+				"query_token": {
+					"type": "string"
+				},
+				"similarity": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExplainHybrid": {
+			"type": "object",
+			"required": [
+				"fuzzy_weight",
+				"keyword_weight",
+				"total"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fuzzy_weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"keyword_weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"lexical_weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"total": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExplainKeyword": {
+			"type": "object",
+			"required": [
+				"matched_keywords",
+				"score",
+				"tokens"
+			],
+			"additional_properties": false,
+			"properties": {
+				"matched_keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"tokens": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExplainKeywordToken"
+					}
+				}
+			}
+		},
+		"ExplainKeywordMatch": {
+			"type": "string",
+			"enum": [
+				"exact",
+				"none",
+				"prefix"
+			]
+		},
+		"ExplainKeywordToken": {
+			"type": "object",
+			"required": [
+				"match",
+				"matched_keyword",
+				"query_token",
+				"score"
+			],
+			"additional_properties": false,
+			"properties": {
+				"match": {
+					"ref": "#/$defs/ExplainKeywordMatch"
+				},
+				"matched_keyword": {
+					"type": "string"
+				},
+				"query_token": {
+					"type": "string"
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExplainLexical": {
+			"type": "object",
+			"required": [
+				"matched_fields",
+				"raw_score",
+				"score",
+				"tokens"
+			],
+			"additional_properties": false,
+			"properties": {
+				"matched_fields": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SearchField"
+					}
+				},
+				"raw_score": {
+					"type": "number",
+					"minimum": 0
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"tokens": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExplainLexicalToken"
+					}
+				}
+			}
+		},
+		"ExplainLexicalToken": {
+			"type": "object",
+			"required": [
+				"contribution",
+				"matched",
+				"query_token"
+			],
+			"additional_properties": false,
+			"properties": {
+				"contribution": {
+					"type": "number",
+					"minimum": 0
+				},
+				"matched": {
+					"type": "boolean"
+				},
+				"query_token": {
+					"type": "string"
+				}
+			}
+		},
+		"ExplainResult": {
+			"type": "object",
+			"required": [
+				"found",
+				"fuzzy",
+				"hybrid",
+				"id",
+				"keyword",
+				"mode",
+				"query",
+				"rank",
+				"top_k"
+			],
+			"additional_properties": false,
+			"properties": {
+				"found": {
+					"type": "boolean"
+				},
+				"fuzzy": {
+					"ref": "#/$defs/ExplainFuzzy"
+				},
+				"hybrid": {
+					"ref": "#/$defs/ExplainHybrid"
+				},
+				"id": {
+					"type": "string"
+				},
+				"keyword": {
+					"ref": "#/$defs/ExplainKeyword"
+				},
+				"lexical": {
+					"ref": "#/$defs/ExplainLexical"
+				},
+				"mode": {
+					"ref": "#/$defs/SearchMode"
+				},
+				"query": {
+					"type": "string"
+				},
+				"rank": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"source": {
+					"type": "string"
+				},
+				"top_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				}
+			}
+		},
+		"ExportReport": {
+			"type": "object",
+			"required": [
+				"documents",
+				"encrypted",
+				"format",
+				"hashed",
+				"out",
+				"source",
+				"tokenized"
+			],
+			"additional_properties": false,
+			"properties": {
+				"confirmation_required": {
+					"type": "boolean"
+				},
+				"documents": {
+					"type": "integer"
+				},
+				"dry_run": {
+					"type": "boolean"
+				},
+				"encrypted": {
+					"type": "integer"
+				},
+				"format": {
+					"type": "string",
+					"enum": [
+						"encrypted",
+						"raw"
+					]
+				},
+				"hashed": {
+					"type": "integer"
+				},
+				"out": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"tokenized": {
+					"type": "integer"
+				}
+			}
+		},
+		"ExtensionInfo": {
+			"type": "object",
+			"required": [
+				"name",
+				"path",
+				"source"
+			],
+			"additional_properties": false,
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string",
+					"enum": [
+						"bundle",
+						"path"
+					]
+				}
+			}
+		},
+		"ExtensionList": {
+			"type": "object",
+			"required": [
+				"extensions"
+			],
+			"additional_properties": false,
+			"properties": {
+				"extensions": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExtensionInfo"
+					}
+				}
+			}
+		},
+		"FailureEnvelope": {
+			"type": "object",
+			"required": [
+				"cli",
+				"contract",
+				"error",
+				"ok"
+			],
+			"additional_properties": false,
+			"properties": {
+				"cli": {
+					"type": "string",
+					"const": "weave.cli/v1"
+				},
+				"contract": {
+					"type": "string",
+					"const": "weave.contract/v1"
+				},
+				"error": {
+					"ref": "#/$defs/OperationError"
+				},
+				"id": {
+					"type": "string"
+				},
+				"ok": {
+					"type": "boolean",
+					"const": false
+				}
+			}
+		},
+		"FuzzyHit": {
+			"type": "object",
+			"required": [
+				"id",
+				"matched_fields",
+				"path",
+				"score",
+				"title",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"matched_fields": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SearchField"
+					}
+				},
+				"path": {
+					"type": "string"
+				},
+				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"snippet": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"Graph": {
+			"type": "object",
+			"required": [
+				"dangling",
+				"edges",
+				"nodes"
+			],
+			"additional_properties": false,
+			"properties": {
+				"dangling": {
+					"type": "object"
+				},
+				"edges": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/GraphEdge"
+					}
+				},
+				"nodes": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/GraphNode"
+					}
+				}
+			}
+		},
+		"GraphEdge": {
+			"type": "object",
+			"required": [
+				"from",
+				"source",
+				"to"
+			],
+			"additional_properties": false,
+			"properties": {
+				"from": {
+					"type": "string"
+				},
+				"raw": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string",
+					"enum": [
+						"link",
+						"related"
+					]
+				},
+				"to": {
+					"type": "string"
+				}
+			}
+		},
+		"GraphNode": {
+			"type": "object",
+			"required": [
+				"id",
+				"in_degree",
+				"keywords",
+				"out_degree",
+				"path",
+				"title",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"in_degree": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"out_degree": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"path": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"status": {
+					"ref": "#/$defs/ConceptStatus"
+				},
+				"tags": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"HybridHit": {
+			"type": "object",
+			"required": [
+				"fuzzy_score",
+				"id",
+				"keyword_score",
+				"matched_fields",
+				"matched_keywords",
+				"path",
+				"title",
+				"total_score",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fuzzy_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"id": {
+					"type": "string"
+				},
+				"keyword_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"lexical_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"matched_fields": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SearchField"
+					}
+				},
+				"matched_keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"path": {
+					"type": "string"
+				},
+				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"snippet": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"total_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"IndexEntry": {
+			"type": "object",
+			"required": [
+				"target",
+				"title"
+			],
+			"additional_properties": false,
+			"properties": {
+				"description": {
+					"type": "string"
+				},
+				"target": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				}
+			}
+		},
+		"IngestReport": {
+			"type": "object",
+			"required": [
+				"bundle",
+				"db",
+				"documents",
+				"edges",
+				"errors",
+				"mode",
+				"synthetic",
+				"warnings"
+			],
+			"additional_properties": false,
+			"properties": {
+				"bundle": {
+					"type": "string"
+				},
+				"db": {
+					"type": "string"
+				},
+				"documents": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"dry_run": {
+					"type": "boolean"
+				},
+				"edges": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"errors": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"mode": {
+					"type": "string",
+					"enum": [
+						"permissive",
+						"strict"
+					]
+				},
+				"sources": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SourceReport"
+					}
+				},
+				"synthetic": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"warnings": {
+					"type": "integer",
+					"minimum": 0
+				}
+			}
+		},
+		"KeywordHit": {
+			"type": "object",
+			"required": [
+				"id",
+				"keywords",
+				"matched_keywords",
+				"path",
+				"score",
+				"title",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"matched_keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"path": {
+					"type": "string"
+				},
+				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"source": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"LexicalHit": {
+			"type": "object",
+			"required": [
+				"id",
+				"path",
+				"raw_score",
+				"score",
+				"title",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"raw_score": {
+					"type": "number",
+					"minimum": 0
+				},
+				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"source": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"ListResult": {
+			"type": "object",
+			"required": [
+				"id",
+				"keywords",
+				"path",
+				"title",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"path": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"status": {
+					"ref": "#/$defs/ConceptStatus"
+				},
+				"tags": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"ListResults": {
+			"type": "array"
+		},
+		"OkfConcept": {
+			"type": "object",
+			"required": [
+				"body",
+				"frontmatter",
+				"id",
+				"keywords",
+				"links",
+				"path",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"body": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"frontmatter": {
+					"type": "object"
+				},
+				"id": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"links": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/OkfLink"
+					}
+				},
+				"path": {
+					"type": "string"
+				},
+				"privacy": {
+					"ref": "#/$defs/PrivacyDirective"
+				},
+				"status": {
+					"ref": "#/$defs/ConceptStatus"
+				},
+				"tags": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"OkfLink": {
+			"type": "object",
+			"required": [
+				"raw",
+				"resolves_in_bundle",
+				"target"
+			],
+			"additional_properties": false,
+			"properties": {
+				"raw": {
+					"type": "string"
+				},
+				"resolved": {
+					"type": "string"
+				},
+				"resolves_in_bundle": {
+					"type": "boolean"
+				},
+				"target": {
+					"type": "string"
+				}
+			}
+		},
+		"OkfVersion": {
+			"type": "string",
+			"enum": [
+				"0.2"
+			]
+		},
+		"OperationDescriptor": {
+			"type": "object",
+			"required": [
+				"fields",
+				"op",
+				"result"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fields": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"op": {
+					"ref": "#/$defs/OperationName"
+				},
+				"result": {
+					"type": "string"
+				}
+			}
+		},
+		"OperationError": {
+			"type": "object",
+			"required": [
+				"code",
+				"message"
+			],
+			"additional_properties": false,
+			"properties": {
+				"code": {
+					"ref": "#/$defs/ErrorCode"
+				},
+				"details": {
+					"type": "object"
+				},
+				"message": {
+					"type": "string"
+				}
+			}
+		},
+		"OperationName": {
+			"type": "string",
+			"enum": [
+				"audit",
+				"backlinks",
+				"contract",
+				"explain",
+				"export",
+				"extensions",
+				"graph",
+				"ingest",
+				"list",
+				"parse",
+				"path",
+				"rebuild",
+				"relate",
+				"search",
+				"show",
+				"sync",
+				"version"
+			]
+		},
+		"OperationRequest": {
+			"type": "object",
+			"required": [
+				"op"
+			],
+			"additional_properties": false,
+			"properties": {
+				"codec": {
+					"type": "string",
+					"enum": [
+						"lz4",
+						"none",
+						"zstd"
+					]
+				},
+				"confirmed": {
+					"type": "boolean"
+				},
+				"db": {
+					"type": "string"
+				},
+				"decrypt": {
+					"type": "boolean"
+				},
+				"depth": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 5
+				},
+				"direction": {
+					"ref": "#/$defs/RelateDirection"
+				},
+				"dry_run": {
+					"type": "boolean"
+				},
+				"enricher": {
+					"type": "string"
+				},
+				"fail_on": {
+					"ref": "#/$defs/AuditFailOn"
+				},
+				"force": {
+					"type": "boolean"
+				},
+				"format": {
+					"type": "string",
+					"enum": [
+						"encrypted",
+						"raw"
+					]
+				},
+				"from": {
+					"type": "string"
+				},
+				"id": {
+					"type": "string"
+				},
+				"key_id": {
+					"type": "string"
+				},
+				"limit": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"mode": {
+					"ref": "#/$defs/SearchMode"
+				},
+				"no_db": {
+					"type": "boolean"
+				},
+				"op": {
+					"ref": "#/$defs/OperationName"
+				},
+				"out": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"permissive": {
+					"type": "boolean"
+				},
+				"provider": {
+					"type": "string"
+				},
+				"query": {
+					"type": "string"
+				},
+				"rerank": {
+					"type": "string"
+				},
+				"sources": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SourceSpec"
+					}
+				},
+				"status": {
+					"type": "string"
+				},
+				"strict": {
+					"type": "boolean"
+				},
+				"tags": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"target": {
+					"type": "string"
+				},
+				"timeout_ms": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"to": {
+					"type": "string"
+				},
+				"top_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				},
+				"types": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"verify_keys": {
+					"type": "boolean"
+				}
+			}
+		},
+		"PathResult": {
+			"type": "object",
+			"required": [
+				"from",
+				"path",
+				"to"
+			],
+			"additional_properties": false,
+			"properties": {
+				"from": {
+					"type": "string"
+				},
+				"path": {
+					"type": [
+						"array",
+						"null"
+					],
+					"items": {
+						"type": "string"
+					}
+				},
+				"source": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				}
+			}
+		},
+		"PrivacyDirective": {
+			"type": "object",
+			"required": [
+				"policy"
+			],
+			"additional_properties": false,
+			"properties": {
+				"encoded": {
+					"type": "boolean"
+				},
+				"key_id": {
+					"type": "string"
+				},
+				"key_version": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"policy": {
+					"ref": "#/$defs/PrivacyPolicy"
+				},
+				"provider": {
+					"type": "string"
+				},
+				"provider_name": {
+					"type": "string"
+				}
+			}
+		},
+		"PrivacyPolicy": {
+			"type": "string",
+			"enum": [
+				"encrypt",
+				"hash",
+				"mixed",
+				"none",
+				"tokenize"
+			]
+		},
+		"PrivacyState": {
+			"type": "object",
+			"required": [
+				"decrypted",
+				"policy",
+				"redacted"
+			],
+			"additional_properties": false,
+			"properties": {
+				"decrypted": {
+					"type": "boolean"
+				},
+				"key_id": {
+					"type": "string"
+				},
+				"policy": {
+					"ref": "#/$defs/PrivacyPolicy"
+				},
+				"provider": {
+					"type": "string"
+				},
+				"redacted": {
+					"type": "boolean"
+				}
+			}
+		},
+		"RelateDirection": {
+			"type": "string",
+			"enum": [
+				"both",
+				"in",
+				"out"
+			]
+		},
+		"RelateEdge": {
+			"type": "object",
+			"required": [
+				"depth",
+				"from",
+				"source",
+				"to"
+			],
+			"additional_properties": false,
+			"properties": {
+				"depth": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 5
+				},
+				"from": {
+					"type": "string"
+				},
+				"raw": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string",
+					"enum": [
+						"link",
+						"related"
+					]
+				},
+				"to": {
+					"type": "string"
+				}
+			}
+		},
+		"RelateResult": {
+			"type": "object",
+			"required": [
+				"depth",
+				"direction",
+				"edges",
+				"nodes",
+				"root"
+			],
+			"additional_properties": false,
+			"properties": {
+				"depth": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 5
+				},
+				"direction": {
+					"ref": "#/$defs/RelateDirection"
+				},
+				"edges": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/RelateEdge"
+					}
+				},
+				"nodes": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/GraphNode"
+					}
+				},
+				"root": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				}
+			}
+		},
+		"SearchField": {
+			"type": "string",
+			"enum": [
+				"body",
+				"description",
+				"keywords",
+				"title"
+			]
+		},
+		"SearchMode": {
+			"type": "string",
+			"enum": [
+				"bm25",
+				"fuzzy",
+				"hybrid",
+				"keyword"
+			]
+		},
+		"SearchResponse": {
+			"type": "object",
+			"required": [
+				"fuzzy",
+				"hybrid",
+				"keyword",
+				"mode",
+				"query",
+				"top_k"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fuzzy": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/FuzzyHit"
+					}
+				},
+				"hybrid": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/HybridHit"
+					}
+				},
+				"keyword": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/KeywordHit"
+					}
+				},
+				"lexical": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/LexicalHit"
+					}
+				},
+				"mode": {
+					"ref": "#/$defs/SearchMode"
+				},
+				"query": {
+					"type": "string"
+				},
+				"top_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				}
+			}
+		},
+		"ShowLink": {
+			"type": "object",
+			"required": [
+				"raw",
+				"resolves_in_bundle",
+				"target"
+			],
+			"additional_properties": false,
+			"properties": {
+				"raw": {
+					"type": "string"
+				},
+				"resolves_in_bundle": {
+					"type": "boolean"
+				},
+				"target": {
+					"type": "string"
+				}
+			}
+		},
+		"ShowResult": {
+			"type": "object",
+			"required": [
+				"backlinks",
+				"body",
+				"id",
+				"keywords",
+				"links",
+				"path",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"backlinks": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"body": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"id": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"links": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ShowLink"
+					}
+				},
+				"path": {
+					"type": "string"
+				},
+				"privacy": {
+					"ref": "#/$defs/PrivacyState"
+				},
+				"source": {
+					"type": "string"
+				},
+				"status": {
+					"ref": "#/$defs/ConceptStatus"
+				},
+				"tags": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				}
+			}
+		},
+		"SourceBundle": {
+			"type": "object",
+			"required": [
+				"bundle",
+				"source"
+			],
+			"additional_properties": false,
+			"properties": {
+				"bundle": {
+					"ref": "#/$defs/Bundle"
+				},
+				"source": {
+					"type": "string"
+				}
+			}
+		},
+		"SourceBundles": {
+			"type": "object",
+			"required": [
+				"sources"
+			],
+			"additional_properties": false,
+			"properties": {
+				"sources": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SourceBundle"
+					}
+				}
+			}
+		},
+		"SourceGraph": {
+			"type": "object",
+			"required": [
+				"graph",
+				"source"
+			],
+			"additional_properties": false,
+			"properties": {
+				"graph": {
+					"ref": "#/$defs/Graph"
+				},
+				"source": {
+					"type": "string"
+				}
+			}
+		},
+		"SourceGraphs": {
+			"type": "object",
+			"required": [
+				"sources"
+			],
+			"additional_properties": false,
+			"properties": {
+				"sources": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SourceGraph"
+					}
+				}
+			}
+		},
+		"SourceReport": {
+			"type": "object",
+			"required": [
+				"documents",
+				"errors",
+				"source",
+				"warnings"
+			],
+			"additional_properties": false,
+			"properties": {
+				"added": {
+					"type": "integer"
+				},
+				"documents": {
+					"type": "integer"
+				},
+				"errors": {
+					"type": "integer"
+				},
+				"removed": {
+					"type": "integer"
+				},
+				"skipped": {
+					"type": "integer"
+				},
+				"source": {
+					"type": "string"
+				},
+				"updated": {
+					"type": "integer"
+				},
+				"warnings": {
+					"type": "integer"
+				}
+			}
+		},
+		"SourceSpec": {
+			"type": "object",
+			"required": [
+				"alias",
+				"path"
+			],
+			"additional_properties": false,
+			"properties": {
+				"alias": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				}
+			}
+		},
+		"SuccessEnvelope": {
+			"type": "object",
+			"required": [
+				"cli",
+				"contract",
+				"ok",
+				"result"
+			],
+			"additional_properties": false,
+			"properties": {
+				"cli": {
+					"type": "string",
+					"const": "weave.cli/v1"
+				},
+				"contract": {
+					"type": "string",
+					"const": "weave.contract/v1"
+				},
+				"id": {
+					"type": "string"
+				},
+				"ok": {
+					"type": "boolean",
+					"const": true
+				},
+				"result": {}
+			}
+		},
+		"SyncReport": {
+			"type": "object",
+			"required": [
+				"added",
+				"bundle",
+				"db",
+				"documents",
+				"errors",
+				"mode",
+				"removed",
+				"skipped",
+				"updated",
+				"warnings"
+			],
+			"additional_properties": false,
+			"properties": {
+				"added": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"bundle": {
+					"type": "string"
+				},
+				"db": {
+					"type": "string"
+				},
+				"documents": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"dry_run": {
+					"type": "boolean"
+				},
+				"errors": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"mode": {
+					"type": "string",
+					"enum": [
+						"permissive",
+						"strict"
+					]
+				},
+				"removed": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"skipped": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"sources": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SourceReport"
+					}
+				},
+				"updated": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"warnings": {
+					"type": "integer",
+					"minimum": 0
+				}
+			}
+		},
+		"Validation": {
+			"type": "object",
+			"required": [
+				"concepts",
+				"valid",
+				"warnings"
+			],
+			"additional_properties": false,
+			"properties": {
+				"concepts": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ConceptValidation"
+					}
+				},
+				"permissive": {
+					"type": "boolean"
+				},
+				"valid": {
+					"type": "boolean"
+				},
+				"warnings": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"VersionInfo": {
+			"type": "object",
+			"required": [
+				"binary_version",
+				"cli",
+				"contract"
+			],
+			"additional_properties": false,
+			"properties": {
+				"binary_version": {
+					"type": "string"
+				},
+				"cli": {
+					"type": "string",
+					"const": "weave.cli/v1"
+				},
+				"contract": {
+					"type": "string",
+					"const": "weave.contract/v1"
+				}
+			}
+		},
+		"WatchEvent": {
+			"type": "object",
+			"required": [
+				"added",
+				"at",
+				"errors",
+				"event",
+				"removed",
+				"updated"
+			],
+			"additional_properties": false,
+			"properties": {
+				"added": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"at": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"errors": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"event": {
+					"type": "string",
+					"const": "sync"
+				},
+				"removed": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"updated": {
+					"type": "integer",
+					"minimum": 0
+				}
+			}
+		}
+	},
+	"entries": {
+		"audit.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/AuditReport"
+		},
+		"backlinks.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/BacklinksResult"
+		},
+		"bundle.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/Bundle"
+		},
+		"cli.schema.json": {
+			"refs": [
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ContractInfo",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/OperationRequest",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/VersionInfo"
+			]
+		},
+		"concept.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/OkfConcept"
+		},
+		"config.schema.json": {
+			"refs": [
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigGet",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigInit",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigPath",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigShow"
+			]
+		},
+		"envelope.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/Envelope"
+		},
+		"error.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/OperationError"
+		},
+		"explain.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExplainResult"
+		},
+		"export.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExportReport"
+		},
+		"extensions.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionList"
+		},
+		"graph.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/Graph"
+		},
+		"ingest.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/IngestReport"
+		},
+		"list-results.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ListResults"
+		},
+		"multi.schema.json": {
+			"refs": [
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/IngestReport",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/SourceBundles",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/SourceGraphs",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/SyncReport"
+			]
+		},
+		"navigation.schema.json": {
+			"refs": [
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/BacklinksResult",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ListResult",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/PathResult",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ShowResult"
+			]
+		},
+		"path.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/PathResult"
+		},
+		"relate.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/RelateResult"
+		},
+		"search.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SearchResponse"
+		},
+		"show.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ShowResult"
+		},
+		"sync.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SyncReport"
+		},
+		"watch-event.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/WatchEvent"
+		}
+	}
+}

@@ -12,6 +12,7 @@ CLI-first surface and no UI. The core is in-memory; v1.0 adds optional SQLite pe
 - Race suite: `go test -race ./...`
 - Vet: `go vet ./...`
 - Regenerate goldens: `go run ./cmd/contract-export`
+- Schema additive check: `go run ./cmd/schema-diff`
 - Calibration: `go test ./engine/search -run TestCalibration -v`
 - Docs link check: `go run ./cmd/docs-lint`
 - Markdown lint (CI): `DavidAnson/markdownlint-cli2-action`

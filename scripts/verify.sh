@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 go run ./cmd/contract-export
+go run ./cmd/schema-diff
 go test -race ./...
 go vet ./...
 go build -o /tmp/weave-verify ./cmd/weave

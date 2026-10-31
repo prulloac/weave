@@ -22,6 +22,7 @@ jobs:
       - run: go mod tidy
       - run: git diff --exit-code -- go.mod go.sum
       - run: go run ./cmd/contract-export
+      - run: go run ./cmd/schema-diff
       - run: test -z "$(git status --porcelain -- contract/v1/golden/expected)"
       - run: go test -race ./...
       - run: go vet ./...
