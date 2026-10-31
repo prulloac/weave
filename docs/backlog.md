@@ -96,6 +96,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | x | green |
 | Pluggable scoring (post-GA) | [extension-scoring.md](specs/extension-scoring.md) | - | x | x | - | backlog |
 
+Post-GA pluggable scoring: spec and BDD approved; TDD is deferred until after v1.0.0.
+
 ## Cross-cutting
 
 - [x] Knowledge corpus: vision + related concepts (`docs/knowledge/`)
