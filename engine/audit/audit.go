@@ -3,6 +3,7 @@
 package audit
 
 import (
+	"context"
 	"path"
 	"sort"
 	"strings"
@@ -17,6 +18,7 @@ type Options struct {
 	FailOn     contractv1.AuditFailOn
 	VerifyKeys bool
 	Permissive bool
+	Provider   privacy.Provider
 }
 
 // Build evaluates a parsed bundle and its graph.
@@ -42,7 +44,7 @@ func Build(bundle *contractv1.Bundle, view *graph.Graph, options Options) contra
 	addIndexFindings(bundle, &report)
 	addBundleWarnings(bundle, &report)
 	if options.VerifyKeys {
-		addPrivacyFindings(bundle, &report)
+		addPrivacyFindings(bundle, &report, options.Provider)
 	}
 
 	sortFindings(report.Findings)
@@ -254,16 +256,49 @@ func addBundleWarnings(bundle *contractv1.Bundle, report *contractv1.AuditReport
 	}
 }
 
-func addPrivacyFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport) {
+func addPrivacyFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport, provider privacy.Provider) {
+	capabilities := map[string]privacy.ProviderCapabilities{}
+	providerFor := func(name string) (privacy.Provider, bool) {
+		if name == "" {
+			return nil, true
+		}
+		if provider != nil && provider.Name() == name {
+			return provider, true
+		}
+		resolved, err := privacy.ResolveProvider(bundle.Root, name)
+		if err != nil {
+			return nil, false
+		}
+		return resolved, true
+	}
 	for _, concept := range bundle.Concepts {
 		seen := make(map[string]bool)
-		check := func(keyID string) {
+		check := func(keyID, algorithm, providerName string) {
 			if keyID == "" || seen[keyID] {
 				return
 			}
 			seen[keyID] = true
-			if privacy.HasKey(bundle.Root, keyID) {
-				return
+			if providerName == "" {
+				if privacy.HasKey(bundle.Root, keyID) {
+					return
+				}
+			} else {
+				resolved, ok := providerFor(providerName)
+				if ok && resolved != nil {
+					if _, cached := capabilities[providerName]; !cached {
+						caps, err := resolved.Capabilities(context.Background())
+						if err == nil {
+							capabilities[providerName] = caps
+						}
+					}
+					if caps, cached := capabilities[providerName]; cached {
+						algorithmOK := algorithm == "" || len(caps.Algorithms) == 0 || containsString(caps.Algorithms, algorithm)
+						keyOK := len(caps.KeyIDs) == 0 || containsString(caps.KeyIDs, keyID)
+						if algorithmOK && keyOK {
+							return
+						}
+					}
+				}
 			}
 			report.Findings = append(report.Findings, finding(
 				contractv1.AuditKeyUnavailable,
@@ -275,13 +310,22 @@ func addPrivacyFindings(bundle *contractv1.Bundle, report *contractv1.AuditRepor
 			))
 		}
 		if concept.Privacy != nil {
-			check(concept.Privacy.KeyID)
+			check(concept.Privacy.KeyID, concept.Privacy.Provider, concept.Privacy.ProviderName)
 		}
 		spans, _ := privacy.ScanInline(concept.Body)
 		for _, span := range spans {
-			check(span.KeyID)
+			check(span.KeyID, span.Provider, "")
 		}
 	}
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 func finding(

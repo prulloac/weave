@@ -107,6 +107,13 @@
 				},
 				"encoded": {
 					"type": "boolean"
+				},
+				"provider_name": {
+					"type": "string"
+				},
+				"key_version": {
+					"type": "integer",
+					"minimum": 0
 				}
 			}
 		},

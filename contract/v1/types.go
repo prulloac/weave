@@ -219,10 +219,12 @@ const (
 
 // PrivacyDirective is one declared policy from frontmatter or an inline comment.
 type PrivacyDirective struct {
-	Policy   PrivacyPolicy `json:"policy"`
-	Provider string        `json:"provider,omitempty"`
-	KeyID    string        `json:"key_id,omitempty"`
-	Encoded  bool          `json:"encoded,omitempty"`
+	Policy       PrivacyPolicy `json:"policy"`
+	Provider     string        `json:"provider,omitempty"`
+	KeyID        string        `json:"key_id,omitempty"`
+	ProviderName string        `json:"provider_name,omitempty"`
+	KeyVersion   int           `json:"key_version,omitempty"`
+	Encoded      bool          `json:"encoded,omitempty"`
 }
 
 // PrivacyState is the stored privacy summary for one concept.
@@ -641,6 +643,7 @@ type OperationRequest struct {
 	Out        string          `json:"out,omitempty"`
 	Format     string          `json:"format,omitempty"`
 	KeyID      string          `json:"key_id,omitempty"`
+	Provider   string          `json:"provider,omitempty"`
 	Force      bool            `json:"force,omitempty"`
 	Confirmed  bool            `json:"confirmed,omitempty"`
 }

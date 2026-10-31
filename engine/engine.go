@@ -86,7 +86,8 @@ func (e *Engine) Show(target string) (*contractv1.ShowResult, bool) {
 
 // ShowOptions controls redaction and decryption for one concept view.
 type ShowOptions struct {
-	Decrypt bool
+	Decrypt  bool
+	Provider string
 }
 
 // ShowWithOptions returns a concept view with its privacy state applied.
@@ -112,7 +113,18 @@ func (e *Engine) ShowWithOptions(
 	if !options.Decrypt {
 		return result, true, nil
 	}
-	body, err := privacy.DecryptBody(e.root, concept.Body, concept.Privacy, nil)
+	providerName := options.Provider
+	if providerName == "" && concept.Privacy != nil {
+		providerName = concept.Privacy.ProviderName
+	}
+	provider, err := privacy.ResolveProvider(e.root, providerName)
+	if err != nil {
+		return nil, true, err
+	}
+	if provider != nil {
+		defer provider.Close()
+	}
+	body, err := privacy.DecryptBodyWith(context.Background(), e.root, concept.Body, concept.Privacy, nil, provider)
 	if err != nil {
 		return nil, true, err
 	}

@@ -4,6 +4,7 @@
 package privacy
 
 import (
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
@@ -54,10 +55,12 @@ type Span struct {
 
 // Result is one transformed concept body.
 type Result struct {
-	Body      string
-	Directive *contractv1.PrivacyDirective
-	Redacted  bool
-	Spans     []Span
+	Body         string
+	Directive    *contractv1.PrivacyDirective
+	Redacted     bool
+	Spans        []Span
+	ProviderName string
+	KeyVersion   int
 }
 
 var (
@@ -250,8 +253,26 @@ func inInlineCode(line string, index int) bool {
 	return inCode
 }
 
-// Apply transforms one concept according to its declared directives.
+// Apply transforms one concept with the built-in local provider.
 func Apply(root string, concept contractv1.OkfConcept) (Result, error) {
+	return ApplyWith(context.Background(), root, concept, nil)
+}
+
+// ApplyWith transforms one concept using the given provider. A nil provider
+// selects the built-in local provider.
+func ApplyWith(
+	ctx context.Context,
+	root string,
+	concept contractv1.OkfConcept,
+	provider Provider,
+) (Result, error) {
+	if provider == nil {
+		return applyLocal(root, concept)
+	}
+	return applyProvider(ctx, root, concept, provider)
+}
+
+func applyLocal(root string, concept contractv1.OkfConcept) (Result, error) {
 	if concept.Privacy != nil && concept.Privacy.Policy != contractv1.PrivacyNone {
 		if concept.Privacy.Encoded {
 			if !strings.HasPrefix(strings.TrimSpace(concept.Body), envelope) {
@@ -309,6 +330,111 @@ func Apply(root string, concept contractv1.OkfConcept) (Result, error) {
 		Directive: &contractv1.PrivacyDirective{Policy: contractv1.PrivacyMixed},
 		Spans:     applied,
 	}, nil
+}
+
+func applyProvider(
+	ctx context.Context,
+	root string,
+	concept contractv1.OkfConcept,
+	provider Provider,
+) (Result, error) {
+	if concept.Privacy == nil {
+		spans, _ := ScanInline(concept.Body)
+		if len(spans) > 0 {
+			return Result{}, fmt.Errorf("%w: inline directives with external providers", ErrProvider)
+		}
+		return Result{Body: concept.Body}, nil
+	}
+	directive := *concept.Privacy
+	if directive.Policy == contractv1.PrivacyNone {
+		return Result{Body: concept.Body}, nil
+	}
+	if directive.Encoded {
+		if !strings.HasPrefix(strings.TrimSpace(concept.Body), envelope) {
+			return Result{}, fmt.Errorf("%s: encoded body must be an enc:v1 envelope", CodeDirectiveInvalid)
+		}
+		stored := directive
+		stored.ProviderName = provider.Name()
+		return Result{Body: concept.Body, Directive: &stored, Redacted: true, ProviderName: provider.Name()}, nil
+	}
+	algorithm := directive.Provider
+	if algorithm == "" {
+		if directive.Policy == contractv1.PrivacyEncrypt {
+			algorithm = providerAES
+		} else {
+			algorithm = providerHMAC
+		}
+	}
+	body := concept.Body
+	version := 0
+	var err error
+	switch directive.Policy {
+	case contractv1.PrivacyEncrypt:
+		var ciphertext string
+		ciphertext, version, err = provider.Encrypt(ctx, algorithm, directive.KeyID, []byte(body))
+		body = ciphertext
+	case contractv1.PrivacyTokenize:
+		body, version, err = tokenizeWithProvider(ctx, provider, algorithm, directive.KeyID, body)
+	case contractv1.PrivacyHash:
+		body, version, err = provider.Hash(ctx, algorithm, directive.KeyID, normalizeText(body))
+	default:
+		return Result{}, fmt.Errorf("%w: unsupported external policy %s", ErrProvider, directive.Policy)
+	}
+	if err != nil {
+		return Result{}, err
+	}
+	stored := directive
+	stored.ProviderName = provider.Name()
+	stored.KeyVersion = version
+	return Result{
+		Body:         body,
+		Directive:    &stored,
+		Redacted:     directive.Policy == contractv1.PrivacyEncrypt,
+		ProviderName: provider.Name(),
+		KeyVersion:   version,
+	}, nil
+}
+
+func tokenizeWithProvider(
+	ctx context.Context,
+	provider Provider,
+	algorithm, keyID, value string,
+) (string, int, error) {
+	var builder strings.Builder
+	version := 0
+	start := -1
+	flush := func(end int) error {
+		if start < 0 {
+			return nil
+		}
+		token, tokenVersion, err := provider.Tokenize(ctx, algorithm, keyID, strings.ToLower(value[start:end]))
+		if err != nil {
+			return err
+		}
+		if tokenVersion > version {
+			version = tokenVersion
+		}
+		builder.WriteString(token)
+		start = -1
+		return nil
+	}
+	for index, char := range value {
+		alnum := (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')
+		if alnum {
+			if start < 0 {
+				start = index
+			}
+			continue
+		}
+		if err := flush(index); err != nil {
+			return "", 0, err
+		}
+		builder.WriteRune(char)
+	}
+	if err := flush(len(value)); err != nil {
+		return "", 0, err
+	}
+	return builder.String(), version, nil
 }
 
 func transformBody(
@@ -413,14 +539,38 @@ func mapRuns(value string, transform func(string) string) string {
 	return builder.String()
 }
 
-// DecryptBody restores encrypted content. Whole-body and inline envelopes are
-// both supported.
+// DecryptBody restores encrypted content with the built-in local provider.
 func DecryptBody(
 	root string,
 	body string,
 	directive *contractv1.PrivacyDirective,
 	spans []Span,
 ) (string, error) {
+	return DecryptBodyWith(context.Background(), root, body, directive, spans, nil)
+}
+
+// DecryptBodyWith restores encrypted content using the given provider.
+func DecryptBodyWith(
+	ctx context.Context,
+	root string,
+	body string,
+	directive *contractv1.PrivacyDirective,
+	spans []Span,
+	provider Provider,
+) (string, error) {
+	if provider != nil {
+		if directive == nil || directive.KeyID == "" {
+			return "", fmt.Errorf("%w: missing directive", ErrDecrypt)
+		}
+		if directive.Policy != contractv1.PrivacyEncrypt {
+			return "", fmt.Errorf("%w: external providers only decrypt whole bodies", ErrProvider)
+		}
+		algorithm := directive.Provider
+		if algorithm == "" {
+			algorithm = providerAES
+		}
+		return provider.Decrypt(ctx, algorithm, directive.KeyID, directive.KeyVersion, strings.TrimSpace(body))
+	}
 	if directive != nil && directive.Policy == contractv1.PrivacyEncrypt &&
 		strings.HasPrefix(strings.TrimSpace(body), envelope) {
 		key, err := ResolveKey(root, directive.KeyID)
