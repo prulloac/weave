@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
+	"sync"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/compression"
@@ -80,34 +81,42 @@ func (s *Store) FuzzyHits(
 	}
 	bodyTokens := make(map[int32][]string)
 
+	var wait sync.WaitGroup
 	for fieldIndex, field := range fields {
-		for queryPosition, queryToken := range queryTokens {
-			for token, posting := range postings[string(field)] {
-				similarity := search.TokenSimilarity(queryToken, token)
-				if similarity < search.FuzzyThreshold {
-					continue
-				}
-				for _, documentIndex := range posting {
-					values := fieldScores[fieldIndex][documentIndex]
-					if len(values) == 0 {
-						values = make([]float64, len(queryTokens))
+		fieldIndex, field := fieldIndex, field
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			for queryPosition, queryToken := range queryTokens {
+				profile := search.NewTokenProfile(queryToken)
+				for token, posting := range postings[string(field)] {
+					similarity := profile.Similarity(token)
+					if similarity < search.FuzzyThreshold {
+						continue
 					}
-					if similarity > values[queryPosition] {
-						values[queryPosition] = similarity
-						if field == contractv1.FieldBody {
-							bodyValues := bodyTokens[documentIndex]
-							if len(bodyValues) == 0 {
-								bodyValues = make([]string, len(queryTokens))
-							}
-							bodyValues[queryPosition] = token
-							bodyTokens[documentIndex] = bodyValues
+					for _, documentIndex := range posting {
+						values := fieldScores[fieldIndex][documentIndex]
+						if len(values) == 0 {
+							values = make([]float64, len(queryTokens))
 						}
+						if similarity > values[queryPosition] {
+							values[queryPosition] = similarity
+							if field == contractv1.FieldBody {
+								bodyValues := bodyTokens[documentIndex]
+								if len(bodyValues) == 0 {
+									bodyValues = make([]string, len(queryTokens))
+								}
+								bodyValues[queryPosition] = token
+								bodyTokens[documentIndex] = bodyValues
+							}
+						}
+						fieldScores[fieldIndex][documentIndex] = values
 					}
-					fieldScores[fieldIndex][documentIndex] = values
 				}
 			}
-		}
+		}()
 	}
+	wait.Wait()
 
 	seen := make(map[int32]bool)
 	for fieldIndex := range fields {

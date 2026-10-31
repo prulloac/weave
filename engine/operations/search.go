@@ -377,6 +377,9 @@ func (e *Executor) explainHybridBM25(ctx context.Context, request contractv1.Ope
 			"path": request.Path,
 		})
 	}
+	if result, ok := e.explainPersistent(ctx, store, root, request, topK); ok {
+		return result
+	}
 	bundle, err := store.LoadBundle(ctx, root)
 	if err != nil {
 		code, message := mapStorageError(err)
@@ -462,6 +465,93 @@ func (e *Executor) explainHybridBM25(ctx context.Context, request contractv1.Ope
 		},
 		Lexical: &lexicalComponent,
 	})
+}
+
+func (e *Executor) explainPersistent(
+	ctx context.Context,
+	store *sqlitestore.Store,
+	root string,
+	request contractv1.OperationRequest,
+	topK int,
+) (any, bool) {
+	lexical, err := store.SearchBM25(ctx, root, request.Query, topK)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+			"query": request.Query,
+			"top_k": topK,
+		}), true
+	}
+	fuzzyHits, err := store.FuzzyHits(ctx, root, request.Query, topK)
+	if err != nil {
+		if errors.Is(err, sqlitestore.ErrSearchIndexUnavailable) {
+			return nil, false
+		}
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"query": request.Query}), true
+	}
+	hybrid := search.HybridBM25(lexical, fuzzyHits, topK)
+	target := request.Target
+	rank := 0
+	if target == "" {
+		if len(hybrid) == 0 {
+			return failure(contractv1.ErrConceptNotFound, search.ErrNoResult.Error(), map[string]any{
+				"query": request.Query,
+			}), true
+		}
+		target = hybrid[0].ID
+		rank = 1
+	} else {
+		for index, hit := range hybrid {
+			if hit.ID == target {
+				rank = index + 1
+				break
+			}
+		}
+	}
+	lexicalExplanation, err := store.ExplainBM25(ctx, root, request.Query, topK, target)
+	if err != nil {
+		if errors.Is(err, search.ErrConceptNotFound) || errors.Is(err, search.ErrNoResult) || errors.Is(err, search.ErrEmptyQuery) {
+			return failure(contractv1.ErrConceptNotFound, err.Error(), map[string]any{
+				"query": request.Query,
+				"id":    target,
+			}), true
+		}
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"query": request.Query}), true
+	}
+	fuzzyExplanation, err := store.ExplainFuzzy(ctx, root, request.Query, target)
+	if err != nil {
+		if errors.Is(err, sqlitestore.ErrSearchIndexUnavailable) {
+			return nil, false
+		}
+		if errors.Is(err, search.ErrConceptNotFound) || errors.Is(err, search.ErrNoResult) || errors.Is(err, search.ErrEmptyQuery) {
+			return failure(contractv1.ErrConceptNotFound, err.Error(), map[string]any{
+				"query": request.Query,
+				"id":    target,
+			}), true
+		}
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"query": request.Query}), true
+	}
+	lexicalComponent := lexicalExplanation.Lexical
+	total := search.RoundScore(keywordWeightForExplain*lexicalComponent.Score + fuzzyWeightForExplain*fuzzyExplanation.Score)
+	return success(contractv1.ExplainResult{
+		Query: request.Query,
+		Mode:  contractv1.SearchHybrid,
+		TopK:  topK,
+		ID:    target,
+		Rank:  rank,
+		Found: true,
+		Keyword: contractv1.ExplainKeyword{
+			MatchedKeywords: []string{},
+			Tokens:          []contractv1.ExplainKeywordToken{},
+		},
+		Fuzzy: fuzzyExplanation,
+		Hybrid: contractv1.ExplainHybrid{
+			KeywordWeight: 0,
+			LexicalWeight: keywordWeightForExplain,
+			FuzzyWeight:   fuzzyWeightForExplain,
+			Total:         total,
+		},
+		Lexical: &lexicalComponent,
+	}), true
 }
 
 const (

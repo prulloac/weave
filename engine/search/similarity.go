@@ -15,6 +15,118 @@ func TokenSimilarity(a, b string) float64 {
 	return tokenSimilarity(a, b)
 }
 
+// TokenProfile caches the query side of a fuzzy comparison.
+type TokenProfile struct {
+	text         string
+	ascii        bool
+	trigrams     [64]uint32
+	trigramCount int
+	runes        []rune
+}
+
+// NewTokenProfile prepares one query token for repeated comparisons.
+func NewTokenProfile(text string) TokenProfile {
+	profile := TokenProfile{text: text, ascii: isASCII(text)}
+	if profile.ascii {
+		profile.trigramCount = fillTrigramsString(text, &profile.trigrams)
+	} else {
+		profile.runes = []rune(text)
+	}
+	return profile
+}
+
+// Similarity compares the prepared query token with a candidate token.
+func (profile TokenProfile) Similarity(other string) float64 {
+	if profile.text == other {
+		return 1
+	}
+	if len(profile.text) < 3 || len(other) < 3 {
+		if strings.HasPrefix(profile.text, other) || strings.HasPrefix(other, profile.text) {
+			return 0.75
+		}
+		return 0
+	}
+	if profile.ascii && isASCII(other) {
+		otherTrigrams := [64]uint32{}
+		otherCount := fillTrigramsString(other, &otherTrigrams)
+		return math.Max(
+			normalizedLevenshteinString(profile.text, other),
+			trigramDiceString(profile.trigrams[:profile.trigramCount], otherTrigrams[:otherCount]),
+		)
+	}
+	if profile.runes == nil {
+		profile.runes = []rune(profile.text)
+	}
+	return math.Max(normalizedLevenshtein(profile.runes, []rune(other)), trigramDice(profile.runes, []rune(other)))
+}
+
+func normalizedLevenshteinString(a, b string) float64 {
+	length := len(a)
+	if len(b) > length {
+		length = len(b)
+	}
+	if length == 0 {
+		return 1
+	}
+	return 1 - float64(levenshteinString(a, b))/float64(length)
+}
+
+func levenshteinString(a, b string) int {
+	if len(b) > 64 {
+		return levenshtein([]rune(a), []rune(b))
+	}
+	var previous, current [65]int
+	for index := 0; index <= len(b); index++ {
+		previous[index] = index
+	}
+	for i := 1; i <= len(a); i++ {
+		current[0] = i
+		for j := 1; j <= len(b); j++ {
+			cost := 0
+			if a[i-1] != b[j-1] {
+				cost = 1
+			}
+			current[j] = min(
+				current[j-1]+1,
+				previous[j]+1,
+				previous[j-1]+cost,
+			)
+		}
+		previous, current = current, previous
+	}
+	return previous[len(b)]
+}
+
+func fillTrigramsString(token string, target *[64]uint32) int {
+	count := 0
+	write := func(a, b, c byte) {
+		target[count] = uint32(a)<<16 | uint32(b)<<8 | uint32(c)
+		count++
+	}
+	write('#', token[0], token[1])
+	for index := 0; index+2 < len(token); index++ {
+		write(token[index], token[index+1], token[index+2])
+	}
+	write(token[len(token)-2], token[len(token)-1], '#')
+	return count
+}
+
+func trigramDiceString(a, b []uint32) float64 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	intersection := 0
+	for _, left := range a {
+		for _, right := range b {
+			if left == right {
+				intersection++
+				break
+			}
+		}
+	}
+	return 2 * float64(intersection) / float64(len(a)+len(b))
+}
+
 func tokenSimilarity(a, b string) float64 {
 	if a == b {
 		return 1
