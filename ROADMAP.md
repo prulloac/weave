@@ -5,7 +5,7 @@
 Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
 incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
 extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
-shipped on `main`; global configuration and the optimization program remain.
+shipped on `main`; the optimization program remains.
 
 ## 1. What Weave Is
 
@@ -81,7 +81,7 @@ waves, not product versions.
 | Bundle export | v1.0 | Shipped: raw plaintext (confirmed) and encrypted OKF export |
 | Multiple bundle sources | v1.0 | Shipped: repeatable `--source` aliases across CLI and MCP |
 | Optimization program | v1.0 | Benchmarks, budgets, maintainability and UX targets |
-| Global configuration | v1.0 | YAML config plus `WEAVE_*` variables and `weave config` |
+| Global configuration | v1.0 | Shipped: YAML config, `WEAVE_*` variables and `weave config` |
 
 ## 4. CLI Surface
 
@@ -103,6 +103,7 @@ weave ingest <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none
 weave rebuild <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] --json
 weave sync <path> [--db <file>] [--strict|--permissive] [--codec zstd|lz4|none] [--with-enricher <name>] [--timeout <d>] [--watch [--events]] --json
 weave export <path> --out <dir> --format raw|encrypted [--key-id <id>] [--yes] [--force] --json
+weave config show|path|init [--json]
 weave extensions list [<path>] --json
 weave mcp --bundle <path> [--stdio|--listen <addr>] [--token <t>] [--db <file>] [--watch]
 weave version --json
@@ -116,7 +117,6 @@ Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memo
 ```sh
 weave search <path> [--source <alias=path> ...] <query> --json
 weave ingest <path> [--source <alias=path> ...] --json
-weave config show|path|init [--json]
 ```
 
 ## 5. Search Semantics
@@ -244,7 +244,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | shipped |
 | 30 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / Phase 7 (P3) | shipped |
 | 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
-| 29 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / Phase 8 (P2) | red |
+| 29 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / Phase 8 (P2) | shipped |
 
 Rules:
 
@@ -357,7 +357,7 @@ privacy directives ──┬── show --decrypt
 - benchmarks and budgets,
 - time/space hotspots,
 - maintainability refactors and the performance gate,
-- UX optimization with global configuration and environment variables first.
+- UX optimization with global configuration and environment variables (shipped).
 
 **Critical path:**
 

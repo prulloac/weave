@@ -64,10 +64,41 @@ Global flags:
   overrides the 5s default.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
 - `--provider <name>` selects a `weave-crypto-<name>` provider for ingest/sync/show/audit/export.
+- `--config <file>` selects a config file; `--no-config` ignores it; `--strict-config` rejects
+  unknown keys. See [Configuration](#configuration).
 - `--help` (or `-h`) prints the command summary; `--version` (or `-v`) prints the binary version.
 - Diagnostics go to stderr.
 - Exit codes: `0` success, `1` runtime error or no match, `2` usage or invalid parameters,
   `3` permission, privacy key or decryption failure.
+
+### Configuration
+
+Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file → default.
+
+```sh
+weave config init                 # ~/.config/weave/config.yaml (0600)
+weave config show --json          # values and sources
+weave config path --json
+weave --config ./weave.yaml list ~/notes --no-db
+```
+
+```yaml
+db: ~/.weave/index.db
+codec: zstd
+search_mode: hybrid
+top_k: 10
+ingest_mode: permissive
+timeout: 5s
+enricher: ""
+rerank: ""
+```
+
+- Environment keys mirror the file: `WEAVE_DB`, `WEAVE_CODEC`, `WEAVE_SEARCH_MODE`,
+  `WEAVE_TOP_K`, `WEAVE_INGEST_MODE`, `WEAVE_TIMEOUT`, `WEAVE_ENRICHER`, `WEAVE_RERANK`.
+- Secrets are never read from configuration; keys stay in `WEAVE_KEY_*` or `.weave/security.yaml`.
+- Invalid or reserved keys exit `2`; unknown keys warn unless `--strict-config`.
+
+Spec: [Configuration](docs/specs/configuration.md).
 
 ### Shipped commands
 

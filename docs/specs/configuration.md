@@ -16,7 +16,7 @@ status: draft
 
 # Specification: Configuration
 
-Status: **Proposed**
+Status: **Implemented** (file/env precedence, `config show|path|init`, strict validation and MCP database defaults).
 Target: **v1.0**
 
 ## 1. Overview
@@ -141,7 +141,8 @@ weave config init [--force]
 }
 ```
 
-- `source` is `flag`, `env`, `file` or `default`.
+- `source` is `flag`, `env`, `file` or `default`. `weave config show` itself takes no command flags;
+  `flag` appears when a command's effective value was overridden on that invocation.
 - Values are JSON-native; durations use their Go string form.
 - `config path` prints the resolved file path and whether it exists.
 - `config init` writes the commented default file at the resolved global path; it refuses to

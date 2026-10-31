@@ -114,6 +114,7 @@ MRR@10 = 1.0.
   safety and re-ingestion; `engine/privacy` covers the encoded directive.
   `cmd/weave/crypto_provider_bdd_test.go` covers provider selection, crypto IPC, tokenize/hash,
   failures, local override and audit capabilities.
+  `cmd/weave/config_bdd_test.go` covers precedence, validation, show/path/init and `--no-config`.
 - Envelope validity and stdout purity.
 - Human output.
 - Exit codes: 0/1/2/3.
