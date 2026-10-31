@@ -1616,6 +1616,12 @@
 					"items": {
 						"$ref": "#/$defs/ExtensionInfo"
 					}
+				},
+				"search_paths": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		},
@@ -2221,6 +2227,40 @@
 				"errors": {
 					"type": "integer",
 					"minimum": 0
+				}
+			}
+		},
+		"ConfigPaths": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"config",
+				"database",
+				"cache",
+				"keys",
+				"extensions"
+			],
+			"properties": {
+				"config": {
+					"type": "string"
+				},
+				"database": {
+					"type": "string"
+				},
+				"cache": {
+					"type": "string"
+				},
+				"keys": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"extensions": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		}

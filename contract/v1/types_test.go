@@ -500,11 +500,26 @@ func TestMachineOutputTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "config.schema.json", init)
 
+	paths := ConfigPaths{
+		Config:     "/home/user/.config/weave/config.yaml",
+		Database:   "/home/user/.weave/index.db",
+		Cache:      "/home/user/.cache/weave/okf",
+		Keys:       []string{"<bundle>/.weave/security.yaml", "WEAVE_KEY_*"},
+		Extensions: []string{"<bundle>/.weave/bin", "/usr/local/bin"},
+	}
+	marshalValidate(t, compiler, "config.schema.json", paths)
+
 	event := WatchEvent{
 		Event: "sync", At: "2026-10-30T12:00:00Z",
 		Added: 1, Updated: 2, Removed: 0, Errors: 0,
 	}
 	marshalValidate(t, compiler, "watch-event.schema.json", event)
+
+	extensions := ExtensionList{
+		Extensions:  []ExtensionInfo{{Name: "echo", Path: "/bin/weave-echo", Source: "path"}},
+		SearchPaths: []string{"<bundle>/.weave/bin", "/usr/local/bin"},
+	}
+	marshalValidate(t, compiler, "extensions.schema.json", extensions)
 
 	sourceBundles := SourceBundles{Sources: []SourceBundle{{
 		Source: "a", Bundle: &Bundle{

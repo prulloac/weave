@@ -116,7 +116,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 
 	if err := preflightExportKeys(root, bundle, format, request.KeyID, provider); err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
-			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"path": request.Path})
+			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{
+				"path":     request.Path,
+				"key_id":   request.KeyID,
+				"provider": request.Provider,
+			})
 		}
 		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
 	}
@@ -174,7 +178,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 				plain, err := privacy.DecryptBodyWith(ctx, root, body, concept.Privacy, nil, provider)
 				if err != nil {
 					cleanup()
-					return failure(exportPrivacyCode(err), err.Error(), map[string]any{"concept": concept.ID})
+					return failure(exportPrivacyCode(err), err.Error(), map[string]any{
+						"concept":  concept.ID,
+						"key_id":   concept.Privacy.KeyID,
+						"provider": request.Provider,
+					})
 				}
 				body = plain
 			}
@@ -183,7 +191,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 				plain, err := privacy.DecryptBodyWith(ctx, root, body, concept.Privacy, nil, provider)
 				if err != nil {
 					cleanup()
-					return failure(exportPrivacyCode(err), err.Error(), map[string]any{"concept": concept.ID})
+					return failure(exportPrivacyCode(err), err.Error(), map[string]any{
+						"concept":  concept.ID,
+						"key_id":   concept.Privacy.KeyID,
+						"provider": request.Provider,
+					})
 				}
 				body = plain
 			}
@@ -197,7 +209,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			})
 			if err != nil {
 				cleanup()
-				return failure(exportPrivacyCode(err), err.Error(), map[string]any{"concept": concept.ID})
+				return failure(exportPrivacyCode(err), err.Error(), map[string]any{
+					"concept":  concept.ID,
+					"key_id":   request.KeyID,
+					"provider": request.Provider,
+				})
 			}
 			body = encrypted.Body
 		}

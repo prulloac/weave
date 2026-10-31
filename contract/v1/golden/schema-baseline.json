@@ -328,6 +328,40 @@
 				}
 			}
 		},
+		"ConfigPaths": {
+			"type": "object",
+			"required": [
+				"cache",
+				"config",
+				"database",
+				"extensions",
+				"keys"
+			],
+			"additional_properties": false,
+			"properties": {
+				"cache": {
+					"type": "string"
+				},
+				"config": {
+					"type": "string"
+				},
+				"database": {
+					"type": "string"
+				},
+				"extensions": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"keys": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
 		"ConfigShow": {
 			"type": "object",
 			"required": [
@@ -816,6 +850,12 @@
 					"type": "array",
 					"items": {
 						"ref": "#/$defs/ExtensionInfo"
+					}
+				},
+				"search_paths": {
+					"type": "array",
+					"items": {
+						"type": "string"
 					}
 				}
 			}
@@ -2233,6 +2273,7 @@
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigGet",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigInit",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigPath",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigPaths",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ConfigShow"
 			]
 		},

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/audit"
@@ -29,6 +31,51 @@ func usageError(stdout io.Writer, stderr io.Writer, jsonMode bool, message strin
 	return 2
 }
 
+func writerIsTerminal(writer io.Writer) bool {
+	file, ok := writer.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := file.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+func progressOperation(op contractv1.OperationName) bool {
+	switch op {
+	case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpExport:
+		return true
+	default:
+		return false
+	}
+}
+
+func startProgress(writer io.Writer, op contractv1.OperationName, enabled bool) func() {
+	if !enabled || !progressOperation(op) {
+		return func() {}
+	}
+	done := make(chan struct{})
+	finished := make(chan struct{})
+	started := time.Now()
+	go func() {
+		defer close(finished)
+		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				fmt.Fprintf(writer, "\rweave: %s %s", op, time.Since(started).Round(100*time.Millisecond))
+			}
+		}
+	}()
+	return func() {
+		close(done)
+		<-finished
+		fmt.Fprintf(writer, "\r%-56s\r", "")
+	}
+}
+
 func successEnvelope(result any) contractv1.SuccessEnvelope {
 	return contractv1.SuccessEnvelope{
 		Contract: operations.ContractVersion,
@@ -47,51 +94,76 @@ func writeJSON(writer io.Writer, value any) error {
 	return err
 }
 
+type commandPolicy struct {
+	successExit func(any) int
+	empty       func(any) bool
+}
+
+var commandPolicies = map[contractv1.OperationName]commandPolicy{
+	contractv1.OpAudit:   {successExit: auditSuccessExit},
+	contractv1.OpIngest:  {successExit: ingestSuccessExit},
+	contractv1.OpRebuild: {successExit: ingestSuccessExit},
+	contractv1.OpSync:    {successExit: syncSuccessExit},
+	contractv1.OpSearch:  {empty: searchEmpty},
+}
+
 func successExitCode(op contractv1.OperationName, result any) int {
-	switch op {
-	case contractv1.OpAudit:
-		report, ok := result.(contractv1.AuditReport)
-		if ok && audit.Failed(report) {
-			return 1
-		}
-	case contractv1.OpIngest, contractv1.OpRebuild:
-		report, ok := result.(contractv1.IngestReport)
-		if ok && report.Errors > 0 {
-			return 1
-		}
-	case contractv1.OpSync:
-		report, ok := result.(contractv1.SyncReport)
-		if ok && report.Errors > 0 {
-			return 1
-		}
+	if policy, ok := commandPolicies[op]; ok && policy.successExit != nil {
+		return policy.successExit(result)
 	}
 	return 0
 }
 
 func isEmptyResult(op contractv1.OperationName, result any) bool {
-	switch op {
-	case contractv1.OpSearch:
-		response, ok := result.(contractv1.SearchResponse)
-		if !ok {
-			return false
-		}
-		if response.Mode == contractv1.SearchBM25 {
-			return len(response.Lexical) == 0
-		}
-		switch response.Mode {
-		case contractv1.SearchKeyword:
-			return len(response.Keyword) == 0
-		case contractv1.SearchFuzzy:
-			return len(response.Fuzzy) == 0
-		default:
-			return len(response.Hybrid) == 0
-		}
-	default:
+	if policy, ok := commandPolicies[op]; ok && policy.empty != nil {
+		return policy.empty(result)
+	}
+	return false
+}
+
+func auditSuccessExit(result any) int {
+	report, ok := result.(contractv1.AuditReport)
+	if ok && audit.Failed(report) {
+		return 1
+	}
+	return 0
+}
+
+func ingestSuccessExit(result any) int {
+	report, ok := result.(contractv1.IngestReport)
+	if ok && report.Errors > 0 {
+		return 1
+	}
+	return 0
+}
+
+func syncSuccessExit(result any) int {
+	report, ok := result.(contractv1.SyncReport)
+	if ok && report.Errors > 0 {
+		return 1
+	}
+	return 0
+}
+
+func searchEmpty(result any) bool {
+	response, ok := result.(contractv1.SearchResponse)
+	if !ok {
 		return false
+	}
+	if response.Mode == contractv1.SearchBM25 {
+		return len(response.Lexical) == 0
+	}
+	switch response.Mode {
+	case contractv1.SearchKeyword:
+		return len(response.Keyword) == 0
+	case contractv1.SearchFuzzy:
+		return len(response.Fuzzy) == 0
+	default:
+		return len(response.Hybrid) == 0
 	}
 }
 
-func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName, result any) int {
+func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName, result any, ascii bool) int {
 	switch op {
 	case contractv1.OpContract:
 		info := result.(contractv1.ContractInfo)
@@ -104,11 +176,23 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 	case contractv1.OpVersion:
 		info := result.(contractv1.VersionInfo)
 		fmt.Fprintf(stdout, "weave %s (contract 1)\n", info.BinaryVersion)
+		fmt.Fprintln(stdout, "local-first: no telemetry, no network by default")
 		return 0
 	case contractv1.OpExtensions:
 		list := result.(contractv1.ExtensionList)
+		if len(list.Extensions) == 0 {
+			fmt.Fprintln(stderr, "weave: no extensions found")
+			fmt.Fprintln(stderr, "hint: install weave-<name> in .weave/bin or PATH")
+			if len(list.SearchPaths) > 0 {
+				fmt.Fprintf(stderr, "searched: %s\n", strings.Join(list.SearchPaths, ", "))
+			}
+			return 0
+		}
 		for _, extension := range list.Extensions {
 			fmt.Fprintf(stdout, "%-24s %-8s %s\n", extension.Name, extension.Source, extension.Path)
+		}
+		if len(list.SearchPaths) > 0 {
+			fmt.Fprintf(stdout, "searched: %s\n", strings.Join(list.SearchPaths, ", "))
 		}
 		return 0
 	case contractv1.OpExport:
@@ -186,7 +270,7 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		results := result.([]contractv1.ListResult)
 		if len(results) == 0 {
 			fmt.Fprintln(stderr, "weave: no concepts match the given filters")
-			fmt.Fprintln(stderr, "hint: adjust --type/--tag/--status or run `weave list <path>`")
+			fmt.Fprintln(stderr, "hint: adjust --type/--tag/--status, or run `weave ingest <path>` to index a new bundle")
 			return 0
 		}
 		for _, item := range results {
@@ -234,20 +318,20 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 		return 0
 	case contractv1.OpPath:
 		route := result.(*contractv1.PathResult)
-		fmt.Fprintln(stdout, strings.Join(route.Path, " → "))
+		fmt.Fprintln(stdout, strings.Join(route.Path, " "+arrow(ascii)+" "))
 		return 0
 	case contractv1.OpAudit:
 		report := result.(contractv1.AuditReport)
-		printAuditHuman(stdout, report)
+		printAuditHuman(stdout, report, ascii)
 		if audit.Failed(report) {
 			return 1
 		}
 		return 0
 	case contractv1.OpRelate:
-		printRelateHuman(stdout, result.(contractv1.RelateResult))
+		printRelateHuman(stdout, result.(contractv1.RelateResult), ascii)
 		return 0
 	case contractv1.OpExplain:
-		printExplainHuman(stdout, result.(contractv1.ExplainResult))
+		printExplainHuman(stdout, result.(contractv1.ExplainResult), ascii)
 		return 0
 	case contractv1.OpIngest, contractv1.OpRebuild:
 		report := result.(contractv1.IngestReport)
@@ -273,7 +357,7 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 	}
 }
 
-func printExplainHuman(stdout io.Writer, result contractv1.ExplainResult) {
+func printExplainHuman(stdout io.Writer, result contractv1.ExplainResult, ascii bool) {
 	fmt.Fprintf(stdout, "query: %s\n", result.Query)
 	fmt.Fprintf(stdout, "mode: %s (top %d)\n", result.Mode, result.TopK)
 	fmt.Fprintf(stdout, "result: %s  rank %d\n", result.ID, result.Rank)
@@ -282,10 +366,10 @@ func printExplainHuman(stdout io.Writer, result contractv1.ExplainResult) {
 	for _, token := range result.Keyword.Tokens {
 		switch token.Match {
 		case contractv1.ExplainMatchExact, contractv1.ExplainMatchPrefix:
-			fmt.Fprintf(stdout, "  %s  %s  %.3f  → keyword %q\n",
-				token.QueryToken, token.Match, token.Score, token.MatchedKeyword)
+			fmt.Fprintf(stdout, "  %s  %s  %.3f  %s keyword %q\n",
+				token.QueryToken, token.Match, token.Score, arrow(ascii), token.MatchedKeyword)
 		default:
-			fmt.Fprintf(stdout, "  %s  none  —  (no keyword match)\n", token.QueryToken)
+			fmt.Fprintf(stdout, "  %s  none  -  (no keyword match)\n", token.QueryToken)
 		}
 	}
 
@@ -297,8 +381,8 @@ func printExplainHuman(stdout io.Writer, result contractv1.ExplainResult) {
 	if len(result.Fuzzy.Tokens) > 0 {
 		fmt.Fprintln(stdout, "  token matches")
 		for _, token := range result.Fuzzy.Tokens {
-			fmt.Fprintf(stdout, "    %s → %s  %s  %.2f\n",
-				token.QueryToken, token.MatchedToken, token.Field, token.Similarity)
+			fmt.Fprintf(stdout, "    %s %s %s  %s  %.2f\n",
+				token.QueryToken, arrow(ascii), token.MatchedToken, token.Field, token.Similarity)
 		}
 	}
 
@@ -332,7 +416,7 @@ func lexicalScore(result contractv1.ExplainResult) float64 {
 	return result.Lexical.Score
 }
 
-func printRelateHuman(stdout io.Writer, result contractv1.RelateResult) {
+func printRelateHuman(stdout io.Writer, result contractv1.RelateResult, ascii bool) {
 	hopWord := "hops"
 	if result.Depth == 1 {
 		hopWord = "hop"
@@ -343,7 +427,7 @@ func printRelateHuman(stdout io.Writer, result contractv1.RelateResult) {
 	}
 
 	if result.Depth <= 1 {
-		printRelateDepthOne(stdout, result)
+		printRelateDepthOne(stdout, result, ascii)
 		return
 	}
 	for hop := 1; hop <= result.Depth; hop++ {
@@ -356,12 +440,12 @@ func printRelateHuman(stdout io.Writer, result contractv1.RelateResult) {
 				fmt.Fprintf(stdout, "hop %d\n", hop)
 				printed = true
 			}
-			fmt.Fprintf(stdout, "  %s → %s (%s)\n", edge.From, edge.To, edge.Source)
+			fmt.Fprintf(stdout, "  %s %s %s (%s)\n", edge.From, arrow(ascii), edge.To, edge.Source)
 		}
 	}
 }
 
-func printRelateDepthOne(stdout io.Writer, result contractv1.RelateResult) {
+func printRelateDepthOne(stdout io.Writer, result contractv1.RelateResult, ascii bool) {
 	outbound := make([]contractv1.RelateEdge, 0)
 	inbound := make([]contractv1.RelateEdge, 0)
 	for _, edge := range result.Edges {
@@ -376,7 +460,7 @@ func printRelateDepthOne(stdout io.Writer, result contractv1.RelateResult) {
 	if len(outbound) > 0 {
 		fmt.Fprintln(stdout, "  outbound")
 		for _, edge := range outbound {
-			fmt.Fprintf(stdout, "    %s → %s\n", edge.Source, edge.To)
+			fmt.Fprintf(stdout, "    %s %s %s\n", edge.Source, arrow(ascii), edge.To)
 		}
 	}
 	if len(inbound) > 0 {
@@ -387,12 +471,12 @@ func printRelateDepthOne(stdout io.Writer, result contractv1.RelateResult) {
 	}
 }
 
-func printAuditHuman(stdout io.Writer, report contractv1.AuditReport) {
+func printAuditHuman(stdout io.Writer, report contractv1.AuditReport, ascii bool) {
 	fmt.Fprintf(stdout, "weave audit: %s\n", report.Path)
-	fmt.Fprintf(stdout, "  %d concepts · %d edges · %d orphans\n",
-		report.Summary.Concepts, report.Summary.Edges, report.Summary.Orphans)
-	fmt.Fprintf(stdout, "  %d missing keywords · %d broken links\n",
-		report.Summary.MissingKeywords, report.Summary.BrokenLinks)
+	fmt.Fprintf(stdout, "  %d concepts %s %d edges %s %d orphans\n",
+		report.Summary.Concepts, separator(ascii), report.Summary.Edges, separator(ascii), report.Summary.Orphans)
+	fmt.Fprintf(stdout, "  %d missing keywords %s %d broken links\n",
+		report.Summary.MissingKeywords, separator(ascii), report.Summary.BrokenLinks)
 
 	errors, warnings, _ := countSeverities(report.Findings)
 	printAuditSection(stdout, "errors", contractv1.AuditSeverityError, report.Findings)
@@ -464,4 +548,18 @@ func titleOrID(title *string, id string) string {
 		return id
 	}
 	return *title
+}
+
+func arrow(ascii bool) string {
+	if ascii {
+		return "->"
+	}
+	return "→"
+}
+
+func separator(ascii bool) string {
+	if ascii {
+		return "|"
+	}
+	return "·"
 }

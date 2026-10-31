@@ -179,6 +179,37 @@ func TestUnknownRequestType(t *testing.T) {
 	}
 }
 
+func TestDescribePrintsEndpointAndConsent(t *testing.T) {
+	config := filepath.Join(t.TempDir(), "ai.yaml")
+	if err := os.WriteFile(config, []byte("provider: ollama\nmodel: test-model\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WEAVE_AI_CONFIG", config)
+	t.Setenv("WEAVE_AI_PROVIDER", "")
+	t.Setenv("WEAVE_AI_MODEL", "")
+	t.Setenv("WEAVE_AI_BASE_URL", "")
+	t.Setenv("WEAVE_AI_API_KEY", "super-secret-key")
+
+	var stdout, stderr bytes.Buffer
+	if code := describe(&stdout, &stderr); code != 0 {
+		t.Fatalf("describe exit=%d stderr=%q", code, stderr.String())
+	}
+	for _, want := range []string{
+		"provider: ollama",
+		"model: test-model",
+		"endpoint: http://127.0.0.1:11434",
+		"consent: privacy.ai.send required",
+		"api_key_env: WEAVE_AI_API_KEY (value never printed)",
+	} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("describe missing %q:\n%s", want, stdout.String())
+		}
+	}
+	if strings.Contains(stdout.String(), "super-secret-key") {
+		t.Fatal("describe leaked the API key")
+	}
+}
+
 func TestInvalidProvider(t *testing.T) {
 	code, _, stderr := invokePlugin(t, enrichmentInput, map[string]string{
 		"WEAVE_AI_PROVIDER": "bogus",

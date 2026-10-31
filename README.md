@@ -46,6 +46,16 @@ repository, builds six static targets, writes sorted checksums and creates a dra
 `workflow_dispatch` performs a build-only dry run. See the
 [release automation spec](docs/specs/release-automation.md).
 
+## Quickstart
+
+```sh
+weave ingest ~/notes --strict
+weave search ~/notes "token rotation"
+```
+
+That is the two-command path from a clean install to first results. `weave config init` is optional
+and writes the global defaults with a next-step hint.
+
 ## Usage
 
 ```sh
@@ -55,6 +65,10 @@ weave <command> [arguments] [flags]
 Global flags:
 
 - `--json` emits one `weave.cli/v1` envelope on stdout.
+- `--quiet` prints errors only; `--verbose` adds bundle, source, database, cache and timing
+  diagnostics to stderr. They are mutually exclusive.
+- `--ascii` replaces `→` and `·` with ASCII; `NO_COLOR` is accepted even though Weave is monochrome
+  by default. Progress lines appear only on a TTY and never with `--json`.
 - `--no-cache` disables the parse cache, which is enabled by default.
 - `--no-db` forces transient in-memory parsing; otherwise reads use `~/.weave/index.db`.
 - `--db <file>` selects another database; it is mutually exclusive with `--no-db`.
@@ -79,6 +93,7 @@ Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file
 weave config init                 # platform config dir, 0600; prints the next command
 weave config show --json          # values, sources and origins
 weave config get top_k --json     # one resolved key
+weave config paths --json         # config, DB, cache, keys and extensions
 weave config path --json
 weave --config ./weave.yaml list ~/notes --no-db
 ```
@@ -103,11 +118,37 @@ rerank: ""
 - v1.0 keeps the database at `~/.weave/index.db`; use `--db`, `WEAVE_DB` or the `db` key to move
   it. XDG state migration is deferred (see
   [ADR 0004](docs/architecture/adr/0004-config-paths-and-db-location.md)).
-- `config show` and `config get` report every value with `source` and `origin`.
+- `config show` and `config get` report every value with `source` and `origin`; `config paths`
+  names the config, database, cache, key and extension locations.
 - Secrets are never read from configuration; keys stay in `WEAVE_KEY_*` or `.weave/security.yaml`.
 - Invalid or reserved keys exit `2`; unknown keys warn unless `--strict-config`.
 
 Spec: [Configuration](docs/specs/configuration.md).
+
+### Shell completion
+
+```sh
+weave completion bash > ~/.local/share/bash-completion/completions/weave
+weave completion zsh > "${fpath[1]}/_weave"
+weave completion fish > ~/.config/fish/completions/weave.fish
+```
+
+The scripts are generated from the command table; `weave` with no arguments prints a short
+start-here screen.
+
+### Local-first guarantees
+
+Weave has **no telemetry and makes no network calls by default**. Core parsing, indexing, search,
+navigation, persistence and export are local.
+
+Network access is opt-in and isolated to extensions you install:
+
+- `weave-ai` calls the model endpoint you configure only when an AI enrichment or rerank is
+  requested; documents are sent only when the `privacy.ai.send` directive opts in.
+- Other `weave-<name>` extensions run as local subprocesses; a third-party extension may make its
+  own network calls, so review it before installation.
+- `weave config paths` lists the config, database, cache, key-search and extension paths.
+- Privacy errors name the provider and key id when available; key material is never printed.
 
 ### Shipped commands
 
@@ -406,6 +447,7 @@ bundle's `.weave/bin/`, then use it like any extension:
 
 ```sh
 go build -o "$HOME/.local/bin/weave-ai" ./cmd/weave-ai
+weave-ai --describe              # provider, endpoint and consent; never the key
 weave ingest ~/notes --db ~/.weave/index.db --with-enricher ai
 weave search ~/notes "token rotation" --rerank ai
 ```
@@ -414,6 +456,8 @@ weave search ~/notes "token rotation" --rerank ai
 - Config: `<bundle>/.weave/ai.yaml` or `WEAVE_AI_CONFIG`; env overrides `WEAVE_AI_*`.
 - Core redacts encrypted/tokenized/hashed bodies before IPC; `privacy.ai.send: true` opts a
   document in to sending its body.
+- `weave-ai --describe` prints the provider, model, endpoint and consent rule; it never prints the
+  API key value.
 - Model or provider failures degrade to core results with a warning.
 
 Spec: [Weave AI Extension](docs/specs/weave-ai-plugin.md).

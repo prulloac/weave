@@ -542,7 +542,8 @@ type ExtensionInfo struct {
 
 // ExtensionList is the result of `weave extensions list`.
 type ExtensionList struct {
-	Extensions []ExtensionInfo `json:"extensions"`
+	Extensions  []ExtensionInfo `json:"extensions"`
+	SearchPaths []string        `json:"search_paths,omitempty"`
 }
 
 // ContractInfo is returned by `weave contract --json`.
@@ -595,6 +596,15 @@ type ConfigInit struct {
 	Path        string `json:"path"`
 	Created     bool   `json:"created"`
 	NextCommand string `json:"next_command,omitempty"`
+}
+
+// ConfigPaths is the typed result of `weave config paths --json`.
+type ConfigPaths struct {
+	Config     string   `json:"config"`
+	Database   string   `json:"database"`
+	Cache      string   `json:"cache"`
+	Keys       []string `json:"keys"`
+	Extensions []string `json:"extensions"`
 }
 
 // WatchEvent is one JSONL event emitted by `weave sync --watch --events --json`.

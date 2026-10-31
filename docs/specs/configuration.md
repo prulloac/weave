@@ -143,6 +143,7 @@ rerank: ""
 ```sh
 weave config show --json
 weave config get <key> --json
+weave config paths --json
 weave config path --json
 weave config init [--force]
 ```
@@ -178,13 +179,16 @@ weave config init [--force]
 - Values are JSON-native; durations use their Go string form.
 - `config get <key>` returns one object with `key`, `value`, `source` and `origin`. An unknown key
   exits `2` with `INVALID_REQUEST` and lists the known keys.
+- `config paths` reports the config file, effective database, cache directory, key-search
+  locations (`<bundle>/.weave/security.yaml`, `WEAVE_KEY_*`) and extension search paths
+  (`<bundle>/.weave/bin` plus `PATH`). It returns `ConfigPaths`.
 - `config path` prints the resolved file path and whether it exists. It does not parse the file.
 - `config init` writes the commented default file at the resolved global path; it refuses to
   overwrite without `--force` and never writes secrets. It does not parse an existing file, so
   `config init --force` can repair an invalid file. Its result includes
   `next_command: "weave config show"`, and human output ends with `next: weave config show`.
 - `config show` never prints `WEAVE_KEY_*` values.
-- The four result types are `ConfigShow`, `ConfigGet`, `ConfigPath` and `ConfigInit` in
+- The result types are `ConfigShow`, `ConfigGet`, `ConfigPaths`, `ConfigPath` and `ConfigInit` in
   `contract/v1`, validated by `config.schema.json`.
 
 ### 2.5 Machine-output policy
@@ -262,8 +266,10 @@ defaults
 - The parse cache uses `os.UserCacheDir` and honors `XDG_CACHE_HOME`.
 - Unknown keys warn; strict mode fails.
 - Reserved keys and malformed values fail with `CONFIG_INVALID`.
-- `config show/get/path/init` JSON and human output, including source and origin attribution.
+- `config show/get/paths/path/init` JSON and human output, including source and origin
+  attribution.
 - `config get` rejects unknown keys with the known-key list.
+- `config paths` names config, database, cache, key and extension locations.
 - `config init` refuses overwrite; `--force` replaces; file mode is `0600`; output ends with
   `next: weave config show`.
 - Config JSON validates against `config.schema.json`; CLI goldens cover show/get/path/init.
@@ -276,7 +282,9 @@ defaults
 
 - A global YAML file and `WEAVE_*` variables can replace repeated flags without changing behavior.
 - Precedence is deterministic and visible through `weave config show` and `weave config get`.
-- Config, cache and database paths follow one documented decision record across operating systems.
+- Config, cache and database paths follow one documented decision record across operating systems;
+  `config paths` names every data location.
+- The local-first statement appears in help and version: no telemetry and no network by default.
 - Invalid or reserved configuration fails before any bundle or database access.
 - Secrets are never read from or printed by configuration.
 - `config init` produces a usable, commented file with restrictive permissions and a next command.

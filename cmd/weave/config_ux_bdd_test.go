@@ -229,6 +229,37 @@ func TestConfigShowWarningsStayOnStderr(t *testing.T) {
 	validateCLIJSON(t, stdout, "config.schema.json")
 }
 
+func TestConfigPaths(t *testing.T) {
+	clearConfigEnv(t)
+	config := writeConfig(t, "db: /srv/weave/index.db\ncache_dir: /srv/weave/cache\n")
+
+	code, stdout, stderr := Invoke(t, "config", "paths", "--config", config, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("config paths exit=%d stderr=%q", code, stderr)
+	}
+	envelope := validateCLIJSON(t, stdout, "config.schema.json")
+	var result contractv1.ConfigPaths
+	if err := json.Unmarshal(envelope.Result, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Config != config || result.Database != "/srv/weave/index.db" || result.Cache != "/srv/weave/cache" {
+		t.Fatalf("unexpected config paths: %+v", result)
+	}
+	if len(result.Keys) == 0 || len(result.Extensions) == 0 {
+		t.Fatalf("missing key or extension search paths: %+v", result)
+	}
+
+	code, stdout, stderr = Invoke(t, "config", "paths", "--config", config)
+	if code != 0 || stderr != "" {
+		t.Fatalf("human config paths exit=%d stderr=%q", code, stderr)
+	}
+	for _, want := range []string{"config:", "database:", "cache:", "keys:", "extensions:"} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("config paths missing %q:\n%s", want, stdout)
+		}
+	}
+}
+
 func TestConfigPathAndInitIgnoreInvalidFile(t *testing.T) {
 	clearConfigEnv(t)
 	config := writeConfig(t, "top_k: 101\n")

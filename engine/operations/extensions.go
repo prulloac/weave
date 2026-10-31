@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -31,7 +33,10 @@ func (e *Executor) warn(format string, args ...any) {
 
 func (e *Executor) listExtensions(root string) contractv1.ExtensionList {
 	discovered := extensions.Discover(root)
-	result := contractv1.ExtensionList{Extensions: make([]contractv1.ExtensionInfo, 0, len(discovered))}
+	result := contractv1.ExtensionList{
+		Extensions:  make([]contractv1.ExtensionInfo, 0, len(discovered)),
+		SearchPaths: extensionSearchPaths(root),
+	}
 	for _, extension := range discovered {
 		result.Extensions = append(result.Extensions, contractv1.ExtensionInfo{
 			Name:   extension.Name,
@@ -40,6 +45,19 @@ func (e *Executor) listExtensions(root string) contractv1.ExtensionList {
 		})
 	}
 	return result
+}
+
+func extensionSearchPaths(root string) []string {
+	paths := make([]string, 0)
+	if strings.TrimSpace(root) != "" {
+		paths = append(paths, filepath.Join(root, ".weave", "bin"))
+	}
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir != "" {
+			paths = append(paths, dir)
+		}
+	}
+	return paths
 }
 
 func extensionTimeout(request contractv1.OperationRequest) time.Duration {

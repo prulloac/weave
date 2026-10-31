@@ -119,8 +119,16 @@ var commandHelpText = map[string]commandHelp{
 			`weave export ~/notes --out ./sealed --format encrypted --key-id export-2026`,
 		},
 	},
+	"completion": {
+		Usage:   "weave completion bash|zsh|fish",
+		Summary: "Print a shell completion script.",
+		Examples: []string{
+			`weave completion bash > ~/.local/share/bash-completion/completions/weave`,
+			`weave completion zsh > "${fpath[1]}/_weave"`,
+		},
+	},
 	"config": {
-		Usage:   "weave config show|get|path|init [flags]",
+		Usage:   "weave config show|get|paths|path|init [flags]",
 		Summary: "Inspect or initialize global configuration.",
 		Flags: []string{
 			"--config <file> / --no-config       select or ignore the file (WEAVE_CONFIG)",
@@ -130,6 +138,7 @@ var commandHelpText = map[string]commandHelp{
 		Examples: []string{
 			`weave config show --json`,
 			`weave config get top_k --json`,
+			`weave config paths --json`,
 			`weave config init`,
 		},
 	},
@@ -184,6 +193,22 @@ var commandHelpText = map[string]commandHelp{
 	},
 }
 
+func printStart(writer io.Writer) {
+	fmt.Fprint(writer, `weave — local-first related-document database
+
+start here:
+  weave ingest ~/notes --strict
+  weave search ~/notes "token rotation"
+  weave config init
+
+local-first: no telemetry, no network by default
+
+more:
+  weave --help
+  weave help <command>
+`)
+}
+
 func printHelp(writer io.Writer) {
 	fmt.Fprint(writer, `weave — local-first related-document database
 
@@ -196,10 +221,13 @@ read:
 write:
   ingest rebuild sync export
 configure & integrate:
-  config extensions mcp contract version
+  config extensions completion mcp contract version
 
 global flags:
   --json                  one weave.cli/v1 envelope on stdout
+  --quiet                 errors only; suppress human success output
+  --verbose               print bundle, sources, database, cache and timing
+  --ascii                 ASCII arrows and separators (NO_COLOR is accepted)
   --db <file>             persistent database (~/.weave/index.db by default)
   --no-db                 transient in-memory parsing
   --config <file>         global config file (WEAVE_CONFIG; see weave config show)
@@ -213,6 +241,7 @@ examples:
   weave config show --json
 
 exit codes: 0 success · 1 runtime/no match · 2 usage/confirmation · 3 permission/privacy
+local-first: no telemetry, no network by default
 `)
 }
 
@@ -235,7 +264,7 @@ func printCommandHelp(writer io.Writer, command string) {
 			fmt.Fprintf(writer, "  %s\n", example)
 		}
 	}
-	fmt.Fprint(writer, "\nglobal: --json --db <file> --no-db --config <file> --no-config --strict-config\n")
+	fmt.Fprint(writer, "\nglobal: --json --quiet --verbose --ascii --db <file> --no-db --config <file> --no-config --strict-config\n")
 }
 
 func printConfigHelp(writer io.Writer) {
@@ -244,6 +273,7 @@ func printConfigHelp(writer io.Writer) {
 usage:
   weave config show [--json]
   weave config get <key> [--json]
+  weave config paths [--json]
   weave config path [--json]
   weave config init [--force]
 

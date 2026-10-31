@@ -11,6 +11,7 @@ import (
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/okf"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 	"gopkg.in/yaml.v3"
 )
@@ -380,7 +381,7 @@ func runConfigCommand(args []string, stdout, stderr io.Writer) int {
 		subcommand = positionals[0]
 	}
 	switch subcommand {
-	case "show", "path", "init":
+	case "show", "paths", "path", "init":
 		if len(positionals) != 1 {
 			return usageError(stdout, stderr, jsonMode, "config "+subcommand+" takes no arguments")
 		}
@@ -452,6 +453,22 @@ func runConfigCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stdout)
 		}
 		return 0
+	case "paths":
+		result := configPathsResult(cfg)
+		if jsonMode {
+			_ = writeJSON(stdout, successEnvelope(result))
+			return 0
+		}
+		fmt.Fprintf(stdout, "config: %s\n", result.Config)
+		database := result.Database
+		if database == "" {
+			database = "disabled (--no-db)"
+		}
+		fmt.Fprintf(stdout, "database: %s\n", database)
+		fmt.Fprintf(stdout, "cache: %s\n", result.Cache)
+		fmt.Fprintf(stdout, "keys: %s\n", strings.Join(result.Keys, ", "))
+		fmt.Fprintf(stdout, "extensions: %s\n", strings.Join(result.Extensions, ", "))
+		return 0
 	case "get":
 		key := positionals[1]
 		if !contains(configKeys, key) {
@@ -480,6 +497,41 @@ func runConfigCommand(args []string, stdout, stderr io.Writer) int {
 		return 0
 	default:
 		return usageError(stdout, stderr, jsonMode, "config requires show, get, path or init")
+	}
+}
+
+func configPathsResult(cfg appConfig) contractv1.ConfigPaths {
+	database := cfg.DB
+	if cfg.NoDB {
+		database = ""
+	} else if database == "" {
+		if path, err := sqlitestore.DefaultPath(); err == nil {
+			database = path
+		}
+	}
+	if database != "" {
+		if path, err := sqlitestore.ExpandPath(database); err == nil {
+			database = path
+		}
+	}
+	cache := cfg.CacheDir
+	if cache == "" {
+		cache = okf.DefaultCacheDir()
+	} else if path, err := sqlitestore.ExpandPath(cache); err == nil {
+		cache = path
+	}
+	extensions := []string{"<bundle>/.weave/bin"}
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir != "" {
+			extensions = append(extensions, dir)
+		}
+	}
+	return contractv1.ConfigPaths{
+		Config:     cfg.Path,
+		Database:   database,
+		Cache:      cache,
+		Keys:       []string{"<bundle>/.weave/security.yaml", "WEAVE_KEY_*"},
+		Extensions: extensions,
 	}
 }
 

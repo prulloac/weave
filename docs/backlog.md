@@ -102,6 +102,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] CI workflow: contract export diff, `go test -race`, vet, gofmt, build, docs lint
 - [x] `scripts/verify.sh` full local gate
 - [x] Qualitative optimization: config paths/provenance and additive machine output
+- [x] Maintainability: shared CLI harness, table-driven dispatch and one error table per boundary
+- [x] Feedback and onboarding: quiet/verbose/progress/ASCII, start screen, empty states, completion
+- [x] Local-first trust: no-telemetry statement, `config paths`, extension search paths
 - [x] CONTRIBUTING.md: development process, worktrees, stacked PRs, PR template
 - [x] PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - [x] Contract v1 schemas, generated types, golden corpus and exporter (Phase 0)

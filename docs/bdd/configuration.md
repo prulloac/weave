@@ -133,6 +133,12 @@ Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file
 - **Then** it exits `2`
 - **And** lists the known keys
 
+### Scenario: Paths reports every data location
+
+- **When** I run `weave config paths --json`
+- **Then** it reports the config, database, cache, key-search and extension paths
+- **And** the result validates against `config.schema.json`
+
 ### Scenario: Path reports the resolved file
 
 - **When** I run `weave config path --json`

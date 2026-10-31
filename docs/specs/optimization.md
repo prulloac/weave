@@ -126,6 +126,10 @@ Ordered first so later measurement and UX work land on a tractable codebase.
 - Keep `go vet`, gofmt across every package, docs-lint and markdownlint in the required gate.
 - Details and exit criteria: [Proposal: maintainability](../architecture/optimization/proposal-maintainability.md).
 
+Delivered: hotspot file splits, the shared CLI test harness, dependency-direction guard, CI static
+analysis/coverage/vulnerability gate, the table-driven operation dispatch, and one operations error
+table plus one CLI error-policy table covering all 17 codes.
+
 ### 3.2 O2 — User experience
 
 Global configuration is shipped; the remaining UX work precedes benchmarks because it changes the
@@ -143,9 +147,11 @@ commands and output the benchmarks exercise.
 - Details and exit criteria: [Proposal: UX](../architecture/optimization/proposal-ux.md).
 
 Delivered so far: help/errors/safety, platform config and cache paths, `config get`, typed
-provenance and goldens, `WatchEvent` JSONL, the additive schema gate and the
-[database location decision](../architecture/adr/0004-config-paths-and-db-location.md). Feedback
-controls (`quiet`/`verbose`/`NO_COLOR`) and onboarding remain.
+provenance and goldens, `WatchEvent` JSONL, the additive schema gate, the
+[database location decision](../architecture/adr/0004-config-paths-and-db-location.md), and
+feedback controls (`--quiet`, `--verbose`, TTY progress, `--ascii`, `NO_COLOR`),
+onboarding/completion (start screen, empty-state hints, shell scripts), and local-first trust
+(`config paths`, extension search paths, no-telemetry statement and privacy diagnostics).
 
 ### 3.3 O3 — Benchmarks
 

@@ -13,6 +13,9 @@ import (
 
 type flags struct {
 	json         bool
+	quiet        bool
+	verbose      bool
+	ascii        bool
 	noCache      bool
 	help         bool
 	limit        *int
@@ -66,6 +69,12 @@ func parseFlags(args []string) (flags, error) {
 		switch arg {
 		case "--json":
 			result.json = true
+		case "--quiet":
+			result.quiet = true
+		case "--verbose":
+			result.verbose = true
+		case "--ascii":
+			result.ascii = true
 		case "--no-cache":
 			result.noCache = true
 		case "--help", "-h":
@@ -297,6 +306,9 @@ func parseFlags(args []string) (flags, error) {
 	}
 	if result.strict && result.permissive {
 		return result, fmt.Errorf("--strict and --permissive are mutually exclusive")
+	}
+	if result.quiet && result.verbose {
+		return result, fmt.Errorf("--quiet and --verbose are mutually exclusive")
 	}
 	if result.timeoutSet && result.enricher == "" && result.rerank == "" {
 		return result, fmt.Errorf("--timeout requires --with-enricher or --rerank")

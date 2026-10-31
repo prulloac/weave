@@ -31,6 +31,11 @@ type parseCache struct {
 	dirty    bool
 }
 
+// DefaultCacheDir returns the platform parse-cache directory.
+func DefaultCacheDir() string {
+	return defaultCacheDir()
+}
+
 func defaultCacheDir() string {
 	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
 		if dir := os.Getenv("XDG_CACHE_HOME"); dir != "" && !filepath.IsAbs(dir) {

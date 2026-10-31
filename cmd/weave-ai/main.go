@@ -58,7 +58,24 @@ type rerankResponse struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--describe" || os.Args[1] == "describe") {
+		os.Exit(describe(os.Stdout, os.Stderr))
+	}
 	os.Exit(run(os.Stdin, os.Stdout, os.Stderr))
+}
+
+func describe(stdout, stderr io.Writer) int {
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Fprintf(stderr, "weave-ai: %s\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "provider: %s\n", cfg.Provider)
+	fmt.Fprintf(stdout, "model: %s\n", cfg.Model)
+	fmt.Fprintf(stdout, "endpoint: %s\n", cfg.BaseURL)
+	fmt.Fprintf(stdout, "consent: privacy.ai.send required per document\n")
+	fmt.Fprintf(stdout, "api_key_env: %s (value never printed)\n", cfg.APIKeyEnv)
+	return 0
 }
 
 func run(stdin io.Reader, stdout, stderr io.Writer) int {

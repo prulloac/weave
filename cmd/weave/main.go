@@ -11,11 +11,13 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/operations"
 	"github.com/prulloac/weave/engine/privacy"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
 var version = "dev"
@@ -26,7 +28,7 @@ func main() {
 
 func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if len(args) == 0 {
-		printHelp(stdout)
+		printStart(stdout)
 		return 0
 	}
 
@@ -44,12 +46,16 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	if args[0] == "--version" || args[0] == "-v" {
 		fmt.Fprintf(stdout, "weave %s (contract 1)\n", version)
+		fmt.Fprintln(stdout, "local-first: no telemetry, no network by default")
 		return 0
 	}
 
 	command := args[0]
 	if command == "config" {
 		return runConfigCommand(args[1:], stdout, stderr)
+	}
+	if command == "completion" {
+		return runCompletion(args[1:], stdout, stderr)
 	}
 	if command == "mcp" {
 		configPath, noConfig, strict, err := scanConfigArgs(args[1:])
@@ -221,17 +227,28 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		}, stdout, stderr)
 	}
 
-	if !flags.json && request.Path != "" {
+	if !flags.json && !flags.quiet && request.Path != "" {
 		if warning := privacy.SecurityFileWarning(request.Path); warning != "" {
 			fmt.Fprintf(stderr, "weave: %s\n", warning)
 		}
 	}
+	if flags.verbose {
+		printVerbose(stderr, request, !flags.noCache)
+	}
 
 	executor := operations.New(version, engine.Options{Cache: !flags.noCache, CacheDir: flags.cacheDir})
 	executor.Warn = func(message string) {
-		fmt.Fprintf(stderr, "weave: %s\n", message)
+		if !flags.quiet {
+			fmt.Fprintf(stderr, "weave: %s\n", message)
+		}
 	}
+	started := time.Now()
+	stopProgress := startProgress(stderr, request.Op, !flags.json && !flags.quiet && writerIsTerminal(stderr))
 	value := executor.Execute(context.Background(), request)
+	stopProgress()
+	if flags.verbose {
+		fmt.Fprintf(stderr, "weave: elapsed: %s\n", time.Since(started).Round(time.Millisecond))
+	}
 
 	switch envelope := value.(type) {
 	case contractv1.SuccessEnvelope:
@@ -244,12 +261,23 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 				return exit
 			}
 			if isEmptyResult(request.Op, envelope.Result) {
-				fmt.Fprintln(stderr, "weave: no matches")
+				if !flags.quiet {
+					fmt.Fprintln(stderr, "weave: no matches")
+				}
 				return 1
 			}
 			return 0
 		}
-		return printHuman(stdout, stderr, request.Op, envelope.Result)
+		if flags.quiet {
+			if exit := successExitCode(request.Op, envelope.Result); exit != 0 {
+				return exit
+			}
+			if isEmptyResult(request.Op, envelope.Result) {
+				return 1
+			}
+			return 0
+		}
+		return printHuman(stdout, stderr, request.Op, envelope.Result, flags.ascii)
 	case contractv1.FailureEnvelope:
 		if flags.json {
 			if err := writeJSON(stdout, envelope); err != nil {
@@ -261,5 +289,42 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	default:
 		fmt.Fprintln(stderr, "weave: internal error")
 		return 1
+	}
+}
+
+func printVerbose(writer io.Writer, request contractv1.OperationRequest, cache bool) {
+	if request.Path != "" {
+		fmt.Fprintf(writer, "weave: bundle: %s\n", request.Path)
+	}
+	for _, source := range request.Sources {
+		fmt.Fprintf(writer, "weave: source %s: %s\n", source.Alias, source.Path)
+	}
+	if storageOperation(request.Op) {
+		if request.NoDB {
+			fmt.Fprintln(writer, "weave: db: disabled (--no-db)")
+		} else {
+			db := request.DB
+			if db == "" {
+				if path, err := sqlitestore.DefaultPath(); err == nil {
+					db = path
+				}
+			}
+			if db != "" {
+				fmt.Fprintf(writer, "weave: db: %s\n", db)
+			}
+		}
+		fmt.Fprintf(writer, "weave: cache: %t\n", cache)
+	}
+}
+
+func storageOperation(op contractv1.OperationName) bool {
+	switch op {
+	case contractv1.OpParse, contractv1.OpGraph, contractv1.OpSearch, contractv1.OpList,
+		contractv1.OpShow, contractv1.OpBacklinks, contractv1.OpPath, contractv1.OpAudit,
+		contractv1.OpRelate, contractv1.OpExplain, contractv1.OpIngest, contractv1.OpRebuild,
+		contractv1.OpSync, contractv1.OpExport:
+		return true
+	default:
+		return false
 	}
 }
