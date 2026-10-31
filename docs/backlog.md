@@ -65,7 +65,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | BM25 explain evidence | [bm25-ranking.md](specs/bm25-ranking.md) | - | x | x | x | green |
 | Memory/body compression | [compression.md](specs/compression.md) | - | x | x | x | green |
 | Privacy directives | [privacy-directives.md](specs/privacy-directives.md) | - | x | x | x | green |
-| External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | - | - | backlog |
+| External crypto providers | [external-crypto-providers.md](specs/external-crypto-providers.md) | - | x | x | - | red |
 | Extension subprocess IPC | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
 | Enrichment extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |
 | Rerank extension | [extension-ipc.md](specs/extension-ipc.md) | - | x | x | x | green |

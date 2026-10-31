@@ -232,7 +232,7 @@ is the completeness check: no feature is considered planned until it appears her
 | 14 | Enrichment extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | sync, extension runner | 5 / Phase 5 | shipped |
 | 15 | Rerank extension | [extension-ipc.md](docs/specs/extension-ipc.md) | Tier 5 | search, extension runner | 5 / Phase 5 | shipped |
 | 16 | AI plugin | [weave-ai-plugin.md](docs/specs/weave-ai-plugin.md) | Tier 5 | extension runner | 6 / Phase 5 | shipped |
-| 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | planned |
+| 17 | External crypto providers | [external-crypto-providers.md](docs/specs/external-crypto-providers.md) | Tier 5 | privacy directives, extension runner | 6 / Phase 5 | red |
 | 18 | Sensitive MCP policies | [mcp-sensitive.md](docs/specs/mcp-sensitive.md) | Tier 6 | privacy directives, MCP in-memory | 5 / Phase 6 | shipped |
 | 19 | MCP in-memory | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | operations, relate/audit/explain | 3 / Phase 6 (can be pulled earlier) | shipped |
 | 20 | MCP persistent | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory, storage, sync, watch, privacy | 6 / Phase 6 | shipped |
