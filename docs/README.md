@@ -39,5 +39,6 @@ The [README](../README.md) contains the task-oriented usage guide:
 ## Contributing
 
 - [Contributing guide](../CONTRIBUTING.md) — SDD → BDD → TDD, worktrees and stacked PRs.
+- [Release checklist](release-checklist.md) — current v1.0.0 preparation state.
 - [Release readiness](specs/release-readiness.md) — the regression, smoke and documentation gate.
 - [Optimization program](specs/optimization.md) — post-GA stretch work.

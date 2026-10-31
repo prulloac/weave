@@ -415,6 +415,7 @@ stack; R4–R5 as one test stack; R6–R7 as the release stack.
 
 ## 14. Related Documents
 
+- [Release checklist](../release-checklist.md) — current v1.0.0 preparation state
 - [Optimization program](./optimization.md) — stretch performance work
 - [Release Automation](./release-automation.md) — tag, build matrix and draft release
 - [Configuration](./configuration.md) — paths and provenance used by the smoke suite
