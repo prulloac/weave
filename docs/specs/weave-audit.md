@@ -16,8 +16,6 @@ status: stable
 
 # Specification: Weave Audit
 
-Status: **Implemented** for v1.0. `--permissive` is reserved for the permissive-ingestion feature.
-
 ## 1. Overview
 
 `weave audit` evaluates a bundle as a knowledge base, not just as a parser input. It reports
@@ -193,7 +191,7 @@ Exit lines:
 
 - [Keyword + Fuzzy Search spec](./keyword-fuzzy-search.md)
 - [Node Graph Engine spec](./node-graph-engine.md)
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [Permissive Ingestion](./permissive-ingestion.md)
 - [CLI layer](../architecture/layers/cli-go.md)
 - [Integration contracts](../architecture/integration/contracts.md)

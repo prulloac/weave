@@ -1,6 +1,6 @@
 ---
 type: Architecture Decision Record
-title: "ADR 0003: Keyword + Fuzzy Search and UI Retirement"
+title: "ADR 0001: Keyword + Fuzzy Search and UI Retirement"
 description: "Redefines Weave as an in-memory related-document database with mandatory keywords, weighted fuzzy search, top-K results and no UI."
 tags:
   - "architecture"
@@ -15,7 +15,7 @@ generated:
 status: accepted
 ---
 
-# ADR 0003: Keyword + Fuzzy Search and UI Retirement
+# ADR 0001: Keyword + Fuzzy Search and UI Retirement
 
 ## Status
 

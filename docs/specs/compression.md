@@ -10,12 +10,10 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-28T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Compression
-
-Status: **Implemented** (zstd default, LZ4 opt-in, per-row codec, decode recovery).
 
 ## 1. Overview
 
@@ -174,6 +172,6 @@ Exit codes are unchanged: `0` success, `1` runtime failure, `2` usage, `3` priva
 
 - [Storage & Sync](./storage-and-sync.md)
 - [Privacy Directives](./privacy-directives.md)
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [BM25 Ranking](./bm25-ranking.md)
 - [ROADMAP](../../ROADMAP.md)

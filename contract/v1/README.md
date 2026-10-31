@@ -109,7 +109,7 @@ Golden updates are reviewed like code. CI fails on drift.
 `golden/schema-baseline.json` records definitions, properties and entrypoint variants.
 `cmd/schema-diff` rejects removals, changed property shapes and newly required properties, while
 allowing optional additions and new enum values. See
-[ADR 0004](../../docs/architecture/adr/0004-config-paths-and-db-location.md).
+[ADR 0002](../../docs/architecture/adr/0002-config-paths-and-db-location.md).
 
 ## Contract Version
 

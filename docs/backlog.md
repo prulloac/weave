@@ -2,8 +2,8 @@
 
 Tracked work queue for the Weave vision: "To weave flat files into a living universe of knowledge."
 
-**v1.0 includes every tier below.** Persistence, privacy, extensions and MCP are v1.0 scope, not a
-later platform; the tiers and waves are internal delivery order.
+**v1.0 includes every tier below except rows marked `stretch`.** Persistence, privacy, extensions and
+MCP are v1.0 scope, not a later platform; the tiers and waves are internal delivery order.
 
 Status legend:
 
@@ -13,6 +13,7 @@ Status legend:
 - `green` — tests passing
 - `review` — PR submitted, awaiting review/merge
 - `done` — merged
+- `stretch` — post-GA; tracked but not a v1.0 gate
 
 Pipeline phase legend (per SDD -> BDD -> TDD):
 
@@ -43,7 +44,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | `weave audit` bundle quality gate | [weave-audit.md](specs/weave-audit.md) | - | x | x | x | green |
 | `weave relate` graph neighborhood | [weave-relate.md](specs/weave-relate.md) | - | x | x | x | green |
 | `weave explain` ranking breakdown | [weave-explain.md](specs/weave-explain.md) | - | x | x | x | green |
-| Introspection contract types (audit/relate/explain) | [weave-audit.md](specs/weave-audit.md) | - | x | - | - | backlog |
+| Introspection contract types (audit/relate/explain) | [weave-audit.md](specs/weave-audit.md) | - | x | x | x | green |
 
 ## Tier 4 — Portability
 
@@ -90,8 +91,9 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Release automation | [release-automation.md](specs/release-automation.md) | - | x | x | x | green |
 | Bundle export (raw/encrypted) | [bundle-export.md](specs/bundle-export.md) | - | x | x | x | green |
 | Multiple bundle sources | [multi-bundle.md](specs/multi-bundle.md) | - | x | x | x | green |
-| Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | x | x | in-progress |
+| Performance and maintainability | [optimization.md](specs/optimization.md) | - | x | x | x | stretch |
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
+| Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | - | in-progress |
 
 ## Cross-cutting
 
@@ -113,7 +115,7 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 - [x] Go module scaffold, contract structs, schema round-trip tests and CI (Phase 2)
 - [x] Go engine port: parser, graph, search, navigation and operations (Phase 3)
 - [x] Go machine CLI: commands, envelopes, exit codes and cache defaults (Phase 5A / Milestone A)
-- [x] ADR 0003: keyword + fuzzy search
+- [x] ADR 0001: keyword + fuzzy search
 - [x] Keyword + Fuzzy Search specification
 - [x] Search calibration corpus and baseline report
 - [x] v1.0 storage/sync and privacy/extension specifications placed under `docs/specs/`
@@ -161,7 +163,8 @@ Execution waves:
 6. Extension runner, enrichment and rerank (done); sensitive MCP (done).
 7. AI plugin (done), external crypto (done).
 8. Release automation (done), bundle export (done), multiple bundle sources (done).
-9. Maintainability and UX (config done), then benchmarks and time/space.
+9. Release readiness: documentation integrity, regression hardening and the built-binary smoke suite.
+10. Stretch: maintainability and UX follow-ups, benchmarks, time and space.
 
 Critical path: `contract -> parser/graph/search -> storage -> sync -> BM25 -> privacy -> extension runner -> MCP sensitive`.
 

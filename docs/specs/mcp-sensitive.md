@@ -11,13 +11,10 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-29T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: MCP Sensitive Access Policies
-
-Status: **Implemented** (server-wide redaction, opt-in decryption, resource policy and audit key checks).
-Target: **v1.0**
 
 ## 1. Overview
 

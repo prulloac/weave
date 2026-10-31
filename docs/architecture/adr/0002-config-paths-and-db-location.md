@@ -1,6 +1,6 @@
 ---
 type: Architecture Decision Record
-title: "ADR 0004: Configuration Paths, Database Location and Machine Output"
+title: "ADR 0002: Configuration Paths, Database Location and Machine Output"
 description: "Uses platform config and cache directories, keeps the v1.0 database at ~/.weave/index.db, and pins additive machine output."
 tags:
   - "architecture"
@@ -15,11 +15,11 @@ generated:
 status: accepted
 ---
 
-# ADR 0004: Configuration Paths, Database Location and Machine Output
+# ADR 0002: Configuration Paths, Database Location and Machine Output
 
 ## Status
 
-Accepted on 2026-10-31 for v1.0. It complements [ADR 0003](0003-keyword-fuzzy-search-and-ui-retirement.md)
+Accepted on 2026-10-31 for v1.0. It complements [ADR 0001](0001-keyword-fuzzy-search-and-ui-retirement.md)
 and the [Configuration specification](../../specs/configuration.md).
 
 ## Context

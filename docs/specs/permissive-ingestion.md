@@ -15,9 +15,6 @@ status: stable
 
 # Specification: Permissive Ingestion
 
-Status: **Implemented** for `ingest`, `rebuild`, stored reads and `audit`. `sync` integration follows
-with incremental sync.
-
 ## 1. Overview
 
 Strict parsing accepts only OKF documents with `type` and `keywords`. Permissive ingestion lets

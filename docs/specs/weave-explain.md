@@ -15,8 +15,6 @@ status: stable
 
 # Specification: Weave Explain
 
-Status: **Implemented**, including BM25 and persistent-hybrid evidence.
-
 ## 1. Overview
 
 `weave explain` exposes the scoring behind a search result. It answers:

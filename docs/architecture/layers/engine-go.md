@@ -145,5 +145,5 @@ the calibration/benchmark suite; the 10k-file budgets in the spec remain the rel
 - [Contract layer](contract.md)
 - [Operations layer](operations.md)
 - [CLI layer](cli-go.md)
-- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md)
 - [Integration testing](../integration/testing.md)

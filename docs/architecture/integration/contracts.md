@@ -16,7 +16,7 @@ status: draft
 # Integration Contracts
 
 The primary integration contract is **CLI I/O**. There is no HTTP, DOM or presentation contract.
-The UI is retired by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md).
+The UI is retired by [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md).
 
 ## 1. CLI Contract
 
@@ -154,7 +154,7 @@ Guarantees:
 
 ## Related Documents
 
-- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md)
 - [Contract layer](../layers/contract.md)
 - [Operations layer](../layers/operations.md)
 - [CLI layer](../layers/cli-go.md)

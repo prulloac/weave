@@ -16,8 +16,6 @@ status: stable
 
 # Specification: BM25 Lexical Ranking
 
-Status: **BM25 mode, FTS indexing, hybrid calibration and explain evidence implemented** for v1.0.
-
 ## 1. Overview
 
 The shipped core uses exact/prefix keyword matching with strict AND semantics. v1.0 adds **BM25

@@ -154,7 +154,7 @@ Benchmarks live in `engine/bench_test.go`.
 
 ## Related Documents
 
-- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md)
 - [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md)
 - [Contract layer](../layers/contract.md)
 - [Engine layer](../layers/engine-go.md)

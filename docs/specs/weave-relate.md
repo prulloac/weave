@@ -15,8 +15,6 @@ status: stable
 
 # Specification: Weave Relate
 
-Status: **Implemented** for v1.0.
-
 ## 1. Overview
 
 `weave relate` answers “what is connected to this concept?” It walks the graph from a root concept

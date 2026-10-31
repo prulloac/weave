@@ -51,16 +51,16 @@ behavior suites and `TestCalibration` pass unchanged.
 | M3 | Split `cmd/weave/main.go` into `flags.go`, `request.go`, `output.go`, `help.go`, `policy.go`; split `engine/operations/operations.go` into `execute.go`, `write.go`, `search.go`, `explain.go`, `errors.go`, `envelope.go`. Replace the `Execute` if-chain with a `map[OperationName]handler` plus validation middleware, deriving descriptors from the same table. God functions obscure ordering. | 3–4 d | Medium: exit ordering and output bytes. | M4 | `run` below 120 lines, `main.go` below 300, `Execute` below 60, every touched file below 450; help, envelopes and human output byte-identical; goldens/BDD/race green. |
 | M4 | One `cmd/weave/harness_test.go` exposing `Invoke`, `InvokePersistent`, `InvokeBinary`, `OpenDB` and a generic `Decode[T]`. Replace four invokers, six typed wrappers and the two raw-DB helpers. Keep it test-only, in package `main`, so no production binary grows. Duplication hides failures. | 1–2 d | Low–medium: temp HOME/cache differences. | None; precedes M3 | One harness provides every invocation mode; no per-suite invoker, decoder or raw-DB helper remains; 94 call sites behave identically; test count and pass status unchanged; no non-test file. |
 | M5 | Executable dependency direction. Add a small `internal/archcheck` package and `TestDependencyDirection` that runs `go list -deps -json ./...` from the module root, compares edges to a declared map (`contract` at the base; `engine` packages above it; `storage` above engine; `operations` above both; `mcp` only operations; `cmd`/`watch` at the edge) and rejects `storage/sqlite -> cmd`, `storage/sqlite -> mcp` and `mcp -> cmd`. Include a failing fixture. The rule is prose. | 1 d | Low. | M1 | Repository run passes; fixture with `storage/sqlite -> cmd/weave` fails; no new module dependency. |
-| M6 | Documentation debt. Add package comments to the seven packages, write ADR 0004 recording the line cap, lint set, coverage trend and dependency test as accepted policy, refresh `docs/architecture/layers/*`, and remove the stale "Phase 3" text from `engine/doc.go`. Docs have drifted. | 1–2 d | Low. | M1, M2, M3 | ST1000 reports zero; 21/21 packages documented; docs-lint and markdownlint pass for touched docs; ADR accepted by the owner; no stale phase claims. |
+| M6 | Documentation debt. Add package comments to the seven packages, record the line cap, lint set, coverage trend and dependency test as accepted policy in the optimization specification, refresh `docs/architecture/layers/*`, and remove the stale "Phase 3" text from `engine/doc.go`. Docs have drifted. | 1–2 d | Low. | M1, M2, M3 | ST1000 reports zero; 21/21 packages documented; docs-lint and markdownlint pass for touched docs; the policy is accepted by the owner; no stale phase claims. |
 | M7 | Error taxonomy consolidation. Add one operations table mapping sentinels to code/message/details, one CLI table mapping each code to exit status plus success/empty policy, and have MCP reuse the same codes. Include all 17 codes and fix the five extension sites that currently collapse timeout/failure/protocol into `EXTENSION_NOT_FOUND`. Codes leak inconsistently. | 2 d | Medium: codes are observable. | M3 | 17/17 codes covered; each maps to one exit; `weave contract --json` lists 17; timeout/failure/protocol cases assert their codes. Output changes need a spec addendum and goldens. |
 
 ## Sequencing
 
 Ship in five stacked-PR waves: **wave 0** M1 + M5, which adds guardrails without
 touching behavior; **wave 1** M4, because the harness must exist before files move; **wave 2** M2;
-**wave 3** M3 then M7; **wave 4** M6, after file names settle. Draft ADR 0004 during M1 and accept it
-before M2 starts. Freeze hotspot files during their wave; land each move as an atomic conventional
-commit through `gh stack`.
+**wave 3** M3 then M7; **wave 4** M6, after file names settle. Record the maintainability policy during
+M1 and accept it before M2 starts. Freeze hotspot files during their wave; land each move as an atomic
+conventional commit through `gh stack`.
 
 ## Metrics
 
@@ -94,7 +94,7 @@ runtime dependencies, MCP redesign, and replacing golden/BDD tests with unit tes
 1. CI fails on lint, vulnerability, package-comment, line-cap and dependency-direction violations.
 2. `storage/sqlite/store.go` and `cmd/weave/main.go` are below 1,200 lines, with `Execute` table-driven.
 3. One shared CLI harness replaces duplicate invokers, decoders and raw-DB helpers.
-4. All 21 packages have comments, and ADR 0004 is accepted.
+4. All 21 packages have comments, and the maintainability policy is documented.
 5. All 17 error codes have one mapping and one test per boundary.
 6. `./scripts/verify.sh`, `go test -race ./...`, goldens, BDD and calibration remain green.
 7. No production behavior changes except the explicitly documented error-code corrections.
@@ -104,7 +104,7 @@ runtime dependencies, MCP redesign, and replacing golden/BDD tests with unit tes
 - [Maintainability research](./research-maintainability.md)
 - [Optimization specification](../../specs/optimization.md)
 - [Architecture index](../index.md)
-- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md)
 - [CI workflow](../../../.github/workflows/ci.yml)
 - [golangci-lint v2 configuration](https://golangci-lint.run/docs/configuration/file/) (accessed 2026-10-31)
 - [Staticcheck checks](https://staticcheck.dev/docs/checks/) and [options](https://staticcheck.dev/docs/configuration/options/) (accessed 2026-10-31)

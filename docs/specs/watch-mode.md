@@ -15,9 +15,6 @@ status: stable
 
 # Specification: Watch Mode
 
-Status: **Polling watcher, `weave mcp --watch` and `weave sync --watch` implemented**. `fsnotify`
-event delivery and `--fail-fast` remain follow-ups.
-
 ## 1. Overview
 
 Watch mode keeps a v1.0 persistent index current while files change. It is built on the incremental

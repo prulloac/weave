@@ -16,9 +16,6 @@ status: stable
 
 # Specification: Weave MCP Server
 
-Status: **M1–M4 implemented**: tools, stdio/TCP transport, auth, resources, watch reload and
-sensitive access. Remaining polish is tracked separately.
-
 ## 1. Overview
 
 The MCP server exposes Weave to agents through the Model Context Protocol. It wraps the existing
@@ -26,13 +23,13 @@ transport-neutral operations layer; it does not reimplement parsing, graph or se
 
 ```text
 engine/operations
-   ├── cmd/weave     (CLI, current)
-   └── cmd/weave-mcp (MCP, roadmap)
+   ├── cmd/weave     (CLI)
+   └── weave mcp     (stdio/TCP)
 ```
 
-The first target is a **TCP MCP server** started explicitly by the operator. Stdio may be added as
-a local convenience, but it is not the primary plan. The server can wrap either the in-memory
-engine or the persistent store; the operations and tool schemas stay the same.
+The server supports **stdio** for local clients and **TCP** for explicit operator-started service.
+TCP binds to localhost by default and requires a token for non-loopback binds. It can wrap either the
+in-memory engine or the persistent store; the operations and tool schemas stay the same.
 
 ## 2. Goals and Non-Goals
 
@@ -299,13 +296,12 @@ weave mcp --bundle <path> --db <file> --watch
 - MCP client integration tests.
 - Documentation for Claude/agent clients.
 
-### M4 — Resources and polish (resources implemented)
+### M4 — Resources and operations polish
 
-- Bundle/index/stats resources.
-- Concept and graph-neighborhood resources.
-- Rate/output limits.
-- Metrics/logging.
-- Packaging and service examples.
+- Bundle/index/stats resources (implemented).
+- Concept and graph-neighborhood resources (implemented).
+- Frame-size limits (implemented).
+- Request-rate limits, metrics/logging and packaging/service examples are deferred until after GA.
 
 ## 10. Testing
 
@@ -331,7 +327,7 @@ weave mcp --bundle <path> --db <file> --watch
 - [CLI layer](../architecture/layers/cli-go.md)
 - [Keyword + Fuzzy Search spec](./keyword-fuzzy-search.md)
 - [Storage & Sync](./storage-and-sync.md)
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [Weave Audit spec](./weave-audit.md)
 - [Weave Relate spec](./weave-relate.md)
 - [Weave Explain spec](./weave-explain.md)

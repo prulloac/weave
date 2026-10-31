@@ -10,14 +10,10 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-28T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Privacy Directives
-
-Status: **Implemented** (directives, key resolution, built-in providers, storage, search, CLI and
-MCP redaction).
-Target: **v1.0**
 
 ## 1. Overview
 
@@ -35,7 +31,7 @@ Scope of this slice:
 
 Non-goals:
 
-- Extension subprocess IPC, enrichment and reranking ([Privacy & Extensions](./privacy-and-extensions.md)).
+- Extension subprocess IPC, enrichment and reranking ([Privacy & Extensions](../architecture/privacy-and-extensions.md)).
 - External crypto providers ([External Crypto Providers](./external-crypto-providers.md)).
 - Body compression ([Compression](./compression.md)).
 - Reversible tokenization: `tokenize` and `hash` are one-way by contract.
@@ -368,7 +364,7 @@ encrypted documents are excluded before scoring.
 
 ## Related Documents
 
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [External Crypto Providers](./external-crypto-providers.md)
 - [Storage & Sync](./storage-and-sync.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)

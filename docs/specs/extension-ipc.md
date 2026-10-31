@@ -10,13 +10,10 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-28T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Extension Subprocess IPC
-
-Status: **Implemented** (discovery, `weave.cli/v1` runner, enrichment and reranking).
-Target: **v1.0**
 
 ## 1. Overview
 
@@ -264,7 +261,7 @@ checked-in scripts with explicit shebangs.
 
 ## Related Documents
 
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [External Crypto Providers](./external-crypto-providers.md)
 - [Weave AI Extension](./weave-ai-plugin.md)
 - [Storage & Sync](./storage-and-sync.md)

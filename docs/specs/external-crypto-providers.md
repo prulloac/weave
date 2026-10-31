@@ -11,12 +11,10 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: External Crypto Providers
-
-Status: **Implemented** (provider selection, capabilities, crypto IPC, key versions and audit integration; `local` remains the built-in default).
 
 ## 1. Overview
 
@@ -225,7 +223,7 @@ providers:
 
 ## Related Documents
 
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [Storage & Sync](./storage-and-sync.md)
 - [Weave Audit](./weave-audit.md)
 - [ROADMAP](../../ROADMAP.md)

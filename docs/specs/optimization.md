@@ -16,8 +16,8 @@ status: draft
 
 # Specification: Performance and Maintainability Optimization
 
-Status: **Proposed**
-Target: **v1.0**
+This program is a **post-GA stretch goal**. The v1.0 release does not depend on closing the
+remaining time and space budgets; measured work can continue after publishing.
 
 ## 1. Overview
 
@@ -148,7 +148,7 @@ commands and output the benchmarks exercise.
 
 Delivered so far: help/errors/safety, platform config and cache paths, `config get`, typed
 provenance and goldens, `WatchEvent` JSONL, the additive schema gate, the
-[database location decision](../architecture/adr/0004-config-paths-and-db-location.md), and
+[database location decision](../architecture/adr/0002-config-paths-and-db-location.md), and
 feedback controls (`--quiet`, `--verbose`, TTY progress, `--ascii`, `NO_COLOR`),
 onboarding/completion (start screen, empty-state hints, shell scripts), and local-first trust
 (`config paths`, extension search paths, no-telemetry statement and privacy diagnostics).

@@ -22,7 +22,7 @@ The contract defines the language-neutral wire model shared by the Go engine, CL
 transports. It is the single source of truth for documents, keywords, graph nodes and search
 results.
 
-The previous v1 is overridden in place by [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md).
+The previous v1 is overridden in place by [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md).
 
 ## Package Layout
 
@@ -175,7 +175,7 @@ The operation catalogue contains `search`, not `find`.
 
 ## Related Documents
 
-- [ADR 0003](../adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [ADR 0001](../adr/0001-keyword-fuzzy-search-and-ui-retirement.md)
 - [Keyword + Fuzzy Search spec](../../specs/keyword-fuzzy-search.md)
 - [Engine layer](engine-go.md)
 - [Operations layer](operations.md)

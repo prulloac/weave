@@ -1,9 +1,9 @@
 ---
-type: specification
-title: "Privacy Directives & Extension Architecture"
-description: "Explicit encryption, tokenization and hashing directives, plus Git-style subprocess extensions over weave.cli/v1."
+type: architecture
+title: "Privacy & Extension Architecture"
+description: "Architecture summary for explicit encryption, tokenization and hashing directives plus Git-style subprocess extensions over weave.cli/v1."
 tags:
-  - "specification"
+  - "architecture"
   - "privacy"
   - "crypto"
   - "extensions"
@@ -11,19 +11,16 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-27T00:00:00Z"
-status: draft
+status: stable
 ---
 
-# Weave: Privacy Directives & Extension Architecture Specification
-
-Status: **Proposed**
-Target: **v1.0**
+# Privacy & Extension Architecture
 
 > Privacy directives are specified in detail in
-> [Privacy Directives](./privacy-directives.md), which owns the parser, key resolution, storage,
-> search and CLI contract. Extension subprocess discovery, the `weave.cli/v1` transport and the
-> enrichment/rerank consumers are specified in
-> [Extension Subprocess IPC](./extension-ipc.md). This document keeps the architecture summary.
+> [Privacy Directives](../specs/privacy-directives.md), which owns the parser, key resolution,
+> storage, search and CLI contract. Extension subprocess discovery, the `weave.cli/v1` transport and
+> the enrichment/rerank consumers are specified in
+> [Extension Subprocess IPC](../specs/extension-ipc.md). This document keeps the architecture summary.
 
 ## 1. Privacy Directives
 
@@ -169,18 +166,18 @@ are supported as external providers over the same subprocess IPC.
 
 The authoritative provider contract (capabilities, encrypt/decrypt/hash/tokenize payloads, key
 isolation, audit integration and failure behavior) lives in
-[External Crypto Providers](./external-crypto-providers.md).
+[External Crypto Providers](../specs/external-crypto-providers.md).
 
-The optional AI extension is specified separately: [Weave AI Extension](./weave-ai-plugin.md).
+The optional AI extension is specified separately: [Weave AI Extension](../specs/weave-ai-plugin.md).
 
 ## Related Documents
 
-- [Privacy Directives](./privacy-directives.md)
-- [Extension Subprocess IPC](./extension-ipc.md)
-- [Storage & Sync](./storage-and-sync.md)
-- [External Crypto Providers](./external-crypto-providers.md)
-- [Weave AI Extension](./weave-ai-plugin.md)
-- [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
-- [Weave Audit](./weave-audit.md)
-- [MCP Server](./mcp-server.md)
+- [Privacy Directives](../specs/privacy-directives.md)
+- [Extension Subprocess IPC](../specs/extension-ipc.md)
+- [Storage & Sync](../specs/storage-and-sync.md)
+- [External Crypto Providers](../specs/external-crypto-providers.md)
+- [Weave AI Extension](../specs/weave-ai-plugin.md)
+- [Keyword + Fuzzy Search](../specs/keyword-fuzzy-search.md)
+- [Weave Audit](../specs/weave-audit.md)
+- [MCP Server](../specs/mcp-server.md)
 - [ROADMAP](../../ROADMAP.md)

@@ -16,9 +16,6 @@ status: stable
 
 # Weave: Storage, Persistence & Incremental Sync Specification
 
-Status: **Storage foundation, incremental sync and watch mode implemented** for v1.0.
-Target: **v1.0**
-
 ---
 
 ## 1. Overview
@@ -336,7 +333,7 @@ without rewriting unchanged source documents.
 - [Permissive Ingestion](./permissive-ingestion.md)
 - [Watch Mode](./watch-mode.md)
 - [BM25 Ranking](./bm25-ranking.md)
-- [Privacy & Extensions](./privacy-and-extensions.md)
+- [Privacy & Extensions](../architecture/privacy-and-extensions.md)
 - [Keyword + Fuzzy Search](./keyword-fuzzy-search.md)
 - [MCP Server](./mcp-server.md)
 - [ROADMAP](../../ROADMAP.md)

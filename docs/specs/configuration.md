@@ -11,14 +11,10 @@ tags:
 generated:
   by: opencode/deepseek-v4.1-flash
   at: "2026-10-29T00:00:00Z"
-status: draft
+status: stable
 ---
 
 # Specification: Configuration
-
-Status: **Implemented** (file/env precedence, `config show|get|path|init`, typed provenance,
-platform paths, strict validation and MCP database defaults).
-Target: **v1.0**
 
 ## 1. Overview
 
@@ -39,7 +35,7 @@ Secrets are never read from the configuration file; privacy keys stay in `WEAVE_
 Non-goals:
 
 - Project-local configuration files in v1.0; `.weave/config.yaml` is deferred to v1.1 by
-  [ADR 0004](../architecture/adr/0004-config-paths-and-db-location.md).
+  [ADR 0002](../architecture/adr/0002-config-paths-and-db-location.md).
 - Moving the default database to an XDG state directory in v1.0; `~/.weave/index.db` remains the
   storage invariant until a migration is specified.
 - Configuring `--json`, `--help` or output formatting.
@@ -106,7 +102,7 @@ rerank: ""
 - Paths support `~` expansion.
 - The default database stays `~/.weave/index.db` in v1.0. `--db`, `WEAVE_DB` and `db` move it;
   no automatic state-directory migration happens. See
-  [ADR 0004](../architecture/adr/0004-config-paths-and-db-location.md).
+  [ADR 0002](../architecture/adr/0002-config-paths-and-db-location.md).
 - Unknown keys are ignored with the warning `CONFIG_UNKNOWN_KEY`; `--strict-config` turns them into
   exit `2`.
 - Type errors, invalid enum values, non-positive timeout and out-of-range `top_k` exit `2` with
@@ -208,7 +204,7 @@ weave config init [--force]
 `contract/v1/golden/schema-baseline.json` records the additive contract. `go run ./cmd/schema-diff`
 fails on removed definitions, properties or variants, changed property shapes, and newly required
 properties. New optional fields and enum values pass. See
-[ADR 0004](../architecture/adr/0004-config-paths-and-db-location.md).
+[ADR 0002](../architecture/adr/0002-config-paths-and-db-location.md).
 
 ### 2.6 Applicability
 
@@ -294,7 +290,7 @@ defaults
 
 ## Related Documents
 
-- [ADR 0004: Configuration Paths, Database Location and Machine Output](../architecture/adr/0004-config-paths-and-db-location.md)
+- [ADR 0002: Configuration Paths, Database Location and Machine Output](../architecture/adr/0002-config-paths-and-db-location.md)
 - [Optimization Program](./optimization.md)
 - [Storage & Sync](./storage-and-sync.md)
 - [Privacy Directives](./privacy-directives.md)

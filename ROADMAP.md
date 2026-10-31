@@ -2,10 +2,10 @@
 
 > Weave loads OKF bundles into memory or a persistent SQLite index, relates documents as a graph, and answers calibrated keyword, BM25 and fuzzy top-K searches through a Go CLI.
 
-Status: **v1 in progress.** The core engine, introspection commands, SQLite storage foundation,
-incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body compression,
-extension IPC with enrichment/rerank, release automation, and the MCP server through watch reload are
-shipped on `main`; the optimization program remains.
+Status: **v1 feature-complete; release gate in progress.** The core engine, introspection commands,
+SQLite storage, incremental sync, watch reload, BM25, permissive ingestion, privacy directives, body
+compression, extension IPC with enrichment/rerank, release automation, and the MCP server through
+watch reload are shipped on `main`. The optimization program is a post-GA stretch goal.
 
 ## 1. What Weave Is
 
@@ -16,11 +16,11 @@ Weave is a **local-first, related-document knowledge database**:
   navigate with `show`, `backlinks` and `path`, audit bundle quality with `weave audit`, explore
   graph neighborhoods with `weave relate`, explain ranking with `weave explain`, ingest non-OKF
   Markdown permissively, and sync indexed bundles incrementally.
-- **v1.0 platform (in progress):** persist and incrementally sync bundles into SQLite, add lexical
-  BM25, support permissive Markdown ingestion, protect sensitive content with explicit privacy
-  directives, and run external enrichment/reranking and crypto extensions.
-- **v1.0 MCP (in progress):** expose the same operations through an in-memory and then a
-  persistent, sensitive-aware MCP server.
+- **v1.0 platform (shipped):** persist and incrementally sync bundles into SQLite, lexical BM25,
+  permissive Markdown ingestion, explicit privacy directives, and external enrichment/reranking and
+  crypto extensions.
+- **v1.0 MCP (shipped):** expose the same operations through an in-memory and persistent,
+  sensitive-aware MCP server.
 
 It is **CLI-first**, local, offline-capable, and has **no UI**.
 
@@ -52,21 +52,21 @@ It is **CLI-first**, local, offline-capable, and has **no UI**.
 | Incremental sync | Shipped | SHA-256 add/update/remove/skip with cascade and dangling links |
 | BM25 lexical ranking | Shipped | SQLite FTS5 `--mode bm25` with field weights and phrases |
 
-## 3. v1.0 Scope (in progress)
+## 3. v1.0 Scope
 
-Everything below is part of v1.0. There is no separate v2 platform; phases are internal delivery
-waves, not product versions.
+Everything below is part of v1.0 except the stretch item. There is no separate v2 platform; phases
+are internal delivery waves, not product versions.
 
 | Capability | Target | Notes |
 | --- | --- | --- |
 | Persistent SQLite storage | v1.0 | Shipped: pure-Go `modernc.org/sqlite`, bundle-scoped, WAL |
 | Incremental sync | v1.0 | Shipped: SHA-256 add/update/remove/skip with cascade |
-| Watch mode | v1.0 | Shipped: SHA-256 polling watcher, MCP live reload; `fsnotify` deferred |
+| Watch mode | v1.0 | Shipped: SHA-256 polling watcher, MCP live reload; `fsnotify` is a post-GA stretch |
 | Permissive ingestion | v1.0 | Shipped: synthetic Markdown documents with warnings |
 | BM25 lexical ranking | v1.0 | Shipped: SQLite FTS5 `--mode bm25` |
 | BM25 calibration | v1.0 | Shipped: BM25 + fuzzy hybrid corpus and baseline |
 | BM25 explain | v1.0 | Shipped: lexical raw/normalized scores, fields and term evidence |
-| Memory/body compression | v1.0 | Shipped: zstd default, LZ4 opt-in; postings deferred |
+| Memory/body compression | v1.0 | Shipped: zstd default, LZ4 opt-in; posting compression is a post-GA stretch |
 | Privacy directives | v1.0 | Shipped: `encrypt`, `tokenize`, `hash`, key resolution, `show --decrypt` |
 | Extension runner | v1.0 | Shipped: subprocess IPC (`weave-<name>`) over `weave.cli/v1` stdio |
 | Enrichment extension | v1.0 | Shipped: `--with-enricher`, inferred keywords and metadata |
@@ -80,7 +80,7 @@ waves, not product versions.
 | Release automation | v1.0 | Shipped: tag-driven verified builds and draft GitHub Releases |
 | Bundle export | v1.0 | Shipped: raw plaintext (confirmed) and encrypted OKF export |
 | Multiple bundle sources | v1.0 | Shipped: repeatable `--source` aliases across CLI and MCP |
-| Optimization program | v1.0 | Benchmarks, budgets, maintainability and UX targets |
+| Optimization program | Stretch | Post-GA: benchmarks, budgets, maintainability and UX targets |
 | Global configuration | v1.0 | Shipped: YAML config, `WEAVE_*` variables and `weave config` |
 
 ## 4. CLI Surface
@@ -112,12 +112,8 @@ weave version --json
 Bundle-reading commands default to `~/.weave/index.db`; `--no-db` forces in-memory parsing and
 `--db <file>` selects another database.
 
-### Planned v1.0 — remaining surface
-
-```sh
-weave search <path> [--source <alias=path> ...] <query> --json
-weave ingest <path> [--source <alias=path> ...] --json
-```
+Multi-source reads and writes use repeatable `--source <alias=path>` flags; see the
+[README](README.md#multiple-bundle-sources).
 
 ## 5. Search Semantics
 
@@ -131,12 +127,12 @@ weave ingest <path> [--source <alias=path> ...] --json
 - **BM25:** SQLite FTS5 `--mode bm25`, OR terms, phrases, negative terms.
 - **Top-K:** default 10, max 100.
 
-### v1.0 target
+### Current
 
-- **Lexical:** BM25 explain evidence shipped.
+- **Lexical:** BM25 explain evidence is shipped.
 - **Fuzzy:** unchanged.
-- **Hybrid:** `a * lexical + b * fuzzy + c * rerank`; persistent hybrid uses lexical BM25.
-- **Extensions:** optional rerankers may adjust ranking after core scoring.
+- **Hybrid:** `0.50 * BM25 + 0.50 * fuzzy`; an optional reranker blends its score after core scoring.
+- **Extensions:** rerankers may adjust ranking after core scoring.
 
 ## 6. Privacy Semantics (shipped)
 
@@ -155,7 +151,7 @@ Privacy is **explicitly declared**, never heuristic.
 - Missing keys are audit warnings; `show --decrypt` fails with exit `3`.
 
 Full contract: [Privacy Directives](docs/specs/privacy-directives.md). Extension IPC:
-[Privacy & Extensions](docs/specs/privacy-and-extensions.md). External key stores:
+[Privacy & Extensions](docs/architecture/privacy-and-extensions.md). External key stores:
 [External Crypto Providers](docs/specs/external-crypto-providers.md).
 
 ## 7. Architecture
@@ -163,47 +159,28 @@ Full contract: [Privacy Directives](docs/specs/privacy-directives.md). Extension
 ### Current
 
 ```text
-cmd/weave + engine/operations
-  ingest · rebuild · sync · search · parse · graph · list · show · backlinks · path · audit · relate · explain · version
-        |
-engine/search
-  documents · keyword postings · fuzzy/trigram indexes · ranking · explain evidence
-        |
-engine/audit
-  conformance · links · index coverage · orphans
-        |
-engine/relate
-  bounded BFS · depth · direction · subgraphs
-        |
-storage/sqlite
-  bundle registry · documents · edges · schema version · incremental sync
-        |
-engine/graph + engine/okf
-  nodes · edges · traversal · parser · validation · cache
-        |
-contract/v1
-  schemas · Go types · goldens
-```
-
-### v1.0 target
-
-```text
-cmd/weave (CLI) / cmd/weave-mcp (daemon)
+cmd/weave (CLI) + weave mcp (stdio/TCP)
                   |
           engine/operations
- ingest · sync · search · audit · relate · explain
+ ingest · sync · search · audit · relate · explain · export · config
                   |
-   ┌──────────────┼──────────────┐
-engine/okf     engine/search   engine/crypto
-Goldmark AST   SQLite FTS5     AES / HMAC
-Links          BM25 + trigram  Key resolver
-Frontmatter    Varint postings Extension runner
-   └──────────────┼──────────────┘
+   ┌──────────────┼───────────────┬────────────────┐
+engine/okf     engine/search   engine/privacy  engine/extensions
+Goldmark AST   FTS5 + BM25     AES / HMAC      subprocess IPC
+Links          fuzzy/trigram   key resolver    enrichment / rerank
+Frontmatter    explain evidence
+   └──────────────┼───────────────┴────────────────┘
                   |
-           storage/sqlite
+            storage/sqlite
     WAL · modernc.org/sqlite
-    docs · edges · fts · enrichments
+    docs · edges · FTS · postings · vocabularies · enrichments
+                  |
+             contract/v1
+    schemas · Go types · goldens
 ```
+
+`watch` polls the filesystem and calls the same sync path used by the CLI. Extensions are optional
+subprocesses; the core binary has no network or UI dependency.
 
 ## 8. Phased Roadmap
 
@@ -211,7 +188,7 @@ Frontmatter    Varint postings Extension runner
 
 Every roadmap feature has exactly one authoritative spec and exactly one backlog row. This register
 is the completeness check: no feature is considered planned until it appears here and in
-[`docs/backlog.md`](docs/backlog.md). Delivery status lives in the backlog.
+[`docs/backlog.md`](docs/backlog.md). Delivery status lives here; pipeline state lives in the backlog.
 
 | # | Feature | Authoritative spec | Backlog | Depends on | Wave / gate | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -239,12 +216,12 @@ is the completeness check: no feature is considered planned until it appears her
 | 22 | MCP stdio/TCP transport | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP in-memory | 6 / Phase 6 | shipped |
 | 23 | MCP resources | [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | MCP transport | 6 / Phase 6 | shipped |
 | 24 | MCP watch reload | [watch-mode.md](docs/specs/watch-mode.md), [mcp-server.md](docs/specs/mcp-server.md) | Tier 6 | incremental sync, MCP persistent | 4 / Phase 3 | shipped |
-| 25 | Release automation | [release-automation.md](docs/specs/release-automation.md) | Tier 7 | contract, CI | 7 / Phase 7 (P1) | shipped |
-| 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / Phase 7 (P1) | shipped |
-| 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / Phase 7 (P2) | shipped |
-| 30 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / Phase 7 (P3) | shipped |
-| 28 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | 8 / Phase 8 (P3) | planned |
-| 29 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / Phase 8 (P2) | shipped |
+| 25 | Release automation | [release-automation.md](docs/specs/release-automation.md) | Tier 7 | contract, CI | 7 / P1 | shipped |
+| 26 | Bundle export | [bundle-export.md](docs/specs/bundle-export.md) | Tier 7 | storage, privacy, contract | 7 / P1 | shipped |
+| 27 | Multiple bundle sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 7 | storage, operations, contract | 7 / P2 | shipped |
+| 28 | MCP multiple sources | [multi-bundle.md](docs/specs/multi-bundle.md) | Tier 6 | multi-bundle CLI, MCP resources | 7 / P3 | shipped |
+| 29 | Performance and maintainability | [optimization.md](docs/specs/optimization.md) | Tier 7 | all packages | Stretch | stretch |
+| 30 | Global configuration | [configuration.md](docs/specs/configuration.md) | Tier 7 | CLI, contract, optimization | 8 / P2 | shipped |
 
 Rules:
 
@@ -394,9 +371,9 @@ Specs: [audit](docs/specs/weave-audit.md), [relate](docs/specs/weave-relate.md),
 - Default bundle-scoped database at `~/.weave/index.db`.
 - `weave ingest`, `weave rebuild`, `weave sync` and `--mode bm25` shipped.
 - `sha256` content hashes, cascading graph updates and a polling watch loop shipped; `fsnotify`
-  event delivery remains an optimization.
+  event delivery is a post-GA stretch goal.
 - Body compression shipped with zstd by default and LZ4 opt-in; `weave sync --watch` and
-  `weave mcp --watch` are wired; posting compression remains.
+  `weave mcp --watch` are wired; posting compression is a post-GA stretch goal.
 
 Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 [Watch Mode](docs/specs/watch-mode.md), [BM25 Ranking](docs/specs/bm25-ranking.md),
@@ -410,7 +387,7 @@ Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
 - Audit key-availability checks (shipped).
 
 Specs: [Privacy Directives](docs/specs/privacy-directives.md),
-[Privacy & Extensions](docs/specs/privacy-and-extensions.md).
+[Privacy & Extensions](docs/architecture/privacy-and-extensions.md).
 
 ### Phase 5 — Extension architecture (runner, enrichment and rerank complete)
 
@@ -421,7 +398,7 @@ Specs: [Privacy Directives](docs/specs/privacy-directives.md),
 - External crypto providers (Age, Vault, KMS).
 
 Specs: [Extension Subprocess IPC](docs/specs/extension-ipc.md),
-[Privacy & Extensions](docs/specs/privacy-and-extensions.md),
+[Privacy & Extensions](docs/architecture/privacy-and-extensions.md),
 [Weave AI Extension](docs/specs/weave-ai-plugin.md),
 [External Crypto Providers](docs/specs/external-crypto-providers.md).
 
@@ -431,7 +408,8 @@ Specs: [Extension Subprocess IPC](docs/specs/extension-ipc.md),
 - Bind to persistent storage and support watch-based reload (shipped).
 - Tools: `weave_search`, `weave_explain`, `weave_relate`, `weave_audit`, `weave_show`,
   `weave_path`.
-- Strict sensitive-data boundary; encrypted fields require explicit opt-in (pending).
+- Strict sensitive-data boundary; encrypted fields require explicit opt-in (shipped).
+- M4 polish (request-rate limits, metrics/logging and service examples) is deferred until after GA.
 
 Spec: [MCP Server](docs/specs/mcp-server.md).
 
@@ -442,16 +420,17 @@ needed.
 
 ### Versioning Policy
 
-- **Product:** v1.0 is the single full-scope release. Every feature in the register gates v1.0;
-  phases are internal delivery waves, not separate releases.
+- **Product:** v1.0 is the single full-scope release. Every feature marked `shipped` in the register
+  gates v1.0; `stretch` and `deferred` items do not. Phases are internal delivery waves, not
+  separate releases.
 - **Contract:** `weave.contract/v1` is authoritative. Until v1.0.0 GA it may evolve in place; after
   GA, breaking changes require `contract/v2`.
 - **CLI and extensions:** `weave.cli/v1` is authoritative. Additive messages and fields are allowed
   before and after GA; breaking changes after GA require `weave.cli/v2`.
 - **Storage:** the SQLite schema uses `PRAGMA user_version` with explicit migrations, independent of
   the product and contract versions.
-- **Feature status:** roadmap and backlog use `shipped`, `planned` and pipeline states; there are no
-  v1.1 or v2 feature labels.
+- **Feature status:** the roadmap uses `shipped`, `stretch`, `deferred` and `planned`; the backlog
+  uses pipeline states. There are no v1.1 or v2 feature labels.
 
 ### Quality gates
 
@@ -513,7 +492,7 @@ needed.
 - [Multiple Bundle Sources](docs/specs/multi-bundle.md)
 - [Performance and Maintainability](docs/specs/optimization.md)
 - [Configuration](docs/specs/configuration.md)
-- [Privacy & Extensions](docs/specs/privacy-and-extensions.md)
+- [Privacy & Extensions](docs/architecture/privacy-and-extensions.md)
 - [External Crypto Providers](docs/specs/external-crypto-providers.md)
 - [Weave AI Extension](docs/specs/weave-ai-plugin.md)
 - [MCP Server](docs/specs/mcp-server.md)

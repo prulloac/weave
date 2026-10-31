@@ -4,47 +4,49 @@ okf_version: "0.2"
 
 # Weave Architecture
 
-Weave is a **local-first related-document database**. The core loads OKF bundles, builds concept
-nodes and link edges, and answers keyword and weighted fuzzy searches with top-K results. v1.0 adds
-optional SQLite persistence, BM25 ranking, privacy directives, extensions and MCP.
+Weave is a **local-first related-document database**. It loads OKF bundles into memory or a
+persistent SQLite index, builds concept nodes and link edges, and answers keyword, BM25 and weighted
+fuzzy searches with top-K results. Privacy directives, subprocess extensions, watch reload and an
+MCP server are part of the shipped v1.0 surface.
 
 **The UI is retired.** Browser visualization, renderer, mount, lens and Astro are cancelled by
-[ADR 0003](adr/0003-keyword-fuzzy-search-and-ui-retirement.md). The Go engine and CLI are the only
+[ADR 0001](adr/0001-keyword-fuzzy-search-and-ui-retirement.md). The Go engine and CLI are the only
 product surfaces.
 
-## New Purpose
+## Purpose
 
-- Load a bundle into memory.
+- Load a bundle into memory or a persistent SQLite index.
 - Build nodes and edges that relate documents.
-- Search by two dimensions:
-  - mandatory frontmatter `keywords`,
-  - weighted fuzzy matching over title, description and body.
-- Return top-K keyword, fuzzy and hybrid results.
-- Navigate the graph with `show`, `backlinks` and `path`.
+- Search by keyword, BM25 lexical ranking and weighted fuzzy matching.
+- Navigate the graph with `show`, `backlinks`, `path` and `relate`.
+- Audit bundle quality and explain ranking evidence.
+- Protect explicitly declared sensitive content.
+- Enrich and rerank through optional subprocess extensions.
+- Serve the same operations over stdio or TCP MCP.
 
 The detailed contract and algorithms are in
 [Keyword + Fuzzy Search](../specs/keyword-fuzzy-search.md).
 
-## Target Topology
+## Current Topology
 
 ```text
 ┌───────────────────────────────────────────────────────────────┐
-│                        Host project                           │
-│         subprocess · stdin/stdout · exit codes                │
+│  cmd/weave: CLI, watch loops and `weave mcp` (stdio/TCP)      │
+│  argv · envelopes · exit codes · JSONL events                 │
 └───────────────────────────────┬───────────────────────────────┘
-                                │ CLI I/O
+                                │ operations requests
 ┌───────────────────────────────▼───────────────────────────────┐
-│  cmd/weave + engine/operations                                │
-│  search · parse · graph · show · backlinks · path · version   │
+│  engine/operations                                            │
+│  ingest · sync · search · audit · relate · explain · export   │
 ├───────────────────────────────────────────────────────────────┤
-│  engine/search                                                │
-│  documents · keyword index · fuzzy index · trigram index      │
+│  engine/okf · graph · search · audit · relate · privacy       │
+│  parser · edges · FTS5/BM25 · fuzzy · evidence · extensions   │
 ├───────────────────────────────────────────────────────────────┤
-│  engine/graph + engine/okf                                    │
-│  nodes · edges · traversal · bundle parser · cache            │
+│  storage/sqlite                                               │
+│  bundle registry · documents · edges · FTS · postings         │
 ├───────────────────────────────────────────────────────────────┤
 │  contract/v1                                                  │
-│  schemas · Go types · search results · goldens                │
+│  schemas · Go types · envelopes · goldens                     │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -55,9 +57,16 @@ The detailed contract and algorithms are in
 | Contract | JSON Schema + Go | `contract/v1` | Documents, keywords, search results, envelopes, goldens |
 | OKF | Go | `engine/okf` | Parse bundles, frontmatter, links, validation, cache |
 | Graph | Go | `engine/graph` | Nodes, edges, degrees, traversal |
-| Search | Go | `engine/search` | In-memory catalog, keyword index, fuzzy index, ranking |
+| Search | Go | `engine/search` | In-memory catalog, keyword/fuzzy index, BM25 hybrid ranking, explain evidence |
+| Audit | Go | `engine/audit` | Conformance, links, index coverage and orphan findings |
+| Relate | Go | `engine/relate` | Bounded graph neighborhoods |
+| Privacy | Go | `engine/privacy` | Encryption, tokenization, hashing and key resolution |
+| Extensions | Go | `engine/extensions` | `weave-<name>` discovery, enrichment and rerank IPC |
+| Storage | Go | `storage/sqlite` | Persistent documents, edges, FTS, postings and sync |
+| Watch | Go | `watch` | Polling snapshots and incremental sync |
+| MCP | Go | `mcp` | Tool descriptors, resources and stdio/TCP transport |
 | Operations | Go | `engine/operations` | Transport-neutral ingest, rebuild, search, navigation, audit, relate and explain requests |
-| CLI | Go | `cmd/weave` | Argv, stdout/stderr, envelopes, exit codes |
+| CLI | Go | `cmd/weave` | Argv, stdout/stderr, envelopes, exit codes and MCP startup |
 
 ## Integration Surfaces
 
@@ -67,7 +76,7 @@ The detailed contract and algorithms are in
 | Go package API | Go hosts | Optional | Engine/store packages |
 | MCP tool harness | Go hosts, MCP clients | Available | `mcp.Server` + stdio/TCP transport |
 | TCP MCP server | MCP clients | Available | newline JSON-RPC over TCP |
-| Browser presentation | — | **Retired** | Removed by ADR 0003 |
+| Browser presentation | — | **Retired** | Removed by ADR 0001 |
 
 A host that is not written in Go must use the CLI. A Go host may use the package API, but the CLI
 remains the compatibility promise.
@@ -118,7 +127,7 @@ remains the compatibility promise.
 | Contract version | New v1 replaces the previous v1 in place |
 | CLI operation | `search` replaces `find` |
 | Calibration | Labeled corpus with NDCG@K and MRR@K baselines |
-| Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory; XDG state migration deferred (ADR 0004) |
+| Storage | Bundle-scoped SQLite default at `~/.weave/index.db`; `--no-db` in-memory; XDG state migration deferred (ADR 0002) |
 | Config paths | Platform config dir (`os.UserConfigDir`), platform cache dir, `~/.weave/index.db` for v1.0 |
 | Machine output | Additive `weave.cli/v1` schemas, goldens and schema-diff gate |
 | Local-first | No telemetry or network by default; `config paths`; network only through opt-in extensions |
@@ -132,8 +141,8 @@ remains the compatibility promise.
 
 | Document | Purpose |
 | --- | --- |
-| [ADR 0003](adr/0003-keyword-fuzzy-search-and-ui-retirement.md) | New purpose, keywords, fuzzy search and UI retirement |
-| [ADR 0004](adr/0004-config-paths-and-db-location.md) | Config/cache/DB paths and additive machine output |
+| [ADR 0001](adr/0001-keyword-fuzzy-search-and-ui-retirement.md) | New purpose, keywords, fuzzy search and UI retirement |
+| [ADR 0002](adr/0002-config-paths-and-db-location.md) | Config/cache/DB paths and additive machine output |
 | [Keyword + Fuzzy Search spec](../specs/keyword-fuzzy-search.md) | Detailed data model, algorithms, CLI and calibration |
 | [Contract layer](layers/contract.md) | Documents, keywords, graph and search contract |
 | [Engine layer](layers/engine-go.md) | Parser, graph, search and navigation |
@@ -151,7 +160,7 @@ remains the compatibility promise.
 | [BM25 Ranking spec](../../docs/specs/bm25-ranking.md) | FTS5 lexical ranking |
 | [Compression spec](../../docs/specs/compression.md) | Body codec contract (zstd default, LZ4 opt-in) |
 | [Privacy Directives spec](../../docs/specs/privacy-directives.md) | Directive parser, keys, storage and search contract |
-| [Privacy & Extensions spec](../../docs/specs/privacy-and-extensions.md) | Extension IPC and architecture summary |
+| [Privacy & Extension Architecture](privacy-and-extensions.md) | Extension IPC and architecture summary |
 | [Extension Subprocess IPC spec](../../docs/specs/extension-ipc.md) | `weave-<name>` discovery, transport, enrichment and rerank |
 | [Release Automation spec](../../docs/specs/release-automation.md) | Tag-driven verified GitHub Releases |
 | [Bundle Export spec](../../docs/specs/bundle-export.md) | Raw and encrypted bundle reconstruction |
@@ -167,7 +176,7 @@ remains the compatibility promise.
 
 ## Reading Order
 
-1. ADR 0003 and this index.
+1. ADR 0001 and this index.
 2. Keyword + Fuzzy Search spec.
 3. Contract layer.
 4. Engine and store/search implementation.
@@ -201,5 +210,6 @@ The v1.0 feature set is shipped, including external crypto providers, the AI plu
 access and `weave sync --watch`. MCP tools, stdio/TCP transport, auth, resources and watch reload
 are available, privacy directives ship with encrypted, tokenized and hashed storage, bodies use
 zstd by default, and `weave-<name>` extensions enrich writes and rerank searches. The remaining
-v1.0 work is the [optimization program](../specs/optimization.md): benchmarks, measured time/space
-work and the continuous performance gate.
+pre-GA work is the [release readiness gate](../specs/release-readiness.md): regression hardening,
+the built-binary smoke suite and documentation integrity. The [optimization
+program](../specs/optimization.md) is a post-GA stretch goal.

@@ -3,9 +3,10 @@
 > To weave flat files into a living universe of knowledge.
 
 Weave is a **local-first related-document database** for
-[Open Knowledge Format (OKF)](#okf-bundles) bundles. The core loads Markdown/YAML documents, builds
-concept nodes and link edges, and answers keyword and weighted fuzzy searches with top-K results.
-v1.0 adds optional SQLite persistence, BM25 ranking, privacy directives, extensions and MCP.
+[Open Knowledge Format (OKF)](#okf-bundles) bundles. It loads Markdown/YAML documents, builds
+concept nodes and link edges, and answers keyword, BM25 and weighted fuzzy searches with top-K
+results. Optional SQLite persistence, privacy directives, subprocess extensions and an MCP server
+are part of the same CLI-first product.
 
 Weave is CLI-first, local and offline. It has **no browser UI**.
 
@@ -118,7 +119,7 @@ rerank: ""
   Support on macOS). The parse cache uses `os.UserCacheDir`.
 - v1.0 keeps the database at `~/.weave/index.db`; use `--db`, `WEAVE_DB` or the `db` key to move
   it. XDG state migration is deferred (see
-  [ADR 0004](docs/architecture/adr/0004-config-paths-and-db-location.md)).
+  [ADR 0002](docs/architecture/adr/0002-config-paths-and-db-location.md)).
 - `config show` and `config get` report every value with `source` and `origin`; `config paths`
   names the config, database, cache, key and extension locations.
 - Secrets are never read from configuration; keys stay in `WEAVE_KEY_*` or `.weave/security.yaml`.
@@ -493,12 +494,6 @@ weave version
 weave version --json
 ```
 
-### Retired commands
-
-`weave mount`, `weave unmount` and `weave status` were retired with the move to a CLI-first,
-local-first core. They are not planned for v1.0. See
-[ADR 0003](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md).
-
 ## OKF Bundles
 
 Weave consumes OKF v0.2 bundles. The Weave profile requires:
@@ -582,24 +577,10 @@ docs/                   architecture, specs, knowledge
 
 ## Documentation
 
-- [Roadmap](ROADMAP.md)
+- [Documentation index](docs/README.md)
+- [Specifications](docs/specs/README.md)
+- [Behavior scenarios](docs/bdd/README.md)
 - [Architecture](docs/architecture/index.md)
-- [Keyword + Fuzzy Search spec](docs/specs/keyword-fuzzy-search.md)
-- [Weave Audit spec](docs/specs/weave-audit.md)
-- [Weave Relate spec](docs/specs/weave-relate.md)
-- [Weave Explain spec](docs/specs/weave-explain.md)
-- [Storage & Sync spec](docs/specs/storage-and-sync.md)
-- [Watch Mode spec](docs/specs/watch-mode.md)
-- [Privacy Directives spec](docs/specs/privacy-directives.md)
-- [Compression spec](docs/specs/compression.md)
-- [Extension Subprocess IPC spec](docs/specs/extension-ipc.md)
-- [Release Automation spec](docs/specs/release-automation.md)
-- [Bundle Export spec](docs/specs/bundle-export.md)
-- [Multiple Bundle Sources spec](docs/specs/multi-bundle.md)
-- [Performance and Maintainability spec](docs/specs/optimization.md)
-- [Configuration spec](docs/specs/configuration.md)
-- [BM25 Ranking spec](docs/specs/bm25-ranking.md)
-- [MCP Server spec](docs/specs/mcp-server.md)
-- [MCP Sensitive Access spec](docs/specs/mcp-sensitive.md)
-- [ADR 0003: search and UI retirement](docs/architecture/adr/0003-keyword-fuzzy-search-and-ui-retirement.md)
+- [Architecture decisions](docs/architecture/adr/README.md)
+- [Roadmap](ROADMAP.md)
 - [Backlog](docs/backlog.md)

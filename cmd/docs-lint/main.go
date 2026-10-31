@@ -1,83 +1,25 @@
-// Command docs-lint checks local links in project documentation.
+// Command docs-lint checks project documentation for broken links, invalid
+// frontmatter, status drift, numbering gaps and cross-reference violations.
 package main
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-)
-
-var (
-	linkPattern       = regexp.MustCompile(`\]\(([^)\s#]+\.md)(?:#[^)]*)?\)`)
-	inlineCodePattern = regexp.MustCompile("`[^`\\n]*`")
 )
 
 func main() {
-	root, err := os.Getwd()
+	result, err := lint(".")
 	if err != nil {
 		fatal(err)
 	}
-
-	files := []string{
-		filepath.Join(root, "README.md"),
-		filepath.Join(root, "ROADMAP.md"),
-		filepath.Join(root, "CONTRIBUTING.md"),
-		filepath.Join(root, "AGENTS.md"),
+	for _, violation := range result.Violations {
+		fmt.Printf("%s %s:%d: %s\n", violation.Rule, violation.File, violation.Line, violation.Message)
 	}
-	docs := filepath.Join(root, "docs")
-	if err := filepath.WalkDir(docs, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
-			files = append(files, path)
-		}
-		return nil
-	}); err != nil {
-		fatal(err)
-	}
-
-	checked := 0
-	broken := 0
-	for _, file := range files {
-		data, err := os.ReadFile(file)
-		if err != nil {
-			fatal(err)
-		}
-		content := stripFences(string(data))
-		for _, match := range linkPattern.FindAllStringSubmatch(content, -1) {
-			checked++
-			target := filepath.Join(filepath.Dir(file), match[1])
-			if _, err := os.Stat(target); err != nil {
-				broken++
-				relative, _ := filepath.Rel(root, file)
-				fmt.Printf("%s: %s\n", relative, match[1])
-			}
-		}
-	}
-
-	fmt.Printf("docs-lint: checked %d links, %d broken\n", checked, broken)
-	if broken > 0 {
+	fmt.Printf("docs-lint: checked %d documents, %d links, %d violations\n",
+		result.Files, result.Links, len(result.Violations))
+	if len(result.Violations) > 0 {
 		os.Exit(1)
 	}
-}
-
-func stripFences(content string) string {
-	var result strings.Builder
-	inFence := false
-	for _, line := range strings.Split(content, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "```") || strings.HasPrefix(strings.TrimSpace(line), "~~~") {
-			inFence = !inFence
-			continue
-		}
-		if !inFence {
-			result.WriteString(line)
-			result.WriteByte('\n')
-		}
-	}
-	return inlineCodePattern.ReplaceAllString(result.String(), "")
 }
 
 func fatal(err error) {
