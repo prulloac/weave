@@ -150,6 +150,43 @@ func TestApplyEncryptRoundTrip(t *testing.T) {
 	}
 }
 
+func TestEncodedDirective(t *testing.T) {
+	testKey(t)
+	directive, err := privacy.ParseFrontmatter(map[string]any{
+		"privacy": map[string]any{
+			"policy":  "encrypt",
+			"key_id":  testKeyID,
+			"encoded": true,
+		},
+	})
+	if err != nil || directive == nil || !directive.Encoded {
+		t.Fatalf("expected encoded directive, got %+v %v", directive, err)
+	}
+
+	concept := contractv1.OkfConcept{
+		Body:    "enc:v1:AAAA",
+		Privacy: directive,
+	}
+	result, err := privacy.Apply(t.TempDir(), concept)
+	if err != nil {
+		t.Fatalf("apply encoded: %v", err)
+	}
+	if result.Body != concept.Body || !result.Redacted {
+		t.Fatalf("encoded bodies must be stored verbatim: %+v", result)
+	}
+
+	concept.Body = "plaintext"
+	if _, err := privacy.Apply(t.TempDir(), concept); err == nil {
+		t.Fatal("encoded plaintext body must be rejected")
+	}
+
+	if _, err := privacy.ParseFrontmatter(map[string]any{
+		"privacy": map[string]any{"policy": "tokenize", "key_id": "k", "encoded": true},
+	}); err == nil {
+		t.Fatal("encoded must require encrypt")
+	}
+}
+
 func TestResolveKeyPrecedence(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".weave"), 0o755); err != nil {

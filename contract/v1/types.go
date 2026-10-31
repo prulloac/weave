@@ -90,6 +90,7 @@ const (
 	ErrPrivacyKey       ErrorCode = "PRIVACY_KEY_UNAVAILABLE"
 	ErrPrivacyProvider  ErrorCode = "PRIVACY_PROVIDER_UNSUPPORTED"
 	ErrPrivacyDecrypt   ErrorCode = "PRIVACY_DECRYPT_FAILED"
+	ErrConfirmation     ErrorCode = "CONFIRMATION_REQUIRED"
 	ErrExtensionMissing ErrorCode = "EXTENSION_NOT_FOUND"
 	ErrExtensionTimeout ErrorCode = "EXTENSION_TIMEOUT"
 	ErrExtensionFailed  ErrorCode = "EXTENSION_FAILED"
@@ -116,6 +117,7 @@ const (
 	OpRebuild    OperationName = "rebuild"
 	OpSync       OperationName = "sync"
 	OpExtensions OperationName = "extensions"
+	OpExport     OperationName = "export"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -220,6 +222,7 @@ type PrivacyDirective struct {
 	Policy   PrivacyPolicy `json:"policy"`
 	Provider string        `json:"provider,omitempty"`
 	KeyID    string        `json:"key_id,omitempty"`
+	Encoded  bool          `json:"encoded,omitempty"`
 }
 
 // PrivacyState is the stored privacy summary for one concept.
@@ -594,6 +597,18 @@ type SourceReport struct {
 	Errors    int    `json:"errors"`
 }
 
+// ExportReport is the result of `weave export`.
+type ExportReport struct {
+	Source       string `json:"source"`
+	Out          string `json:"out"`
+	Format       string `json:"format"`
+	Documents    int    `json:"documents"`
+	Encrypted    int    `json:"encrypted"`
+	Tokenized    int    `json:"tokenized"`
+	Hashed       int    `json:"hashed"`
+	Confirmation bool   `json:"confirmation_required,omitempty"`
+}
+
 // OperationRequest is the transport-neutral request shape for stdio/MCP.
 type OperationRequest struct {
 	ID         string          `json:"id,omitempty"`
@@ -623,6 +638,11 @@ type OperationRequest struct {
 	Rerank     string          `json:"rerank,omitempty"`
 	TimeoutMS  int64           `json:"timeout_ms,omitempty"`
 	Sources    []SourceSpec    `json:"sources,omitempty"`
+	Out        string          `json:"out,omitempty"`
+	Format     string          `json:"format,omitempty"`
+	KeyID      string          `json:"key_id,omitempty"`
+	Force      bool            `json:"force,omitempty"`
+	Confirmed  bool            `json:"confirmed,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

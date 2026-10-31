@@ -104,6 +104,9 @@
 				},
 				"key_id": {
 					"type": "string"
+				},
+				"encoded": {
+					"type": "boolean"
 				}
 			}
 		},
@@ -159,7 +162,8 @@
 				"PRIVACY_KEY_UNAVAILABLE",
 				"PRIVACY_PROVIDER_UNSUPPORTED",
 				"PRIVACY_DECRYPT_FAILED",
-				"INTERNAL"
+				"INTERNAL",
+				"CONFIRMATION_REQUIRED"
 			]
 		},
 		"OperationName": {
@@ -180,7 +184,8 @@
 				"ingest",
 				"rebuild",
 				"sync",
-				"extensions"
+				"extensions",
+				"export"
 			]
 		},
 		"OkfLink": {
@@ -1925,6 +1930,49 @@
 					"items": {
 						"$ref": "#/$defs/SourceGraph"
 					}
+				}
+			}
+		},
+		"ExportReport": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"source",
+				"out",
+				"format",
+				"documents",
+				"encrypted",
+				"tokenized",
+				"hashed"
+			],
+			"properties": {
+				"source": {
+					"type": "string"
+				},
+				"out": {
+					"type": "string"
+				},
+				"format": {
+					"type": "string",
+					"enum": [
+						"raw",
+						"encrypted"
+					]
+				},
+				"documents": {
+					"type": "integer"
+				},
+				"encrypted": {
+					"type": "integer"
+				},
+				"tokenized": {
+					"type": "integer"
+				},
+				"hashed": {
+					"type": "integer"
+				},
+				"confirmation_required": {
+					"type": "boolean"
 				}
 			}
 		}

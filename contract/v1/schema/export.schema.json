@@ -1,0 +1,6 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/contract/v1/export.schema.json",
+	"title": "ExportReport",
+	"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExportReport"
+}

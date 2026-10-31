@@ -87,6 +87,13 @@ func ParseFrontmatter(frontmatter map[string]any) (*contractv1.PrivacyDirective,
 	if err != nil {
 		return nil, err
 	}
+	encoded, _ := block["encoded"].(bool)
+	if encoded {
+		if directive.Policy != contractv1.PrivacyEncrypt {
+			return nil, fmt.Errorf("%s: encoded requires policy encrypt", CodeDirectiveInvalid)
+		}
+		directive.Encoded = true
+	}
 	return directive, nil
 }
 
@@ -246,6 +253,16 @@ func inInlineCode(line string, index int) bool {
 // Apply transforms one concept according to its declared directives.
 func Apply(root string, concept contractv1.OkfConcept) (Result, error) {
 	if concept.Privacy != nil && concept.Privacy.Policy != contractv1.PrivacyNone {
+		if concept.Privacy.Encoded {
+			if !strings.HasPrefix(strings.TrimSpace(concept.Body), envelope) {
+				return Result{}, fmt.Errorf("%s: encoded body must be an enc:v1 envelope", CodeDirectiveInvalid)
+			}
+			return Result{
+				Body:      concept.Body,
+				Directive: concept.Privacy,
+				Redacted:  true,
+			}, nil
+		}
 		key, err := ResolveKey(root, concept.Privacy.KeyID)
 		if err != nil {
 			return Result{}, err
