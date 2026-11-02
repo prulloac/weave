@@ -99,7 +99,8 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 
 Post-GA pluggable scoring: spec and BDD approved; TDD is deferred until after v1.0.0.
 Post-GA extension data: spec and BDD approved; E1 (manifest, schema v6 and
-transactional import) implemented; E2–E5 pending.
+transactional import) and E2 (CLI list/get/gc) implemented; show refs, MCP
+resources and export pending.
 
 ## Cross-cutting
 
