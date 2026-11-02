@@ -10,7 +10,7 @@ and keep the conformance and calibration suites green.
 
 ## 1. Input Handoff & Contract Retrieval
 
-- Read the approved spec in `docs/specs/<feature-id>.md`.
+- Read the approved spec in `../weave-docs/specs/<feature-id>.md`.
 - Read `contract/v1/schema` and `contract/v1/types.go`.
 - Read the relevant behavior tests in `docs/bdd/` and the existing Go tests.
 

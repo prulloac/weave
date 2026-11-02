@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for `weave-<name>` discovery, enrichment and reranking.
 
-**Spec reference:** [extension-ipc.md](../specs/extension-ipc.md)
+**Spec reference:** [extension-ipc.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md)
 **Go tests:** `cmd/weave/extensions_bdd_test.go`
 
 Extensions are one-shot subprocesses speaking `weave.cli/v1` JSON over stdin/stdout. Failures

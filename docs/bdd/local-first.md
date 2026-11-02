@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for telemetry, network, data paths and privacy diagnostics.
 
-**Spec reference:** [configuration.md](../specs/configuration.md)
+**Spec reference:** [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md)
 **Go tests:** `cmd/weave/onboarding_bdd_test.go`, `cmd/weave/config_ux_bdd_test.go`
 
 ---

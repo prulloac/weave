@@ -46,5 +46,5 @@ together; `ingest` also prepares the sync scenarios.
 
 ## Reports
 
-[Performance baseline](../docs/architecture/performance.md) records the current numbers, budgets
+[Performance baseline](https://github.com/prulloac/weave-docs/blob/main/architecture/performance.md) records the current numbers, budgets
 and findings for O4/O5.

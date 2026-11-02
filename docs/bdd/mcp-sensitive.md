@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the server-wide sensitive policy.
 
-**Spec reference:** [mcp-sensitive.md](../specs/mcp-sensitive.md)
+**Spec reference:** [mcp-sensitive.md](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-sensitive.md)
 **Go tests:** `mcp/sensitive_test.go`
 
 Encrypted bodies are redacted by default. `--allow-sensitive` is the only way to decrypt through

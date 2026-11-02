@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for zstd/LZ4 body storage.
 
-**Spec reference:** [compression.md](../specs/compression.md)
+**Spec reference:** [compression.md](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md)
 **Go tests:** `cmd/weave/compression_bdd_test.go`
 
 Documents are compressed after the privacy transform. Zstandard is the default; LZ4 is opt-in for

@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the reference `weave-ai` extension and core redaction.
 
-**Spec reference:** [weave-ai-plugin.md](../specs/weave-ai-plugin.md)
+**Spec reference:** [weave-ai-plugin.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-ai-plugin.md)
 **Go tests:** `cmd/weave-ai/main_test.go`, `engine/privacy/redact_test.go`, `cmd/weave/ai_bdd_test.go`
 
 `weave-ai` is an optional `weave.cli/v1` extension. Core redacts protected content before IPC;

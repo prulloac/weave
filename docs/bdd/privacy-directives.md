@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for declared encryption, tokenization and hashing.
 
-**Spec reference:** [privacy-directives.md](../specs/privacy-directives.md)
+**Spec reference:** [privacy-directives.md](https://github.com/prulloac/weave-docs/blob/main/specs/privacy-directives.md)
 **Go tests:** `cmd/weave/privacy_bdd_test.go`, `mcp/privacy_test.go`
 
 The fixture bundle declares one policy per document plus inline spans. Keys come from environment

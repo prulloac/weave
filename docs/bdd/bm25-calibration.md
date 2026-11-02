@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for BM25 hybrid ranking and calibration.
 
-**Spec reference:** [bm25-ranking.md](../specs/bm25-ranking.md)
+**Spec reference:** [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md)
 **Go tests:** `cmd/weave/bm25_calibration_bdd_test.go`, `engine/search/bm25_calibration_test.go`
 
 BM25 explain evidence is a follow-up explain slice.

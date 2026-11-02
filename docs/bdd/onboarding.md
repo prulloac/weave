@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the start screen, empty states and shell completion.
 
-**Spec reference:** [optimization.md § O2](../specs/optimization.md)
+**Spec reference:** [optimization.md § O2](https://github.com/prulloac/weave-docs/blob/main/specs/optimization.md)
 **Go tests:** `cmd/weave/onboarding_bdd_test.go`
 
 ---

@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for provider selection and the crypto subprocess contract.
 
-**Spec reference:** [external-crypto-providers.md](../specs/external-crypto-providers.md)
+**Spec reference:** [external-crypto-providers.md](https://github.com/prulloac/weave-docs/blob/main/specs/external-crypto-providers.md)
 **Go tests:** `cmd/weave/crypto_provider_bdd_test.go`
 
 The built-in `local` provider stays the default. `.weave/crypto.yaml` or `--provider` selects a

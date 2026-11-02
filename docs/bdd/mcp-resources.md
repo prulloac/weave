@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for MCP bundle resources.
 
-**Spec reference:** [mcp-server.md](../specs/mcp-server.md)
+**Spec reference:** [mcp-server.md](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-server.md)
 **Go tests:** `mcp/resource_test.go`
 
 ---

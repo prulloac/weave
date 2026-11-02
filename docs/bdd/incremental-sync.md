@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for hash-based incremental sync.
 
-**Spec reference:** [storage-and-sync.md](../specs/storage-and-sync.md)
+**Spec reference:** [storage-and-sync.md](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md)
 **Go tests:** `cmd/weave/sync_bdd_test.go`
 
 Watch mode and extension enrichment are out of scope for this slice.

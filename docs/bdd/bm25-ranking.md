@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for FTS5 BM25 ranking.
 
-**Spec reference:** [bm25-ranking.md](../specs/bm25-ranking.md)
+**Spec reference:** [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md)
 **Go tests:** `cmd/weave/bm25_bdd_test.go`
 
 This slice covers `--mode bm25` and FTS indexing. Hybrid rebase, BM25 explain and calibration are

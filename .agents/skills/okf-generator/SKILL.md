@@ -92,14 +92,14 @@ Inject domain-specific sections here (e.g., code blocks, tables, schemas).
 ## Instructions
 
 1. **Parse Input**: Identify the domain, title, and key concept details.
-2. **Assign Type & Path**: Set a descriptive `type` and output file path under docs/knowledge/<type>s/<concept-id>.md. Concept ID = file path minus `.md`.
+2. **Assign Type & Path**: Set a descriptive `type` and output file path under ../weave-docs/knowledge/<type>s/<concept-id>.md. Concept ID = file path minus `.md`.
 3. **Build Frontmatter**: Include `type` (required) plus `title`, `description`, `tags`, `generated`, `verified`, `status` as appropriate. No `metadata` block, no `okf_version`, no `created_at`/`updated_at`.
 4. **Draft Markdown Body**: Write structured markdown headings, tables, or code fences.
 5. **Cross-Link Graph**: Link to other OKF concepts in the body using absolute bundle-relative paths (/path/to/concept.md). Link every concept referenced; consumers tolerate broken links.
 
 ## Bundle-Root index.md (version declaration)
 
-When generating a new knowledge corpus, create a bundle-root `docs/knowledge/index.md` declaring the target version and listing concepts for progressive disclosure:
+When generating a new knowledge corpus, create a bundle-root `../weave-docs/knowledge/index.md` declaring the target version and listing concepts for progressive disclosure:
 
 ```markdown
 ---

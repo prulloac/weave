@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for quiet, verbose, progress and ASCII output.
 
-**Spec reference:** [optimization.md § O2](../specs/optimization.md)
+**Spec reference:** [optimization.md § O2](https://github.com/prulloac/weave-docs/blob/main/specs/optimization.md)
 **Go tests:** `cmd/weave/feedback_bdd_test.go`, `cmd/weave/progress_test.go`
 
 ---

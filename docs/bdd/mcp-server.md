@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the M1 in-process MCP tool layer.
 
-**Spec reference:** [mcp-server.md](../specs/mcp-server.md)
+**Spec reference:** [mcp-server.md](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-server.md)
 **Go tests:** `mcp/server_test.go`
 
 TCP, stdio, auth, resources and watch mode are transport-slice features.

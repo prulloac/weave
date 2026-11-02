@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the polling watcher and MCP reload.
 
-**Spec reference:** [watch-mode.md](../specs/watch-mode.md)
+**Spec reference:** [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md)
 **Go tests:** `watch/watcher_test.go`, `cmd/weave/mcp_test.go`
 
 `fsnotify` optimization is deferred; this slice uses SHA-256 polling snapshots.

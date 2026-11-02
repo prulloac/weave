@@ -16,7 +16,7 @@ status: stable
 
 # Behavior Scenarios: Extension Data
 
-Specification: [extension-data.md](../specs/extension-data.md)
+Specification: [extension-data.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-data.md)
 
 Go tests: `cmd/weave/extension_data_bdd_test.go`, `cmd/weave/export_bdd_test.go`,
 `engine/extensions/data_test.go`, `engine/operations/extension_data_test.go`,

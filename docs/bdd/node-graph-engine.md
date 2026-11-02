@@ -2,7 +2,7 @@
 
 Human-readable behavior test cases for the Node Graph Engine (build, traversal, pathfinding).
 
-**Spec reference:** [node-graph-engine.md](../specs/node-graph-engine.md)
+**Spec reference:** [node-graph-engine.md](https://github.com/prulloac/weave-docs/blob/main/specs/node-graph-engine.md)
 **Go tests:** `engine/graph`, `engine/conformance_test.go`
 
 ---

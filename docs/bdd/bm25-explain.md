@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for lexical and persistent-hybrid explanations.
 
-**Spec reference:** [weave-explain.md](../specs/weave-explain.md)
+**Spec reference:** [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md)
 **Go tests:** `cmd/weave/bm25_explain_bdd_test.go`
 
 ---

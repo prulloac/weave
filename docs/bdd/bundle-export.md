@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for raw and encrypted bundle export.
 
-**Spec reference:** [bundle-export.md](../specs/bundle-export.md)
+**Spec reference:** [bundle-export.md](https://github.com/prulloac/weave-docs/blob/main/specs/bundle-export.md)
 **Go tests:** `cmd/weave/export_bdd_test.go`
 
 Raw export writes plaintext after confirmation; encrypted export produces a re-ingestable OKF bundle

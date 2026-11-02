@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for permissive Markdown ingestion.
 
-**Spec reference:** [permissive-ingestion.md](../specs/permissive-ingestion.md)
+**Spec reference:** [permissive-ingestion.md](https://github.com/prulloac/weave-docs/blob/main/specs/permissive-ingestion.md)
 **Go tests:** `cmd/weave/permissive_bdd_test.go`
 
 `sync` integration is deferred until incremental sync lands; the scenarios below cover

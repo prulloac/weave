@@ -3,7 +3,7 @@
 Human-readable behavior cases for the global config file, environment variables and inspection
 commands.
 
-**Spec reference:** [configuration.md](../specs/configuration.md)
+**Spec reference:** [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md)
 **Go tests:** `cmd/weave/config_bdd_test.go`, `cmd/weave/config_ux_bdd_test.go`,
 `cmd/weave/config_golden_test.go`
 

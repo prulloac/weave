@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for reading and writing several bundle roots in one invocation.
 
-**Spec reference:** [multi-bundle.md](../specs/multi-bundle.md)
+**Spec reference:** [multi-bundle.md](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md)
 **Go tests:** `cmd/weave/multi_bundle_bdd_test.go`
 
 Sources use aliases derived from the directory name or supplied as `alias=path`. Graph and links

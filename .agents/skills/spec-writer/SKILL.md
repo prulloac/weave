@@ -12,7 +12,7 @@ Do NOT write implementation code or tests during this phase.
 
 ## Target Output
 
-`docs/specs/<feature-id>.md`
+`../weave-docs/specs/<feature-id>.md`
 
 ## OKF Format
 
@@ -56,13 +56,17 @@ Observable, testable outcomes.
 
 ## Instructions
 
-1. **Analyze Requirements:** Identify the package(s), CLI surface and contract changes.
-2. **Build YAML Frontmatter:** `type: specification`, title, description, tags, generated, status.
-3. **Draft Contracts:** Use Go types and JSON examples, not Astro/TypeScript props.
-4. **Define Search Behavior:** If ranking is involved, specify weights, thresholds, top-K and
+1. **Read the docs rules:** Read `../weave-docs/STYLE.md` and `../weave-docs/specs/README.md`.
+2. **Analyze Requirements:** Identify the package(s), CLI surface and contract changes.
+3. **Build YAML Frontmatter:** `type: specification`, title, description, tags, generated, status.
+4. **Draft Contracts:** Use Go types and JSON examples, not Astro/TypeScript props.
+5. **Define Search Behavior:** If ranking is involved, specify weights, thresholds, top-K and
    calibration metrics.
-5. **Add OKF Links:** Cross-link related specs and architecture docs.
-6. **Save:** `docs/specs/<feature-id>.md`.
+6. **Add OKF Links:** Cross-link related specs and architecture docs.
+7. **Register the spec:** Add a row to `../weave-docs/specs/README.md`. For a roadmap feature, add
+   the Feature Register row to `../weave-docs/ROADMAP.md` and the backlog row to
+   `../weave-docs/backlog.md`.
+8. **Save:** `../weave-docs/specs/<feature-id>.md`.
 
 ## Hand-off
 

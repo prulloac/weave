@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the tag-driven release workflow and its packaging helpers.
 
-**Spec reference:** [release-automation.md](../specs/release-automation.md)
+**Spec reference:** [release-automation.md](https://github.com/prulloac/weave-docs/blob/main/specs/release-automation.md)
 **Go tests:** `release/release_test.go`, `cmd/weave/release_bdd_test.go`
 
 The workflow verifies the repository, builds six static targets, packages archives, writes sorted

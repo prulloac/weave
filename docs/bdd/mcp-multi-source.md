@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for serving several bundle roots through one MCP server.
 
-**Spec reference:** [multi-bundle.md](../specs/multi-bundle.md)
+**Spec reference:** [multi-bundle.md](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md)
 **Go tests:** `mcp/multi_test.go`, `cmd/weave/mcp_test.go`
 
 MCP sources mirror the CLI: repeatable `--source`, deterministic merged reads, qualified targets and

@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for help discoverability and `--flag=value` parsing.
 
-**Spec reference:** [optimization.md § O2](../specs/optimization.md)
+**Spec reference:** [optimization.md § O2](https://github.com/prulloac/weave-docs/blob/main/specs/optimization.md)
 **Go tests:** `cmd/weave/help_bdd_test.go`
 
 ---

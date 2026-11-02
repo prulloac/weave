@@ -3,7 +3,7 @@
 Human-readable behavior cases for `weave.cli/v1` envelopes, config output, watch JSONL and the
 additive-only schema contract.
 
-**Spec reference:** [configuration.md § 2.5](../specs/configuration.md#25-machine-output-policy)
+**Spec reference:** [configuration.md § 2.5](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md#25-machine-output-policy)
 **Go tests:** `cmd/weave/output_schema_bdd_test.go`, `cmd/weave/config_golden_test.go`,
 `cmd/schema-diff/main_test.go`, `cmd/weave/sync_watch_bdd_test.go`
 

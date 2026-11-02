@@ -12,7 +12,7 @@ Do NOT write implementation code during this phase.
 
 ## 1. Input Handoff & Spec Parsing
 
-- **Input spec:** `docs/specs/<feature-id>.md`
+- **Input spec:** `../weave-docs/specs/<feature-id>.md`
 - Read the YAML frontmatter and the contracts, CLI, validation and edge-case sections.
 - Identify the observable behavior: commands, JSON envelopes, exit codes, search modes, ranking,
   validation fields and graph operations.

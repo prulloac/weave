@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the sync watch CLI wrapper.
 
-**Spec reference:** [watch-mode.md](../specs/watch-mode.md)
+**Spec reference:** [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md)
 **Go tests:** `cmd/weave/sync_watch_bdd_test.go`
 
 The shared polling watcher already powers `weave mcp --watch`. This slice wires the same watcher into

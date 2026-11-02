@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for unified error codes, hints and exit statuses.
 
-**Spec reference:** [optimization.md § O2](../specs/optimization.md)
+**Spec reference:** [optimization.md § O2](https://github.com/prulloac/weave-docs/blob/main/specs/optimization.md)
 **Go tests:** `cmd/weave/error_contract_bdd_test.go`
 
 ---

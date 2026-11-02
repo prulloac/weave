@@ -16,7 +16,7 @@ status: stable
 
 # Behavior Scenarios: Pluggable Scoring
 
-Specification: [extension-scoring.md](../specs/extension-scoring.md)
+Specification: [extension-scoring.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-scoring.md)
 
 Go tests (planned): `cmd/weave/scoring_bdd_test.go`, `engine/extensions/scoring_test.go`.
 

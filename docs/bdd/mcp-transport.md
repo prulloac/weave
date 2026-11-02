@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the M2/M3 JSON-RPC transport.
 
-**Spec reference:** [mcp-server.md](../specs/mcp-server.md)
+**Spec reference:** [mcp-server.md](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-server.md)
 **Go tests:** `mcp/transport_test.go`
 
 Both transports use newline-delimited JSON-RPC 2.0.

@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for write-command previews and `--no-input`.
 
-**Spec reference:** [optimization.md § O2](../specs/optimization.md)
+**Spec reference:** [optimization.md § O2](https://github.com/prulloac/weave-docs/blob/main/specs/optimization.md)
 **Go tests:** `cmd/weave/dryrun_bdd_test.go`
 
 ---

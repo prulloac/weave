@@ -2,7 +2,7 @@
 
 Human-readable behavior cases for the persistent storage foundation.
 
-**Spec reference:** [storage-and-sync.md](../specs/storage-and-sync.md)
+**Spec reference:** [storage-and-sync.md](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md)
 **Go tests:** `cmd/weave/storage_bdd_test.go`
 
 Incremental `sync` and watch mode are out of scope for this slice.

@@ -46,7 +46,7 @@ go build -o weave ./cmd/weave
 Releases are produced by `.github/workflows/release.yml`: an annotated `v*` tag verifies the
 repository, builds six static targets, writes sorted checksums and creates a draft GitHub Release.
 `workflow_dispatch` performs a build-only dry run. See the
-[release automation spec](docs/specs/release-automation.md).
+[release automation spec](https://github.com/prulloac/weave-docs/blob/main/specs/release-automation.md).
 
 ## Quickstart
 
@@ -118,14 +118,14 @@ rerank: ""
 - Config resolves through `os.UserConfigDir` (XDG on Linux, `%AppData%` on Windows, Application
   Support on macOS). The parse cache uses `os.UserCacheDir`.
 - v1.0 keeps the database at `~/.weave/index.db`; use `--db`, `WEAVE_DB` or the `db` key to move
-  it. XDG state migration is deferred (see
-  [ADR 0002](docs/architecture/adr/0002-config-paths-and-db-location.md)).
+  it. XDG state migration is deferred (see the
+  [configuration-path decision](https://github.com/prulloac/weave-docs/blob/main/architecture/adr/0002-config-paths-and-db-location.md)).
 - `config show` and `config get` report every value with `source` and `origin`; `config paths`
   names the config, database, cache, key and extension locations.
 - Secrets are never read from configuration; keys stay in `WEAVE_KEY_*` or `.weave/security.yaml`.
 - Invalid or reserved keys exit `2`; unknown keys warn unless `--strict-config`.
 
-Spec: [Configuration](docs/specs/configuration.md).
+Spec: [Configuration](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md).
 
 ### Shell completion
 
@@ -219,7 +219,7 @@ weave show ~/notes --source work=~/work/notes work:runbook
 weave ingest ~/notes --source work=~/work/notes --db ~/.weave/index.db
 ```
 
-Spec: [Multiple Bundle Sources](docs/specs/multi-bundle.md).
+Spec: [Multiple Bundle Sources](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md).
 
 #### `weave list`
 
@@ -272,7 +272,7 @@ weave audit ~/notes --fail-on warning
 weave audit ~/notes --verify-keys --json
 ```
 
-Spec: [Weave Audit](docs/specs/weave-audit.md).
+Spec: [Weave Audit](https://github.com/prulloac/weave-docs/blob/main/specs/weave-audit.md).
 
 #### `weave relate`
 
@@ -284,7 +284,7 @@ weave relate ~/notes concepts/okf-bundle --depth 2 --direction both --json
 weave relate ~/notes concepts/okf-bundle --depth 1 --direction out
 ```
 
-Spec: [Weave Relate](docs/specs/weave-relate.md).
+Spec: [Weave Relate](https://github.com/prulloac/weave-docs/blob/main/specs/weave-relate.md).
 
 #### `weave explain`
 
@@ -297,7 +297,7 @@ weave explain ~/notes oauth --id concepts/oauth-token-rotation --mode keyword
 weave explain ~/notes "alpha beta" --mode bm25 --id concepts/alpha --json
 ```
 
-Spec: [Weave Explain](docs/specs/weave-explain.md).
+Spec: [Weave Explain](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md).
 
 #### `weave ingest`
 
@@ -313,8 +313,8 @@ weave ingest ~/notes --strict --codec lz4 --json
 weave ingest ~/notes --strict --with-enricher keywords --json
 ```
 
-Specs: [Storage & Sync](docs/specs/storage-and-sync.md),
-[Permissive Ingestion](docs/specs/permissive-ingestion.md), [Compression](docs/specs/compression.md).
+Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md),
+[Permissive Ingestion](https://github.com/prulloac/weave-docs/blob/main/specs/permissive-ingestion.md), [Compression](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md).
 
 #### `weave rebuild`
 
@@ -326,7 +326,7 @@ weave rebuild ~/notes --strict --json
 weave rebuild ~/notes --codec zstd --json
 ```
 
-Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Compression](docs/specs/compression.md).
+Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md), [Compression](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md).
 
 #### `weave sync`
 
@@ -347,7 +347,7 @@ weave sync ~/notes --db ~/.weave/index.db --watch --json --events
 the process polls every 500 ms; with `--json --events`, later syncs are emitted as JSONL events.
 SIGINT/SIGTERM exits cleanly.
 
-Specs: [Storage & Sync](docs/specs/storage-and-sync.md), [Watch Mode](docs/specs/watch-mode.md).
+Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md), [Watch Mode](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md).
 
 #### `weave export`
 
@@ -365,7 +365,7 @@ weave export ~/notes --out ./export --format encrypted --key-id export-2026 --js
 - Targets may not overlap the source; non-empty targets require `--force`.
 - `weave-export.json` is written last as the completion marker.
 
-Spec: [Bundle Export](docs/specs/bundle-export.md).
+Spec: [Bundle Export](https://github.com/prulloac/weave-docs/blob/main/specs/bundle-export.md).
 
 #### Privacy directives
 
@@ -397,7 +397,7 @@ weave show ~/notes secret --decrypt --json
 weave audit ~/notes --verify-keys --json
 ```
 
-Spec: [Privacy Directives](docs/specs/privacy-directives.md).
+Spec: [Privacy Directives](https://github.com/prulloac/weave-docs/blob/main/specs/privacy-directives.md).
 
 #### External crypto providers
 
@@ -421,7 +421,7 @@ weave audit ~/notes --db ~/.weave/index.db --verify-keys
 Providers receive key ids only, return ciphertext and key versions, and are validated against their
 `--capabilities` handshake. Failures abort writes with `PRIVACY_KEY_UNAVAILABLE` (exit `3`).
 
-Spec: [External Crypto Providers](docs/specs/external-crypto-providers.md).
+Spec: [External Crypto Providers](https://github.com/prulloac/weave-docs/blob/main/specs/external-crypto-providers.md).
 
 #### `weave extensions`
 
@@ -440,7 +440,7 @@ weave search ~/notes "token rotation" --rerank keywords --json
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.
 - Default timeout is `5s`; override with `--timeout`.
 
-Spec: [Extension Subprocess IPC](docs/specs/extension-ipc.md).
+Spec: [Extension Subprocess IPC](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md).
 
 #### `weave-ai`
 
@@ -462,7 +462,7 @@ weave search ~/notes "token rotation" --rerank ai
   API key value.
 - Model or provider failures degrade to core results with a warning.
 
-Spec: [Weave AI Extension](docs/specs/weave-ai-plugin.md).
+Spec: [Weave AI Extension](https://github.com/prulloac/weave-docs/blob/main/specs/weave-ai-plugin.md).
 
 #### `weave mcp`
 
@@ -482,8 +482,8 @@ weave mcp --bundle ~/notes --source work=~/work/notes --db ~/.weave/index.db --w
   resources without making encrypted documents searchable.
 - Without `source`, tools merge sources and reject ambiguous targets.
 
-Specs: [MCP Server](docs/specs/mcp-server.md), [Watch Mode](docs/specs/watch-mode.md),
-[Multiple Bundle Sources](docs/specs/multi-bundle.md).
+Specs: [MCP Server](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-server.md), [Watch Mode](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md),
+[Multiple Bundle Sources](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md).
 
 #### `weave version`
 
@@ -530,6 +530,10 @@ go run ./cmd/docs-lint
 ./scripts/verify.sh
 ```
 
+Project documentation (roadmap, backlog, specs, architecture, ADRs) lives in the sibling
+[weave-docs](https://github.com/prulloac/weave-docs) repository; run its
+[documentation checks](https://github.com/prulloac/weave-docs/blob/main/AGENTS.md) there.
+
 Regenerate the contract goldens:
 
 ```sh
@@ -546,7 +550,7 @@ go build -o /tmp/weave ./cmd/weave
 go run ./cmd/bench -corpus benchmarks/corpus/10k -scenario all -weave /tmp/weave
 ```
 
-See the [performance baseline](docs/architecture/performance.md) and
+See the [performance baseline](https://github.com/prulloac/weave-docs/blob/main/architecture/performance.md) and
 [benchmark harness](benchmarks/README.md).
 
 ## Project Structure
@@ -574,18 +578,24 @@ mcp/                    MCP tool descriptors, resources and in-process dispatch
 watch/                  polling watcher over incremental sync
 engine/nav/             list, show, backlinks, path
 engine/operations/      transport-neutral envelopes
-docs/                   architecture, specs, knowledge
+docs/                   user guides and BDD behavior scenarios
 ```
+
+Project documentation (roadmap, backlog, specifications, architecture, ADRs, knowledge and style)
+lives in the sibling `weave-docs` repository.
 
 ## Documentation
 
+User documentation lives in this repository; project documentation lives in
+[weave-docs](https://github.com/prulloac/weave-docs).
+
 - [Documentation index](docs/README.md)
-- [Specifications](docs/specs/README.md)
+- [Specifications](https://github.com/prulloac/weave-docs/blob/main/specs/README.md)
 - [Behavior scenarios](docs/bdd/README.md)
-- [Architecture](docs/architecture/index.md)
-- [Architecture decisions](docs/architecture/adr/README.md)
-- [Roadmap](ROADMAP.md)
-- [Backlog](docs/backlog.md)
+- [Architecture](https://github.com/prulloac/weave-docs/blob/main/architecture/index.md)
+- [Architecture decisions](https://github.com/prulloac/weave-docs/blob/main/architecture/adr/README.md)
+- [Roadmap](https://github.com/prulloac/weave-docs/blob/main/ROADMAP.md)
+- [Backlog](https://github.com/prulloac/weave-docs/blob/main/backlog.md)
 
 ## License
 

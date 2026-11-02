@@ -24,9 +24,13 @@ go build -o weave ./cmd/weave
 We follow a strict **SDD → BDD → TDD** pipeline. Never write implementation code before tests, and
 never write tests before the specification.
 
+Specs, ADRs, architecture, roadmap and backlog live in the sibling
+[`weave-docs`](https://github.com/prulloac/weave-docs) repository; BDD scenarios and end-user docs
+stay in this repository.
+
 ### Phase 1: Specification (SDD)
 
-1. Write a markdown spec in `docs/specs/<feature-name>.md`.
+1. Write a markdown spec in the `weave-docs` repository at `specs/<feature-name>.md`.
 2. Get the spec approved before proceeding.
 
 ### Phase 2: Behavior Testing (BDD)
@@ -41,6 +45,16 @@ never write tests before the specification.
 2. Implement the minimal code to pass.
 3. Refactor with the full suite green.
 
+### Working across the two repositories
+
+- Spec, ADR, architecture, roadmap and backlog changes go in `weave-docs`; open that PR first.
+- BDD scenarios, implementation and unit tests go in this repository; open the code PR after the spec
+  is approved.
+- A feature may need two PRs. Link the spec from the code PR and link the code PR from the docs PR.
+- In `weave-docs`, run `python3 scripts/check-links.py` and
+  `npx --yes markdownlint-cli2 "**/*.md"`.
+- In this repository, run `go run ./cmd/docs-lint` and `./scripts/verify.sh`.
+
 ## Commands
 
 | Command | Action |
@@ -53,10 +67,10 @@ never write tests before the specification.
 | `go build ./cmd/weave` | Build the CLI |
 | `go run ./cmd/contract-export` | Regenerate golden output |
 | `go test ./engine/search -run TestCalibration -v` | Ranking calibration |
-| `go run ./cmd/docs-lint` | Documentation links, status, numbering and cross-reference gate |
+| `go run ./cmd/docs-lint` | Documentation links and cross-reference gate for this repo |
 | `./scripts/verify.sh` | Full local gate used by CI and release |
 
-Documentation rules are in the [documentation style guide](docs/STYLE.md).
+Documentation rules are in the [documentation style guide](https://github.com/prulloac/weave-docs/blob/main/STYLE.md).
 
 ## Code Style
 
@@ -80,6 +94,6 @@ pass without an explicit review.
 ## Pull Requests
 
 - Keep changes atomic.
-- Update the relevant docs and `docs/backlog.md`.
+- Update the relevant docs and the `weave-docs` backlog (`weave-docs/backlog.md`).
 - Run `./scripts/verify.sh` before pushing.
 - Use stacked PRs for multi-phase work.
