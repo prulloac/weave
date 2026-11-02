@@ -9,13 +9,15 @@ import (
 )
 
 type bddExportReport struct {
-	Source    string `json:"source"`
-	Out       string `json:"out"`
-	Format    string `json:"format"`
-	Documents int    `json:"documents"`
-	Encrypted int    `json:"encrypted"`
-	Tokenized int    `json:"tokenized"`
-	Hashed    int    `json:"hashed"`
+	Source               string `json:"source"`
+	Out                  string `json:"out"`
+	Format               string `json:"format"`
+	Documents            int    `json:"documents"`
+	Encrypted            int    `json:"encrypted"`
+	Tokenized            int    `json:"tokenized"`
+	Hashed               int    `json:"hashed"`
+	ExtensionData        int    `json:"extension_data"`
+	ExtensionDataSkipped int    `json:"extension_data_skipped"`
 }
 
 func exportFixture(t *testing.T) (root, db string) {
@@ -62,6 +64,55 @@ func readExportFile(t *testing.T, path string) string {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return string(data)
+}
+
+func TestExportRawIncludesExtensionData(t *testing.T) {
+	root := extensionDataCLIFixture(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "data", "--json")
+	if code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	out := filepath.Join(t.TempDir(), "export")
+	code, envelope, report := runExport(t, root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")
+	if code != 0 || !envelope.OK {
+		t.Fatalf("export exit=%d error=%+v", code, envelope.Error)
+	}
+	if report.ExtensionData != 2 {
+		t.Fatalf("expected two extension data items, got %+v", report)
+	}
+	path := filepath.Join(out, "_extensions", "data", "assets", "concepts", "alpha", "sample.bin")
+	if data := readExportFile(t, path); data != "asset-bytes" {
+		t.Fatalf("unexpected exported bytes: %q", data)
+	}
+	manifest := readExportFile(t, filepath.Join(out, "_extensions", "manifest.json"))
+	if !strings.Contains(manifest, `"weave.extension-data/v1"`) || !strings.Contains(manifest, `"sha256"`) || !strings.Contains(manifest, `"doc_id"`) {
+		t.Fatalf("unexpected extension manifest: %s", manifest)
+	}
+	if !strings.Contains(readExportFile(t, filepath.Join(out, "weave-export.json")), `"extension_data": 2`) {
+		t.Fatal("export manifest missing extension data count")
+	}
+}
+
+func TestExportEncryptedSkipsExtensionData(t *testing.T) {
+	root := extensionDataCLIFixture(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--strict", "--with-enricher", "data", "--json")
+	if code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	t.Setenv("WEAVE_KEY_EXPORT_KEY", strings.Repeat("ab", 32))
+	out := filepath.Join(t.TempDir(), "export")
+	code, envelope, report := runExport(t, root, "--out", out, "--format", "encrypted", "--key-id", "export-key", "--db", db, "--json")
+	if code != 0 || !envelope.OK {
+		t.Fatalf("encrypted export exit=%d error=%+v", code, envelope.Error)
+	}
+	if report.ExtensionDataSkipped != 2 || report.ExtensionData != 0 {
+		t.Fatalf("unexpected extension data report: %+v", report)
+	}
+	if _, err := os.Stat(filepath.Join(out, "_extensions")); !os.IsNotExist(err) {
+		t.Fatalf("encrypted export must not write extension data: %v", err)
+	}
 }
 
 func TestExportRaw(t *testing.T) {

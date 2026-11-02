@@ -2079,6 +2079,12 @@
 				"hashed": {
 					"type": "integer"
 				},
+				"extension_data": {
+					"type": "integer"
+				},
+				"extension_data_skipped": {
+					"type": "integer"
+				},
 				"confirmation_required": {
 					"type": "boolean"
 				},
