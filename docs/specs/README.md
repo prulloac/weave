@@ -30,7 +30,7 @@ maturity only.
 | [Optimization Program](optimization.md) | draft | — | 29 (stretch) |
 | [Release Readiness](release-readiness.md) | stable | [Release readiness](../bdd/release-readiness.md) | release gate |
 | [Pluggable Scoring](extension-scoring.md) | draft | [Scoring](../bdd/extension-scoring.md) | 31 (post-GA) |
-| [Extension Data API](extension-data.md) | draft | [Extension data](../bdd/extension-data.md) | 32 (post-GA) |
+| [Extension Data API](extension-data.md) | stable | [Extension data](../bdd/extension-data.md) | 32 (post-GA) |
 
 ## Ownership rules
 

@@ -95,13 +95,13 @@ Pipeline phase legend (per SDD -> BDD -> TDD):
 | Global configuration | [configuration.md](specs/configuration.md) | - | x | x | x | green |
 | Release readiness (regression, smoke, docs) | [release-readiness.md](specs/release-readiness.md) | - | x | x | x | green |
 | Pluggable scoring (post-GA) | [extension-scoring.md](specs/extension-scoring.md) | - | x | x | - | backlog |
-| Extension data API (post-GA) | [extension-data.md](specs/extension-data.md) | - | x | x | - | in-progress |
+| Extension data API (post-GA) | [extension-data.md](specs/extension-data.md) | - | x | x | x | review |
 
 Post-GA pluggable scoring: spec and BDD approved; TDD is deferred until after v1.0.0.
 Post-GA extension data: spec and BDD approved; E1 (manifest, schema v6 and
 transactional import), E2 (CLI list/get/gc), E3 (show refs, MCP blob
-resources) and E4 (raw export, encrypted-export policy) implemented;
-final BDD/docs coverage remains.
+resources) and E4 (raw export, encrypted-export policy) implemented in
+draft PR #15; not merged.
 
 ## Cross-cutting
 
