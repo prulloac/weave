@@ -1,7 +1,7 @@
 ---
 type: behavior
 title: "Release Readiness Behavior Scenarios"
-description: "Behavior cases for the documentation integrity gate, built-binary smoke suite and release gate."
+description: "Behavior cases for the two-repository documentation gate, built-binary smoke suite and release gate."
 tags:
   - "behavior"
   - "release"
@@ -15,14 +15,18 @@ status: stable
 
 # Behavior Scenarios: Release Readiness
 
-Specification: [release-readiness.md](../specs/release-readiness.md)
+Specification: [release-readiness.md](https://github.com/prulloac/weave-docs/blob/main/specs/release-readiness.md)
 
-Go tests: `cmd/docs-lint/main_test.go`, `cmd/weave/smoke_test.go`,
-`release/release_test.go`.
+Executable coverage: `cmd/docs-lint/main_test.go`, `cmd/weave/smoke_test.go`,
+`release/release_test.go`; `weave-docs/scripts/check-links.py` and the `Docs` workflow cover the
+project-docs gate.
 
 These scenarios describe observable behavior. They do not prescribe implementation details.
 
-## Feature: Documentation integrity
+The `cmd/docs-lint` scenarios below use fixture trees. In the split layout, `weave` runs the linter
+on its remaining docs; `weave-docs` runs its own link/reachability and Markdown checks.
+
+## Feature: Weave documentation integrity
 
 ### Scenario: A dead link fails the documentation gate
 
@@ -101,13 +105,52 @@ These scenarios describe observable behavior. They do not prescribe implementati
 - **Then** it reports `DL011` with the reference and line
 - **And** it exits non-zero
 
-### Scenario: The release repository passes the documentation gate
+### Scenario: The weave repository passes its documentation gate
 
 - **Given** the release branch
 - **When** `go run ./cmd/docs-lint` runs
-- **Then** every rule passes
+- **Then** every remaining-docs rule passes
 - **And** the command exits zero
 - **And** it prints the number of checked documents and links
+
+## Feature: Project documentation repository gate
+
+These scenarios run in `weave-docs`; they are not part of `cmd/docs-lint`.
+
+### Scenario: A dead link fails the project docs gate
+
+- **Given** a `weave-docs` Markdown file that links to `missing.md`
+- **When** `python3 scripts/check-links.py` runs
+- **Then** it reports the file and line
+- **And** it exits non-zero
+
+### Scenario: An orphan document fails the project docs gate
+
+- **Given** a `weave-docs` Markdown file that no document links to
+- **When** `python3 scripts/check-links.py` runs
+- **Then** it reports that the document is not reachable from `README.md`
+- **And** it exits non-zero
+
+### Scenario: A broken cross-repo link fails the project docs gate
+
+- **Given** a `weave-docs` document that links to a missing `weave` path
+- **When** `python3 scripts/check-links.py` runs with the `weave` checkout present
+- **Then** it reports the missing `weave` target
+- **And** it exits non-zero
+
+### Scenario: Markdown style fails the project docs gate
+
+- **Given** a `weave-docs` Markdown file that violates `.markdownlint-cli2.jsonc`
+- **When** the `Docs` workflow runs
+- **Then** markdownlint reports the file and rule
+- **And** the workflow fails
+
+### Scenario: Both documentation gates pass for a release
+
+- **Given** the release candidate
+- **When** `go run ./cmd/docs-lint` runs in `weave`
+- **And** `python3 scripts/check-links.py` and markdownlint run in `weave-docs`
+- **Then** all three checks pass
 
 ## Feature: Built-binary smoke suite
 
