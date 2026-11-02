@@ -12,50 +12,52 @@ import (
 )
 
 type flags struct {
-	json         bool
-	quiet        bool
-	verbose      bool
-	ascii        bool
-	noCache      bool
-	help         bool
-	limit        *int
-	topK         *int
-	mode         contractv1.SearchMode
-	types        []string
-	tags         []string
-	status       string
-	failOn       contractv1.AuditFailOn
-	verifyKeys   bool
-	decrypt      bool
-	depth        *int
-	direction    contractv1.RelateDirection
-	id           string
-	db           string
-	noDB         bool
-	strict       bool
-	permissive   bool
-	codec        string
-	enricher     string
-	rerank       string
-	timeout      time.Duration
-	timeoutSet   bool
-	sources      []string
-	watch        bool
-	events       bool
-	out          string
-	format       string
-	keyID        string
-	force        bool
-	yes          bool
-	provider     string
-	dryRun       bool
-	noInput      bool
-	cacheDir     string
-	configPath   string
-	noConfig     bool
-	strictConfig bool
-	explicit     map[string]bool
-	positionals  []string
+	json          bool
+	quiet         bool
+	verbose       bool
+	ascii         bool
+	noCache       bool
+	help          bool
+	limit         *int
+	topK          *int
+	mode          contractv1.SearchMode
+	types         []string
+	tags          []string
+	status        string
+	failOn        contractv1.AuditFailOn
+	verifyKeys    bool
+	decrypt       bool
+	depth         *int
+	direction     contractv1.RelateDirection
+	id            string
+	extensionName string
+	docID         string
+	db            string
+	noDB          bool
+	strict        bool
+	permissive    bool
+	codec         string
+	enricher      string
+	rerank        string
+	timeout       time.Duration
+	timeoutSet    bool
+	sources       []string
+	watch         bool
+	events        bool
+	out           string
+	format        string
+	keyID         string
+	force         bool
+	yes           bool
+	provider      string
+	dryRun        bool
+	noInput       bool
+	cacheDir      string
+	configPath    string
+	noConfig      bool
+	strictConfig  bool
+	explicit      map[string]bool
+	positionals   []string
 }
 
 func parseFlags(args []string) (flags, error) {
@@ -159,6 +161,20 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.id = value
+		case "--extension":
+			value, next, err := flagValue(args, index, "--extension")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.extensionName = value
+		case "--doc":
+			value, next, err := flagValue(args, index, "--doc")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.docID = value
 		case "--db":
 			value, next, err := flagValue(args, index, "--db")
 			if err != nil {

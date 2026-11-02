@@ -21,6 +21,9 @@ import (
 // ErrExtensionDataNotFound is returned when a requested record or blob is missing.
 var ErrExtensionDataNotFound = errors.New("extension data not found")
 
+// ErrExtensionDataAmbiguous is returned when a key exists on several documents.
+var ErrExtensionDataAmbiguous = errors.New("extension data key is ambiguous; use --doc")
+
 // ExtensionDataRecord is one stored extension data reference.
 type ExtensionDataRecord struct {
 	Extension string
@@ -188,6 +191,56 @@ func (s *Store) ReadExtensionData(
 	return data, record, nil
 }
 
+// ReadExtensionDataByKey returns one record when the key is unique for the extension.
+func (s *Store) ReadExtensionDataByKey(
+	ctx context.Context,
+	root string,
+	extension string,
+	key string,
+) ([]byte, ExtensionDataRecord, error) {
+	root, err := normalizeRoot(root)
+	if err != nil {
+		return nil, ExtensionDataRecord{}, err
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT extension, doc_id, key, sha256, size, COALESCE(media_type, ''), metadata_json
+		FROM extension_data
+		WHERE bundle_root = ? AND extension = ? AND key = ?`,
+		root, extension, key)
+	if err != nil {
+		return nil, ExtensionDataRecord{}, err
+	}
+	defer rows.Close()
+	var records []ExtensionDataRecord
+	for rows.Next() {
+		var record ExtensionDataRecord
+		var metadata string
+		if err := rows.Scan(
+			&record.Extension, &record.DocID, &record.Key, &record.SHA256,
+			&record.Size, &record.MediaType, &metadata,
+		); err != nil {
+			return nil, ExtensionDataRecord{}, err
+		}
+		record.Metadata = json.RawMessage(metadata)
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, ExtensionDataRecord{}, err
+	}
+	if len(records) == 0 {
+		return nil, ExtensionDataRecord{}, ErrExtensionDataNotFound
+	}
+	if len(records) > 1 {
+		return nil, ExtensionDataRecord{}, ErrExtensionDataAmbiguous
+	}
+	record := records[0]
+	data, err := os.ReadFile(s.extensionDataBlobPath(root, record.SHA256))
+	if err != nil {
+		return nil, ExtensionDataRecord{}, fmt.Errorf("%w: blob %s: %v", ErrExtensionDataNotFound, record.SHA256, err)
+	}
+	return data, record, nil
+}
+
 // DeleteExtensionDataForDocument removes all extension data bound to one document.
 func (s *Store) DeleteExtensionDataForDocument(ctx context.Context, root, docID string) error {
 	root, err := normalizeRoot(root)
@@ -212,6 +265,11 @@ func (s *Store) DeleteExtensionDataForBundle(ctx context.Context, root string) e
 
 // GCExtensionData removes blobs that have no metadata row and returns the count.
 func (s *Store) GCExtensionData(ctx context.Context, root string) (int, error) {
+	return s.GCExtensionDataWithOptions(ctx, root, false)
+}
+
+// GCExtensionDataWithOptions reports or removes blobs with no metadata row.
+func (s *Store) GCExtensionDataWithOptions(ctx context.Context, root string, dryRun bool) (int, error) {
 	root, err := normalizeRoot(root)
 	if err != nil {
 		return 0, err
@@ -249,10 +307,13 @@ func (s *Store) GCExtensionData(ctx context.Context, root string) (int, error) {
 		if entry.IsDir() || referenced[entry.Name()] {
 			continue
 		}
+		removed++
+		if dryRun {
+			continue
+		}
 		if err := os.Remove(filepath.Join(blobRoot, entry.Name())); err != nil {
 			return removed, err
 		}
-		removed++
 	}
 	return removed, nil
 }
