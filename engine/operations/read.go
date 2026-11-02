@@ -65,7 +65,7 @@ func (e *Executor) readList(_ context.Context, eng *engine.Engine, request contr
 	}))
 }
 
-func (e *Executor) readShow(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
+func (e *Executor) readShow(ctx context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
 	result, ok, err := eng.ShowWithOptions(request.Target, engine.ShowOptions{
 		Decrypt:  request.Decrypt,
 		Provider: request.Provider,
@@ -91,6 +91,7 @@ func (e *Executor) readShow(_ context.Context, eng *engine.Engine, request contr
 			"target": request.Target,
 		})
 	}
+	result.ExtensionData = e.showExtensionData(ctx, request, result.ID)
 	return success(result)
 }
 

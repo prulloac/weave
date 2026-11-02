@@ -897,8 +897,45 @@
 				"privacy": {
 					"$ref": "#/$defs/PrivacyState"
 				},
+				"extension_data": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionDataRef"
+					}
+				},
 				"source": {
 					"type": "string"
+				}
+			}
+		},
+		"ExtensionDataRef": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"extension",
+				"key",
+				"size",
+				"sha256"
+			],
+			"properties": {
+				"extension": {
+					"type": "string"
+				},
+				"key": {
+					"type": "string"
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"size": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"sha256": {
+					"type": "string"
+				},
+				"metadata": {
+					"type": "object"
 				}
 			}
 		},

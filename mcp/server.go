@@ -3,6 +3,7 @@ package mcp
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -48,7 +49,8 @@ type ResourceTemplate struct {
 type ResourceContent struct {
 	URI      string `json:"uri"`
 	MimeType string `json:"mimeType"`
-	Text     string `json:"text"`
+	Text     string `json:"text,omitempty"`
+	Blob     string `json:"blob,omitempty"`
 }
 
 // Error is a structured MCP tool error.
@@ -388,7 +390,7 @@ func (s *Server) sanitize(value any) any {
 
 // Resources returns the static resource descriptors.
 func (s *Server) Resources() []ResourceDescriptor {
-	return []ResourceDescriptor{
+	resources := []ResourceDescriptor{
 		{
 			URI:         "weave://bundle/index",
 			Name:        "Bundle index",
@@ -402,6 +404,29 @@ func (s *Server) Resources() []ResourceDescriptor {
 			MimeType:    "application/json",
 		},
 	}
+	if s.db == "" {
+		return resources
+	}
+	refs, err := s.executor.ExtensionDataList(context.Background(), contractv1.OperationRequest{
+		Path: s.bundle,
+		DB:   s.db,
+	})
+	if err != nil {
+		return resources
+	}
+	for _, ref := range refs {
+		mimeType := ref.MediaType
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		resources = append(resources, ResourceDescriptor{
+			URI:         "weave://extension/" + ref.Extension + "/" + ref.Key,
+			Name:        "Extension data: " + ref.Extension + "/" + ref.Key,
+			Description: "Opaque extension-owned artifact.",
+			MimeType:    mimeType,
+		})
+	}
+	return resources
 }
 
 // ResourceTemplates returns the parameterized resource descriptors.
@@ -418,6 +443,12 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 			Name:        "Graph neighborhood",
 			Description: "Bounded graph neighborhood for a concept.",
 			MimeType:    "application/json",
+		},
+		{
+			URITemplate: "weave://extension/{name}/{key}",
+			Name:        "Extension data",
+			Description: "Opaque extension-owned artifact bytes.",
+			MimeType:    "application/octet-stream",
 		},
 		{
 			URITemplate: "weave://source/{source}/bundle/index",
@@ -448,6 +479,9 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 
 // ReadResource resolves one resource URI.
 func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent, error) {
+	if strings.HasPrefix(uri, "weave://extension/") {
+		return s.readExtensionDataResource(ctx, uri)
+	}
 	payload, err := s.resourcePayload(ctx, uri)
 	if err != nil {
 		return ResourceContent{}, err
@@ -460,6 +494,35 @@ func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent,
 		URI:      uri,
 		MimeType: "application/json",
 		Text:     string(data),
+	}, nil
+}
+
+func (s *Server) readExtensionDataResource(ctx context.Context, uri string) (ResourceContent, error) {
+	if s.db == "" {
+		return ResourceContent{}, &Error{Code: contractv1.ErrInvalidRequest, Message: "extension data requires persistent storage"}
+	}
+	tail := strings.TrimPrefix(uri, "weave://extension/")
+	slash := strings.IndexByte(tail, '/')
+	if slash <= 0 || slash == len(tail)-1 {
+		return ResourceContent{}, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
+	}
+	name := tail[:slash]
+	key := tail[slash+1:]
+	data, record, err := s.executor.ExtensionDataRead(ctx, contractv1.OperationRequest{
+		Path: s.bundle,
+		DB:   s.db,
+	}, name, key)
+	if err != nil {
+		return ResourceContent{}, &Error{Code: contractv1.ErrInvalidRequest, Message: err.Error()}
+	}
+	mimeType := record.MediaType
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	return ResourceContent{
+		URI:      uri,
+		MimeType: mimeType,
+		Blob:     base64.StdEncoding.EncodeToString(data),
 	}, nil
 }
 

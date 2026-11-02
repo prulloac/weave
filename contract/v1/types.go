@@ -325,19 +325,30 @@ type ShowLink struct {
 
 // ShowResult is the detailed concept view.
 type ShowResult struct {
-	ID          string         `json:"id"`
-	Path        string         `json:"path"`
-	Type        string         `json:"type"`
-	Source      string         `json:"source,omitempty"`
-	Keywords    []string       `json:"keywords"`
-	Title       *string        `json:"title,omitempty"`
-	Description *string        `json:"description,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
-	Status      *ConceptStatus `json:"status,omitempty"`
-	Body        string         `json:"body"`
-	Links       []ShowLink     `json:"links"`
-	Backlinks   []string       `json:"backlinks"`
-	Privacy     *PrivacyState  `json:"privacy,omitempty"`
+	ID            string             `json:"id"`
+	Path          string             `json:"path"`
+	Type          string             `json:"type"`
+	Source        string             `json:"source,omitempty"`
+	Keywords      []string           `json:"keywords"`
+	Title         *string            `json:"title,omitempty"`
+	Description   *string            `json:"description,omitempty"`
+	Tags          []string           `json:"tags,omitempty"`
+	Status        *ConceptStatus     `json:"status,omitempty"`
+	Body          string             `json:"body"`
+	Links         []ShowLink         `json:"links"`
+	Backlinks     []string           `json:"backlinks"`
+	Privacy       *PrivacyState      `json:"privacy,omitempty"`
+	ExtensionData []ExtensionDataRef `json:"extension_data,omitempty"`
+}
+
+// ExtensionDataRef is one opaque extension-owned artifact bound to a document.
+type ExtensionDataRef struct {
+	Extension string         `json:"extension"`
+	Key       string         `json:"key"`
+	MediaType string         `json:"media_type,omitempty"`
+	Size      int64          `json:"size"`
+	SHA256    string         `json:"sha256"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 // Backlink is a concept that references another concept.
