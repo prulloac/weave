@@ -311,6 +311,12 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 				fmt.Fprintf(stdout, "- %s -> %s\n", link.Raw, link.Target)
 			}
 		}
+		if len(show.ExtensionData) > 0 {
+			fmt.Fprintln(stdout, "Extension data:")
+			for _, item := range show.ExtensionData {
+				fmt.Fprintf(stdout, "- %s %s (%d bytes)\n", item.Extension, item.Key, item.Size)
+			}
+		}
 		fmt.Fprintf(stdout, "\n%s", show.Body)
 		return 0
 	case contractv1.OpBacklinks:

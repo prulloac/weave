@@ -131,6 +131,27 @@ func TestExtensionDataCLIListAndGet(t *testing.T) {
 	if code, _, stderr := Invoke(t, "extensions", "data", "get", root, "data", item.Key, "--out", output, "--force", "--db", db, "--json"); code != 0 {
 		t.Fatalf("force get exit=%d stderr=%q", code, stderr)
 	}
+
+	code, stdout, stderr = Invoke(t, "show", root, "concepts/alpha", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("show exit=%d stderr=%q", code, stderr)
+	}
+	validateCLIJSON(t, stdout, "show.schema.json")
+	var shown struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			ExtensionData []struct {
+				Extension string `json:"extension"`
+				Key       string `json:"key"`
+			} `json:"extension_data"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &shown); err != nil {
+		t.Fatal(err)
+	}
+	if !shown.OK || len(shown.Result.ExtensionData) != 1 {
+		t.Fatalf("unexpected show extension data: %s", stdout)
+	}
 }
 
 func TestExtensionDataCLIGC(t *testing.T) {

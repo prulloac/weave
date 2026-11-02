@@ -18,8 +18,9 @@ status: stable
 
 Specification: [extension-data.md](../specs/extension-data.md)
 
-Go tests (planned): `cmd/weave/extension_data_bdd_test.go`,
-`engine/extensions/extension_data_test.go`, `storage/sqlite/extension_data_test.go`.
+Go tests: `cmd/weave/extension_data_bdd_test.go`,
+`engine/extensions/data_test.go`, `engine/operations/extension_data_test.go`,
+`storage/sqlite/extension_data_test.go`, `mcp/extension_data_test.go`.
 
 These scenarios describe observable behavior. They do not prescribe implementation details.
 

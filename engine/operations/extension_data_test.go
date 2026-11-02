@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
@@ -108,6 +109,23 @@ func TestExtensionDataIngest(t *testing.T) {
 		if !containsKeyword(concept.Keywords, "asset") {
 			t.Fatalf("inferred keyword missing from %s: %v", concept.ID, concept.Keywords)
 		}
+	}
+
+	show := successResult(t, executor().Execute(context.Background(), contractv1.OperationRequest{
+		Op:     contractv1.OpShow,
+		Path:   root,
+		DB:     dbPath,
+		Target: "concepts/alpha",
+	}))
+	shown, ok := show.(*contractv1.ShowResult)
+	if !ok {
+		t.Fatalf("expected a show result, got %T", show)
+	}
+	if len(shown.ExtensionData) != 1 {
+		t.Fatalf("expected one extension data reference, got %+v", shown.ExtensionData)
+	}
+	if shown.ExtensionData[0].Extension != "data" || !strings.HasPrefix(shown.ExtensionData[0].Key, "assets/") {
+		t.Fatalf("unexpected extension data reference: %+v", shown.ExtensionData[0])
 	}
 }
 
