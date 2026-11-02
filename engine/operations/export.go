@@ -17,15 +17,16 @@ import (
 )
 
 type exportManifest struct {
-	Contract    string `json:"contract"`
-	CLI         string `json:"cli"`
-	Format      string `json:"format"`
-	Source      string `json:"source"`
-	Documents   int    `json:"documents"`
-	Encrypted   int    `json:"encrypted"`
-	Tokenized   int    `json:"tokenized"`
-	Hashed      int    `json:"hashed"`
-	GeneratedAt string `json:"generated_at"`
+	Contract      string `json:"contract"`
+	CLI           string `json:"cli"`
+	Format        string `json:"format"`
+	Source        string `json:"source"`
+	Documents     int    `json:"documents"`
+	Encrypted     int    `json:"encrypted"`
+	Tokenized     int    `json:"tokenized"`
+	Hashed        int    `json:"hashed"`
+	ExtensionData int    `json:"extension_data,omitempty"`
+	GeneratedAt   string `json:"generated_at"`
 }
 
 func (e *Executor) export(ctx context.Context, request contractv1.OperationRequest) any {
@@ -74,6 +75,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path})
 	}
+	extensionRecords, err := store.ListExtensionData(ctx, root, sqlitestore.ExtensionDataFilter{})
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
 	provider, err := e.resolveProvider(root, request.Provider)
 	if err != nil {
 		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
@@ -100,6 +106,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			Format:    format,
 			Documents: len(bundle.Concepts),
 			DryRun:    true,
+		}
+		if format == "raw" {
+			report.ExtensionData = len(extensionRecords)
+		} else {
+			report.ExtensionDataSkipped = len(extensionRecords)
 		}
 		for _, concept := range bundle.Concepts {
 			switch conceptPolicy(concept) {
@@ -255,16 +266,21 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		}
 	}
 
+	extensionDataCount := 0
+	if format == "raw" {
+		extensionDataCount = len(extensionRecords)
+	}
 	manifest := exportManifest{
-		Contract:    ContractVersion,
-		CLI:         CLIVersion,
-		Format:      format,
-		Source:      root,
-		Documents:   report.Documents,
-		Encrypted:   report.Encrypted,
-		Tokenized:   report.Tokenized,
-		Hashed:      report.Hashed,
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		Contract:      ContractVersion,
+		CLI:           CLIVersion,
+		Format:        format,
+		Source:        root,
+		Documents:     report.Documents,
+		Encrypted:     report.Encrypted,
+		Tokenized:     report.Tokenized,
+		Hashed:        report.Hashed,
+		ExtensionData: extensionDataCount,
+		GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
 	}
 	manifestJSON, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -274,6 +290,17 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 	if err := os.WriteFile(filepath.Join(target, "weave-export.json"), append(manifestJSON, '\n'), 0o644); err != nil {
 		cleanup()
 		return failure(contractv1.ErrInternal, err.Error(), nil)
+	}
+	if format == "raw" {
+		count, err := exportExtensionData(ctx, store, root, target, extensionRecords)
+		if err != nil {
+			cleanup()
+			return failure(contractv1.ErrInternal, err.Error(), nil)
+		}
+		report.ExtensionData = count
+	} else if len(extensionRecords) > 0 {
+		report.ExtensionDataSkipped = len(extensionRecords)
+		e.warn("export: extension data is omitted from encrypted exports")
 	}
 
 	if temporary != "" {
@@ -290,6 +317,72 @@ func conceptPolicy(concept contractv1.OkfConcept) contractv1.PrivacyPolicy {
 		return contractv1.PrivacyNone
 	}
 	return concept.Privacy.Policy
+}
+
+type extensionDataExportManifest struct {
+	V     string                    `json:"v"`
+	Items []extensionDataExportItem `json:"items"`
+}
+
+type extensionDataExportItem struct {
+	Extension string          `json:"extension"`
+	DocID     string          `json:"doc_id"`
+	Key       string          `json:"key"`
+	MediaType string          `json:"media_type,omitempty"`
+	Size      int64           `json:"size"`
+	SHA256    string          `json:"sha256"`
+	Metadata  json.RawMessage `json:"metadata,omitempty"`
+}
+
+func exportExtensionData(
+	ctx context.Context,
+	store *sqlitestore.Store,
+	root string,
+	target string,
+	records []sqlitestore.ExtensionDataRecord,
+) (int, error) {
+	if len(records) == 0 {
+		return 0, nil
+	}
+	base := filepath.Join(target, "_extensions")
+	manifest := extensionDataExportManifest{
+		V:     "weave.extension-data/v1",
+		Items: make([]extensionDataExportItem, 0, len(records)),
+	}
+	for _, record := range records {
+		data, _, err := store.ReadExtensionData(ctx, root, record.Extension, record.DocID, record.Key)
+		if err != nil {
+			return 0, err
+		}
+		path := filepath.Join(base, record.Extension, filepath.FromSlash(record.Key))
+		relative, err := filepath.Rel(base, path)
+		if err != nil || strings.HasPrefix(relative, "..") || filepath.IsAbs(relative) {
+			return 0, fmt.Errorf("invalid extension data key %q", record.Key)
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return 0, err
+		}
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			return 0, err
+		}
+		manifest.Items = append(manifest.Items, extensionDataExportItem{
+			Extension: record.Extension,
+			DocID:     record.DocID,
+			Key:       record.Key,
+			MediaType: record.MediaType,
+			Size:      record.Size,
+			SHA256:    record.SHA256,
+			Metadata:  record.Metadata,
+		})
+	}
+	encoded, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return 0, err
+	}
+	if err := os.WriteFile(filepath.Join(base, "manifest.json"), append(encoded, '\n'), 0o644); err != nil {
+		return 0, err
+	}
+	return len(records), nil
 }
 
 func preflightExportKeys(root string, bundle *contractv1.Bundle, format, keyID string, provider privacy.Provider) error {

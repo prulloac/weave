@@ -670,15 +670,17 @@ type SourceReport struct {
 
 // ExportReport is the result of `weave export`.
 type ExportReport struct {
-	Source       string `json:"source"`
-	Out          string `json:"out"`
-	Format       string `json:"format"`
-	Documents    int    `json:"documents"`
-	Encrypted    int    `json:"encrypted"`
-	Tokenized    int    `json:"tokenized"`
-	Hashed       int    `json:"hashed"`
-	DryRun       bool   `json:"dry_run,omitempty"`
-	Confirmation bool   `json:"confirmation_required,omitempty"`
+	Source               string `json:"source"`
+	Out                  string `json:"out"`
+	Format               string `json:"format"`
+	Documents            int    `json:"documents"`
+	Encrypted            int    `json:"encrypted"`
+	Tokenized            int    `json:"tokenized"`
+	Hashed               int    `json:"hashed"`
+	ExtensionData        int    `json:"extension_data,omitempty"`
+	ExtensionDataSkipped int    `json:"extension_data_skipped,omitempty"`
+	DryRun               bool   `json:"dry_run,omitempty"`
+	Confirmation         bool   `json:"confirmation_required,omitempty"`
 }
 
 // OperationRequest is the transport-neutral request shape for stdio/MCP.
