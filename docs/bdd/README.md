@@ -9,10 +9,12 @@ or check; a scenario without one is a documentation gap.
 | [BM25 calibration](bm25-calibration.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `engine/search/bm25_calibration_test.go` |
 | [BM25 explain](bm25-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/bm25_explain_bdd_test.go` |
 | [BM25 ranking](bm25-ranking.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `storage/sqlite/fts.go`, `engine/search/hybrid_bm25.go` |
+| [Blob assets](blob-assets.md) | [blob-assets.md](https://github.com/prulloac/weave-docs/blob/main/specs/blob-assets.md) | planned: `cmd/weave/blob_assets_bdd_test.go`, `storage/sqlite/blob_test.go`, `mcp/blob_test.go` |
 | [Bundle export](bundle-export.md) | [bundle-export.md](https://github.com/prulloac/weave-docs/blob/main/specs/bundle-export.md) | `cmd/weave/export_bdd_test.go` |
 | [Compression](compression.md) | [compression.md](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md) | `engine/compression/compression_test.go` |
 | [Configuration](configuration.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/config_bdd_test.go` |
 | [Dry run](dryrun.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/dryrun_bdd_test.go` |
+| [Embeddings](embeddings.md) | [embeddings.md](https://github.com/prulloac/weave-docs/blob/main/specs/embeddings.md) | planned: `cmd/weave/embeddings_bdd_test.go`, `storage/sqlite/embeddings_test.go`, `engine/search/semantic_test.go` |
 | [Error contract](error-contract.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/error_contract_bdd_test.go` |
 | [Extension IPC](extension-ipc.md) | [extension-ipc.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md) | `engine/extensions/extensions_test.go`, `cmd/weave/extensions_bdd_test.go` |
 | [Extension data](extension-data.md) | [extension-data.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-data.md) | `cmd/weave/extension_data_bdd_test.go`, `cmd/weave/export_bdd_test.go`, `engine/extensions/data_test.go`, `engine/operations/extension_data_test.go`, `storage/sqlite/extension_data_test.go`, `mcp/extension_data_test.go` |
@@ -39,6 +41,8 @@ or check; a scenario without one is a documentation gap.
 | [Sync watch](sync-watch.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `cmd/weave/sync_watch_bdd_test.go` |
 | [Watch mode](watch-mode.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `watch/watcher_test.go` |
 | [Weave explain](weave-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/explain_bdd_test.go` |
+| [Weave image](weave-image.md) | [weave-image.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-image.md) | planned: `cmd/weave/weave_image_bdd_test.go`, `cmd/weave/blob_assets_bdd_test.go` |
 
 Extension-side protocol and provider scenarios live in
-[`weave-ai`](https://github.com/prulloac/weave-ai/blob/main/docs/bdd/ai-plugin.md).
+[`weave-ai`](https://github.com/prulloac/weave-ai/blob/main/docs/bdd/ai-plugin.md). Image provider,
+OCR and installer scenarios will live in a future `weave-image` repository.
