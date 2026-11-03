@@ -90,7 +90,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: weave-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/*
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
           if-no-files-found: error
 
   artifact-smoke:
@@ -204,8 +206,27 @@ jobs:
           case "${RELEASE_TAG}" in
             *-rc*|*-beta*) PRERELEASE="--prerelease" ;;
           esac
+          NOTES="$(printf '%s\n' \
+            'Weave is a local-first related-document database for OKF bundles.' \
+            '' \
+            'Install without compiling:' \
+            '' \
+            '```sh' \
+            'curl -fsSL https://raw.githubusercontent.com/prulloac/weave/main/scripts/install.sh | sh' \
+            '```' \
+            '' \
+            'Windows PowerShell:' \
+            '' \
+            '```powershell' \
+            'irm https://raw.githubusercontent.com/prulloac/weave/main/scripts/install.ps1 | iex' \
+            '```' \
+            '' \
+            'The optional AI extension lives at https://github.com/prulloac/weave-ai.' \
+            '' \
+            'Or download an archive below.')"
           gh release create "${RELEASE_TAG}" dist/* \
             --draft \
             --title "${RELEASE_TAG}" \
             --generate-notes \
+            --notes "${NOTES}" \
             ${PRERELEASE}
