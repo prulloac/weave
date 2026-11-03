@@ -28,7 +28,8 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
 - **Extensions**: `weave-<name>` enrichment during writes and reranking during search.
-- **AI extension**: optional `weave-ai` with Ollama, OpenAI-compatible and Gemini providers.
+- **AI extension**: optional [`weave-ai`](https://github.com/prulloac/weave-ai) with Ollama,
+  OpenAI-compatible and Gemini providers.
 - **Deterministic** JSON envelopes for machine integration.
 - **Calibrated ranking** against a labeled query corpus.
 - **Reproducible benchmarks**: deterministic 100/1K/10K corpus, `cmd/bench` and committed baselines.
@@ -444,11 +445,12 @@ Spec: [Extension Subprocess IPC](https://github.com/prulloac/weave-docs/blob/mai
 
 #### `weave-ai`
 
-The reference AI extension enriches writes and reranks searches. Build it into `$PATH` or the
+The reference AI extension lives in [`prulloac/weave-ai`](https://github.com/prulloac/weave-ai).
+It enriches writes and reranks searches. Install it with
+`go install github.com/prulloac/weave-ai@latest` or a release archive, put it on `$PATH` or the
 bundle's `.weave/bin/`, then use it like any extension:
 
 ```sh
-go build -o "$HOME/.local/bin/weave-ai" ./cmd/weave-ai
 weave-ai --describe              # provider, endpoint and consent; never the key
 weave ingest ~/notes --db ~/.weave/index.db --with-enricher ai
 weave search ~/notes "token rotation" --rerank ai
@@ -561,7 +563,6 @@ cmd/bench/              end-to-end benchmark harness
 cmd/contract-export/    golden corpus generator
 cmd/schema-diff/        additive-only schema check
 cmd/release-package/    release archive and checksum builder
-cmd/weave-ai/           reference AI enrichment and rerank extension
 benchmarks/             corpus generator, registry, queries, baselines
 contract/v1/            schemas, Go types, fixtures
 engine/okf/             bundle parser, links, validation, cache

@@ -5,7 +5,7 @@ or check; a scenario without one is a documentation gap.
 
 | Behavior | Spec | Executable coverage |
 | --- | --- | --- |
-| [AI plugin](ai-plugin.md) | [weave-ai-plugin.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-ai-plugin.md) | `cmd/weave/ai_bdd_test.go`, `cmd/weave-ai/main_test.go` |
+| [AI extension core behavior](ai-plugin.md) | [weave-ai-plugin.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-ai-plugin.md) | `cmd/weave/ai_bdd_test.go`, `engine/privacy/redact_test.go`, `engine/extensions/schema_test.go` |
 | [BM25 calibration](bm25-calibration.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `engine/search/bm25_calibration_test.go` |
 | [BM25 explain](bm25-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/bm25_explain_bdd_test.go` |
 | [BM25 ranking](bm25-ranking.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `storage/sqlite/fts.go`, `engine/search/hybrid_bm25.go` |
@@ -39,3 +39,6 @@ or check; a scenario without one is a documentation gap.
 | [Sync watch](sync-watch.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `cmd/weave/sync_watch_bdd_test.go` |
 | [Watch mode](watch-mode.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `watch/watcher_test.go` |
 | [Weave explain](weave-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/explain_bdd_test.go` |
+
+Extension-side protocol and provider scenarios live in
+[`weave-ai`](https://github.com/prulloac/weave-ai/blob/main/docs/bdd/ai-plugin.md).
