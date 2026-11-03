@@ -60,7 +60,8 @@ not `weave.cli/v1` JSON.
 
 - **Given** a Markdown document or a source-code blob
 - **When** I ingest with `--codec <name>`
-- **Then** the stored codec is `none`
+- **Then** the body is stored in `body_raw`
+- **And** `body_compressed` and `body_codec` are NULL
 - **And** the extension is not invoked
 - **And** the report counts one warning
 
@@ -72,7 +73,8 @@ not `weave.cli/v1` JSON.
 
 - **Given** a binary blob and no `--codec`
 - **When** I ingest with `--assets`
-- **Then** the stored codec is `zstd`
+- **Then** `body_compressed` uses `zstd`
+- **And** `body_codec` is `zstd`
 - **And** no codec extension is invoked
 
 ### Scenario: Explicit missing codec fails before write
@@ -85,7 +87,7 @@ not `weave.cli/v1` JSON.
 
 ### Scenario: Missing stored codec fails reads
 
-- **Given** a row whose codec extension is not installed
+- **Given** a `body_compressed` row whose codec extension is not installed
 - **When** I run `weave show --out`
 - **Then** the command fails with `CODEC_UNAVAILABLE`
 - **And** no empty or partial bytes are returned
@@ -96,7 +98,7 @@ not `weave.cli/v1` JSON.
 - **When** I run `--codec lz4`
 - **Then** the command fails with `CODEC_NOT_FOUND`
 - **Given** the extension is installed
-- **Then** `--codec lz4` round-trips and records `lz4`
+- **Then** `--codec lz4` round-trips, stores `body_compressed`, and records `body_codec = lz4`
 
 ---
 

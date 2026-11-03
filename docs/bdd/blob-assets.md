@@ -64,18 +64,27 @@ text and kind-specific attributes. No core behavior is specific to images, video
 - **Then** the document has `content_kind: blob`
 - **And** `media_type: image/png`
 - **And** the file name is used as the display title until metadata exists
-- **And** the stored bytes are the original PNG bytes
+- **And** `body_compressed` holds zstd bytes with `body_codec: zstd`
+- **And** `body_raw` is NULL
+- **And** `show --out` returns the original PNG bytes
 
-### Scenario: Extracted text is searchable
+### Scenario: Text-readable blobs are indexed from body_raw
 
-- **Given** a blob enriched with `content_metadata.text`
+- **Given** a `.txt`, JSON or source-code blob
+- **When** I run `weave search <path> "<term in the file>"`
+- **Then** the blob document is returned
+- **And** the snippet comes from `body_raw`
+
+### Scenario: Binary extracted text is searchable
+
+- **Given** a binary blob enriched with `content_metadata.text`
 - **When** I run `weave search <path> "<text>"`
 - **Then** the blob document is returned
 - **And** the snippet comes from the extracted text
 
 ### Scenario: Blob bytes are never indexed as text
 
-- **Given** a blob whose bytes contain a keyword but whose extracted text is empty
+- **Given** a binary blob whose bytes contain a keyword but whose extracted text is empty
 - **When** I search for that keyword
 - **Then** the blob document is not returned by body matching
 
@@ -142,8 +151,9 @@ text and kind-specific attributes. No core behavior is specific to images, video
 ### Scenario: show --json returns metadata, not bytes
 
 - **When** I run `weave show <path> <id> --json`
-- **Then** the result includes content kind, media type, hash, size and content metadata
-- **And** no blob bytes are embedded
+- **Then** the result includes content kind, media type, body form, codec, hash, size and content
+  metadata
+- **And** no body bytes are embedded
 
 ### Scenario: Existing output requires --force
 
@@ -199,10 +209,11 @@ text and kind-specific attributes. No core behavior is specific to images, video
 
 - **Given** a Markdown document, a source-code blob and a PDF in one bundle
 - **When** I ingest with `--assets` and no `--codec`
-- **Then** the Markdown and source-code rows use `none`
-- **And** the PDF row uses `zstd`
+- **Then** the Markdown and source-code rows use `body_raw`
+- **And** `body_compressed` and `body_codec` are NULL for them
+- **And** the PDF row uses `body_compressed` with `zstd`
 - **And** `weave show --out` returns each original
-- **And** `weave show --json` reports the stored codec for each
+- **And** `weave show --json` reports the body form and codec for each
 
 ### Scenario: Raw export includes blobs
 
