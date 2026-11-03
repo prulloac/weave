@@ -794,6 +794,12 @@
 				"encrypted": {
 					"type": "integer"
 				},
+				"extension_data": {
+					"type": "integer"
+				},
+				"extension_data_skipped": {
+					"type": "integer"
+				},
 				"format": {
 					"type": "string",
 					"enum": [
@@ -812,6 +818,131 @@
 				},
 				"tokenized": {
 					"type": "integer"
+				}
+			}
+		},
+		"ExtensionCandidate": {
+			"type": "object",
+			"required": [
+				"fuzzy_score",
+				"id",
+				"keyword_score",
+				"lexical_score"
+			],
+			"additional_properties": false,
+			"properties": {
+				"fuzzy_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"id": {
+					"type": "string"
+				},
+				"keyword_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"lexical_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExtensionDataRef": {
+			"type": "object",
+			"required": [
+				"extension",
+				"key",
+				"sha256",
+				"size"
+			],
+			"additional_properties": false,
+			"properties": {
+				"extension": {
+					"type": "string"
+				},
+				"key": {
+					"type": "string"
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"metadata": {
+					"type": "object"
+				},
+				"sha256": {
+					"type": "string"
+				},
+				"size": {
+					"type": "integer",
+					"minimum": 0
+				}
+			}
+		},
+		"ExtensionEnrichmentRequest": {
+			"type": "object",
+			"required": [
+				"body",
+				"doc_id",
+				"frontmatter",
+				"title",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"body": {
+					"type": "string"
+				},
+				"bundle_root": {
+					"type": "string"
+				},
+				"doc_id": {
+					"type": "string"
+				},
+				"doc_path": {
+					"type": "string"
+				},
+				"frontmatter": {
+					"type": "object"
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"const": "enrichment_request"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"workspace": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionEnrichmentResponse": {
+			"type": "object",
+			"required": [
+				"inferred_keywords",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"custom_metadata": {
+					"type": "object"
+				},
+				"inferred_keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
 				}
 			}
 		},
@@ -857,6 +988,74 @@
 					"items": {
 						"type": "string"
 					}
+				}
+			}
+		},
+		"ExtensionProtocolVersion": {
+			"type": "string"
+		},
+		"ExtensionRankedCandidate": {
+			"type": "object",
+			"required": [
+				"id",
+				"rerank_score"
+			],
+			"additional_properties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExtensionRerankRequest": {
+			"type": "object",
+			"required": [
+				"candidates",
+				"query",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"candidates": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExtensionCandidate"
+					}
+				},
+				"query": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"const": "rerank_request"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
+				}
+			}
+		},
+		"ExtensionRerankResponse": {
+			"type": "object",
+			"required": [
+				"ranked_candidates",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"ranked_candidates": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExtensionRankedCandidate"
+					}
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
 				}
 			}
 		},
@@ -1907,6 +2106,12 @@
 				"description": {
 					"type": "string"
 				},
+				"extension_data": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExtensionDataRef"
+					}
+				},
 				"id": {
 					"type": "string"
 				},
@@ -2288,6 +2493,14 @@
 		},
 		"export.schema.json": {
 			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExportReport"
+		},
+		"extension-ipc.schema.json": {
+			"refs": [
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEnrichmentRequest",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEnrichmentResponse",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionRerankRequest",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionRerankResponse"
+			]
 		},
 		"extensions.schema.json": {
 			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionList"

@@ -1,0 +1,19 @@
+{
+	"v": "weave.cli/v1",
+	"type": "rerank_request",
+	"query": "zero cgo database",
+	"candidates": [
+		{
+			"id": "docs/adr-004.md",
+			"keyword_score": 0.82,
+			"lexical_score": 0.82,
+			"fuzzy_score": 0.45
+		},
+		{
+			"id": "docs/adr-001.md",
+			"keyword_score": 0.31,
+			"lexical_score": 0.31,
+			"fuzzy_score": 0.1
+		}
+	]
+}

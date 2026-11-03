@@ -1,0 +1,20 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://weave.dev/contract/v1/extension-ipc.schema.json",
+	"title": "ExtensionIPC",
+	"description": "weave.cli/v1 subprocess envelopes for enrichment and reranking.",
+	"oneOf": [
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEnrichmentRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEnrichmentResponse"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionRerankRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionRerankResponse"
+		}
+	]
+}

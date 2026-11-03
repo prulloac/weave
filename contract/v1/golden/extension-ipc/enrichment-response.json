@@ -1,0 +1,11 @@
+{
+	"v": "weave.cli/v1",
+	"inferred_keywords": [
+		"sqlite",
+		"cgo-free",
+		"wal"
+	],
+	"custom_metadata": {
+		"summary": "Selection of pure-Go SQLite."
+	}
+}

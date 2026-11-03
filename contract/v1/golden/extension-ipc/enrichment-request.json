@@ -1,0 +1,17 @@
+{
+	"v": "weave.cli/v1",
+	"type": "enrichment_request",
+	"doc_id": "docs/adr-004.md",
+	"doc_path": "docs/adr-004.md",
+	"bundle_root": "/home/user/notes",
+	"workspace": "/tmp/weave-extension-12345",
+	"title": "Database Storage Selection",
+	"frontmatter": {
+		"type": "adr",
+		"keywords": [
+			"database",
+			"storage"
+		]
+	},
+	"body": "We decided to adopt pure-Go SQLite..."
+}

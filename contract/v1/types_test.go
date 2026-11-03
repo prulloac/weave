@@ -176,6 +176,23 @@ func TestSchemasCompile(t *testing.T) {
 	}
 }
 
+func TestExtensionIPCFixturesValidate(t *testing.T) {
+	compiler := newCompiler(t)
+
+	fixtures := []string{
+		"enrichment-request.json",
+		"enrichment-response.json",
+		"rerank-request.json",
+		"rerank-response.json",
+	}
+	for _, name := range fixtures {
+		t.Run(name, func(t *testing.T) {
+			doc := readJSON(t, filepath.Join("golden", "extension-ipc", name))
+			validate(t, compiler, "extension-ipc.schema.json", doc)
+		})
+	}
+}
+
 func TestGoldenCorpusValidates(t *testing.T) {
 	compiler := newCompiler(t)
 	manifest := loadManifest(t)

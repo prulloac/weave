@@ -25,6 +25,7 @@ contract/v1/
 │   ├── sync.schema.json
 │   ├── export.schema.json
 │   ├── extensions.schema.json
+│   ├── extension-ipc.schema.json  # weave.cli/v1 subprocess envelopes
 │   ├── config.schema.json
 │   ├── watch-event.schema.json
 │   ├── multi.schema.json
@@ -38,6 +39,7 @@ contract/v1/
     ├── expected/                 # generated expected JSON
     ├── config/                   # CLI config output goldens
     ├── watch/                    # JSONL watch-event golden
+    ├── extension-ipc/            # canonical enrichment and rerank envelopes
     └── schema-baseline.json      # additive-only schema snapshot
 ```
 
@@ -53,7 +55,9 @@ validators and reviewers.
 5. Review the golden diff.
 6. Run `go test ./contract/v1`.
 
-Never hand-edit files under `golden/expected`; they are generated.
+Never hand-edit files under `golden/expected`; they are generated. Extension IPC examples under
+`golden/extension-ipc/` are hand-written contract fixtures, not generated output; update them with
+the schema and mirror them into `weave-ai`.
 
 ## Commands
 
@@ -74,6 +78,13 @@ go test ./engine/...           # conformance, search and calibration
 5. Run `go test ./contract/v1`.
 
 Golden updates are reviewed like code. CI fails on drift.
+
+## Extension IPC Fixtures
+
+`schema/extension-ipc.schema.json` is the entrypoint for the `weave.cli/v1` enrichment and rerank
+envelopes; definitions live in `schema/defs.schema.json`. Canonical examples live in
+`golden/extension-ipc/` and are validated by `TestExtensionIPCFixturesValidate`. `weave-ai` mirrors
+these fixtures for its own conformance tests.
 
 ## Normalization
 

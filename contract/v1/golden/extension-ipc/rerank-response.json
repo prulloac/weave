@@ -1,0 +1,13 @@
+{
+	"v": "weave.cli/v1",
+	"ranked_candidates": [
+		{
+			"id": "docs/adr-004.md",
+			"rerank_score": 0.95
+		},
+		{
+			"id": "docs/adr-001.md",
+			"rerank_score": 0.15
+		}
+	]
+}
