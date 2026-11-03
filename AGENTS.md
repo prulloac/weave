@@ -28,6 +28,7 @@ BDD scenarios and tests.
 - Benchmark binary: `go build -o /tmp/weave ./cmd/weave`
 - Benchmarks: `go run ./cmd/bench -corpus benchmarks/corpus/10k -scenario all -samples 1 -weave /tmp/weave -baseline= -json`
 - Full gate: `./scripts/verify.sh`
+- User-level install: `./scripts/install.sh --help` (or `./scripts/install.ps1` on Windows)
 
 `verify.sh` is the CI and release gate. It runs `go mod tidy` and fails on `go.mod`/`go.sum` drift,
 regenerates contract goldens and fails on drift, checks schemas, runs the race suite with
@@ -82,6 +83,9 @@ demand), three fuzzers, docs-lint and gofmt. It needs bash and network: use WSL 
    delivered as stacked PRs via `gh stack`.
 8. **Backlog:** update `../weave-docs/backlog.md` as phases advance (`backlog` → `in-progress` →
    `red` → `green` → `review` → `done`). Never set `done`; only the user closes merged work.
+9. **Installers:** `scripts/install.sh` and `scripts/install.ps1` default to a user-writable
+   directory and must never require `sudo` or administrator rights. `--bin-dir`/`-BinDir` and
+   `--no-modify-path`/`-NoPath` support managed machines.
 
 ## Documentation split
 

@@ -36,7 +36,40 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 
 ## Requirements
 
-- Go 1.27+
+- Go 1.27+ to build from source; released binaries do not need Go.
+
+## Install
+
+User-level installation, no admin or sudo required. Linux and macOS:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/prulloac/weave/main/scripts/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/prulloac/weave/main/scripts/install.ps1 | iex
+```
+
+The installer downloads the latest release, verifies its SHA-256 checksum and installs to
+`~/.local/bin` (Linux/macOS) or `%LOCALAPPDATA%\Programs\weave\bin` (Windows), then adds that
+directory to your user PATH.
+
+For a managed or non-standard environment, choose a user-writable directory and skip the profile
+edit:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/prulloac/weave/main/scripts/install.sh \
+  | sh -s -- --bin-dir "$HOME/bin" --no-modify-path
+```
+
+Options: `--version <tag>`, `--bin-dir <dir>`, `--no-modify-path`; environment equivalents
+`WEAVE_VERSION`, `WEAVE_BIN_DIR` and `WEAVE_NO_MODIFY_PATH=1`. The PowerShell script accepts
+`-Version`, `-BinDir` and `-NoPath`.
+
+`go install github.com/prulloac/weave/cmd/weave@latest` is also available for Go users, and every
+release includes downloadable archives. The installer never requests administrator rights.
 
 ## Build
 
