@@ -26,6 +26,20 @@ and lifecycle. Existing keyword, fuzzy, hybrid and BM25 behavior is unchanged.
 - **Then** the embedder receives the searchable text
 - **And** the image has an embedding in the same text space as Markdown documents
 
+### Scenario: Sync re-embeds changed documents
+
+- **Given** an indexed document with an embedding
+- **When** the source changes and I run `weave sync --with-embedder ai`
+- **Then** the embedding is replaced for the new content hash
+- **And** semantic search returns the updated document
+
+### Scenario: Sync without an embedder marks embeddings stale
+
+- **Given** an indexed document with an embedding
+- **When** the source changes and I run `weave sync` without `--with-embedder`
+- **Then** the old embedding remains
+- **And** `weave audit` reports it as stale
+
 ### Scenario: Embedding failure does not fail the write
 
 - **Given** an embedder that times out or returns malformed JSON
@@ -127,7 +141,7 @@ and lifecycle. Existing keyword, fuzzy, hybrid and BM25 behavior is unchanged.
 ### Scenario: Rebuild backfills a new model
 
 - **Given** documents with existing embeddings
-- **When** I rebuild for a new model
+- **When** I run `weave embeddings rebuild --model <new> --with-embedder ai`
 - **Then** each document receives an embedding for the new model
 - **And** the old model remains available until dropped
 
@@ -161,11 +175,19 @@ and lifecycle. Existing keyword, fuzzy, hybrid and BM25 behavior is unchanged.
 
 - **When** I run `weave embeddings list --json`
 - **Then** each space reports model, dimension, metric, table and row count
-- **When** I run `weave embeddings rebuild`
+- **When** I run `weave embeddings rebuild --model <model>`
 - **Then** the index is rebuilt from source
-- **When** I run `weave embeddings drop --keep-source`
+- **When** I run `weave embeddings drop --model <model> --keep-source`
 - **Then** the index is removed
 - **And** the durable embeddings remain
+
+### Scenario: One bundle's drop does not remove a shared space
+
+- **Given** two bundles embedding the same model into one space
+- **When** I run `weave embeddings drop --model <model>` for one bundle
+- **Then** only that bundle's source and index rows are removed
+- **And** the other bundle's semantic search still works
+- **And** the space table and registry row remain
 
 ### Scenario: Existing search modes are unaffected
 

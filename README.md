@@ -366,8 +366,8 @@ Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/s
 #### `weave sync`
 
 Incrementally update one bundle from SHA-256 content hashes: add, update, remove and skip documents,
-with cascading edge reconciliation. Updated documents keep their stored body codec unless `--codec`
-is given.
+with cascading edge reconciliation. Updated binary documents keep their stored body codec unless
+`--codec` is given; text-readable bodies stay raw.
 
 ```sh
 weave sync ~/notes --json

@@ -22,7 +22,7 @@ stays media-agnostic; this document covers the integration behavior in `weave`.
 ### Scenario: Missing weave-ai still ingests the image
 
 - **Given** `weave-image` is installed but `weave-ai` is not on `PATH`
-- **When** I ingest an image with `--with-enricher image`
+- **When** I ingest an image with `--assets --with-enricher image`
 - **Then** the image document is stored
 - **And** local OCR, EXIF and dimensions are kept
 - **And** the report counts a warning
@@ -42,28 +42,28 @@ stays media-agnostic; this document covers the integration behavior in `weave`.
 ### Scenario: Supported formats are ingested
 
 - **Given** JPEG, PNG, WebP and GIF files in the bundle
-- **When** I ingest with `--with-enricher image`
+- **When** I ingest with `--assets --with-enricher image`
 - **Then** each file becomes a blob document
 - **And** each `media_type` matches its format
 
 ### Scenario: Unsupported files are skipped
 
 - **Given** a text file in a bundle scanned for images
-- **When** I ingest with `--with-enricher image`
+- **When** I ingest with `--assets --with-enricher image`
 - **Then** the text file is not passed to `weave-image`
 - **And** no image document is created for it
 
 ### Scenario: MIME and extension mismatch is a warning
 
 - **Given** a `.jpg` file whose magic bytes identify PNG
-- **When** I ingest it with `--with-enricher image`
+- **When** I ingest it with `--assets --with-enricher image`
 - **Then** the detected media type is used
 - **And** the report counts one warning
 
 ### Scenario: Oversized image is skipped
 
 - **Given** an image above the 32 MiB blob limit
-- **When** I ingest with `--with-enricher image`
+- **When** I ingest with `--assets --with-enricher image`
 - **Then** the image is skipped with a warning
 - **And** `--strict` fails
 
@@ -74,9 +74,9 @@ stays media-agnostic; this document covers the integration behavior in `weave`.
 ### Scenario: Local OCR text is stored and searchable
 
 - **Given** a local OCR backend that returns `Opening hours`
-- **When** I ingest the image with `--with-enricher image`
+- **When** I ingest the image with `--assets --with-enricher image`
 - **Then** `content_metadata.text` contains the OCR text
-- **And** `text_source` is `ocr`
+- **And** `content_metadata.text_source` is `ocr`
 - **And** `weave search "Opening hours"` finds the image
 
 ### Scenario: Local OCR wins over vision transcription
@@ -91,7 +91,7 @@ stays media-agnostic; this document covers the integration behavior in `weave`.
 - **Given** no local OCR backend and a `weave-ai` response containing text
 - **When** I ingest the image
 - **Then** `content_metadata.text` contains the vision text
-- **And** `text_source` is `vision`
+- **And** `content_metadata.text_source` is `vision`
 
 ### Scenario: EXIF is stored and sent to AI
 

@@ -34,7 +34,7 @@ text and kind-specific attributes. No core behavior is specific to images, video
 
 ### Scenario: Missing asset types is a usage error
 
-- **Given** no `--asset-types` and no extension capability
+- **Given** no `--asset-types`, no extension capability and no stored asset filter
 - **When** I run `weave ingest <path> --assets`
 - **Then** the command exits `2`
 - **And** the error code is `ASSET_TYPES_REQUIRED`
@@ -185,11 +185,28 @@ text and kind-specific attributes. No core behavior is specific to images, video
 ### Scenario: Oversized blobs are skipped
 
 - **Given** a blob above the configured size limit
-- **When** I ingest with `--assets`
+- **When** I ingest with `--assets --asset-types application/pdf`
 - **Then** the blob is skipped with a warning
 - **And** no document is written for it
 - **When** I use `--strict`
 - **Then** the command fails
+
+### Scenario: Asset filter persists across runs
+
+- **Given** I ingest a bundle with `--assets --asset-types image/*`
+- **When** I run `weave sync` without asset flags
+- **Then** changed image blobs are updated
+- **And** removed image blobs are deleted
+- **And** Markdown documents are still synced
+- **When** I run `weave rebuild` without asset flags
+- **Then** the stored filter is reused
+
+### Scenario: --no-assets removes blob documents
+
+- **Given** an indexed image blob and Markdown documents
+- **When** I run `weave rebuild --no-assets`
+- **Then** the blob document is removed
+- **And** the Markdown documents remain
 
 ### Scenario: Sync updates changed bytes
 
@@ -208,7 +225,7 @@ text and kind-specific attributes. No core behavior is specific to images, video
 ### Scenario: Codecs are recorded per row
 
 - **Given** a Markdown document, a source-code blob and a PDF in one bundle
-- **When** I ingest with `--assets` and no `--codec`
+- **When** I ingest with `--assets --asset-types text/*,application/pdf` and no `--codec`
 - **Then** the Markdown and source-code rows use `body_raw`
 - **And** `body_compressed` and `body_codec` are NULL for them
 - **And** the PDF row uses `body_compressed` with `zstd`
@@ -219,7 +236,8 @@ text and kind-specific attributes. No core behavior is specific to images, video
 
 - **When** I run `weave export <path> --out <dir> --format raw`
 - **Then** each blob is written at its bundle-relative path
-- **And** the export manifest records media type, hash and size
+- **And** the export manifest records content kind, media type, body form, codec, hash,
+  original/stored sizes and content metadata
 
 ### Scenario: Encrypted export skips blobs with a warning
 

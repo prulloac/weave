@@ -72,7 +72,7 @@ not `weave.cli/v1` JSON.
 ### Scenario: Binary default is zstd
 
 - **Given** a binary blob and no `--codec`
-- **When** I ingest with `--assets`
+- **When** I ingest with `--assets --asset-types application/pdf`
 - **Then** `body_compressed` uses `zstd`
 - **And** `body_codec` is `zstd`
 - **And** no codec extension is invoked

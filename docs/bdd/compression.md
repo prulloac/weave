@@ -23,7 +23,7 @@ algorithms come from `weave-codec-<name>` extensions.
 ### Scenario: Text-readable blobs are stored raw
 
 - **Given** `.txt`, JSON, XML and CSV blobs
-- **When** I ingest them with `--assets`
+- **When** I ingest them with `--assets --asset-types text/*`
 - **Then** every row uses `body_raw`
 - **And** `body_compressed` and `body_codec` are NULL
 - **And** every `show --out` returns the original bytes
@@ -31,7 +31,7 @@ algorithms come from `weave-codec-<name>` extensions.
 ### Scenario: Source code is stored raw
 
 - **Given** Go, Python, Rust and shell source files ingested as blobs
-- **When** I ingest them with `--assets`
+- **When** I ingest them with `--assets --asset-types text/*`
 - **Then** each row is classified text-readable
 - **And** each row uses `body_raw` with NULL `body_compressed`/`body_codec`
 
@@ -59,7 +59,7 @@ algorithms come from `weave-codec-<name>` extensions.
 ### Scenario: Binary blobs use zstd by default
 
 - **Given** a PDF or arbitrary binary blob
-- **When** I ingest it with `--assets`
+- **When** I ingest it with `--assets --asset-types application/pdf,application/octet-stream`
 - **Then** `body_compressed` contains the zstd bytes
 - **And** `body_raw` is NULL
 - **And** `body_codec` is `zstd`
@@ -68,14 +68,14 @@ algorithms come from `weave-codec-<name>` extensions.
 ### Scenario: Zstd is used even when output is larger
 
 - **Given** a small incompressible binary blob
-- **When** I ingest it
+- **When** I ingest it with `--assets --asset-types application/octet-stream`
 - **Then** `body_compressed` uses zstd
 - **And** `body_codec` is `zstd`
 
 ### Scenario: --codec none stores binary bytes raw
 
 - **Given** a binary blob
-- **When** I ingest it with `--codec none`
+- **When** I ingest it with `--assets --asset-types application/pdf --codec none`
 - **Then** `body_compressed` holds the source bytes
 - **And** `body_codec` is `none`
 - **And** `body_raw` is NULL
@@ -83,7 +83,7 @@ algorithms come from `weave-codec-<name>` extensions.
 ### Scenario: Text and binary rows keep different codecs
 
 - **Given** a Markdown document and a PDF in one bundle
-- **When** I ingest both
+- **When** I ingest both with `--assets --asset-types application/pdf`
 - **Then** the Markdown row uses `body_raw`
 - **And** the PDF row uses `body_compressed` with `zstd`
 - **And** both round-trip through `show`
@@ -150,13 +150,15 @@ algorithms come from `weave-codec-<name>` extensions.
 - **And** `body_compressed` and `body_codec` are NULL
 - **And** their bodies round-trip unchanged
 
-### Scenario: LZ4 rows require the LZ4 codec
+### Scenario: Migration requires the LZ4 codec for text rows
 
-- **Given** a database with LZ4 rows and no LZ4 extension
-- **When** I open it
-- **Then** reads of those rows fail with `CODEC_UNAVAILABLE`
-- **When** I install `weave-codec-lz4`
-- **Then** those rows become readable
+- **Given** a v6 database with LZ4-compressed Markdown rows
+- **When** I open it without `weave-codec-lz4`
+- **Then** the migration fails with `CODEC_UNAVAILABLE`
+- **And** `user_version` stays 6
+- **When** I install `weave-codec-lz4` and reopen
+- **Then** those rows migrate into `body_raw`
+- **And** their bodies round-trip unchanged
 
 ### Scenario: Rebuild re-encodes binary rows only
 
