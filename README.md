@@ -23,7 +23,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
-- **Body compression**: zstd by default, LZ4 opt-in, with per-row codecs and corruption recovery.
+- **Body compression**: text-readable bodies stored raw; binary blobs zstd by default, with per-row codecs and corruption recovery.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
@@ -109,7 +109,9 @@ Global flags:
 - `--no-db` forces transient in-memory parsing; otherwise reads use `~/.weave/index.db`.
 - `--db <file>` selects another database; it is mutually exclusive with `--no-db`.
 - `--strict` / `--permissive` select ingest mode; ingest defaults to permissive.
-- `--codec zstd|lz4|none` selects body compression for ingest, rebuild and sync; default `zstd`.
+- `--codec zstd|none|<name>` selects compression for binary blobs in ingest, rebuild and sync; default
+  `zstd`. Text-readable content is always stored raw. LZ4 and other codecs require a
+  `weave-codec-<name>` extension.
 - `--with-enricher <name>` and `--rerank <name>` enable `weave-<name>` extensions; `--timeout`
   overrides the 5s default.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
@@ -336,14 +338,13 @@ Spec: [Weave Explain](https://github.com/prulloac/weave-docs/blob/main/specs/wea
 #### `weave ingest`
 
 Load a bundle into the default bundle-scoped database at `~/.weave/index.db`, or into `--db <file>`.
-Ingest defaults to permissive; use `--strict` to reject invalid OKF documents. Bodies are compressed
-with zstd unless `--codec lz4|none` is given.
+Ingest defaults to permissive; use `--strict` to reject invalid OKF documents. Text-readable bodies
+are stored raw; binary blobs use zstd unless `--codec none|<name>` is given.
 
 ```sh
 weave ingest ~/notes --permissive --json
 weave ingest ~/notes --strict --json
 weave ingest ~/notes --strict --db /tmp/notes.db --json
-weave ingest ~/notes --strict --codec lz4 --json
 weave ingest ~/notes --strict --with-enricher keywords --json
 ```
 
@@ -353,7 +354,7 @@ Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/s
 #### `weave rebuild`
 
 Re-index one bundle's rows without touching other bundles in the shared database. `--codec`
-re-encodes every body, so it is also the codec migration path.
+re-encodes binary blobs, so it is also the codec migration path; text-readable bodies stay raw.
 
 ```sh
 weave rebuild ~/notes --strict --json
@@ -372,7 +373,7 @@ is given.
 weave sync ~/notes --json
 weave sync ~/notes --strict --json
 weave sync ~/notes --db /tmp/notes.db --json
-weave sync ~/notes --codec lz4 --json
+weave sync ~/notes --codec zstd --json
 weave sync ~/notes --with-enricher keywords --json
 weave sync ~/notes --db ~/.weave/index.db --watch --json --events
 ```
@@ -605,7 +606,7 @@ engine/audit/           bundle conformance, graph and index-quality findings
 engine/relate/          bounded depth/direction graph neighborhoods
 storage/sqlite/          bundle-scoped persistent storage and incremental sync
 engine/privacy/          directive parsing, key resolution and crypto providers
-engine/compression/      zstd and LZ4 body codecs
+engine/compression/      zstd body codec and per-row compression policy
 engine/extensions/       weave-<name> discovery and weave.cli/v1 transport
 release/                 release archives, checksums and build info
 mcp/                    MCP tool descriptors, resources and in-process dispatch

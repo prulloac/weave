@@ -1,126 +1,186 @@
 # BDD: Body Compression
 
-Human-readable behavior cases for zstd/LZ4 body storage.
+Human-readable behavior cases for text-raw storage, binary zstd defaults and codec extensions.
 
 **Spec reference:** [compression.md](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md)
-**Go tests:** `cmd/weave/compression_bdd_test.go`
+**Go tests:** planned: `cmd/weave/compression_bdd_test.go`, `storage/sqlite/compression_test.go`
 
-Documents are compressed after the privacy transform. Zstandard is the default; LZ4 is opt-in for
-faster writes, and bodies below 1 KiB stay verbatim.
+Text-readable content is stored without compression. Binary blobs use zstd by default. LZ4 and other
+algorithms come from `weave-codec-<name>` extensions.
 
 ---
 
-## Feature: Codec Selection
+## Feature: Text-Readable Content
 
-### Scenario: Default ingest uses zstd for large bodies
+### Scenario: Markdown bodies are stored raw
 
-- **Given** a bundle with a body above 1 KiB
+- **Given** a Markdown document
 - **When** I run `weave ingest` without `--codec`
-- **Then** the stored body codec is `zstd`
+- **Then** the stored `body_codec` is `none`
+- **And** the stored bytes equal the Markdown body
 - **And** `weave show` returns the original body
 
-### Scenario: Small bodies stay uncompressed
+### Scenario: Text-readable blobs are stored raw
 
-- **Given** a body of 1023 bytes
-- **When** I ingest the bundle
-- **Then** the stored body codec is `none`
+- **Given** `.txt`, JSON, XML and CSV blobs
+- **When** I ingest them with `--assets`
+- **Then** every row uses `body_codec = none`
+- **And** every `show --out` returns the original bytes
 
-### Scenario: Threshold boundary compresses at 1024 bytes
+### Scenario: Source code is stored raw
 
-- **Given** a body of exactly 1024 bytes
-- **When** I ingest the bundle
-- **Then** the stored body codec is `zstd`
+- **Given** Go, Python, Rust and shell source files ingested as blobs
+- **When** I ingest them with `--assets`
+- **Then** each row is classified text-readable
+- **And** each row uses `body_codec = none`
 
-### Scenario: LZ4 is opt-in
+### Scenario: Text ignores --codec with a warning
 
-- **Given** a bundle with a large body
-- **When** I run `weave ingest --codec lz4`
-- **Then** the stored body codec is `lz4`
-- **And** `weave show` returns the original body
+- **Given** a Markdown document and a source-code blob
+- **When** I run `weave ingest --codec zstd`
+- **Then** both rows still use `body_codec = none`
+- **And** the report counts one warning per text document
 
-### Scenario: Compression can be disabled
+### Scenario: Encrypted text is never double-compressed
 
-- **When** I run `weave ingest --codec none`
-- **Then** large bodies are stored verbatim
-- **And** the stored bytes equal the parsed body
-
-### Scenario: Unknown codec is a usage error
-
-- **When** I run `weave ingest --codec brotli`
-- **Then** the command exits `2`
-
----
-
-## Feature: Privacy Interaction
-
-### Scenario: Encrypted bodies are never double-compressed
-
-- **Given** a large encrypted document
-- **When** I ingest the bundle
-- **Then** the stored body codec is `none`
+- **Given** an encrypted Markdown document
+- **When** I ingest it
+- **Then** the stored `body_codec` is `none`
 - **And** the stored body is an `enc:v1:` envelope
-
-### Scenario: Encrypted bodies still decrypt after storage
-
-- **Given** an indexed encrypted document
 - **When** I run `weave show --decrypt`
 - **Then** the body matches the source plaintext
 
 ---
 
-## Feature: Codec Migration
+## Feature: Binary Blobs
 
-### Scenario: Rebuild migrates codecs
+### Scenario: Binary blobs use zstd by default
 
-- **Given** a bundle ingested with `--codec none`
+- **Given** a PDF or arbitrary binary blob
+- **When** I ingest it with `--assets`
+- **Then** the stored `body_codec` is `zstd`
+- **And** `weave show --out` returns the original bytes
+
+### Scenario: Zstd is used even when output is larger
+
+- **Given** a small incompressible binary blob
+- **When** I ingest it
+- **Then** the stored `body_codec` is `zstd`
+
+### Scenario: --codec none stores binary bytes raw
+
+- **Given** a binary blob
+- **When** I ingest it with `--codec none`
+- **Then** the stored `body_codec` is `none`
+- **And** the stored bytes equal the source bytes
+
+### Scenario: Text and binary rows keep different codecs
+
+- **Given** a Markdown document and a PDF in one bundle
+- **When** I ingest both
+- **Then** the Markdown row is `none`
+- **And** the PDF row is `zstd`
+- **And** both round-trip through `show`
+
+---
+
+## Feature: Codec Extensions
+
+### Scenario: Missing codec fails before writing
+
+- **Given** no `weave-codec-lz4` on disk
+- **When** I ingest a binary blob with `--codec lz4`
+- **Then** the command exits `2`
+- **And** the error code is `CODEC_NOT_FOUND`
+- **And** no document is written
+
+### Scenario: LZ4 extension stores and reads LZ4
+
+- **Given** `weave-codec-lz4` is installed
+- **When** I ingest a binary blob with `--codec lz4`
+- **Then** the stored `body_codec` is `lz4`
+- **And** `weave show --out` returns the original bytes
+
+### Scenario: Custom codec extension round-trips
+
+- **Given** a custom `weave-codec-<name>` with compress and decompress
+- **When** I ingest a binary blob with `--codec <name>`
+- **Then** the row stores the codec name
+- **And** `show --out` returns the original bytes
+
+### Scenario: Missing stored codec fails reads
+
+- **Given** a row with `body_codec = lz4` and no LZ4 extension installed
+- **When** I run `weave show --out`
+- **Then** the command fails with `CODEC_UNAVAILABLE`
+- **And** it does not return empty or partial bytes
+
+### Scenario: Codec failure aborts the write
+
+- **Given** a codec extension that exits non-zero or times out
+- **When** I ingest a binary blob with that codec
+- **Then** the transaction aborts
+- **And** no document row is written
+
+### Scenario: --timeout is enforced
+
+- **Given** a slow codec extension
+- **When** I ingest with `--timeout 50ms`
+- **Then** the command fails with `CODEC_TIMEOUT`
+- **And** no document row is written
+
+---
+
+## Feature: Migration and Rebuild
+
+### Scenario: Text rows migrate to raw
+
+- **Given** a database with zstd-compressed Markdown rows
+- **When** I upgrade to schema v7
+- **Then** those rows are decompressed and stored with `body_codec = none`
+- **And** their bodies round-trip unchanged
+
+### Scenario: LZ4 rows require the LZ4 codec
+
+- **Given** a database with LZ4 rows and no LZ4 extension
+- **When** I open it
+- **Then** reads of those rows fail with `CODEC_UNAVAILABLE`
+- **When** I install `weave-codec-lz4`
+- **Then** those rows become readable
+
+### Scenario: Rebuild re-encodes binary rows only
+
+- **Given** text and binary rows with mixed codecs
 - **When** I run `weave rebuild --codec zstd`
-- **Then** every large body uses `zstd`
-- **And** bodies round-trip unchanged
-- **When** I run `weave rebuild --codec none`
-- **Then** bodies are stored verbatim again
+- **Then** text rows stay `none`
+- **And** binary rows use `zstd`
+- **And** all bodies round-trip
 
 ### Scenario: Sync preserves per-row codecs
 
-- **Given** a bundle ingested with `--codec lz4`
-- **When** I modify an existing document and add a new one
-- **And** I run `weave sync` without `--codec`
-- **Then** the updated document stays `lz4`
-- **And** the new document uses `zstd`
-- **When** I modify the document again and run `weave sync --codec zstd`
-- **Then** the updated document uses `zstd`
+- **Given** a binary row using LZ4 and a text row using none
+- **When** I modify both and run `weave sync` without `--codec`
+- **Then** the binary row stays LZ4
+- **And** the text row stays none
+- **When** I run `weave sync --codec zstd`
+- **Then** the binary row uses zstd
+- **And** the text row stays none
 
 ---
 
-## Feature: Failure Recovery
+## Feature: Failure Recovery and Parity
 
-### Scenario: Unknown stored codec does not crash queries
+### Scenario: Corrupt binary body fails safely
 
-- **Given** a stored body with an unknown codec
-- **When** I run `weave parse --db <file>`
-- **Then** the bundle carries a `BODY_DECODE_FAILED` warning
-- **And** the concept body is empty
-- **And** `weave show` still exits successfully
-
-### Scenario: Truncated blob does not crash queries
-
-- **Given** a stored body truncated to one byte
-- **When** I run `weave parse --db <file>`
-- **Then** the bundle carries a `BODY_DECODE_FAILED` warning
-- **And** search still returns an envelope instead of failing
-
----
-
-## Feature: Storage and Ranking Parity
-
-### Scenario: Compression reduces on-disk size
-
-- **Given** a repetitive body above 1 KiB
-- **When** I ingest with the default codec
-- **Then** the stored blob is smaller than the parsed body
+- **Given** a truncated or corrupt body
+- **When** I read it
+- **Then** the failure is `BODY_DECODE_FAILED`
+- **And** no partial plaintext is returned
+- **And** queries do not crash
 
 ### Scenario: Search and explain are unchanged
 
-- **Given** a compressed bundle
-- **When** I search and explain a body term
+- **Given** a mixed text/binary bundle
+- **When** I search and explain a text term
 - **Then** results match the uncompressed bundle
 - **And** calibration stays green

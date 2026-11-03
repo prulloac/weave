@@ -197,11 +197,11 @@ text and kind-specific attributes. No core behavior is specific to images, video
 
 ### Scenario: Codecs are recorded per row
 
-- **Given** a PNG and a text-like blob in one bundle
-- **When** I ingest with `--assets --codec zstd`
-- **Then** each document exposes its own `body_codec`
-- **And** the PNG may be stored as `none` while the text-like blob uses `zstd`
-- **And** `weave show --out` returns both originals
+- **Given** a Markdown document, a source-code blob and a PDF in one bundle
+- **When** I ingest with `--assets` and no `--codec`
+- **Then** the Markdown and source-code rows use `none`
+- **And** the PDF row uses `zstd`
+- **And** `weave show --out` returns each original
 - **And** `weave show --json` reports the stored codec for each
 
 ### Scenario: Raw export includes blobs
