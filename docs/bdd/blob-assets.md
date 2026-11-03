@@ -195,6 +195,15 @@ text and kind-specific attributes. No core behavior is specific to images, video
 - **Then** the document is removed
 - **And** `weave show` returns not found
 
+### Scenario: Codecs are recorded per row
+
+- **Given** a PNG and a text-like blob in one bundle
+- **When** I ingest with `--assets --codec zstd`
+- **Then** each document exposes its own `body_codec`
+- **And** the PNG may be stored as `none` while the text-like blob uses `zstd`
+- **And** `weave show --out` returns both originals
+- **And** `weave show --json` reports the stored codec for each
+
 ### Scenario: Raw export includes blobs
 
 - **When** I run `weave export <path> --out <dir> --format raw`
