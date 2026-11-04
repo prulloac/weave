@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
-	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/search"
 )
 
@@ -316,16 +315,16 @@ func (s *Store) searchPostingsFor(
 }
 
 func (s *Store) searchBodyText(ctx context.Context, root, id string) (string, error) {
-	var blob []byte
-	var codec string
+	var bodyRaw sql.NullString
+	var metadata string
 	if err := s.db.QueryRowContext(ctx,
-		"SELECT body_compressed, body_codec FROM documents WHERE bundle_root = ? AND id = ?",
-		root, id).Scan(&blob, &codec); err != nil {
+		"SELECT body_raw, content_metadata FROM documents WHERE bundle_root = ? AND id = ?",
+		root, id).Scan(&bodyRaw, &metadata); err != nil {
 		return "", err
 	}
-	body, err := compression.Decode(compression.Codec(codec), blob)
-	if err != nil {
-		return "", nil
+	body := bodyRaw.String
+	if !bodyRaw.Valid {
+		body = metadataText(metadata)
 	}
-	return search.StripMarkdown(string(body)), nil
+	return search.StripMarkdown(body), nil
 }

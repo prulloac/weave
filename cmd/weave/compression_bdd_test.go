@@ -12,8 +12,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// Behavior-level tests for body compression. They drive the CLI and inspect
-// the stored codec/blob directly, so the contract stays storage-internal.
+// Behavior-level tests for body storage. They drive the CLI and inspect the
+// stored body columns directly, so the contract stays storage-internal.
 
 const compressionKey = "WEAVE_KEY_OPS_PROD_KEY"
 
@@ -79,21 +79,21 @@ func compressionRaw(t *testing.T, path string) *sql.DB {
 
 func storedCodec(t *testing.T, raw *sql.DB, root, id string) string {
 	t.Helper()
-	var codec string
+	var codec sql.NullString
 	if err := raw.QueryRow(
 		"SELECT body_codec FROM documents WHERE bundle_root = ? AND id = ?",
 		compressionRoot(t, root), id,
 	).Scan(&codec); err != nil {
 		t.Fatalf("query codec: %v", err)
 	}
-	return codec
+	return codec.String
 }
 
 func storedBody(t *testing.T, raw *sql.DB, root, id string) []byte {
 	t.Helper()
 	var body []byte
 	if err := raw.QueryRow(
-		"SELECT body_compressed FROM documents WHERE bundle_root = ? AND id = ?",
+		"SELECT COALESCE(body_raw, body_compressed) FROM documents WHERE bundle_root = ? AND id = ?",
 		compressionRoot(t, root), id,
 	).Scan(&body); err != nil {
 		t.Fatalf("query body: %v", err)
@@ -123,7 +123,7 @@ func compressionIngest(t *testing.T, root, db string, extra ...string) {
 	}
 }
 
-func TestCompressionDefaultZstd(t *testing.T) {
+func TestTextBodiesAreStoredRaw(t *testing.T) {
 	t.Setenv(compressionKey, strings.Repeat("ab", 32))
 	root := compressionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
@@ -131,20 +131,13 @@ func TestCompressionDefaultZstd(t *testing.T) {
 	raw := compressionRaw(t, db)
 	bundle := compressionParse(t, root)
 
-	if len(parsedBody(bundle, "small")) != 1023 {
-		t.Fatalf("small fixture body is %d bytes, want 1023", len(parsedBody(bundle, "small")))
-	}
-	if len(parsedBody(bundle, "boundary")) != 1024 {
-		t.Fatalf("boundary fixture body is %d bytes, want 1024", len(parsedBody(bundle, "boundary")))
-	}
-	if codec := storedCodec(t, raw, root, "small"); codec != "none" {
-		t.Fatalf("small body codec = %q, want none", codec)
-	}
-	if codec := storedCodec(t, raw, root, "boundary"); codec != "zstd" {
-		t.Fatalf("boundary body codec = %q, want zstd", codec)
-	}
-	if codec := storedCodec(t, raw, root, "large"); codec != "zstd" {
-		t.Fatalf("large body codec = %q, want zstd", codec)
+	for _, id := range []string{"small", "boundary", "large"} {
+		if codec := storedCodec(t, raw, root, id); codec != "" {
+			t.Fatalf("%s codec = %q, want NULL", id, codec)
+		}
+		if body := string(storedBody(t, raw, root, id)); body != parsedBody(bundle, id) {
+			t.Fatalf("%s body did not round-trip", id)
+		}
 	}
 
 	code, stdout, stderr := Invoke(t, "show", root, "large", "--db", db, "--json")
@@ -156,65 +149,55 @@ func TestCompressionDefaultZstd(t *testing.T) {
 		t.Fatalf("decode show: %v", err)
 	}
 	if view.Body != parsedBody(bundle, "large") {
-		t.Fatal("compressed body did not round-trip through show")
+		t.Fatal("raw body did not round-trip through show")
 	}
 }
 
-func TestCompressionLZ4AndNone(t *testing.T) {
-	root := compressionFixture(t)
-	bundle := compressionParse(t, root)
-
-	lz4DB := filepath.Join(t.TempDir(), "lz4.db")
-	compressionIngest(t, root, lz4DB, "--codec", "lz4")
-	lz4Raw := compressionRaw(t, lz4DB)
-	if codec := storedCodec(t, lz4Raw, root, "large"); codec != "lz4" {
-		t.Fatalf("lz4 codec = %q", codec)
-	}
-	code, stdout, stderr := Invoke(t, "show", root, "large", "--db", lz4DB, "--json")
-	if code != 0 || stderr != "" {
-		t.Fatalf("show lz4 exit=%d stderr=%q", code, stderr)
-	}
-	var view contractv1.ShowResult
-	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &view); err != nil {
-		t.Fatal(err)
-	}
-	if view.Body != parsedBody(bundle, "large") {
-		t.Fatal("lz4 body did not round-trip")
-	}
-
-	noneDB := filepath.Join(t.TempDir(), "none.db")
-	compressionIngest(t, root, noneDB, "--codec", "none")
-	noneRaw := compressionRaw(t, noneDB)
-	if codec := storedCodec(t, noneRaw, root, "large"); codec != "none" {
-		t.Fatalf("none codec = %q", codec)
-	}
-	if stored := string(storedBody(t, noneRaw, root, "large")); stored != parsedBody(bundle, "large") {
-		t.Fatal("none codec must store bodies verbatim")
-	}
-}
-
-func TestCompressionRejectsUnknownCodec(t *testing.T) {
+func TestTextBodiesRecordSizes(t *testing.T) {
 	root := compressionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
-	code, stdout, _ := Invoke(t, "ingest", root, "--db", db, "--codec", "brotli", "--json")
-	if code != 2 {
-		t.Fatalf("expected exit 2, got %d", code)
-	}
-	envelope := decodeEnvelope(t, stdout)
-	if envelope.Error == nil || envelope.Error.Code != "INVALID_REQUEST" {
-		t.Fatalf("expected INVALID_REQUEST, got %+v", envelope.Error)
+	compressionIngest(t, root, db)
+	raw := compressionRaw(t, db)
+	bundle := compressionParse(t, root)
+
+	for _, id := range []string{"small", "boundary", "large"} {
+		var size, storedSize int
+		if err := raw.QueryRow(
+			"SELECT size, stored_size FROM documents WHERE bundle_root = ? AND id = ?",
+			compressionRoot(t, root), id,
+		).Scan(&size, &storedSize); err != nil {
+			t.Fatal(err)
+		}
+		if size != len(parsedBody(bundle, id)) || storedSize != size {
+			t.Fatalf("%s sizes = %d/%d, want %d", id, size, storedSize, len(parsedBody(bundle, id)))
+		}
 	}
 }
 
-func TestCompressionEncryptedBodyStaysPlainCiphertext(t *testing.T) {
+func TestCodecFlagDoesNotCompressText(t *testing.T) {
+	t.Setenv(compressionKey, strings.Repeat("ab", 32))
+	root := compressionFixture(t)
+	for _, codec := range []string{"lz4", "zstd", "none"} {
+		db := filepath.Join(t.TempDir(), codec+".db")
+		compressionIngest(t, root, db, "--codec", codec)
+		raw := compressionRaw(t, db)
+		for _, id := range []string{"large", "encrypted"} {
+			if stored := storedCodec(t, raw, root, id); stored != "" {
+				t.Fatalf("%s/%s codec = %q, want NULL", codec, id, stored)
+			}
+		}
+	}
+}
+
+func TestEncryptedBodyIsStoredRaw(t *testing.T) {
 	t.Setenv(compressionKey, strings.Repeat("ab", 32))
 	root := compressionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
 	compressionIngest(t, root, db)
 	raw := compressionRaw(t, db)
 
-	if codec := storedCodec(t, raw, root, "encrypted"); codec != "none" {
-		t.Fatalf("encrypted codec = %q, want none", codec)
+	if codec := storedCodec(t, raw, root, "encrypted"); codec != "" {
+		t.Fatalf("encrypted codec = %q, want NULL", codec)
 	}
 	body := storedBody(t, raw, root, "encrypted")
 	if !strings.HasPrefix(string(body), "enc:v1:") {
@@ -235,90 +218,20 @@ func TestCompressionEncryptedBodyStaysPlainCiphertext(t *testing.T) {
 	}
 }
 
-func TestCompressionRebuildMigration(t *testing.T) {
-	root := compressionFixture(t)
-	db := filepath.Join(t.TempDir(), "index.db")
-	bundle := compressionParse(t, root)
-	compressionIngest(t, root, db, "--codec", "none")
-	raw := compressionRaw(t, db)
-	if codec := storedCodec(t, raw, root, "large"); codec != "none" {
-		t.Fatalf("initial codec = %q", codec)
-	}
-
-	code, stdout, stderr := Invoke(t, "rebuild", root, "--db", db, "--codec", "zstd", "--json")
-	if code != 0 || stderr != "" {
-		t.Fatalf("rebuild exit=%d stderr=%q", code, stderr)
-	}
-	if envelope := decodeEnvelope(t, stdout); !envelope.OK {
-		t.Fatalf("rebuild failed: %+v", envelope.Error)
-	}
-	if codec := storedCodec(t, raw, root, "large"); codec != "zstd" {
-		t.Fatalf("rebuilt codec = %q", codec)
-	}
-
-	showCode, showOut, showErr := Invoke(t, "show", root, "large", "--db", db, "--json")
-	if showCode != 0 || showErr != "" {
-		t.Fatalf("show exit=%d stderr=%q", showCode, showErr)
-	}
-	var view contractv1.ShowResult
-	if err := json.Unmarshal(decodeEnvelope(t, showOut).Result, &view); err != nil {
-		t.Fatal(err)
-	}
-	if view.Body != parsedBody(bundle, "large") {
-		t.Fatal("rebuilt body did not round-trip")
-	}
-
-	code, _, stderr = Invoke(t, "rebuild", root, "--db", db, "--codec", "none", "--json")
-	if code != 0 || stderr != "" {
-		t.Fatalf("rebuild none exit=%d stderr=%q", code, stderr)
-	}
-	if codec := storedCodec(t, raw, root, "large"); codec != "none" {
-		t.Fatalf("disabled codec = %q", codec)
-	}
-}
-
-func TestCompressionSyncPreservesCodec(t *testing.T) {
-	root := compressionFixture(t)
-	db := filepath.Join(t.TempDir(), "index.db")
-	compressionIngest(t, root, db, "--codec", "lz4")
-	raw := compressionRaw(t, db)
-
-	writeCompressionDoc(t, root, "large", "Large", "# Large\n\nupdated "+strings.Repeat("compressible phrase. ", 200), "")
-	writeCompressionDoc(t, root, "fresh", "Fresh", "# Fresh\n\n"+strings.Repeat("new phrase. ", 200), "")
-	code, stdout, stderr := Invoke(t, "sync", root, "--db", db, "--json")
-	if code != 0 || stderr != "" {
-		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
-	}
-	if envelope := decodeEnvelope(t, stdout); !envelope.OK {
-		t.Fatalf("sync failed: %+v", envelope.Error)
-	}
-	if codec := storedCodec(t, raw, root, "large"); codec != "lz4" {
-		t.Fatalf("updated codec = %q, want lz4", codec)
-	}
-	if codec := storedCodec(t, raw, root, "fresh"); codec != "zstd" {
-		t.Fatalf("new codec = %q, want zstd", codec)
-	}
-
-	writeCompressionDoc(t, root, "large", "Large", "# Large\n\nupdated again "+strings.Repeat("compressible phrase. ", 200), "")
-	code, _, stderr = Invoke(t, "sync", root, "--db", db, "--codec", "zstd", "--json")
-	if code != 0 || stderr != "" {
-		t.Fatalf("sync zstd exit=%d stderr=%q", code, stderr)
-	}
-	if codec := storedCodec(t, raw, root, "large"); codec != "zstd" {
-		t.Fatalf("forced codec = %q, want zstd", codec)
-	}
-}
-
-func TestCompressionCorruptBodyWarns(t *testing.T) {
+func TestCompressedBlobDecodeFailureWarns(t *testing.T) {
 	root := compressionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
 	compressionIngest(t, root, db)
 	raw := compressionRaw(t, db)
 
-	if _, err := raw.Exec(
-		"UPDATE documents SET body_codec = 'bogus' WHERE bundle_root = ? AND id = ?",
-		compressionRoot(t, root), "large",
-	); err != nil {
+	if _, err := raw.Exec(`
+		INSERT INTO documents (
+			bundle_root, id, file_path, content_hash, title, keywords_json,
+			frontmatter_json, tags_json, links_json, content_kind, media_type,
+			content_metadata, body_compressed, body_codec, size, stored_size, updated_at
+		) VALUES (?, 'broken', 'broken.bin', 'hash', 'Broken', '[]', '{}', '[]', '[]',
+		          'blob', 'application/octet-stream', '{"v":1}', x'00', 'zstd', 1, 1, 1)`,
+		compressionRoot(t, root)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -326,9 +239,8 @@ func TestCompressionCorruptBodyWarns(t *testing.T) {
 	if code != 0 || stderr != "" {
 		t.Fatalf("parse exit=%d stderr=%q", code, stderr)
 	}
-	envelope := decodeEnvelope(t, stdout)
 	var bundle contractv1.Bundle
-	if err := json.Unmarshal(envelope.Result, &bundle); err != nil {
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &bundle); err != nil {
 		t.Fatal(err)
 	}
 	found := false
@@ -340,65 +252,12 @@ func TestCompressionCorruptBodyWarns(t *testing.T) {
 	if !found {
 		t.Fatalf("expected BODY_DECODE_FAILED warning, got %v", bundle.Validation.Warnings)
 	}
-	if body := parsedBody(bundle, "large"); body != "" {
+	if body := parsedBody(bundle, "broken"); body != "" {
 		t.Fatalf("corrupt body must decode empty, got %q", body)
 	}
-
-	showCode, _, showErr := Invoke(t, "show", root, "large", "--db", db, "--json")
-	if showCode != 0 {
-		t.Fatalf("show on corrupt body exit=%d stderr=%q", showCode, showErr)
-	}
 }
 
-func TestCompressionTruncatedBlobWarns(t *testing.T) {
-	root := compressionFixture(t)
-	db := filepath.Join(t.TempDir(), "index.db")
-	compressionIngest(t, root, db)
-	raw := compressionRaw(t, db)
-
-	if _, err := raw.Exec(
-		"UPDATE documents SET body_compressed = x'00' WHERE bundle_root = ? AND id = ?",
-		compressionRoot(t, root), "large",
-	); err != nil {
-		t.Fatal(err)
-	}
-
-	code, stdout, _ := Invoke(t, "parse", root, "--db", db, "--json")
-	if code != 0 {
-		t.Fatalf("parse exit=%d", code)
-	}
-	var bundle contractv1.Bundle
-	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &bundle); err != nil {
-		t.Fatal(err)
-	}
-	if body := parsedBody(bundle, "large"); body != "" {
-		t.Fatalf("truncated body must decode empty, got %q", body)
-	}
-
-	searchCode, searchOut, searchErr := Invoke(t, "search", root, "compressible", "--db", db, "--mode", "fuzzy", "--json")
-	if searchCode == 2 || searchCode == 3 {
-		t.Fatalf("search must not fail on corrupt bodies: exit=%d stderr=%q", searchCode, searchErr)
-	}
-	if strings.TrimSpace(searchOut) != "" {
-		decodeEnvelope(t, searchOut)
-	}
-}
-
-func TestCompressionReducesStoredSize(t *testing.T) {
-	root := compressionFixture(t)
-	db := filepath.Join(t.TempDir(), "index.db")
-	compressionIngest(t, root, db)
-	raw := compressionRaw(t, db)
-	bundle := compressionParse(t, root)
-
-	stored := len(storedBody(t, raw, root, "large"))
-	parsed := len(parsedBody(bundle, "large"))
-	if stored >= parsed {
-		t.Fatalf("compressed size %d is not smaller than parsed size %d", stored, parsed)
-	}
-}
-
-func TestCompressionSearchParity(t *testing.T) {
+func TestTextSearchUsesRawBodies(t *testing.T) {
 	root := compressionFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")
 	compressionIngest(t, root, db)
@@ -412,7 +271,7 @@ func TestCompressionSearchParity(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(response.Fuzzy) == 0 {
-		t.Fatal("expected fuzzy hits on compressed bodies")
+		t.Fatal("expected fuzzy hits on raw bodies")
 	}
 
 	code, stdout, stderr = Invoke(t, "search", root, "compressible", "--db", db, "--mode", "bm25", "--json")
@@ -430,14 +289,6 @@ func TestCompressionSearchParity(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatal("expected BM25 hits on decompressed bodies")
-	}
-
-	code, stdout, stderr = Invoke(t, "explain", root, "compressible", "--db", db, "--mode", "fuzzy", "--id", "large", "--json")
-	if code != 0 || stderr != "" {
-		t.Fatalf("explain exit=%d stderr=%q", code, stderr)
-	}
-	if envelope := decodeEnvelope(t, stdout); !envelope.OK {
-		t.Fatalf("explain failed: %+v", envelope.Error)
+		t.Fatal("expected BM25 hits on raw bodies")
 	}
 }

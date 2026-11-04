@@ -47,8 +47,8 @@ func TestMigrateV3AddsSearchTokens(t *testing.T) {
 	if err := storeTestDB(t, dbPath).QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 6 {
-		t.Fatalf("user_version = %d, want 6", version)
+	if version != 7 {
+		t.Fatalf("user_version = %d, want 7", version)
 	}
 	var count int
 	if err := storeTestDB(t, dbPath).QueryRow("SELECT COUNT(*) FROM search_tokens").Scan(&count); err != nil {

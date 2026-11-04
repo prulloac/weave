@@ -40,11 +40,12 @@ func (s *Store) documentCodecs(ctx context.Context, root string) (map[string]str
 
 	codecs := make(map[string]string)
 	for rows.Next() {
-		var path, codec string
+		var path string
+		var codec sql.NullString
 		if err := rows.Scan(&path, &codec); err != nil {
 			return nil, err
 		}
-		codecs[path] = codec
+		codecs[path] = codec.String
 	}
 	return codecs, rows.Err()
 }
@@ -88,9 +89,9 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, file_path, title, description, doc_type, keywords_json,
-		       frontmatter_json, tags_json, status, links_json, body_compressed,
-		       privacy_policy, privacy_provider, privacy_key_id, privacy_provider_name,
-		       privacy_key_version, body_codec
+		       frontmatter_json, tags_json, status, links_json, body_raw,
+		       body_compressed, body_codec, privacy_policy, privacy_provider,
+		       privacy_key_id, privacy_provider_name, privacy_key_version
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return nil, err
@@ -164,27 +165,33 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 		policy, provider, keyID                            sql.NullString
 		providerName                                       sql.NullString
 		keyVersion                                         sql.NullInt64
-		codec                                              string
+		bodyRaw, codec                                     sql.NullString
 		keywordsJSON, frontmatterJSON, tagsJSON, linksJSON string
-		body                                               []byte
+		bodyCompressed                                     []byte
 	)
 	if err := rows.Scan(
 		&concept.ID, &concept.Path, &title, &description, &docType,
-		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &body,
-		&policy, &provider, &keyID, &providerName, &keyVersion, &codec,
+		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &bodyRaw,
+		&bodyCompressed, &codec, &policy, &provider, &keyID, &providerName, &keyVersion,
 	); err != nil {
 		return contractv1.OkfConcept{}, "", err
 	}
-	decoded, err := compression.Decode(compression.Codec(codec), body)
 	warning := ""
-	if err != nil {
-		decoded = nil
+	if bodyRaw.Valid {
+		concept.Body = bodyRaw.String
+	} else if codec.Valid {
+		decoded, err := compression.Decode(compression.Codec(codec.String), bodyCompressed)
+		if err != nil {
+			warning = "BODY_DECODE_FAILED"
+		} else {
+			concept.Body = string(decoded)
+		}
+	} else {
 		warning = "BODY_DECODE_FAILED"
 	}
 	concept.Title = optionalString(title)
 	concept.Description = optionalString(description.String)
 	concept.Type = docType.String
-	concept.Body = string(decoded)
 	if policy.Valid && policy.String != "" && policy.String != "none" {
 		concept.Privacy = &contractv1.PrivacyDirective{
 			Policy:       contractv1.PrivacyPolicy(policy.String),

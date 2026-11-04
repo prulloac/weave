@@ -201,24 +201,20 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 			keyID = item.spans[0].KeyID
 		}
 	}
-	encrypted := item.directive != nil && item.directive.Policy == contractv1.PrivacyEncrypt
-	blob, storedCodec, err := compression.Encode(compression.Codec(item.codec), []byte(item.body), encrypted)
-	if err != nil {
-		return err
-	}
-
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO documents (
 			bundle_root, id, file_path, content_hash, title, description, doc_type,
 			keywords_json, frontmatter_json, tags_json, status, links_json,
-			body_compressed, body_codec, privacy_policy, privacy_provider,
+			content_kind, media_type, content_metadata, body_raw, body_compressed,
+			body_codec, size, stored_size, privacy_policy, privacy_provider,
 			privacy_key_id, privacy_provider_name, privacy_key_version, redacted,
 			privacy_spans_json, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'document', 'text/markdown', '{"v":1}',
+		          ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, concept.ID, concept.Path, contentHash(root, concept), title, description, concept.Type,
 		string(keywords), string(frontmatter), string(tags), status, string(links),
-		blob, string(storedCodec), policy, provider, keyID, item.providerName, item.keyVersion,
-		boolInt(item.redacted), string(spans), now)
+		item.body, len(item.body), len(item.body), policy, provider, keyID, item.providerName,
+		item.keyVersion, boolInt(item.redacted), string(spans), now)
 	return err
 }
 

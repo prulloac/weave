@@ -87,8 +87,8 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, err
 	}
-	switch version {
-	case 0:
+	switch {
+	case version == 0:
 		if err := createSchema(db); err != nil {
 			db.Close()
 			return nil, err
@@ -97,95 +97,23 @@ func Open(path string) (*Store, error) {
 			db.Close()
 			return nil, err
 		}
-	case schemaVersion:
-	case 1:
-		if err := migrateV1toV2(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV2toV3(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV3toV4(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV4toV5(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV5toV6(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
-			db.Close()
-			return nil, err
-		}
-	case 2:
-		if err := migrateV2toV3(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV3toV4(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV4toV5(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV5toV6(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
-			db.Close()
-			return nil, err
-		}
-	case 3:
-		if err := migrateV3toV4(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV4toV5(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV5toV6(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
-			db.Close()
-			return nil, err
-		}
-	case 4:
-		if err := migrateV4toV5(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if err := migrateV5toV6(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
-			db.Close()
-			return nil, err
-		}
-	case 5:
-		if err := migrateV5toV6(db); err != nil {
-			db.Close()
-			return nil, err
-		}
-		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
-			db.Close()
-			return nil, err
-		}
-	default:
+	case version > schemaVersion:
 		db.Close()
 		return nil, fmt.Errorf("unsupported database schema version %d", version)
+	case version < schemaVersion:
+		for _, migration := range migrations {
+			if version >= migration.version {
+				continue
+			}
+			if err := migration.apply(db); err != nil {
+				db.Close()
+				return nil, fmt.Errorf("migrate schema to v%d: %w", migration.version, err)
+			}
+		}
+		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", schemaVersion)); err != nil {
+			db.Close()
+			return nil, err
+		}
 	}
 
 	return &Store{db: db, path: path}, nil

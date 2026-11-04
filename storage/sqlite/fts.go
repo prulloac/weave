@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
-	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/privacy"
 	"github.com/prulloac/weave/engine/search"
 )
@@ -18,23 +17,32 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 		return err
 	}
 	rows, err := tx.QueryContext(ctx, `
-		SELECT rowid, id, title, keywords_json, description, body_compressed, body_codec, privacy_policy
+		SELECT rowid, id, title, keywords_json, description, body_raw,
+		       content_metadata, privacy_policy
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
 		return err
 	}
 	type ftsRow struct {
-		rowid                                    int64
-		id, title, keywords, body, policy, codec string
-		description                              sql.NullString
+		rowid                             int64
+		id, title, keywords, body, policy string
+		description                       sql.NullString
 	}
 	entries := make([]ftsRow, 0)
 	for rows.Next() {
-		var entry ftsRow
+		var (
+			entry    ftsRow
+			bodyRaw  sql.NullString
+			metadata string
+		)
 		if err := rows.Scan(&entry.rowid, &entry.id, &entry.title, &entry.keywords, &entry.description,
-			&entry.body, &entry.codec, &entry.policy); err != nil {
+			&bodyRaw, &metadata, &entry.policy); err != nil {
 			rows.Close()
 			return err
+		}
+		entry.body = bodyRaw.String
+		if !bodyRaw.Valid {
+			entry.body = metadataText(metadata)
 		}
 		entries = append(entries, entry)
 	}
@@ -48,10 +56,6 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 		if contractv1.PrivacyPolicy(entry.policy) == contractv1.PrivacyEncrypt {
 			continue
 		}
-		decoded, err := compression.Decode(compression.Codec(entry.codec), []byte(entry.body))
-		if err != nil {
-			decoded = nil
-		}
 		var keywords []string
 		if err := json.Unmarshal([]byte(entry.keywords), &keywords); err != nil {
 			return err
@@ -60,12 +64,22 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 			INSERT INTO fts_documents (rowid, bundle_root, id, title, keywords, description, body)
 			VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			entry.rowid, root, entry.id, entry.title, strings.Join(keywords, " "),
-			entry.description.String, search.StripMarkdown(string(decoded)))
+			entry.description.String, search.StripMarkdown(entry.body))
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func metadataText(value string) string {
+	var metadata struct {
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal([]byte(value), &metadata); err != nil {
+		return ""
+	}
+	return metadata.Text
 }
 
 func deleteFTSByPath(ctx context.Context, tx *sql.Tx, root, path string) error {
@@ -84,12 +98,13 @@ func deleteFTSByPath(ctx context.Context, tx *sql.Tx, root, path string) error {
 
 func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string) error {
 	var rowid int64
-	var title, keywordsJSON, body, codec, policy string
+	var title, keywordsJSON, metadata, policy string
+	var bodyRaw sql.NullString
 	var description sql.NullString
 	err := tx.QueryRowContext(ctx, `
-		SELECT rowid, title, keywords_json, description, body_compressed, body_codec, privacy_policy
+		SELECT rowid, title, keywords_json, description, body_raw, content_metadata, privacy_policy
 		FROM documents WHERE bundle_root = ? AND id = ?`, root, id).Scan(
-		&rowid, &title, &keywordsJSON, &description, &body, &codec, &policy)
+		&rowid, &title, &keywordsJSON, &description, &bodyRaw, &metadata, &policy)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
@@ -99,9 +114,9 @@ func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string) error {
 	if contractv1.PrivacyPolicy(policy) == contractv1.PrivacyEncrypt {
 		return nil
 	}
-	decoded, err := compression.Decode(compression.Codec(codec), []byte(body))
-	if err != nil {
-		decoded = nil
+	body := bodyRaw.String
+	if !bodyRaw.Valid {
+		body = metadataText(metadata)
 	}
 	var keywords []string
 	if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
@@ -111,7 +126,7 @@ func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string) error {
 		INSERT INTO fts_documents (rowid, bundle_root, id, title, keywords, description, body)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		rowid, root, id, title, strings.Join(keywords, " "), description.String,
-		search.StripMarkdown(string(decoded)))
+		search.StripMarkdown(body))
 	return err
 }
 
