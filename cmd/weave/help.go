@@ -37,14 +37,16 @@ var commandHelpText = map[string]commandHelp{
 		Flags: []string{
 			"--db <file>                        default ~/.weave/index.db",
 			"--strict | --permissive            validation mode",
-			"--codec zstd|lz4|none              body compression",
+			"--codec zstd|none|<name>           body compression",
+			"--assets | --no-assets             include or drop blob documents",
+			"--asset-types <mime,...>           blob media types (image/* supported)",
 			"--with-enricher <name>             enrich documents during the write",
 			"--dry-run                          preview counts without writing",
 			"--provider <name>                  external crypto provider",
 		},
 		Examples: []string{
 			`weave ingest ~/notes --strict --json`,
-			`weave ingest ~/notes --codec lz4 --with-enricher ai`,
+			`weave ingest ~/notes --codec zstd --with-enricher ai`,
 		},
 	},
 	"rebuild": {
@@ -53,16 +55,28 @@ var commandHelpText = map[string]commandHelp{
 		Flags: []string{
 			"--db <file>                        persistent database",
 			"--strict | --permissive            validation mode",
-			"--codec zstd|lz4|none              re-encode every body",
+			"--codec zstd|none|<name>           re-encode binary bodies",
+			"--assets | --no-assets             reuse or drop the stored asset filter",
+			"--asset-types <mime,...>           replace the stored asset filter",
 		},
 		Examples: []string{`weave rebuild ~/notes --codec zstd --json`},
+	},
+	"codecs": {
+		Usage:   "weave codecs list [<path>] [--json]",
+		Summary: "List built-in and weave-codec-<name> extension codecs.",
+		Flags: []string{
+			"--json                             one weave.cli/v1 envelope",
+		},
+		Examples: []string{`weave codecs list ~/notes --json`},
 	},
 	"sync": {
 		Usage:   "weave sync <path> [flags]",
 		Summary: "Incrementally update one bundle from content hashes.",
 		Flags: []string{
 			"--db <file>                        persistent database",
-			"--codec zstd|lz4|none              override the stored codec",
+			"--codec zstd|none|<name>           override the stored codec",
+			"--assets | --no-assets             reuse or drop the stored asset filter",
+			"--asset-types <mime,...>           replace the stored asset filter",
 			"--watch [--events]                 poll and sync; JSONL events with --json",
 			"--with-enricher <name>             enrich changed documents",
 			"--dry-run                          preview counts without writing",
@@ -76,6 +90,8 @@ var commandHelpText = map[string]commandHelp{
 		Usage:   "weave show <path> <id|file> [flags]",
 		Summary: "Show one concept, redacting encrypted bodies by default.",
 		Flags: []string{
+			"--out <file>                       write the exact body or blob bytes",
+			"--force                            replace an existing --out file",
 			"--decrypt                          decrypt encrypted content",
 			"--provider <name>                  external crypto provider",
 			"--json                             include privacy state",

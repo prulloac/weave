@@ -5,6 +5,7 @@ import (
 	"os"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/codecs"
 	"github.com/prulloac/weave/engine/extensions"
 )
 
@@ -58,7 +59,31 @@ func mapStorageError(err error) (contractv1.ErrorCode, string) {
 }
 
 func mapOpenError(err error) (contractv1.ErrorCode, string) {
+	if code, ok := codecErrorCode(err); ok {
+		return code, err.Error()
+	}
 	return mapDomainError(domainOpen, err)
+}
+
+func codecErrorCode(err error) (contractv1.ErrorCode, bool) {
+	var codecErr *codecs.Error
+	if !errors.As(err, &codecErr) {
+		return "", false
+	}
+	switch codecErr.Code {
+	case "CODEC_NOT_FOUND":
+		return contractv1.ErrCodecNotFound, true
+	case "CODEC_UNAVAILABLE":
+		return contractv1.ErrCodecUnavailable, true
+	case "CODEC_TIMEOUT":
+		return contractv1.ErrCodecTimeout, true
+	case "CODEC_PROTOCOL":
+		return contractv1.ErrCodecProtocol, true
+	case "CODEC_FAILED":
+		return contractv1.ErrCodecFailed, true
+	default:
+		return contractv1.ErrCodecFailed, true
+	}
 }
 
 func extensionErrorCode(err error) contractv1.ErrorCode {

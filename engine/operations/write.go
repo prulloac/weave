@@ -7,7 +7,6 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/assets"
-	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/privacy"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
@@ -31,11 +30,6 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 		mode = "permissive"
 	}
 	codec := request.Codec
-	if codec != "" && !compression.Valid(codec) {
-		return failure(contractv1.ErrInvalidRequest, "codec must be zstd, lz4 or none", map[string]any{
-			"op": request.Op,
-		})
-	}
 	if request.DryRun {
 		options := e.Options
 		options.Permissive = permissive
@@ -131,6 +125,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 				"db":   dbPath,
 			})
 		}
+		if code, ok := codecErrorCode(err); ok {
+			return failure(code, err.Error(), map[string]any{
+				"path": request.Path,
+				"db":   dbPath,
+			})
+		}
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"path": request.Path,
 			"db":   dbPath,
@@ -167,11 +167,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	} else if request.Permissive {
 		mode = "permissive"
 	}
-	if request.Codec != "" && !compression.Valid(request.Codec) {
-		return failure(contractv1.ErrInvalidRequest, "codec must be zstd, lz4 or none", map[string]any{
-			"op": request.Op,
-		})
-	}
+
 	if request.DryRun {
 		options := e.Options
 		options.Permissive = request.Permissive
@@ -231,6 +227,12 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		}
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
 			return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{
+				"path": request.Path,
+				"db":   dbPath,
+			})
+		}
+		if code, ok := codecErrorCode(err); ok {
+			return failure(code, err.Error(), map[string]any{
 				"path": request.Path,
 				"db":   dbPath,
 			})

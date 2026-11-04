@@ -23,7 +23,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
-- **Body compression**: text-readable bodies stored raw; binary blobs zstd by default, with per-row codecs and corruption recovery.
+- **Body compression**: text-readable bodies stored raw; binary blobs zstd by default, with per-row codecs, codec extensions and corruption recovery.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
@@ -111,7 +111,10 @@ Global flags:
 - `--strict` / `--permissive` select ingest mode; ingest defaults to permissive.
 - `--codec zstd|none|<name>` selects compression for binary blobs in ingest, rebuild and sync; default
   `zstd`. Text-readable content is always stored raw. LZ4 and other codecs require a
-  `weave-codec-<name>` extension.
+  `weave-codec-<name>` extension; `weave codecs list` reports installed codecs.
+- `--assets` enables blob scanning; `--asset-types image/png,text/*` selects media types and is
+  persisted for later sync/rebuild runs; `--no-assets` drops blob rows.
+- `weave show <id> --out <file>` writes exact document or blob bytes; add `--force` to replace.
 - `--with-enricher <name>` and `--rerank <name>` enable `weave-<name>` extensions; `--timeout`
   overrides the 5s default.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.

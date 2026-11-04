@@ -11,7 +11,7 @@ or check; a scenario without one is a documentation gap.
 | [BM25 ranking](bm25-ranking.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `storage/sqlite/fts.go`, `engine/search/hybrid_bm25.go` |
 | [Blob assets](blob-assets.md) | [blob-assets.md](https://github.com/prulloac/weave-docs/blob/main/specs/blob-assets.md) | `cmd/weave/blob_assets_bdd_test.go`, `engine/assets/assets_test.go`, `storage/sqlite/schema_v7_test.go`, `mcp/blob_test.go` |
 | [Bundle export](bundle-export.md) | [bundle-export.md](https://github.com/prulloac/weave-docs/blob/main/specs/bundle-export.md) | `cmd/weave/export_bdd_test.go` |
-| [Codec extensions](codec-extensions.md) | [codec-extensions.md](https://github.com/prulloac/weave-docs/blob/main/specs/codec-extensions.md) | planned: `cmd/weave/codec_extensions_bdd_test.go`, `engine/codecs/codec_test.go`, `storage/sqlite/compression_test.go` |
+| [Codec extensions](codec-extensions.md) | [codec-extensions.md](https://github.com/prulloac/weave-docs/blob/main/specs/codec-extensions.md) | `cmd/weave/codecs_bdd_test.go`, `engine/codecs/codecs_test.go`, `storage/sqlite/schema_v7_test.go` |
 | [Compression](compression.md) | [compression.md](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md) | `cmd/weave/compression_bdd_test.go`, `storage/sqlite/compression_test.go` |
 | [Configuration](configuration.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/config_bdd_test.go` |
 | [Dry run](dryrun.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/dryrun_bdd_test.go` |

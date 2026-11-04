@@ -140,6 +140,18 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Op:   contractv1.OpExtensions,
 			Path: path,
 		}, 0, nil
+	case "codecs":
+		if len(flags.positionals) < 1 || flags.positionals[0] != "list" {
+			return contractv1.OperationRequest{}, 0, fmt.Errorf("codecs requires the list subcommand")
+		}
+		if len(flags.positionals) > 2 {
+			return contractv1.OperationRequest{}, 0, fmt.Errorf("codecs list accepts at most one path")
+		}
+		path := ""
+		if len(flags.positionals) == 2 {
+			path = flags.positionals[1]
+		}
+		return contractv1.OperationRequest{Op: contractv1.OpCodecs, Path: path}, 0, nil
 	case "export":
 		if err := requirePositional(command, flags, 1); err != nil {
 			return contractv1.OperationRequest{}, 0, err

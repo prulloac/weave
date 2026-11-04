@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
-	"github.com/prulloac/weave/engine/compression"
 )
 
 func (s *Store) documentHashes(ctx context.Context, root string) (map[string]string, error) {
@@ -126,7 +125,7 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	concepts := make([]contractv1.OkfConcept, 0)
 	decodeWarnings := make([]string, 0)
 	for rows.Next() {
-		concept, warning, err := scanConcept(rows)
+		concept, warning, err := scanConcept(ctx, rows, root)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +181,7 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 	return bundle, nil
 }
 
-func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
+func scanConcept(ctx context.Context, rows *sql.Rows, root string) (contractv1.OkfConcept, string, error) {
 	var (
 		concept                                            contractv1.OkfConcept
 		title                                              string
@@ -213,7 +212,7 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 		concept.BodyText = true
 		form = "raw"
 	case codec.Valid:
-		decoded, err := compression.Decode(compression.Codec(codec.String), bodyCompressed)
+		decoded, err := decodeStoredBody(ctx, root, codec.String, bodyCompressed)
 		if err != nil {
 			warning = "BODY_DECODE_FAILED"
 		} else {

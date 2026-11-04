@@ -11,6 +11,7 @@ import (
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/codecs"
 	"github.com/prulloac/weave/engine/okf"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 	"gopkg.in/yaml.v3"
@@ -208,8 +209,8 @@ func applyConfigValue(cfg *appConfig, key string, value any, source, origin stri
 		set()
 	case "codec":
 		text, ok := value.(string)
-		if !ok || (text != "zstd" && text != "lz4" && text != "none") {
-			return invalid("must be zstd, lz4 or none")
+		if !ok || !codecs.ValidName(text) {
+			return invalid("must be a valid codec name")
 		}
 		cfg.Codec = text
 		set()
@@ -622,7 +623,7 @@ const defaultConfigTemplate = `# Weave global configuration
 # no_db: false
 # cache: true
 # cache_dir: ""           # empty uses the user cache directory
-# codec: zstd            # zstd | lz4 | none
+# codec: zstd            # zstd | none | <name>
 # search_mode: hybrid    # hybrid | keyword | fuzzy | bm25
 # top_k: 10
 # ingest_mode: permissive # strict | permissive

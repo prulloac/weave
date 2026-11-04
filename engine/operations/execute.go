@@ -32,6 +32,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
 	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive", "codec"}, Result: "SyncReport"},
 	{Op: contractv1.OpExtensions, Fields: []string{"path"}, Result: "ExtensionList"},
+	{Op: contractv1.OpCodecs, Fields: []string{"path"}, Result: "CodecList"},
 	{Op: contractv1.OpExport, Fields: []string{"path", "out", "format", "key_id", "db", "force", "confirmed"}, Result: "ExportReport"},
 }
 
@@ -53,6 +54,12 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrExtensionProto,
 	contractv1.ErrAssetTypesRequired,
 	contractv1.ErrBlobsRequireDB,
+	contractv1.ErrCodecNotFound,
+	contractv1.ErrCodecUnavailable,
+	contractv1.ErrCodecFailed,
+	contractv1.ErrCodecTimeout,
+	contractv1.ErrCodecProtocol,
+	contractv1.ErrBodyDecode,
 	contractv1.ErrConfirmation,
 	contractv1.ErrInternal,
 }
@@ -86,6 +93,7 @@ var preflightHandlers = map[contractv1.OperationName]operationHandler{
 	contractv1.OpContract:   (*Executor).contractInfo,
 	contractv1.OpVersion:    (*Executor).versionInfo,
 	contractv1.OpExtensions: (*Executor).extensionList,
+	contractv1.OpCodecs:     (*Executor).codecList,
 	contractv1.OpExport:     (*Executor).export,
 }
 

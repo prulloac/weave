@@ -97,6 +97,12 @@ const (
 	ErrExtensionProto     ErrorCode = "EXTENSION_PROTOCOL"
 	ErrAssetTypesRequired ErrorCode = "ASSET_TYPES_REQUIRED"
 	ErrBlobsRequireDB     ErrorCode = "BLOBS_REQUIRE_DB"
+	ErrCodecNotFound      ErrorCode = "CODEC_NOT_FOUND"
+	ErrCodecUnavailable   ErrorCode = "CODEC_UNAVAILABLE"
+	ErrCodecFailed        ErrorCode = "CODEC_FAILED"
+	ErrCodecTimeout       ErrorCode = "CODEC_TIMEOUT"
+	ErrCodecProtocol      ErrorCode = "CODEC_PROTOCOL"
+	ErrBodyDecode         ErrorCode = "BODY_DECODE_FAILED"
 	ErrInternal           ErrorCode = "INTERNAL"
 )
 
@@ -120,6 +126,7 @@ const (
 	OpSync       OperationName = "sync"
 	OpExtensions OperationName = "extensions"
 	OpExport     OperationName = "export"
+	OpCodecs     OperationName = "codecs"
 )
 
 // OkfLink is a single Markdown link extracted from a concept body.
@@ -706,6 +713,20 @@ type ExportReport struct {
 	ExtensionDataSkipped int    `json:"extension_data_skipped,omitempty"`
 	DryRun               bool   `json:"dry_run,omitempty"`
 	Confirmation         bool   `json:"confirmation_required,omitempty"`
+}
+
+// CodecInfo describes one available body codec.
+type CodecInfo struct {
+	Name          string `json:"name"`
+	Source        string `json:"source"`
+	Path          string `json:"path,omitempty"`
+	CanCompress   bool   `json:"can_compress"`
+	CanDecompress bool   `json:"can_decompress"`
+}
+
+// CodecList is the result of `weave codecs list`.
+type CodecList struct {
+	Codecs []CodecInfo `json:"codecs"`
 }
 
 // OperationRequest is the transport-neutral request shape for stdio/MCP.

@@ -13,7 +13,7 @@ func TestRoundTrip(t *testing.T) {
 		"repetitive": []byte(strings.Repeat("compressible phrase. ", 200)),
 		"mixed":      []byte("# Title\n\nSome prose with Unicode: héllo 世界.\n"),
 	}
-	for _, codec := range []compression.Codec{compression.CodecZstd, compression.CodecLZ4} {
+	for _, codec := range []compression.Codec{compression.CodecZstd} {
 		for name, body := range bodies {
 			encoded, stored, err := compression.Encode(codec, body, false)
 			if err != nil {
@@ -32,7 +32,7 @@ func TestRoundTrip(t *testing.T) {
 
 func TestDeterminism(t *testing.T) {
 	body := []byte(strings.Repeat("deterministic body. ", 300))
-	for _, codec := range []compression.Codec{compression.CodecZstd, compression.CodecLZ4} {
+	for _, codec := range []compression.Codec{compression.CodecZstd} {
 		first, _, err := compression.Encode(codec, body, false)
 		if err != nil {
 			t.Fatal(err)
@@ -80,8 +80,5 @@ func TestDecodeFailures(t *testing.T) {
 	}
 	if _, err := compression.Decode(compression.CodecZstd, []byte{0x00}); !errors.Is(err, compression.ErrDecode) {
 		t.Fatalf("corrupt zstd: %v", err)
-	}
-	if _, err := compression.Decode(compression.CodecLZ4, []byte{0x00}); !errors.Is(err, compression.ErrDecode) {
-		t.Fatalf("corrupt lz4: %v", err)
 	}
 }

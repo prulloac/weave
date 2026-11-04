@@ -167,6 +167,12 @@
 				"EXTENSION_PROTOCOL",
 				"ASSET_TYPES_REQUIRED",
 				"BLOBS_REQUIRE_DB",
+				"CODEC_NOT_FOUND",
+				"CODEC_UNAVAILABLE",
+				"CODEC_FAILED",
+				"CODEC_TIMEOUT",
+				"CODEC_PROTOCOL",
+				"BODY_DECODE_FAILED",
 				"PRIVACY_DIRECTIVE_INVALID",
 				"PRIVACY_KEY_UNAVAILABLE",
 				"PRIVACY_PROVIDER_UNSUPPORTED",
@@ -194,7 +200,8 @@
 				"rebuild",
 				"sync",
 				"extensions",
-				"export"
+				"export",
+				"codecs"
 			]
 		},
 		"OkfLink": {
@@ -1690,6 +1697,48 @@
 						"bundle",
 						"path"
 					]
+				}
+			}
+		},
+		"CodecInfo": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"name",
+				"source",
+				"can_compress",
+				"can_decompress"
+			],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"can_compress": {
+					"type": "boolean"
+				},
+				"can_decompress": {
+					"type": "boolean"
+				}
+			}
+		},
+		"CodecList": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"codecs"
+			],
+			"properties": {
+				"codecs": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/CodecInfo"
+					}
 				}
 			}
 		},

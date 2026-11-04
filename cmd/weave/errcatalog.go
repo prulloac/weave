@@ -30,6 +30,12 @@ var errorPolicies = map[contractv1.ErrorCode]errorPolicy{
 	contractv1.ErrExtensionProto:     {1, "check the extension weave.cli/v1 payload"},
 	contractv1.ErrAssetTypesRequired: {2, "pass --asset-types or use an extension that advertises asset types"},
 	contractv1.ErrBlobsRequireDB:     {2, "remove --no-db or disable --assets"},
+	contractv1.ErrCodecNotFound:      {2, "install weave-codec-<name> or choose a built-in codec"},
+	contractv1.ErrCodecUnavailable:   {1, "install the stored codec extension or rebuild the bundle"},
+	contractv1.ErrCodecFailed:        {1, "run the codec manually to see stderr"},
+	contractv1.ErrCodecTimeout:       {1, "increase --timeout or check the codec"},
+	contractv1.ErrCodecProtocol:      {1, "check the codec --describe --json manifest"},
+	contractv1.ErrBodyDecode:         {1, "rebuild the bundle from its source files"},
 	contractv1.ErrConfirmation:       {2, "pass `--yes` after reviewing the warning"},
 	contractv1.ErrInternal:           {1, "rerun with `--json` for details"},
 }

@@ -62,9 +62,6 @@ func (s *Store) writeBundle(
 	if codec == "" {
 		codec = string(compression.CodecZstd)
 	}
-	if !compression.Valid(codec) {
-		return contractv1.IngestReport{}, fmt.Errorf("codec must be zstd, lz4 or none")
-	}
 
 	indexJSON, err := json.Marshal(bundle.Index)
 	if err != nil {
@@ -240,12 +237,12 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 			size = len(data)
 			storedSize = len(data)
 		} else {
-			encoded, codec, err := compression.EncodeBlob(compression.Codec(item.codec), data)
+			encoded, storedCodec, err := encodeStoredBody(ctx, root, item.codec, data)
 			if err != nil {
 				return err
 			}
 			bodyCompressed = encoded
-			bodyCodec = string(codec)
+			bodyCodec = storedCodec
 			size = len(data)
 			storedSize = len(encoded)
 		}

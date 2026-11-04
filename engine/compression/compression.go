@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/pierrec/lz4/v4"
 )
 
 // Codec identifies one stored body encoding.
@@ -19,8 +18,6 @@ const (
 	CodecNone Codec = "none"
 	// CodecZstd is the default codec.
 	CodecZstd Codec = "zstd"
-	// CodecLZ4 is the fast opt-in codec.
-	CodecLZ4 Codec = "lz4"
 )
 
 // Threshold is the minimum body size that may be compressed.
@@ -32,7 +29,7 @@ var ErrDecode = errors.New("body decode failed")
 // Valid reports whether codec is supported for new writes.
 func Valid(codec string) bool {
 	switch Codec(codec) {
-	case CodecNone, CodecZstd, CodecLZ4:
+	case CodecNone, CodecZstd:
 		return true
 	default:
 		return false
@@ -52,12 +49,6 @@ func Encode(codec Codec, body []byte, encrypted bool) ([]byte, Codec, error) {
 			return nil, "", err
 		}
 		return encoded, CodecZstd, nil
-	case CodecLZ4:
-		encoded, err := encodeLZ4(body)
-		if err != nil {
-			return nil, "", err
-		}
-		return encoded, CodecLZ4, nil
 	default:
 		return nil, "", fmt.Errorf("unsupported codec %q", codec)
 	}
@@ -77,12 +68,6 @@ func EncodeBlob(codec Codec, body []byte) ([]byte, Codec, error) {
 			return nil, "", err
 		}
 		return encoded, CodecZstd, nil
-	case CodecLZ4:
-		encoded, err := encodeLZ4(body)
-		if err != nil {
-			return nil, "", err
-		}
-		return encoded, CodecLZ4, nil
 	default:
 		return nil, "", fmt.Errorf("unsupported codec %q", codec)
 	}
@@ -101,12 +86,6 @@ func Decode(codec Codec, blob []byte) ([]byte, error) {
 		}
 		defer decoder.Close()
 		decoded, err := io.ReadAll(decoder)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrDecode, err)
-		}
-		return decoded, nil
-	case CodecLZ4:
-		decoded, err := io.ReadAll(lz4.NewReader(bytes.NewReader(blob)))
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrDecode, err)
 		}
@@ -131,25 +110,6 @@ func encodeZstd(body []byte) ([]byte, error) {
 		return nil, err
 	}
 	if err := encoder.Close(); err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
-}
-
-func encodeLZ4(body []byte) ([]byte, error) {
-	var buffer bytes.Buffer
-	writer := lz4.NewWriter(&buffer)
-	if err := writer.Apply(
-		lz4.BlockSizeOption(lz4.Block64Kb),
-		lz4.ChecksumOption(false),
-	); err != nil {
-		return nil, err
-	}
-	if _, err := writer.Write(body); err != nil {
-		writer.Close()
-		return nil, err
-	}
-	if err := writer.Close(); err != nil {
 		return nil, err
 	}
 	return buffer.Bytes(), nil

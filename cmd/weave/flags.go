@@ -8,7 +8,7 @@ import (
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
-	"github.com/prulloac/weave/engine/compression"
+	"github.com/prulloac/weave/engine/codecs"
 )
 
 type flags struct {
@@ -216,8 +216,8 @@ func parseFlags(args []string) (flags, error) {
 				return result, err
 			}
 			index = next
-			if !compression.Valid(value) {
-				return result, fmt.Errorf("--codec must be zstd, lz4 or none")
+			if !codecs.ValidName(value) {
+				return result, fmt.Errorf("--codec must be a valid codec name")
 			}
 			result.codec = value
 		case "--with-enricher":

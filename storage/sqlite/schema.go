@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-
-	"github.com/prulloac/weave/engine/compression"
 )
 
 const schemaVersion = 7
@@ -210,7 +208,7 @@ CREATE TABLE documents_v7 (
 	}
 
 	for _, document := range documents {
-		decoded, err := compression.Decode(compression.Codec(document.codec), document.body)
+		decoded, err := decodeStoredBody(context.Background(), document.bundleRoot, document.codec, document.body)
 		if err != nil {
 			return fmt.Errorf("migrate v6 document %s: %w", document.id, err)
 		}

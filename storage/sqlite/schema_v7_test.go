@@ -3,6 +3,7 @@ package sqlite_test
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -169,6 +170,51 @@ func TestMigrateV6ToV7(t *testing.T) {
 		if err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count); err != nil {
 			t.Fatalf("%s missing: %v", table, err)
 		}
+	}
+}
+
+func TestMigrateV6RequiresLZ4Codec(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "index.db")
+	raw, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(schemaV6); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`
+		INSERT INTO bundles (bundle_root, mode, index_json, validation_json, updated_at)
+		VALUES ('/notes', 'strict', '[]', '{}', 1)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec(`
+		INSERT INTO documents (
+			bundle_root, id, file_path, content_hash, title, keywords_json,
+			frontmatter_json, tags_json, links_json, body_compressed, body_codec, updated_at
+		) VALUES ('/notes', 'legacy', 'legacy.md', 'hash', 'Legacy', '[]', '{}', '[]', '[]',
+		          x'00', 'lz4', 1)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := raw.Exec("PRAGMA user_version = 6"); err != nil {
+		t.Fatal(err)
+	}
+	if err := raw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := sqlitestore.Open(path); err == nil {
+		t.Fatal("expected missing lz4 codec to abort migration")
+	} else if !strings.Contains(err.Error(), "CODEC_UNAVAILABLE") &&
+		!strings.Contains(err.Error(), "codec unavailable") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	db := storeTestDB(t, path)
+	var version int
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version != 6 {
+		t.Fatalf("user_version = %d, want 6", version)
 	}
 }
 

@@ -91,9 +91,6 @@ func (s *Store) Sync(
 	if err != nil {
 		return contractv1.SyncReport{}, err
 	}
-	if options.Codec != "" && !compression.Valid(options.Codec) {
-		return contractv1.SyncReport{}, fmt.Errorf("codec must be zstd, lz4 or none")
-	}
 
 	added, updated, removed, skipped := 0, 0, 0, 0
 	tx, err := s.db.BeginTx(ctx, nil)
