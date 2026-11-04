@@ -107,6 +107,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.Strict = flags.strict
 	request.Permissive = flags.permissive
 	request.Codec = flags.codec
+	request.CodecSet = flags.explicit["--codec"]
 	request.Assets = flags.assets || len(flags.assetTypes) > 0
 	request.NoAssets = flags.noAssets
 	request.AssetTypes = flags.assetTypes

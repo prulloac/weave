@@ -1918,12 +1918,10 @@
 					"type": "boolean"
 				},
 				"codec": {
-					"type": "string",
-					"enum": [
-						"zstd",
-						"lz4",
-						"none"
-					]
+					"type": "string"
+				},
+				"codec_set": {
+					"type": "boolean"
 				},
 				"enricher": {
 					"type": "string"

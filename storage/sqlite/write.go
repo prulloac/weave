@@ -104,6 +104,7 @@ func (s *Store) writeBundle(
 	}
 
 	now := time.Now().Unix()
+	codecWarnings := textCodecWarnings(bundle, options.CodecSet)
 	prepared, skipped, err := prepareConcepts(ctx, root, bundle.Concepts, mode == "permissive", codec, options.Enricher, options.Provider)
 	if err != nil {
 		return contractv1.IngestReport{}, err
@@ -154,9 +155,22 @@ func (s *Store) writeBundle(
 		Documents: len(prepared),
 		Edges:     len(edges),
 		Synthetic: syntheticCount(bundle, mode),
-		Warnings:  warningCount(bundle) + skipped,
+		Warnings:  warningCount(bundle) + skipped + codecWarnings,
 		Errors:    errorCount(bundle, mode),
 	}, nil
+}
+
+func textCodecWarnings(bundle *contractv1.Bundle, codecSet bool) int {
+	if !codecSet || bundle == nil {
+		return 0
+	}
+	count := 0
+	for _, concept := range bundle.Concepts {
+		if concept.ContentKind != "blob" {
+			count++
+		}
+	}
+	return count
 }
 
 func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedConcept, now int64) error {

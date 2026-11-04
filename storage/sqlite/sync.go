@@ -264,7 +264,7 @@ func (s *Store) Sync(
 		Updated:   updated,
 		Removed:   removed,
 		Skipped:   skipped,
-		Warnings:  warningCount(bundle) + privacySkipped,
+		Warnings:  warningCount(bundle) + privacySkipped + textCodecWarnings(bundle, options.CodecSet),
 		Errors:    errorCount(bundle, mode),
 	}, nil
 }

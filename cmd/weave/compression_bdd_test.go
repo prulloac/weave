@@ -189,6 +189,22 @@ func TestCodecFlagDoesNotCompressText(t *testing.T) {
 	}
 }
 
+func TestTextCodecFlagWarns(t *testing.T) {
+	root := compressionFixture(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--db", db, "--codec", "zstd", "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	var report contractv1.IngestReport
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.Warnings < 4 {
+		t.Fatalf("warnings = %d, want at least one per text document", report.Warnings)
+	}
+}
+
 func TestEncryptedBodyIsStoredRaw(t *testing.T) {
 	t.Setenv(compressionKey, strings.Repeat("ab", 32))
 	root := compressionFixture(t)

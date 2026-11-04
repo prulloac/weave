@@ -208,6 +208,48 @@
 				}
 			}
 		},
+		"CodecInfo": {
+			"type": "object",
+			"required": [
+				"can_compress",
+				"can_decompress",
+				"name",
+				"source"
+			],
+			"additional_properties": false,
+			"properties": {
+				"can_compress": {
+					"type": "boolean"
+				},
+				"can_decompress": {
+					"type": "boolean"
+				},
+				"name": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				}
+			}
+		},
+		"CodecList": {
+			"type": "object",
+			"required": [
+				"codecs"
+			],
+			"additional_properties": false,
+			"properties": {
+				"codecs": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/CodecInfo"
+					}
+				}
+			}
+		},
 		"ConceptStatus": {
 			"type": "string",
 			"enum": [
@@ -456,7 +498,15 @@
 		"ErrorCode": {
 			"type": "string",
 			"enum": [
+				"ASSET_TYPES_REQUIRED",
+				"BLOBS_REQUIRE_DB",
+				"BODY_DECODE_FAILED",
 				"BUNDLE_NOT_INDEXED",
+				"CODEC_FAILED",
+				"CODEC_NOT_FOUND",
+				"CODEC_PROTOCOL",
+				"CODEC_TIMEOUT",
+				"CODEC_UNAVAILABLE",
 				"CONCEPT_NOT_FOUND",
 				"CONFIRMATION_REQUIRED",
 				"EXTENSION_FAILED",
@@ -782,6 +832,9 @@
 			],
 			"additional_properties": false,
 			"properties": {
+				"blobs": {
+					"type": "integer"
+				},
 				"confirmation_required": {
 					"type": "boolean"
 				},
@@ -1498,6 +1551,13 @@
 			],
 			"additional_properties": false,
 			"properties": {
+				"content_kind": {
+					"type": "string",
+					"enum": [
+						"blob",
+						"document"
+					]
+				},
 				"id": {
 					"type": "string"
 				},
@@ -1506,6 +1566,9 @@
 					"items": {
 						"type": "string"
 					}
+				},
+				"media_type": {
+					"type": "string"
 				},
 				"path": {
 					"type": "string"
@@ -1549,6 +1612,16 @@
 				"body": {
 					"type": "string"
 				},
+				"content_kind": {
+					"type": "string",
+					"enum": [
+						"blob",
+						"document"
+					]
+				},
+				"content_metadata": {
+					"type": "object"
+				},
 				"description": {
 					"type": "string"
 				},
@@ -1569,6 +1642,9 @@
 					"items": {
 						"ref": "#/$defs/OkfLink"
 					}
+				},
+				"media_type": {
+					"type": "string"
 				},
 				"path": {
 					"type": "string"
@@ -1669,6 +1745,7 @@
 			"enum": [
 				"audit",
 				"backlinks",
+				"codecs",
 				"contract",
 				"explain",
 				"export",
@@ -1693,13 +1770,20 @@
 			],
 			"additional_properties": false,
 			"properties": {
+				"asset_types": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"assets": {
+					"type": "boolean"
+				},
 				"codec": {
-					"type": "string",
-					"enum": [
-						"lz4",
-						"none",
-						"zstd"
-					]
+					"type": "string"
+				},
+				"codec_set": {
+					"type": "boolean"
 				},
 				"confirmed": {
 					"type": "boolean"
@@ -1752,6 +1836,9 @@
 				},
 				"mode": {
 					"ref": "#/$defs/SearchMode"
+				},
+				"no_assets": {
+					"type": "boolean"
 				},
 				"no_db": {
 					"type": "boolean"
@@ -2100,8 +2187,34 @@
 						"type": "string"
 					}
 				},
+				"blob_uri": {
+					"type": "string"
+				},
 				"body": {
 					"type": "string"
+				},
+				"body_codec": {
+					"type": "string"
+				},
+				"body_form": {
+					"type": "string",
+					"enum": [
+						"compressed",
+						"raw"
+					]
+				},
+				"content_hash": {
+					"type": "string"
+				},
+				"content_kind": {
+					"type": "string",
+					"enum": [
+						"blob",
+						"document"
+					]
+				},
+				"content_metadata": {
+					"type": "object"
 				},
 				"description": {
 					"type": "string"
@@ -2127,17 +2240,28 @@
 						"ref": "#/$defs/ShowLink"
 					}
 				},
+				"media_type": {
+					"type": "string"
+				},
 				"path": {
 					"type": "string"
 				},
 				"privacy": {
 					"ref": "#/$defs/PrivacyState"
 				},
+				"size": {
+					"type": "integer",
+					"minimum": 0
+				},
 				"source": {
 					"type": "string"
 				},
 				"status": {
 					"ref": "#/$defs/ConceptStatus"
+				},
+				"stored_size": {
+					"type": "integer",
+					"minimum": 0
 				},
 				"tags": {
 					"type": "array",

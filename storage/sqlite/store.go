@@ -29,7 +29,8 @@ type Store struct {
 // IngestOptions controls how a bundle is stored.
 type IngestOptions struct {
 	Mode       string   // strict | permissive
-	Codec      string   // zstd | lz4 | none
+	Codec      string   // zstd | none | <name>
+	CodecSet   bool     // --codec was explicitly provided
 	AssetTypes []string // resolved blob filter
 	Enricher   Enricher
 	Provider   privacy.Provider
@@ -38,7 +39,8 @@ type IngestOptions struct {
 // SyncOptions controls incremental synchronization.
 type SyncOptions struct {
 	Mode       string // empty keeps the stored mode
-	Codec      string // zstd | lz4 | none | empty inherits per row
+	Codec      string // zstd | none | <name> | empty inherits per row
+	CodecSet   bool
 	AssetTypes []string
 	NoAssets   bool
 	Enricher   Enricher

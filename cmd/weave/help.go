@@ -241,7 +241,7 @@ read:
 write:
   ingest rebuild sync export
 configure & integrate:
-  config extensions completion mcp contract version
+  config codecs extensions completion mcp contract version
 
 global flags:
   --json                  one weave.cli/v1 envelope on stdout

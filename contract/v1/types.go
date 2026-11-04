@@ -757,6 +757,7 @@ type OperationRequest struct {
 	NoAssets   bool            `json:"no_assets,omitempty"`
 	AssetTypes []string        `json:"asset_types,omitempty"`
 	Codec      string          `json:"codec,omitempty"`
+	CodecSet   bool            `json:"codec_set,omitempty"`
 	Enricher   string          `json:"enricher,omitempty"`
 	Rerank     string          `json:"rerank,omitempty"`
 	TimeoutMS  int64           `json:"timeout_ms,omitempty"`

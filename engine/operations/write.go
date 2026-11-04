@@ -114,9 +114,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -214,6 +214,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
 		Mode:       mode,
 		Codec:      request.Codec,
+		CodecSet:   request.CodecSet,
 		AssetTypes: request.AssetTypes,
 		NoAssets:   request.NoAssets,
 		Enricher:   enricher,
