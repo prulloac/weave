@@ -61,6 +61,9 @@ type flags struct {
 	configPath    string
 	noConfig      bool
 	strictConfig  bool
+	model         string
+	dim           int
+	keepSource    bool
 	explicit      map[string]bool
 	positionals   []string
 }
@@ -306,6 +309,26 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.provider = value
+		case "--model":
+			value, next, err := flagValue(args, index, "--model")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.model = value
+		case "--dim":
+			value, next, err := flagValue(args, index, "--dim")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed <= 0 {
+				return result, fmt.Errorf("--dim requires a positive number")
+			}
+			result.dim = parsed
+		case "--keep-source":
+			result.keepSource = true
 		case "--dry-run":
 			result.dryRun = true
 		case "--no-input":

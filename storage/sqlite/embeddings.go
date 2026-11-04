@@ -238,6 +238,33 @@ func (s *Store) SemanticHits(
 	return hits, rows.Err()
 }
 
+// EmbeddingDim returns the dimension for a model, preferring source rows.
+func (s *Store) EmbeddingDim(ctx context.Context, root, model string) (int, error) {
+	root, err := normalizeRoot(root)
+	if err != nil {
+		return 0, err
+	}
+	var dim int
+	err = s.db.QueryRowContext(ctx, `
+		SELECT dim FROM document_embeddings
+		WHERE bundle_root = ? AND model = ? ORDER BY created_at DESC LIMIT 1`,
+		root, model).Scan(&dim)
+	if err == nil {
+		return dim, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return 0, err
+	}
+	err = s.db.QueryRowContext(ctx, `
+		SELECT dim FROM embedding_indexes
+		WHERE model = ? AND metric = 'cosine' AND element_type = 'float32'
+		ORDER BY created_at DESC LIMIT 1`, model).Scan(&dim)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, fmt.Errorf("embedding space not found for model %q", model)
+	}
+	return dim, err
+}
+
 // EmbeddingSpaces lists registered spaces with their bundle row counts.
 func (s *Store) EmbeddingSpaces(ctx context.Context, root string) ([]EmbeddingSpace, error) {
 	root, err := normalizeRoot(root)

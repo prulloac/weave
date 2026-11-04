@@ -112,6 +112,65 @@ func TestEmbeddingsAndSemanticSearch(t *testing.T) {
 	}
 }
 
+func TestEmbeddingMaintenanceCommands(t *testing.T) {
+	root := embeddingFixture(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	code, _, stderr := Invoke(t, "ingest", root, "--db", db, "--with-embedder", "embed", "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	code, stdout, stderr := Invoke(t, "embeddings", "list", root, "--db", db, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("list exit=%d stderr=%q", code, stderr)
+	}
+	var list struct {
+		Spaces []struct {
+			Model string `json:"model"`
+			Dim   int    `json:"dim"`
+			Rows  int    `json:"rows"`
+		} `json:"spaces"`
+	}
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Spaces) != 1 || list.Spaces[0].Model != "test-model" || list.Spaces[0].Rows != 3 {
+		t.Fatalf("spaces = %+v", list.Spaces)
+	}
+
+	code, _, stderr = Invoke(t, "embeddings", "rebuild", root, "--model", "test-model", "--db", db, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("rebuild exit=%d stderr=%q", code, stderr)
+	}
+	code, _, stderr = Invoke(t, "embeddings", "drop", root, "--model", "test-model", "--keep-source", "--db", db, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("drop exit=%d stderr=%q", code, stderr)
+	}
+	code, stdout, _ = Invoke(t, "embeddings", "list", root, "--db", db, "--json")
+	if code != 0 {
+		t.Fatal("list after drop failed")
+	}
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Spaces) != 1 || list.Spaces[0].Rows != 3 {
+		t.Fatalf("keep-source spaces = %+v", list.Spaces)
+	}
+	code, _, stderr = Invoke(t, "embeddings", "drop", root, "--model", "test-model", "--db", db, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("drop source exit=%d stderr=%q", code, stderr)
+	}
+	code, stdout, _ = Invoke(t, "embeddings", "list", root, "--db", db, "--json")
+	if code != 0 {
+		t.Fatal("list after source drop failed")
+	}
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Spaces) != 0 {
+		t.Fatalf("spaces after drop = %+v", list.Spaces)
+	}
+}
+
 func TestSemanticSearchRequiresEmbedder(t *testing.T) {
 	root := embeddingFixture(t)
 	db := filepath.Join(t.TempDir(), "index.db")

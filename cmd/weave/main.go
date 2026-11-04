@@ -60,6 +60,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if command == "completion" {
 		return runCompletion(args[1:], stdout, stderr)
 	}
+	if command == "embeddings" {
+		return runEmbeddings(args[1:], stdout, stderr)
+	}
 	if command == "mcp" {
 		configPath, noConfig, strict, err := scanConfigArgs(args[1:])
 		if err != nil {

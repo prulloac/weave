@@ -63,6 +63,21 @@ var commandHelpText = map[string]commandHelp{
 		},
 		Examples: []string{`weave rebuild ~/notes --codec zstd --json`},
 	},
+	"embeddings": {
+		Usage:   "weave embeddings list|rebuild|drop <path> [flags]",
+		Summary: "Inspect, rebuild or drop embedding spaces.",
+		Flags: []string{
+			"--model <model>                    embedding model",
+			"--dim <n>                          optional dimension override",
+			"--keep-source                      drop only the vec0 index",
+			"--db <file>                        persistent database",
+			"--json                             one weave.cli/v1 envelope",
+		},
+		Examples: []string{
+			`weave embeddings list ~/notes --json`,
+			`weave embeddings rebuild ~/notes --model nomic-embed-text`,
+		},
+	},
 	"codecs": {
 		Usage:   "weave codecs list [<path>] [--json]",
 		Summary: "List built-in and weave-codec-<name> extension codecs.",
@@ -244,7 +259,7 @@ read:
 write:
   ingest rebuild sync export
 configure & integrate:
-  config codecs extensions completion mcp contract version
+  config codecs embeddings extensions completion mcp contract version
 
 global flags:
   --json                  one weave.cli/v1 envelope on stdout
