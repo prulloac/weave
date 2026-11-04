@@ -216,8 +216,9 @@ func applyConfigValue(cfg *appConfig, key string, value any, source, origin stri
 		set()
 	case "search_mode":
 		text, ok := value.(string)
-		if !ok || (text != "hybrid" && text != "keyword" && text != "fuzzy" && text != "bm25") {
-			return invalid("must be hybrid, keyword, fuzzy or bm25")
+		if !ok || (text != "hybrid" && text != "keyword" && text != "fuzzy" && text != "bm25" &&
+			text != "semantic") {
+			return invalid("must be hybrid, keyword, fuzzy, bm25 or semantic")
 		}
 		cfg.SearchMode = text
 		set()

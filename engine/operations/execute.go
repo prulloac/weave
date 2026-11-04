@@ -157,6 +157,9 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchBM25 {
 		return e.searchBM25(ctx, request)
 	}
+	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchSemantic {
+		return e.searchSemantic(ctx, request)
+	}
 	if request.Op == contractv1.OpSearch && request.Mode == contractv1.SearchHybrid && !request.NoDB {
 		return e.searchHybridBM25(ctx, request)
 	}

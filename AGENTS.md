@@ -59,7 +59,8 @@ demand), three fuzzers, docs-lint and gofmt. It needs bash and network: use WSL 
   not import transports; `mcp` must not import `storage`, `watch` or `cmd`; `watch` must not import
   `mcp` or `cmd`. `cmd/weave` composes them.
 - Dependencies are deliberately small: stdlib first, plus `yaml.v3`, `jsonschema/v6`,
-  `klauspost/compress` and pure-Go `modernc.org/sqlite`; releases are static `CGO_ENABLED=0` builds.
+  `klauspost/compress` and pure-Go `modernc.org/sqlite` plus its `vec` subpackage; releases are static
+  `CGO_ENABLED=0` builds.
   LZ4 and other codecs are `weave-codec-<name>` extensions. No UI, HTTP framework or CGO dependency.
 
 ## Invariants

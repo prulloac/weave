@@ -60,6 +60,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"extension": request.Enricher,
 		})
 	}
+	embedder, err := e.newEmbedder(request)
+	if err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"extension": request.Embedder,
+		})
+	}
 	provider, err := e.resolveProvider(request.Path, request.Provider)
 	if err != nil {
 		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
@@ -114,9 +120,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -193,6 +199,12 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			"extension": request.Enricher,
 		})
 	}
+	embedder, err := e.newEmbedder(request)
+	if err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"extension": request.Embedder,
+		})
+	}
 	provider, err := e.resolveProvider(request.Path, request.Provider)
 	if err != nil {
 		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
@@ -218,6 +230,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		AssetTypes: request.AssetTypes,
 		NoAssets:   request.NoAssets,
 		Enricher:   enricher,
+		Embedder:   embedder,
 		Provider:   provider,
 	})
 	if err != nil {

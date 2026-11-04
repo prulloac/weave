@@ -17,8 +17,9 @@ var commandHelpText = map[string]commandHelp{
 		Usage:   "weave search <path> <query> [flags]",
 		Summary: "Rank concepts with keyword, fuzzy, hybrid or BM25 search.",
 		Flags: []string{
-			"--mode hybrid|keyword|fuzzy|bm25   default hybrid",
+			"--mode hybrid|keyword|fuzzy|bm25|semantic   default hybrid",
 			"--top-k <n>                        1..100, default 10",
+			"--embedder <name>                  embedder for semantic search",
 			"--rerank <name>                    rerank with a weave-<name> extension",
 			"--source <alias=path>              add a bundle source (repeatable)",
 			"--timeout <duration>               extension timeout, default 5s",
@@ -41,6 +42,7 @@ var commandHelpText = map[string]commandHelp{
 			"--assets | --no-assets             include or drop blob documents",
 			"--asset-types <mime,...>           blob media types (image/* supported)",
 			"--with-enricher <name>             enrich documents during the write",
+			"--with-embedder <name>             generate document embeddings",
 			"--dry-run                          preview counts without writing",
 			"--provider <name>                  external crypto provider",
 		},
@@ -79,6 +81,7 @@ var commandHelpText = map[string]commandHelp{
 			"--asset-types <mime,...>           replace the stored asset filter",
 			"--watch [--events]                 poll and sync; JSONL events with --json",
 			"--with-enricher <name>             enrich changed documents",
+			"--with-embedder <name>             refresh changed embeddings",
 			"--dry-run                          preview counts without writing",
 		},
 		Examples: []string{

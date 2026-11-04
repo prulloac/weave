@@ -160,6 +160,9 @@ func searchEmpty(result any) bool {
 	if response.Mode == contractv1.SearchBM25 {
 		return len(response.Lexical) == 0
 	}
+	if response.Mode == contractv1.SearchSemantic {
+		return len(response.Semantic) == 0
+	}
 	switch response.Mode {
 	case contractv1.SearchKeyword:
 		return len(response.Keyword) == 0
@@ -243,6 +246,16 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 			}
 			for _, item := range response.Lexical {
 				fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.Score, 'f', -1, 64), item.Title, item.Path)
+			}
+			return 0
+		}
+		if response.Mode == contractv1.SearchSemantic {
+			if len(response.Semantic) == 0 {
+				fmt.Fprintln(stderr, "weave: no matches")
+				return 1
+			}
+			for _, item := range response.Semantic {
+				fmt.Fprintf(stdout, "%s %s [%s]\n", strconv.FormatFloat(item.SemanticScore, 'f', -1, 64), item.Title, item.Path)
 			}
 			return 0
 		}

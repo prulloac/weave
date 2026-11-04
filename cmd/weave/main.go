@@ -113,6 +113,10 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.AssetTypes = flags.assetTypes
 	request.Decrypt = flags.decrypt
 	request.Enricher = flags.enricher
+	request.Embedder = flags.embedder
+	if flags.withEmbedder != "" {
+		request.Embedder = flags.withEmbedder
+	}
 	request.Rerank = flags.rerank
 	if flags.timeoutSet {
 		request.TimeoutMS = flags.timeout.Milliseconds()
@@ -126,6 +130,19 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	if request.Rerank != "" && request.Op != contractv1.OpSearch {
 		return usageError(stdout, stderr, flags.json, "--rerank is only valid for search")
+	}
+	if flags.withEmbedder != "" && flags.embedder != "" {
+		return usageError(stdout, stderr, flags.json, "--with-embedder and --embedder are mutually exclusive")
+	}
+	if flags.withEmbedder != "" {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:
+		default:
+			return usageError(stdout, stderr, flags.json, "--with-embedder is only valid for ingest, rebuild and sync")
+		}
+	}
+	if flags.embedder != "" && request.Op != contractv1.OpSearch {
+		return usageError(stdout, stderr, flags.json, "--embedder is only valid for search")
 	}
 	if request.Assets || request.NoAssets || len(request.AssetTypes) > 0 {
 		switch request.Op {

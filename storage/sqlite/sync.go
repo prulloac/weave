@@ -127,6 +127,7 @@ func (s *Store) Sync(
 
 	now := time.Now().Unix()
 	privacySkipped := 0
+	embeddingWarnings := 0
 	changedIDs := make([]string, 0, len(addedPaths)+len(updatedPaths))
 	changedConcepts := make([]contractv1.OkfConcept, 0, len(addedPaths)+len(updatedPaths))
 	for _, path := range append(append([]string{}, updatedPaths...), removedPaths...) {
@@ -159,6 +160,17 @@ func (s *Store) Sync(
 				}
 				return contractv1.SyncReport{}, err
 			}
+			if options.Embedder != nil && !encryptedPrepared(item) {
+				embeddingConcept := item.concept
+				embeddingConcept.Body = item.body
+				warn, err := s.storeEmbedding(ctx, tx, root, embeddingConcept, options.Embedder, now)
+				if err != nil {
+					return contractv1.SyncReport{}, err
+				}
+				if warn {
+					embeddingWarnings++
+				}
+			}
 			if item.extensionDataReady {
 				if err := s.applyExtensionDataTx(ctx, tx, root, item.enricherID, concept.ID, item.extensionData); err != nil {
 					return contractv1.SyncReport{}, err
@@ -190,6 +202,17 @@ func (s *Store) Sync(
 					if err := insertEnrichment(ctx, tx, root, concept.ID, row.EnricherID, []byte(row.Data)); err != nil {
 						return contractv1.SyncReport{}, err
 					}
+				}
+			}
+			if options.Embedder != nil && !encryptedPrepared(item) {
+				embeddingConcept := item.concept
+				embeddingConcept.Body = item.body
+				warn, err := s.storeEmbedding(ctx, tx, root, embeddingConcept, options.Embedder, now)
+				if err != nil {
+					return contractv1.SyncReport{}, err
+				}
+				if warn {
+					embeddingWarnings++
 				}
 			}
 			if item.extensionDataReady {
@@ -264,7 +287,7 @@ func (s *Store) Sync(
 		Updated:   updated,
 		Removed:   removed,
 		Skipped:   skipped,
-		Warnings:  warningCount(bundle) + privacySkipped + textCodecWarnings(bundle, options.CodecSet),
+		Warnings:  warningCount(bundle) + privacySkipped + textCodecWarnings(bundle, options.CodecSet) + embeddingWarnings,
 		Errors:    errorCount(bundle, mode),
 	}, nil
 }

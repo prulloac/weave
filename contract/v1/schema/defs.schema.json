@@ -26,7 +26,8 @@
 				"keyword",
 				"fuzzy",
 				"hybrid",
-				"bm25"
+				"bm25",
+				"semantic"
 			]
 		},
 		"SearchField": {
@@ -738,6 +739,54 @@
 				}
 			}
 		},
+		"SemanticHit": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"title",
+				"path",
+				"type",
+				"semantic_score",
+				"embedding_model",
+				"embedding_dim"
+			],
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"semantic_score": {
+					"type": "number"
+				},
+				"embedding_model": {
+					"type": "string"
+				},
+				"embedding_dim": {
+					"type": "integer"
+				}
+			}
+		},
 		"SearchResponse": {
 			"type": "object",
 			"additionalProperties": false,
@@ -777,6 +826,12 @@
 					"type": "array",
 					"items": {
 						"$ref": "#/$defs/HybridHit"
+					}
+				},
+				"semantic": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/SemanticHit"
 					}
 				},
 				"lexical": {
@@ -1924,6 +1979,9 @@
 					"type": "boolean"
 				},
 				"enricher": {
+					"type": "string"
+				},
+				"embedder": {
 					"type": "string"
 				},
 				"rerank": {

@@ -109,9 +109,21 @@ func (s *Store) writeBundle(
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	embeddingWarnings := 0
 	for _, item := range prepared {
 		if err := insertConcept(ctx, tx, root, item, now); err != nil {
 			return contractv1.IngestReport{}, err
+		}
+		if options.Embedder != nil && !encryptedPrepared(item) {
+			concept := item.concept
+			concept.Body = item.body
+			warn, err := s.storeEmbedding(ctx, tx, root, concept, options.Embedder, now)
+			if err != nil {
+				return contractv1.IngestReport{}, err
+			}
+			if warn {
+				embeddingWarnings++
+			}
 		}
 		if item.enricherID != "" && len(item.enrichment) > 0 {
 			if err := insertEnrichment(ctx, tx, root, item.concept.ID, item.enricherID, item.enrichment); err != nil {
@@ -155,9 +167,13 @@ func (s *Store) writeBundle(
 		Documents: len(prepared),
 		Edges:     len(edges),
 		Synthetic: syntheticCount(bundle, mode),
-		Warnings:  warningCount(bundle) + skipped + codecWarnings,
+		Warnings:  warningCount(bundle) + skipped + codecWarnings + embeddingWarnings,
 		Errors:    errorCount(bundle, mode),
 	}, nil
+}
+
+func encryptedPrepared(item preparedConcept) bool {
+	return item.directive != nil && item.directive.Policy == contractv1.PrivacyEncrypt
 }
 
 func textCodecWarnings(bundle *contractv1.Bundle, codecSet bool) int {

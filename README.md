@@ -115,8 +115,9 @@ Global flags:
 - `--assets` enables blob scanning; `--asset-types image/png,text/*` selects media types and is
   persisted for later sync/rebuild runs; `--no-assets` drops blob rows.
 - `weave show <id> --out <file>` writes exact document or blob bytes; add `--force` to replace.
-- `--with-enricher <name>` and `--rerank <name>` enable `weave-<name>` extensions; `--timeout`
-  overrides the 5s default.
+- `--with-enricher <name>`, `--with-embedder <name>` and `--rerank <name>` enable `weave-<name>`
+  extensions; `--timeout` overrides the 5s default. `weave search --mode semantic --embedder <name>`
+  uses the matching embedding space.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
 - `--provider <name>` selects a `weave-crypto-<name>` provider for ingest/sync/show/audit/export.
 - `--config <file>` selects a config file (`WEAVE_CONFIG` also works); `--no-config` ignores it;

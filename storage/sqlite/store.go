@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite/vec"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/privacy"
@@ -33,6 +34,7 @@ type IngestOptions struct {
 	CodecSet   bool     // --codec was explicitly provided
 	AssetTypes []string // resolved blob filter
 	Enricher   Enricher
+	Embedder   Embedder
 	Provider   privacy.Provider
 }
 
@@ -44,6 +46,7 @@ type SyncOptions struct {
 	AssetTypes []string
 	NoAssets   bool
 	Enricher   Enricher
+	Embedder   Embedder
 	Provider   privacy.Provider
 }
 

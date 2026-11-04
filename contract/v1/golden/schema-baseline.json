@@ -1805,6 +1805,9 @@
 				"dry_run": {
 					"type": "boolean"
 				},
+				"embedder": {
+					"type": "string"
+				},
 				"enricher": {
 					"type": "string"
 				},
@@ -2096,7 +2099,8 @@
 				"bm25",
 				"fuzzy",
 				"hybrid",
-				"keyword"
+				"keyword",
+				"semantic"
 			]
 		},
 		"SearchResponse": {
@@ -2141,10 +2145,64 @@
 				"query": {
 					"type": "string"
 				},
+				"semantic": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SemanticHit"
+					}
+				},
 				"top_k": {
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 100
+				}
+			}
+		},
+		"SemanticHit": {
+			"type": "object",
+			"required": [
+				"embedding_dim",
+				"embedding_model",
+				"id",
+				"path",
+				"semantic_score",
+				"title",
+				"type"
+			],
+			"additional_properties": false,
+			"properties": {
+				"embedding_dim": {
+					"type": "integer"
+				},
+				"embedding_model": {
+					"type": "string"
+				},
+				"id": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"semantic_score": {
+					"type": "number"
+				},
+				"source": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
 				}
 			}
 		},

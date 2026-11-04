@@ -41,6 +41,8 @@ type flags struct {
 	assetTypes    []string
 	codec         string
 	enricher      string
+	withEmbedder  string
+	embedder      string
 	rerank        string
 	timeout       time.Duration
 	timeoutSet    bool
@@ -124,10 +126,11 @@ func parseFlags(args []string) (flags, error) {
 			index = next
 			mode := contractv1.SearchMode(value)
 			switch mode {
-			case contractv1.SearchKeyword, contractv1.SearchFuzzy, contractv1.SearchHybrid, contractv1.SearchBM25:
+			case contractv1.SearchKeyword, contractv1.SearchFuzzy, contractv1.SearchHybrid,
+				contractv1.SearchBM25, contractv1.SearchSemantic:
 				result.mode = mode
 			default:
-				return result, fmt.Errorf("--mode must be hybrid, keyword, fuzzy or bm25")
+				return result, fmt.Errorf("--mode must be hybrid, keyword, fuzzy, bm25 or semantic")
 			}
 		case "--top-k":
 			value, next, err := flagValue(args, index, "--top-k")
@@ -227,6 +230,20 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.enricher = value
+		case "--with-embedder":
+			value, next, err := flagValue(args, index, "--with-embedder")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.withEmbedder = value
+		case "--embedder":
+			value, next, err := flagValue(args, index, "--embedder")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.embedder = value
 		case "--rerank":
 			value, next, err := flagValue(args, index, "--rerank")
 			if err != nil {

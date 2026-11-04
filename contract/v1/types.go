@@ -20,10 +20,11 @@ const (
 type SearchMode string
 
 const (
-	SearchKeyword SearchMode = "keyword"
-	SearchFuzzy   SearchMode = "fuzzy"
-	SearchHybrid  SearchMode = "hybrid"
-	SearchBM25    SearchMode = "bm25"
+	SearchKeyword  SearchMode = "keyword"
+	SearchFuzzy    SearchMode = "fuzzy"
+	SearchHybrid   SearchMode = "hybrid"
+	SearchBM25     SearchMode = "bm25"
+	SearchSemantic SearchMode = "semantic"
 )
 
 type SearchField string
@@ -310,15 +311,30 @@ type LexicalHit struct {
 	RerankScore *float64 `json:"rerank_score,omitempty"`
 }
 
-// SearchResponse contains the keyword, fuzzy, hybrid and lexical top-K lists.
+// SemanticHit is one semantic search result.
+type SemanticHit struct {
+	ID             string   `json:"id"`
+	Title          string   `json:"title"`
+	Path           string   `json:"path"`
+	Type           string   `json:"type"`
+	Source         string   `json:"source,omitempty"`
+	Keywords       []string `json:"keywords,omitempty"`
+	MediaType      string   `json:"media_type,omitempty"`
+	SemanticScore  float64  `json:"semantic_score"`
+	EmbeddingModel string   `json:"embedding_model"`
+	EmbeddingDim   int      `json:"embedding_dim"`
+}
+
+// SearchResponse contains the keyword, fuzzy, hybrid, lexical and semantic top-K lists.
 type SearchResponse struct {
-	Query   string       `json:"query"`
-	Mode    SearchMode   `json:"mode"`
-	TopK    int          `json:"top_k"`
-	Keyword []KeywordHit `json:"keyword"`
-	Fuzzy   []FuzzyHit   `json:"fuzzy"`
-	Hybrid  []HybridHit  `json:"hybrid"`
-	Lexical []LexicalHit `json:"lexical,omitempty"`
+	Query    string        `json:"query"`
+	Mode     SearchMode    `json:"mode"`
+	TopK     int           `json:"top_k"`
+	Keyword  []KeywordHit  `json:"keyword"`
+	Fuzzy    []FuzzyHit    `json:"fuzzy"`
+	Hybrid   []HybridHit   `json:"hybrid"`
+	Lexical  []LexicalHit  `json:"lexical,omitempty"`
+	Semantic []SemanticHit `json:"semantic,omitempty"`
 }
 
 // ListResult is one metadata-filtered concept.
@@ -759,6 +775,7 @@ type OperationRequest struct {
 	Codec      string          `json:"codec,omitempty"`
 	CodecSet   bool            `json:"codec_set,omitempty"`
 	Enricher   string          `json:"enricher,omitempty"`
+	Embedder   string          `json:"embedder,omitempty"`
 	Rerank     string          `json:"rerank,omitempty"`
 	TimeoutMS  int64           `json:"timeout_ms,omitempty"`
 	Sources    []SourceSpec    `json:"sources,omitempty"`

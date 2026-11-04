@@ -4,6 +4,8 @@ package extensions
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -236,6 +238,58 @@ func (r Runner) Rerank(ctx context.Context, extension Extension, request RerankR
 		}
 	}
 	return scores, nil
+}
+
+// EmbeddingRequest is one embedding call payload.
+type EmbeddingRequest struct {
+	V         string `json:"v"`
+	Type      string `json:"type"`
+	Text      string `json:"text"`
+	MediaType string `json:"media_type"`
+	Model     string `json:"model"`
+}
+
+type embeddingResponse struct {
+	V      string `json:"v"`
+	Model  string `json:"model"`
+	Dim    int    `json:"dim"`
+	Vector string `json:"vector"`
+}
+
+// Embedding is one validated embedding reply.
+type Embedding struct {
+	Model  string
+	Dim    int
+	Vector []float32
+}
+
+// Embed invokes an embedder and decodes its base64 float32 vector.
+func (r Runner) Embed(ctx context.Context, extension Extension, request EmbeddingRequest) (Embedding, error) {
+	request.V = ProtocolVersion
+	request.Type = "embedding_request"
+	request.Text = truncate(request.Text, 8<<10)
+	var response embeddingResponse
+	if err := r.invoke(ctx, extension, request, &response); err != nil {
+		return Embedding{}, err
+	}
+	if request.Model != "" && response.Model != request.Model {
+		return Embedding{}, fmt.Errorf("%w: model mismatch", ErrProtocol)
+	}
+	if response.Dim <= 0 || response.Model == "" {
+		return Embedding{}, fmt.Errorf("%w: invalid embedding metadata", ErrProtocol)
+	}
+	raw, err := base64.StdEncoding.DecodeString(response.Vector)
+	if err != nil || len(raw) != response.Dim*4 {
+		return Embedding{}, fmt.Errorf("%w: invalid embedding vector", ErrProtocol)
+	}
+	vector := make([]float32, response.Dim)
+	for index := range vector {
+		vector[index] = math.Float32frombits(binary.LittleEndian.Uint32(raw[index*4:]))
+		if math.IsNaN(float64(vector[index])) || math.IsInf(float64(vector[index]), 0) {
+			return Embedding{}, fmt.Errorf("%w: invalid embedding value", ErrProtocol)
+		}
+	}
+	return Embedding{Model: response.Model, Dim: response.Dim, Vector: vector}, nil
 }
 
 func (r Runner) invoke(ctx context.Context, extension Extension, payload, target any) error {
