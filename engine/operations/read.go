@@ -92,6 +92,9 @@ func (e *Executor) readShow(ctx context.Context, eng *engine.Engine, request con
 		})
 	}
 	result.ExtensionData = e.showExtensionData(ctx, request, result.ID)
+	if result.ContentKind == "blob" {
+		result.BlobURI = "weave://blob/" + result.ID
+	}
 	return success(result)
 }
 

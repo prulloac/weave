@@ -22,6 +22,7 @@ type exportManifest struct {
 	Format        string `json:"format"`
 	Source        string `json:"source"`
 	Documents     int    `json:"documents"`
+	Blobs         int    `json:"blobs,omitempty"`
 	Encrypted     int    `json:"encrypted"`
 	Tokenized     int    `json:"tokenized"`
 	Hashed        int    `json:"hashed"`
@@ -113,6 +114,13 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			report.ExtensionDataSkipped = len(extensionRecords)
 		}
 		for _, concept := range bundle.Concepts {
+			if concept.ContentKind == "blob" {
+				report.Blobs++
+				if format == "encrypted" {
+					report.Documents--
+				}
+				continue
+			}
 			switch conceptPolicy(concept) {
 			case contractv1.PrivacyEncrypt:
 				report.Encrypted++
@@ -174,6 +182,30 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		Documents: len(bundle.Concepts),
 	}
 	for _, concept := range bundle.Concepts {
+		if concept.ContentKind == "blob" {
+			report.Blobs++
+			if format == "encrypted" {
+				report.Documents--
+				if e.Warn != nil {
+					e.Warn("blob skipped in encrypted export: " + concept.ID)
+				}
+				continue
+			}
+			path, err := exportPath(target, concept.Path)
+			if err != nil {
+				cleanup()
+				return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"concept": concept.ID})
+			}
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				cleanup()
+				return failure(contractv1.ErrInternal, err.Error(), nil)
+			}
+			if err := os.WriteFile(path, concept.BodyBytes, 0o644); err != nil {
+				cleanup()
+				return failure(contractv1.ErrInternal, err.Error(), nil)
+			}
+			continue
+		}
 		body := concept.Body
 		switch conceptPolicy(concept) {
 		case contractv1.PrivacyEncrypt:
@@ -276,6 +308,7 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		Format:        format,
 		Source:        root,
 		Documents:     report.Documents,
+		Blobs:         report.Blobs,
 		Encrypted:     report.Encrypted,
 		Tokenized:     report.Tokenized,
 		Hashed:        report.Hashed,

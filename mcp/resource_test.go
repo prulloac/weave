@@ -44,7 +44,9 @@ func TestMCPResourceDiscovery(t *testing.T) {
 	}
 	for _, want := range []string{
 		"weave://concept/{id}",
+		"weave://blob/{id}",
 		"weave://graph/neighborhood/{id}",
+		"weave://source/{source}/blob/{id}",
 	} {
 		if !slices.Contains(templateURIs, want) {
 			t.Fatalf("missing template %s: %v", want, templateURIs)

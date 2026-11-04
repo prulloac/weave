@@ -954,6 +954,9 @@
 				},
 				"content_hash": {
 					"type": "string"
+				},
+				"blob_uri": {
+					"type": "string"
 				}
 			}
 		},
@@ -2129,6 +2132,9 @@
 					]
 				},
 				"documents": {
+					"type": "integer"
+				},
+				"blobs": {
 					"type": "integer"
 				},
 				"encrypted": {

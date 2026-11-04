@@ -90,6 +90,30 @@ func TestBlobIngestAndShow(t *testing.T) {
 	if view.Body != "" {
 		t.Fatalf("blob JSON must not embed bytes, got %d body bytes", len(view.Body))
 	}
+	if view.BlobURI != "weave://blob/photo.png" {
+		t.Fatalf("blob uri = %q", view.BlobURI)
+	}
+
+	code, stdout, stderr = Invoke(t, "list", root, "--db", db, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("list exit=%d stderr=%q", code, stderr)
+	}
+	var listed contractv1.ListResults
+	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &listed); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, item := range listed {
+		if item.ID == "photo.png" {
+			found = true
+			if item.Title != "photo.png" || item.ContentKind != "blob" || item.MediaType != "image/png" {
+				t.Fatalf("unexpected blob list item: %+v", item)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("photo.png missing from list: %+v", listed)
+	}
 
 	out := filepath.Join(t.TempDir(), "photo.png")
 	code, _, stderr = Invoke(t, "show", root, "photo.png", "--db", db, "--out", out, "--json")
@@ -204,6 +228,26 @@ func TestAssetFilterPersistsAcrossSync(t *testing.T) {
 	code, _, _ = Invoke(t, "show", root, "photo.png", "--db", db, "--json")
 	if code == 0 {
 		t.Fatal("sync did not remove the deleted blob")
+	}
+}
+
+func TestRawExportWritesBlobBytes(t *testing.T) {
+	root := blobBundle(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	blobIngest(t, root, db, "--assets", "--asset-types", "image/png")
+	out := filepath.Join(t.TempDir(), "export")
+
+	code, stdout, stderr := Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("export exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "photo.png"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, _ := base64.StdEncoding.DecodeString(onePixelPNG)
+	if !bytes.Equal(got, want) {
+		t.Fatal("raw export did not preserve blob bytes")
 	}
 }
 

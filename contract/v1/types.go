@@ -361,6 +361,7 @@ type ShowResult struct {
 	Size            int64              `json:"size,omitempty"`
 	StoredSize      int64              `json:"stored_size,omitempty"`
 	ContentHash     string             `json:"content_hash,omitempty"`
+	BlobURI         string             `json:"blob_uri,omitempty"`
 	BodyBytes       []byte             `json:"-"`
 }
 
@@ -697,6 +698,7 @@ type ExportReport struct {
 	Out                  string `json:"out"`
 	Format               string `json:"format"`
 	Documents            int    `json:"documents"`
+	Blobs                int    `json:"blobs,omitempty"`
 	Encrypted            int    `json:"encrypted"`
 	Tokenized            int    `json:"tokenized"`
 	Hashed               int    `json:"hashed"`

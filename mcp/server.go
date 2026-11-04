@@ -314,6 +314,9 @@ func annotateResult(value any, alias string) any {
 	switch typed := value.(type) {
 	case *contractv1.ShowResult:
 		typed.Source = alias
+		if typed.ContentKind == "blob" {
+			typed.BlobURI = "weave://source/" + alias + "/blob/" + typed.ID
+		}
 	case *contractv1.PathResult:
 		typed.Source = alias
 	case contractv1.RelateResult:
@@ -439,6 +442,12 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 			MimeType:    "application/json",
 		},
 		{
+			URITemplate: "weave://blob/{id}",
+			Name:        "Blob",
+			Description: "Opaque blob bytes with their stored media type.",
+			MimeType:    "application/octet-stream",
+		},
+		{
 			URITemplate: "weave://graph/neighborhood/{id}",
 			Name:        "Graph neighborhood",
 			Description: "Bounded graph neighborhood for a concept.",
@@ -469,6 +478,12 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 			MimeType:    "application/json",
 		},
 		{
+			URITemplate: "weave://source/{source}/blob/{id}",
+			Name:        "Source blob",
+			Description: "Opaque blob bytes from one source.",
+			MimeType:    "application/octet-stream",
+		},
+		{
 			URITemplate: "weave://source/{source}/graph/neighborhood/{id}",
 			Name:        "Source graph neighborhood",
 			Description: "Bounded graph neighborhood for a concept in one source.",
@@ -481,6 +496,21 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent, error) {
 	if strings.HasPrefix(uri, "weave://extension/") {
 		return s.readExtensionDataResource(ctx, uri)
+	}
+	if isBlobResource(uri) {
+		payload, err := s.resourcePayload(ctx, uri)
+		if err != nil {
+			return ResourceContent{}, err
+		}
+		view, ok := payload.(*contractv1.ShowResult)
+		if !ok || view.ContentKind != "blob" {
+			return ResourceContent{}, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
+		}
+		return ResourceContent{
+			URI:      uri,
+			MimeType: view.MediaType,
+			Blob:     base64.StdEncoding.EncodeToString(view.BodyBytes),
+		}, nil
 	}
 	payload, err := s.resourcePayload(ctx, uri)
 	if err != nil {
@@ -524,6 +554,10 @@ func (s *Server) readExtensionDataResource(ctx context.Context, uri string) (Res
 		MimeType: mimeType,
 		Blob:     base64.StdEncoding.EncodeToString(data),
 	}, nil
+}
+
+func isBlobResource(uri string) bool {
+	return strings.HasPrefix(uri, "weave://blob/") || strings.Contains(uri, "/blob/")
 }
 
 func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
@@ -594,7 +628,7 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 		}, nil
 	}
 
-	for _, prefix := range []string{"weave://concept/", "weave://graph/neighborhood/"} {
+	for _, prefix := range []string{"weave://concept/", "weave://blob/", "weave://graph/neighborhood/"} {
 		if !strings.HasPrefix(rest, prefix) {
 			continue
 		}
@@ -603,7 +637,7 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
 		}
 		request := contractv1.OperationRequest{Path: path, Target: id, Decrypt: s.allowSensitive}
-		if prefix == "weave://concept/" {
+		if prefix == "weave://concept/" || prefix == "weave://blob/" {
 			request.Op = contractv1.OpShow
 		} else {
 			request.Op = contractv1.OpRelate
