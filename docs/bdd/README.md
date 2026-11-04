@@ -9,7 +9,7 @@ or check; a scenario without one is a documentation gap.
 | [BM25 calibration](bm25-calibration.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `engine/search/bm25_calibration_test.go` |
 | [BM25 explain](bm25-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/bm25_explain_bdd_test.go` |
 | [BM25 ranking](bm25-ranking.md) | [bm25-ranking.md](https://github.com/prulloac/weave-docs/blob/main/specs/bm25-ranking.md) | `storage/sqlite/fts.go`, `engine/search/hybrid_bm25.go` |
-| [Blob assets](blob-assets.md) | [blob-assets.md](https://github.com/prulloac/weave-docs/blob/main/specs/blob-assets.md) | planned: `cmd/weave/blob_assets_bdd_test.go`, `storage/sqlite/blob_test.go`, `mcp/blob_test.go` |
+| [Blob assets](blob-assets.md) | [blob-assets.md](https://github.com/prulloac/weave-docs/blob/main/specs/blob-assets.md) | `cmd/weave/blob_assets_bdd_test.go`, `engine/assets/assets_test.go`, `storage/sqlite/schema_v7_test.go`, `mcp/blob_test.go` |
 | [Bundle export](bundle-export.md) | [bundle-export.md](https://github.com/prulloac/weave-docs/blob/main/specs/bundle-export.md) | `cmd/weave/export_bdd_test.go` |
 | [Codec extensions](codec-extensions.md) | [codec-extensions.md](https://github.com/prulloac/weave-docs/blob/main/specs/codec-extensions.md) | planned: `cmd/weave/codec_extensions_bdd_test.go`, `engine/codecs/codec_test.go`, `storage/sqlite/compression_test.go` |
 | [Compression](compression.md) | [compression.md](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md) | `cmd/weave/compression_bdd_test.go`, `storage/sqlite/compression_test.go` |
