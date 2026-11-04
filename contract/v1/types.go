@@ -79,23 +79,25 @@ const (
 type ErrorCode string
 
 const (
-	ErrInvalidRequest   ErrorCode = "INVALID_REQUEST"
-	ErrInvalidRoot      ErrorCode = "INVALID_ROOT"
-	ErrPermissionDenied ErrorCode = "PERMISSION_DENIED"
-	ErrParseError       ErrorCode = "PARSE_ERROR"
-	ErrConceptNotFound  ErrorCode = "CONCEPT_NOT_FOUND"
-	ErrPathNotFound     ErrorCode = "PATH_NOT_FOUND"
-	ErrBundleNotIndexed ErrorCode = "BUNDLE_NOT_INDEXED"
-	ErrPrivacyDirective ErrorCode = "PRIVACY_DIRECTIVE_INVALID"
-	ErrPrivacyKey       ErrorCode = "PRIVACY_KEY_UNAVAILABLE"
-	ErrPrivacyProvider  ErrorCode = "PRIVACY_PROVIDER_UNSUPPORTED"
-	ErrPrivacyDecrypt   ErrorCode = "PRIVACY_DECRYPT_FAILED"
-	ErrConfirmation     ErrorCode = "CONFIRMATION_REQUIRED"
-	ErrExtensionMissing ErrorCode = "EXTENSION_NOT_FOUND"
-	ErrExtensionTimeout ErrorCode = "EXTENSION_TIMEOUT"
-	ErrExtensionFailed  ErrorCode = "EXTENSION_FAILED"
-	ErrExtensionProto   ErrorCode = "EXTENSION_PROTOCOL"
-	ErrInternal         ErrorCode = "INTERNAL"
+	ErrInvalidRequest     ErrorCode = "INVALID_REQUEST"
+	ErrInvalidRoot        ErrorCode = "INVALID_ROOT"
+	ErrPermissionDenied   ErrorCode = "PERMISSION_DENIED"
+	ErrParseError         ErrorCode = "PARSE_ERROR"
+	ErrConceptNotFound    ErrorCode = "CONCEPT_NOT_FOUND"
+	ErrPathNotFound       ErrorCode = "PATH_NOT_FOUND"
+	ErrBundleNotIndexed   ErrorCode = "BUNDLE_NOT_INDEXED"
+	ErrPrivacyDirective   ErrorCode = "PRIVACY_DIRECTIVE_INVALID"
+	ErrPrivacyKey         ErrorCode = "PRIVACY_KEY_UNAVAILABLE"
+	ErrPrivacyProvider    ErrorCode = "PRIVACY_PROVIDER_UNSUPPORTED"
+	ErrPrivacyDecrypt     ErrorCode = "PRIVACY_DECRYPT_FAILED"
+	ErrConfirmation       ErrorCode = "CONFIRMATION_REQUIRED"
+	ErrExtensionMissing   ErrorCode = "EXTENSION_NOT_FOUND"
+	ErrExtensionTimeout   ErrorCode = "EXTENSION_TIMEOUT"
+	ErrExtensionFailed    ErrorCode = "EXTENSION_FAILED"
+	ErrExtensionProto     ErrorCode = "EXTENSION_PROTOCOL"
+	ErrAssetTypesRequired ErrorCode = "ASSET_TYPES_REQUIRED"
+	ErrBlobsRequireDB     ErrorCode = "BLOBS_REQUIRE_DB"
+	ErrInternal           ErrorCode = "INTERNAL"
 )
 
 type OperationName string
@@ -130,18 +132,28 @@ type OkfLink struct {
 
 // OkfConcept is one parsed OKF concept document.
 type OkfConcept struct {
-	ID          string            `json:"id"`
-	Path        string            `json:"path"`
-	Frontmatter map[string]any    `json:"frontmatter"`
-	Type        string            `json:"type"`
-	Keywords    []string          `json:"keywords"`
-	Title       *string           `json:"title,omitempty"`
-	Description *string           `json:"description,omitempty"`
-	Tags        []string          `json:"tags,omitempty"`
-	Status      *ConceptStatus    `json:"status,omitempty"`
-	Body        string            `json:"body"`
-	Links       []OkfLink         `json:"links"`
-	Privacy     *PrivacyDirective `json:"privacy,omitempty"`
+	ID              string            `json:"id"`
+	Path            string            `json:"path"`
+	Frontmatter     map[string]any    `json:"frontmatter"`
+	Type            string            `json:"type"`
+	Keywords        []string          `json:"keywords"`
+	Title           *string           `json:"title,omitempty"`
+	Description     *string           `json:"description,omitempty"`
+	Tags            []string          `json:"tags,omitempty"`
+	Status          *ConceptStatus    `json:"status,omitempty"`
+	Body            string            `json:"body"`
+	Links           []OkfLink         `json:"links"`
+	Privacy         *PrivacyDirective `json:"privacy,omitempty"`
+	ContentKind     string            `json:"content_kind,omitempty"`
+	MediaType       string            `json:"media_type,omitempty"`
+	ContentMetadata map[string]any    `json:"content_metadata,omitempty"`
+	BodyBytes       []byte            `json:"-"`
+	BodyText        bool              `json:"-"`
+	BodyForm        string            `json:"-"`
+	BodyCodec       string            `json:"-"`
+	Size            int64             `json:"-"`
+	StoredSize      int64             `json:"-"`
+	ContentHash     string            `json:"-"`
 }
 
 // IndexEntry is one root index.md listing entry.
@@ -304,14 +316,16 @@ type SearchResponse struct {
 
 // ListResult is one metadata-filtered concept.
 type ListResult struct {
-	ID       string         `json:"id"`
-	Title    string         `json:"title"`
-	Path     string         `json:"path"`
-	Type     string         `json:"type"`
-	Source   string         `json:"source,omitempty"`
-	Keywords []string       `json:"keywords"`
-	Status   *ConceptStatus `json:"status,omitempty"`
-	Tags     []string       `json:"tags,omitempty"`
+	ID          string         `json:"id"`
+	Title       string         `json:"title"`
+	Path        string         `json:"path"`
+	Type        string         `json:"type"`
+	Source      string         `json:"source,omitempty"`
+	Keywords    []string       `json:"keywords"`
+	Status      *ConceptStatus `json:"status,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
+	ContentKind string         `json:"content_kind,omitempty"`
+	MediaType   string         `json:"media_type,omitempty"`
 }
 
 type ListResults []ListResult
@@ -325,20 +339,29 @@ type ShowLink struct {
 
 // ShowResult is the detailed concept view.
 type ShowResult struct {
-	ID            string             `json:"id"`
-	Path          string             `json:"path"`
-	Type          string             `json:"type"`
-	Source        string             `json:"source,omitempty"`
-	Keywords      []string           `json:"keywords"`
-	Title         *string            `json:"title,omitempty"`
-	Description   *string            `json:"description,omitempty"`
-	Tags          []string           `json:"tags,omitempty"`
-	Status        *ConceptStatus     `json:"status,omitempty"`
-	Body          string             `json:"body"`
-	Links         []ShowLink         `json:"links"`
-	Backlinks     []string           `json:"backlinks"`
-	Privacy       *PrivacyState      `json:"privacy,omitempty"`
-	ExtensionData []ExtensionDataRef `json:"extension_data,omitempty"`
+	ID              string             `json:"id"`
+	Path            string             `json:"path"`
+	Type            string             `json:"type"`
+	Source          string             `json:"source,omitempty"`
+	Keywords        []string           `json:"keywords"`
+	Title           *string            `json:"title,omitempty"`
+	Description     *string            `json:"description,omitempty"`
+	Tags            []string           `json:"tags,omitempty"`
+	Status          *ConceptStatus     `json:"status,omitempty"`
+	Body            string             `json:"body"`
+	Links           []ShowLink         `json:"links"`
+	Backlinks       []string           `json:"backlinks"`
+	Privacy         *PrivacyState      `json:"privacy,omitempty"`
+	ExtensionData   []ExtensionDataRef `json:"extension_data,omitempty"`
+	ContentKind     string             `json:"content_kind,omitempty"`
+	MediaType       string             `json:"media_type,omitempty"`
+	ContentMetadata map[string]any     `json:"content_metadata,omitempty"`
+	BodyForm        string             `json:"body_form,omitempty"`
+	BodyCodec       string             `json:"body_codec,omitempty"`
+	Size            int64              `json:"size,omitempty"`
+	StoredSize      int64              `json:"stored_size,omitempty"`
+	ContentHash     string             `json:"content_hash,omitempty"`
+	BodyBytes       []byte             `json:"-"`
 }
 
 // ExtensionDataRef is one opaque extension-owned artifact bound to a document.
@@ -707,6 +730,9 @@ type OperationRequest struct {
 	NoDB       bool            `json:"no_db,omitempty"`
 	Strict     bool            `json:"strict,omitempty"`
 	Permissive bool            `json:"permissive,omitempty"`
+	Assets     bool            `json:"assets,omitempty"`
+	NoAssets   bool            `json:"no_assets,omitempty"`
+	AssetTypes []string        `json:"asset_types,omitempty"`
 	Codec      string          `json:"codec,omitempty"`
 	Enricher   string          `json:"enricher,omitempty"`
 	Rerank     string          `json:"rerank,omitempty"`

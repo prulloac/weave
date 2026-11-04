@@ -16,5 +16,9 @@
       "resolves_in_bundle": true
     }
   ],
-  "backlinks": []
+  "backlinks": [],
+  "content_kind": "document",
+  "media_type": "text/markdown",
+  "body_form": "raw",
+  "size": 59
 }

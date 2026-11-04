@@ -12,11 +12,11 @@ func TestEveryContractErrorCodeHasCLIPolicy(t *testing.T) {
 		t.Fatalf("contract exit=%d stderr=%q", code, stderr)
 	}
 	info := Decode[contractv1.ContractInfo](t, decodeEnvelope(t, stdout).Result)
-	if len(info.Errors) != 17 {
-		t.Fatalf("expected 17 contract errors, got %d", len(info.Errors))
+	if len(info.Errors) != 19 {
+		t.Fatalf("expected 19 contract errors, got %d", len(info.Errors))
 	}
-	if len(errorPolicies) != 17 {
-		t.Fatalf("expected 17 CLI error policies, got %d", len(errorPolicies))
+	if len(errorPolicies) != 19 {
+		t.Fatalf("expected 19 CLI error policies, got %d", len(errorPolicies))
 	}
 	for _, errorCode := range info.Errors {
 		policy, ok := errorPolicies[errorCode]

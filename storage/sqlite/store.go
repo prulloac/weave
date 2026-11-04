@@ -28,18 +28,21 @@ type Store struct {
 
 // IngestOptions controls how a bundle is stored.
 type IngestOptions struct {
-	Mode     string // strict | permissive
-	Codec    string // zstd | lz4 | none
-	Enricher Enricher
-	Provider privacy.Provider
+	Mode       string   // strict | permissive
+	Codec      string   // zstd | lz4 | none
+	AssetTypes []string // resolved blob filter
+	Enricher   Enricher
+	Provider   privacy.Provider
 }
 
 // SyncOptions controls incremental synchronization.
 type SyncOptions struct {
-	Mode     string // empty keeps the stored mode
-	Codec    string // zstd | lz4 | none | empty inherits per row
-	Enricher Enricher
-	Provider privacy.Provider
+	Mode       string // empty keeps the stored mode
+	Codec      string // zstd | lz4 | none | empty inherits per row
+	AssetTypes []string
+	NoAssets   bool
+	Enricher   Enricher
+	Provider   privacy.Provider
 }
 
 // DefaultPath returns the default user database path.

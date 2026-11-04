@@ -83,8 +83,8 @@ func TestContractListsAllErrorCodes(t *testing.T) {
 	if err := json.Unmarshal(decodeEnvelope(t, stdout).Result, &info); err != nil {
 		t.Fatal(err)
 	}
-	if len(info.Errors) != 17 {
-		t.Fatalf("expected 17 error codes, got %d: %v", len(info.Errors), info.Errors)
+	if len(info.Errors) != 19 {
+		t.Fatalf("expected 19 error codes, got %d: %v", len(info.Errors), info.Errors)
 	}
 	found := false
 	for _, code := range info.Errors {

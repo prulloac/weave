@@ -7,7 +7,9 @@
     "keywords": [
       "nested",
       "root"
-    ]
+    ],
+    "content_kind": "document",
+    "media_type": "text/markdown"
   },
   {
     "id": "sub/b",
@@ -17,6 +19,8 @@
     "keywords": [
       "nested",
       "child"
-    ]
+    ],
+    "content_kind": "document",
+    "media_type": "text/markdown"
   }
 ]

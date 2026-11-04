@@ -107,6 +107,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.Strict = flags.strict
 	request.Permissive = flags.permissive
 	request.Codec = flags.codec
+	request.Assets = flags.assets || len(flags.assetTypes) > 0
+	request.NoAssets = flags.noAssets
+	request.AssetTypes = flags.assetTypes
 	request.Decrypt = flags.decrypt
 	request.Enricher = flags.enricher
 	request.Rerank = flags.rerank
@@ -122,6 +125,19 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	if request.Rerank != "" && request.Op != contractv1.OpSearch {
 		return usageError(stdout, stderr, flags.json, "--rerank is only valid for search")
+	}
+	if request.Assets || request.NoAssets || len(request.AssetTypes) > 0 {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:
+		default:
+			return usageError(stdout, stderr, flags.json, "--assets, --no-assets and --asset-types are only valid for ingest, rebuild and sync")
+		}
+	}
+	if request.NoAssets && (request.Assets || len(request.AssetTypes) > 0) {
+		return usageError(stdout, stderr, flags.json, "--no-assets conflicts with --assets and --asset-types")
+	}
+	if request.Assets && request.NoDB {
+		return usageError(stdout, stderr, flags.json, "BLOBS_REQUIRE_DB: asset ingestion requires persistent storage")
 	}
 	if len(flags.sources) > 0 {
 		switch request.Op {
@@ -184,9 +200,13 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return usageError(stdout, stderr, flags.json, "--provider is not supported for this command")
 		}
 	}
-	if request.Op != contractv1.OpExport {
+	if request.Op != contractv1.OpExport && request.Op != contractv1.OpShow {
 		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.force || flags.yes {
-			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for export")
+			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for show and export")
+		}
+	} else if request.Op == contractv1.OpShow {
+		if flags.format != "" || flags.keyID != "" || flags.yes {
+			return usageError(stdout, stderr, flags.json, "--format, --key-id and --yes are only valid for export")
 		}
 	} else {
 		format := strings.ToLower(strings.TrimSpace(flags.format))
@@ -251,6 +271,34 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	stopProgress()
 	if flags.verbose {
 		fmt.Fprintf(stderr, "weave: elapsed: %s\n", time.Since(started).Round(time.Millisecond))
+	}
+
+	if request.Op == contractv1.OpShow && request.Out != "" {
+		if envelope, ok := value.(contractv1.SuccessEnvelope); ok {
+			if result, ok := envelope.Result.(*contractv1.ShowResult); ok {
+				data := result.BodyBytes
+				if data == nil {
+					data = []byte(result.Body)
+				}
+				if _, err := os.Stat(request.Out); err == nil && !request.Force {
+					return usageError(stdout, stderr, flags.json, "OUTPUT_EXISTS: "+request.Out+" already exists; use --force")
+				}
+				if err := os.WriteFile(request.Out, data, 0o644); err != nil {
+					fmt.Fprintf(stderr, "weave: %v\n", err)
+					return 1
+				}
+				result.Body = ""
+				if flags.json {
+					if err := writeJSON(stdout, envelope); err != nil {
+						fmt.Fprintf(stderr, "weave: %v\n", err)
+						return 1
+					}
+				} else if !flags.quiet {
+					fmt.Fprintf(stdout, "wrote %s\n", request.Out)
+				}
+				return 0
+			}
+		}
 	}
 
 	switch envelope := value.(type) {

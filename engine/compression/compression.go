@@ -63,6 +63,31 @@ func Encode(codec Codec, body []byte, encrypted bool) ([]byte, Codec, error) {
 	}
 }
 
+// EncodeBlob compresses blob bytes with codec even when the result is larger.
+func EncodeBlob(codec Codec, body []byte) ([]byte, Codec, error) {
+	if codec == "" {
+		codec = CodecZstd
+	}
+	switch codec {
+	case CodecNone:
+		return body, CodecNone, nil
+	case CodecZstd:
+		encoded, err := encodeZstd(body)
+		if err != nil {
+			return nil, "", err
+		}
+		return encoded, CodecZstd, nil
+	case CodecLZ4:
+		encoded, err := encodeLZ4(body)
+		if err != nil {
+			return nil, "", err
+		}
+		return encoded, CodecLZ4, nil
+	default:
+		return nil, "", fmt.Errorf("unsupported codec %q", codec)
+	}
+}
+
 // Decode restores a stored body. Unknown codecs and corrupt blobs return
 // ErrDecode without partial output.
 func Decode(codec Codec, blob []byte) ([]byte, error) {

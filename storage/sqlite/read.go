@@ -50,6 +50,30 @@ func (s *Store) documentCodecs(ctx context.Context, root string) (map[string]str
 	return codecs, rows.Err()
 }
 
+// AssetTypes returns the stored blob filter for a bundle.
+func (s *Store) AssetTypes(ctx context.Context, bundleRoot string) ([]string, error) {
+	root, err := normalizeRoot(bundleRoot)
+	if err != nil {
+		return nil, err
+	}
+	var encoded string
+	err = s.db.QueryRowContext(ctx,
+		"SELECT asset_types_json FROM bundles WHERE bundle_root = ?", root).Scan(&encoded)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var types []string
+	if encoded != "" {
+		if err := json.Unmarshal([]byte(encoded), &types); err != nil {
+			return nil, err
+		}
+	}
+	return types, nil
+}
+
 func (s *Store) HasBundle(ctx context.Context, bundleRoot string) (bool, error) {
 	root, err := normalizeRoot(bundleRoot)
 	if err != nil {
@@ -89,8 +113,9 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, file_path, title, description, doc_type, keywords_json,
-		       frontmatter_json, tags_json, status, links_json, body_raw,
-		       body_compressed, body_codec, privacy_policy, privacy_provider,
+		       frontmatter_json, tags_json, status, links_json, content_kind,
+		       media_type, content_metadata, body_raw, body_compressed, body_codec,
+		       size, stored_size, content_hash, privacy_policy, privacy_provider,
 		       privacy_key_id, privacy_provider_name, privacy_key_version
 		FROM documents WHERE bundle_root = ? ORDER BY id`, root)
 	if err != nil {
@@ -166,29 +191,54 @@ func scanConcept(rows *sql.Rows) (contractv1.OkfConcept, string, error) {
 		providerName                                       sql.NullString
 		keyVersion                                         sql.NullInt64
 		bodyRaw, codec                                     sql.NullString
+		kind, mediaType, metadata, contentHash             string
+		size, storedSize                                   int64
 		keywordsJSON, frontmatterJSON, tagsJSON, linksJSON string
 		bodyCompressed                                     []byte
 	)
 	if err := rows.Scan(
 		&concept.ID, &concept.Path, &title, &description, &docType,
-		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &bodyRaw,
-		&bodyCompressed, &codec, &policy, &provider, &keyID, &providerName, &keyVersion,
+		&keywordsJSON, &frontmatterJSON, &tagsJSON, &status, &linksJSON, &kind,
+		&mediaType, &metadata, &bodyRaw, &bodyCompressed, &codec, &size, &storedSize,
+		&contentHash, &policy, &provider, &keyID, &providerName, &keyVersion,
 	); err != nil {
 		return contractv1.OkfConcept{}, "", err
 	}
 	warning := ""
-	if bodyRaw.Valid {
+	form := ""
+	switch {
+	case bodyRaw.Valid:
 		concept.Body = bodyRaw.String
-	} else if codec.Valid {
+		concept.BodyBytes = []byte(bodyRaw.String)
+		concept.BodyText = true
+		form = "raw"
+	case codec.Valid:
 		decoded, err := compression.Decode(compression.Codec(codec.String), bodyCompressed)
 		if err != nil {
 			warning = "BODY_DECODE_FAILED"
 		} else {
-			concept.Body = string(decoded)
+			concept.BodyBytes = decoded
+			if kind != "blob" {
+				concept.Body = string(decoded)
+				concept.BodyText = true
+			}
+			form = "compressed"
 		}
-	} else {
+	default:
 		warning = "BODY_DECODE_FAILED"
 	}
+	concept.ContentKind = kind
+	concept.MediaType = mediaType
+	if kind == "blob" && metadata != "" {
+		if err := json.Unmarshal([]byte(metadata), &concept.ContentMetadata); err != nil {
+			return contractv1.OkfConcept{}, "", err
+		}
+	}
+	concept.BodyForm = form
+	concept.BodyCodec = codec.String
+	concept.Size = size
+	concept.StoredSize = storedSize
+	concept.ContentHash = contentHash
 	concept.Title = optionalString(title)
 	concept.Description = optionalString(description.String)
 	concept.Type = docType.String

@@ -55,15 +55,27 @@ func List(bundle *contractv1.Bundle, filters ListFilters) []contractv1.ListResul
 		title := concept.ID
 		if concept.Title != nil {
 			title = *concept.Title
+		} else if concept.ContentKind == "blob" {
+			title = filepath.Base(concept.Path)
+		}
+		kind := concept.ContentKind
+		if kind == "" {
+			kind = "document"
+		}
+		mediaType := concept.MediaType
+		if mediaType == "" {
+			mediaType = "text/markdown"
 		}
 		matches = append(matches, contractv1.ListResult{
-			ID:       concept.ID,
-			Title:    title,
-			Path:     concept.Path,
-			Type:     concept.Type,
-			Keywords: concept.Keywords,
-			Status:   concept.Status,
-			Tags:     concept.Tags,
+			ID:          concept.ID,
+			Title:       title,
+			Path:        concept.Path,
+			Type:        concept.Type,
+			Keywords:    concept.Keywords,
+			Status:      concept.Status,
+			Tags:        concept.Tags,
+			ContentKind: kind,
+			MediaType:   mediaType,
 		})
 	}
 
@@ -113,18 +125,43 @@ func Show(bundle *contractv1.Bundle, nodeGraph *graph.Graph, target string) (*co
 		})
 	}
 
+	kind := concept.ContentKind
+	if kind == "" {
+		kind = "document"
+	}
+	mediaType := concept.MediaType
+	if mediaType == "" {
+		mediaType = "text/markdown"
+	}
+	bodyForm := concept.BodyForm
+	if bodyForm == "" {
+		bodyForm = "raw"
+	}
+	size := concept.Size
+	if size == 0 && kind == "document" {
+		size = int64(len(concept.Body))
+	}
 	return &contractv1.ShowResult{
-		ID:          concept.ID,
-		Path:        concept.Path,
-		Type:        concept.Type,
-		Keywords:    concept.Keywords,
-		Title:       concept.Title,
-		Description: concept.Description,
-		Tags:        concept.Tags,
-		Status:      concept.Status,
-		Body:        concept.Body,
-		Links:       links,
-		Backlinks:   backlinks,
+		ID:              concept.ID,
+		Path:            concept.Path,
+		Type:            concept.Type,
+		Keywords:        concept.Keywords,
+		Title:           concept.Title,
+		Description:     concept.Description,
+		Tags:            concept.Tags,
+		Status:          concept.Status,
+		Body:            concept.Body,
+		Links:           links,
+		Backlinks:       backlinks,
+		ContentKind:     kind,
+		MediaType:       mediaType,
+		ContentMetadata: concept.ContentMetadata,
+		BodyForm:        bodyForm,
+		BodyCodec:       concept.BodyCodec,
+		Size:            size,
+		StoredSize:      concept.StoredSize,
+		ContentHash:     concept.ContentHash,
+		BodyBytes:       concept.BodyBytes,
 	}, true
 }
 

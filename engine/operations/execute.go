@@ -51,6 +51,8 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrExtensionTimeout,
 	contractv1.ErrExtensionFailed,
 	contractv1.ErrExtensionProto,
+	contractv1.ErrAssetTypesRequired,
+	contractv1.ErrBlobsRequireDB,
 	contractv1.ErrConfirmation,
 	contractv1.ErrInternal,
 }

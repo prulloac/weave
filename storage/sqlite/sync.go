@@ -9,6 +9,7 @@ import (
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/assets"
 	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/okf"
 	"github.com/prulloac/weave/engine/privacy"
@@ -43,6 +44,26 @@ func (s *Store) Sync(
 	if err != nil {
 		return contractv1.SyncReport{}, err
 	}
+	assetTypes := options.AssetTypes
+	if assetTypes == nil && !options.NoAssets {
+		assetTypes, err = s.AssetTypes(ctx, root)
+		if err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	}
+	if options.NoAssets {
+		assetTypes = nil
+	}
+	scannedAssets := assets.Result{}
+	if len(assetTypes) > 0 {
+		scannedAssets, err = assets.Scan(ctx, root, assets.Filter{Types: assetTypes})
+		if err != nil {
+			return contractv1.SyncReport{}, err
+		}
+		for _, concept := range scannedAssets.Concepts {
+			scanned[concept.Path] = contentHash(root, concept)
+		}
+	}
 	addedPaths, updatedPaths, removedPaths := changedPaths(existing, scanned)
 	if len(addedPaths) == 0 && len(updatedPaths) == 0 && len(removedPaths) == 0 {
 		return contractv1.SyncReport{
@@ -58,6 +79,8 @@ func (s *Store) Sync(
 	if err != nil {
 		return contractv1.SyncReport{}, err
 	}
+	bundle.Concepts = append(bundle.Concepts, scannedAssets.Concepts...)
+	bundle.Validation.Warnings = append(bundle.Validation.Warnings, scannedAssets.Warnings...)
 
 	current := make(map[string]contractv1.OkfConcept, len(bundle.Concepts))
 	for _, concept := range bundle.Concepts {
@@ -91,9 +114,17 @@ func (s *Store) Sync(
 	if bundle.OkfVersion != nil {
 		version = string(*bundle.OkfVersion)
 	}
+	assetTypesJSON, err := json.Marshal(assetTypes)
+	if err != nil {
+		return contractv1.SyncReport{}, err
+	}
+	if assetTypes == nil {
+		assetTypesJSON = []byte("[]")
+	}
 	if _, err := tx.ExecContext(ctx,
-		"UPDATE bundles SET mode = ?, okf_version = ?, index_json = ?, validation_json = ?, updated_at = ? WHERE bundle_root = ?",
-		mode, nullableString(version), string(indexJSON), string(validationJSON), time.Now().Unix(), root); err != nil {
+		"UPDATE bundles SET mode = ?, okf_version = ?, index_json = ?, validation_json = ?, asset_types_json = ?, updated_at = ? WHERE bundle_root = ?",
+		mode, nullableString(version), string(indexJSON), string(validationJSON),
+		string(assetTypesJSON), time.Now().Unix(), root); err != nil {
 		return contractv1.SyncReport{}, err
 	}
 

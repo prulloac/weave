@@ -7,7 +7,9 @@
     "keywords": [
       "missing",
       "type"
-    ]
+    ],
+    "content_kind": "document",
+    "media_type": "text/markdown"
   },
   {
     "id": "concepts/node-graph-engine",
@@ -23,7 +25,9 @@
     "status": "draft",
     "tags": [
       "graph"
-    ]
+    ],
+    "content_kind": "document",
+    "media_type": "text/markdown"
   },
   {
     "id": "concepts/okf-bundle",
@@ -39,7 +43,9 @@
     "tags": [
       "format",
       "okf"
-    ]
+    ],
+    "content_kind": "document",
+    "media_type": "text/markdown"
   },
   {
     "id": "concepts/search-index",
@@ -52,7 +58,9 @@
       "keywords",
       "fuzzy"
     ],
-    "status": "deprecated"
+    "status": "deprecated",
+    "content_kind": "document",
+    "media_type": "text/markdown"
   },
   {
     "id": "tables/users",
@@ -63,6 +71,8 @@
       "users",
       "table",
       "relations"
-    ]
+    ],
+    "content_kind": "document",
+    "media_type": "text/markdown"
   }
 ]

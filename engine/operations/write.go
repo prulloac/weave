@@ -6,6 +6,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/assets"
 	"github.com/prulloac/weave/engine/compression"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/privacy"
@@ -92,11 +93,36 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	}
 	defer store.Close()
 
+	assetTypes := request.AssetTypes
+	if len(assetTypes) == 0 && !request.NoAssets {
+		stored, err := store.AssetTypes(ctx, request.Path)
+		if err != nil {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
+		}
+		assetTypes = stored
+	}
+	if request.NoAssets {
+		assetTypes = nil
+	}
+	if request.Assets && len(assetTypes) == 0 {
+		return failure(contractv1.ErrAssetTypesRequired, "asset scanning requires --asset-types", map[string]any{
+			"path": request.Path,
+		})
+	}
+	if len(assetTypes) > 0 {
+		scanned, err := assets.Scan(ctx, request.Path, assets.Filter{Types: assetTypes})
+		if err != nil {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
+		}
+		eng.Bundle().Concepts = append(eng.Bundle().Concepts, scanned.Concepts...)
+		eng.Bundle().Validation.Warnings = append(eng.Bundle().Validation.Warnings, scanned.Warnings...)
+	}
+
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher, Provider: provider})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, Enricher: enricher, Provider: provider})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, AssetTypes: assetTypes, Enricher: enricher, Provider: provider})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -178,7 +204,25 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	if provider != nil {
 		defer provider.Close()
 	}
-	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{Mode: mode, Codec: request.Codec, Enricher: enricher, Provider: provider})
+	if request.Assets && len(request.AssetTypes) == 0 {
+		stored, err := store.AssetTypes(ctx, request.Path)
+		if err != nil {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
+		}
+		if len(stored) == 0 {
+			return failure(contractv1.ErrAssetTypesRequired, "asset scanning requires --asset-types", map[string]any{
+				"path": request.Path,
+			})
+		}
+	}
+	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
+		Mode:       mode,
+		Codec:      request.Codec,
+		AssetTypes: request.AssetTypes,
+		NoAssets:   request.NoAssets,
+		Enricher:   enricher,
+		Provider:   provider,
+	})
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {
 			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{

@@ -165,6 +165,8 @@
 				"EXTENSION_TIMEOUT",
 				"EXTENSION_FAILED",
 				"EXTENSION_PROTOCOL",
+				"ASSET_TYPES_REQUIRED",
+				"BLOBS_REQUIRE_DB",
 				"PRIVACY_DIRECTIVE_INVALID",
 				"PRIVACY_KEY_UNAVAILABLE",
 				"PRIVACY_PROVIDER_UNSUPPORTED",
@@ -277,6 +279,17 @@
 				},
 				"privacy": {
 					"$ref": "#/$defs/PrivacyDirective"
+				},
+				"content_kind": {
+					"type": "string",
+					"enum": ["document", "blob"]
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"content_metadata": {
+					"type": "object",
+					"additionalProperties": true
 				}
 			}
 		},
@@ -807,6 +820,13 @@
 				},
 				"source": {
 					"type": "string"
+				},
+				"content_kind": {
+					"type": "string",
+					"enum": ["document", "blob"]
+				},
+				"media_type": {
+					"type": "string"
 				}
 			}
 		},
@@ -904,6 +924,35 @@
 					}
 				},
 				"source": {
+					"type": "string"
+				},
+				"content_kind": {
+					"type": "string",
+					"enum": ["document", "blob"]
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"content_metadata": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"body_form": {
+					"type": "string",
+					"enum": ["raw", "compressed"]
+				},
+				"body_codec": {
+					"type": "string"
+				},
+				"size": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"stored_size": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"content_hash": {
 					"type": "string"
 				}
 			}
@@ -1800,6 +1849,18 @@
 				},
 				"permissive": {
 					"type": "boolean"
+				},
+				"assets": {
+					"type": "boolean"
+				},
+				"no_assets": {
+					"type": "boolean"
+				},
+				"asset_types": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
 				},
 				"decrypt": {
 					"type": "boolean"

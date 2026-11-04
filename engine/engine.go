@@ -129,6 +129,7 @@ func (e *Engine) ShowWithOptions(
 	}
 	if result.Privacy.Redacted {
 		result.Body = ""
+		result.BodyBytes = nil
 	}
 	if !options.Decrypt {
 		return result, true, nil
@@ -149,6 +150,7 @@ func (e *Engine) ShowWithOptions(
 		return nil, true, err
 	}
 	result.Body = body
+	result.BodyBytes = []byte(body)
 	if result.Privacy.Policy == contractv1.PrivacyEncrypt {
 		result.Privacy.Decrypted = true
 	}

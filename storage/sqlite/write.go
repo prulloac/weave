@@ -74,6 +74,13 @@ func (s *Store) writeBundle(
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	assetTypesJSON, err := json.Marshal(options.AssetTypes)
+	if err != nil {
+		return contractv1.IngestReport{}, err
+	}
+	if options.AssetTypes == nil {
+		assetTypesJSON = []byte("[]")
+	}
 	version := ""
 	if bundle.OkfVersion != nil {
 		version = string(*bundle.OkfVersion)
@@ -92,9 +99,10 @@ func (s *Store) writeBundle(
 		return contractv1.IngestReport{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		root, mode, nullableString(version), string(indexJSON), string(validationJSON), time.Now().Unix()); err != nil {
+		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, asset_types_json, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		root, mode, nullableString(version), string(indexJSON), string(validationJSON),
+		string(assetTypesJSON), time.Now().Unix()); err != nil {
 		return contractv1.IngestReport{}, err
 	}
 
@@ -201,6 +209,52 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 			keyID = item.spans[0].KeyID
 		}
 	}
+	kind := concept.ContentKind
+	if kind == "" {
+		kind = "document"
+	}
+	mediaType := concept.MediaType
+	if mediaType == "" {
+		mediaType = "text/markdown"
+	}
+	metadata := concept.ContentMetadata
+	if len(metadata) == 0 {
+		metadata = map[string]any{"v": 1}
+	}
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+
+	var bodyRaw any
+	var bodyCompressed any
+	var bodyCodec any
+	var size, storedSize int
+	if kind == "blob" {
+		data := concept.BodyBytes
+		if data == nil {
+			data = []byte(concept.Body)
+		}
+		if concept.BodyText {
+			bodyRaw = concept.Body
+			size = len(data)
+			storedSize = len(data)
+		} else {
+			encoded, codec, err := compression.EncodeBlob(compression.Codec(item.codec), data)
+			if err != nil {
+				return err
+			}
+			bodyCompressed = encoded
+			bodyCodec = string(codec)
+			size = len(data)
+			storedSize = len(encoded)
+		}
+	} else {
+		bodyRaw = item.body
+		size = len(item.body)
+		storedSize = len(item.body)
+	}
+
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO documents (
 			bundle_root, id, file_path, content_hash, title, description, doc_type,
@@ -209,12 +263,13 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 			body_codec, size, stored_size, privacy_policy, privacy_provider,
 			privacy_key_id, privacy_provider_name, privacy_key_version, redacted,
 			privacy_spans_json, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'document', 'text/markdown', '{"v":1}',
-		          ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+		          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, concept.ID, concept.Path, contentHash(root, concept), title, description, concept.Type,
 		string(keywords), string(frontmatter), string(tags), status, string(links),
-		item.body, len(item.body), len(item.body), policy, provider, keyID, item.providerName,
-		item.keyVersion, boolInt(item.redacted), string(spans), now)
+		kind, mediaType, string(metadataJSON), bodyRaw, bodyCompressed, bodyCodec,
+		size, storedSize, policy, provider, keyID, item.providerName, item.keyVersion,
+		boolInt(item.redacted), string(spans), now)
 	return err
 }
 

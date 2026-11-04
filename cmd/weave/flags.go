@@ -36,6 +36,9 @@ type flags struct {
 	noDB          bool
 	strict        bool
 	permissive    bool
+	assets        bool
+	noAssets      bool
+	assetTypes    []string
 	codec         string
 	enricher      string
 	rerank        string
@@ -188,6 +191,25 @@ func parseFlags(args []string) (flags, error) {
 			result.strict = true
 		case "--permissive":
 			result.permissive = true
+		case "--assets":
+			result.assets = true
+		case "--no-assets":
+			result.noAssets = true
+		case "--asset-types":
+			value, next, err := flagValue(args, index, "--asset-types")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			for _, item := range strings.Split(value, ",") {
+				item = strings.ToLower(strings.TrimSpace(item))
+				if item != "" {
+					result.assetTypes = append(result.assetTypes, item)
+				}
+			}
+			if len(result.assetTypes) == 0 {
+				return result, fmt.Errorf("--asset-types requires at least one MIME type")
+			}
 		case "--codec":
 			value, next, err := flagValue(args, index, "--codec")
 			if err != nil {
