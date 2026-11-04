@@ -186,17 +186,6 @@ func encodeFloat32(vector []float32) []byte {
 	return data
 }
 
-func decodeFloat32(data []byte) []float32 {
-	if len(data)%4 != 0 {
-		return nil
-	}
-	vector := make([]float32, len(data)/4)
-	for index := range vector {
-		vector[index] = math.Float32frombits(binary.LittleEndian.Uint32(data[index*4:]))
-	}
-	return vector
-}
-
 // SemanticHits returns the bundle's KNN hits for one model and vector.
 func (s *Store) SemanticHits(
 	ctx context.Context,
