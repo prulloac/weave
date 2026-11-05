@@ -388,8 +388,9 @@ func parseFlags(args []string) (flags, error) {
 	if result.quiet && result.verbose {
 		return result, fmt.Errorf("--quiet and --verbose are mutually exclusive")
 	}
-	if result.timeoutSet && result.enricher == "" && result.rerank == "" {
-		return result, fmt.Errorf("--timeout requires --with-enricher or --rerank")
+	if result.timeoutSet && result.enricher == "" && result.rerank == "" &&
+		result.withEmbedder == "" && result.embedder == "" {
+		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder or --rerank")
 	}
 	return result, nil
 }
