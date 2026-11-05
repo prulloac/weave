@@ -46,4 +46,7 @@ or check; a scenario without one is a documentation gap.
 
 Extension-side protocol and provider scenarios live in
 [`weave-ai`](https://github.com/prulloac/weave-ai/blob/main/docs/bdd/ai-plugin.md). Image provider,
-OCR and installer scenarios will live in a future `weave-image` repository.
+OCR and installer scenarios live in
+[`weave-image`](https://github.com/prulloac/weave-image/blob/main/docs/bdd/image.md); codec
+scenarios live in
+[`weave-codec-lz4`](https://github.com/prulloac/weave-codec-lz4/blob/main/docs/bdd/codec.md).
