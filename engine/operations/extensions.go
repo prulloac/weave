@@ -116,10 +116,21 @@ func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore
 		if err != nil {
 			return sqlitestore.EnrichmentApply{}, err
 		}
+		for _, warning := range response.Warnings {
+			if strings.TrimSpace(warning) != "" {
+				e.warn("extension %s: %s", extension.Name, warning)
+			}
+		}
 		apply := sqlitestore.EnrichmentApply{
-			Enricher: extension.Name,
-			Keywords: mergeKeywords(concept.Keywords, response.InferredKeywords),
-			Data:     data,
+			Enricher:        extension.Name,
+			Keywords:        mergeKeywords(concept.Keywords, response.InferredKeywords),
+			Title:           response.InferredTitle,
+			Description:     response.InferredDescription,
+			Text:            response.InferredText,
+			TextSource:      response.InferredTextSource,
+			ContentMetadata: response.InferredContentMetadata,
+			Data:            data,
+			Warnings:        len(response.Warnings),
 		}
 		files, err := extensions.ValidateWorkspace(workspace)
 		if err != nil {

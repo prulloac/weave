@@ -331,6 +331,7 @@ func insertSyncedConcept(
 			warnings++
 		} else {
 			item.concept.Keywords = apply.Keywords
+			applyEnrichmentMetadata(&item.concept, apply)
 			item.enricherID = apply.Enricher
 			item.enrichment = apply.Data
 			item.extensionData = apply.ExtensionData
@@ -408,6 +409,7 @@ func prepareConcepts(
 				warnings++
 			} else {
 				item.concept.Keywords = apply.Keywords
+				applyEnrichmentMetadata(&item.concept, apply)
 				item.enricherID = apply.Enricher
 				item.enrichment = apply.Data
 				item.extensionData = apply.ExtensionData
@@ -418,6 +420,43 @@ func prepareConcepts(
 		prepared = append(prepared, item)
 	}
 	return prepared, warnings, nil
+}
+
+func applyEnrichmentMetadata(concept *contractv1.OkfConcept, apply EnrichmentApply) {
+	if apply.Title != "" && (concept.Title == nil || strings.TrimSpace(*concept.Title) == "") {
+		value := apply.Title
+		concept.Title = &value
+	}
+	if apply.Description != "" &&
+		(concept.Description == nil || strings.TrimSpace(*concept.Description) == "") {
+		value := apply.Description
+		concept.Description = &value
+	}
+	if concept.ContentMetadata == nil {
+		concept.ContentMetadata = map[string]any{"v": 1}
+	}
+	if _, ok := concept.ContentMetadata["v"]; !ok {
+		concept.ContentMetadata["v"] = 1
+	}
+	for key, value := range apply.ContentMetadata {
+		if key == "v" {
+			continue
+		}
+		if key == "text" {
+			if existing, _ := concept.ContentMetadata["text"].(string); existing != "" {
+				continue
+			}
+		}
+		concept.ContentMetadata[key] = value
+	}
+	if apply.Text != "" {
+		if existing, _ := concept.ContentMetadata["text"].(string); existing == "" {
+			concept.ContentMetadata["text"] = apply.Text
+			if apply.TextSource != "" {
+				concept.ContentMetadata["text_source"] = apply.TextSource
+			}
+		}
+	}
 }
 
 func conceptsOf(prepared []preparedConcept) []contractv1.OkfConcept {

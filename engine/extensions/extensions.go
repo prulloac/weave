@@ -154,9 +154,15 @@ type EnrichmentRequest struct {
 
 // EnrichmentResponse is one validated enrichment reply.
 type EnrichmentResponse struct {
-	V                string         `json:"v"`
-	InferredKeywords []string       `json:"inferred_keywords"`
-	CustomMetadata   map[string]any `json:"custom_metadata"`
+	V                       string         `json:"v"`
+	InferredTitle           string         `json:"inferred_title"`
+	InferredDescription     string         `json:"inferred_description"`
+	InferredText            string         `json:"inferred_text"`
+	InferredTextSource      string         `json:"inferred_text_source"`
+	InferredContentMetadata map[string]any `json:"inferred_content_metadata"`
+	InferredKeywords        []string       `json:"inferred_keywords"`
+	Warnings                []string       `json:"warnings"`
+	CustomMetadata          map[string]any `json:"custom_metadata"`
 }
 
 // Enrich invokes an enricher for one concept.

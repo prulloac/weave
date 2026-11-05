@@ -990,14 +990,35 @@
 				"custom_metadata": {
 					"type": "object"
 				},
+				"inferred_content_metadata": {
+					"type": "object"
+				},
+				"inferred_description": {
+					"type": "string"
+				},
 				"inferred_keywords": {
 					"type": "array",
 					"items": {
 						"type": "string"
 					}
 				},
+				"inferred_text": {
+					"type": "string"
+				},
+				"inferred_text_source": {
+					"type": "string"
+				},
+				"inferred_title": {
+					"type": "string"
+				},
 				"v": {
 					"ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"warnings": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		},

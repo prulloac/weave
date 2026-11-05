@@ -11,12 +11,17 @@ import (
 )
 
 type EnrichmentApply struct {
-	Enricher       string
-	Keywords       []string
-	Data           []byte
-	ExtensionData  []extensions.DataFile
-	ExtensionReady bool
-	Warnings       int
+	Enricher        string
+	Keywords        []string
+	Title           string
+	Description     string
+	Text            string
+	TextSource      string
+	ContentMetadata map[string]any
+	Data            []byte
+	ExtensionData   []extensions.DataFile
+	ExtensionReady  bool
+	Warnings        int
 }
 
 // Enricher enriches one concept before it is stored.

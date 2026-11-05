@@ -2537,6 +2537,28 @@
 				"v": {
 					"$ref": "#/$defs/ExtensionProtocolVersion"
 				},
+				"inferred_title": {
+					"type": "string"
+				},
+				"inferred_description": {
+					"type": "string"
+				},
+				"inferred_text": {
+					"type": "string"
+				},
+				"inferred_text_source": {
+					"type": "string"
+				},
+				"inferred_content_metadata": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"warnings": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
 				"inferred_keywords": {
 					"type": "array",
 					"items": {
