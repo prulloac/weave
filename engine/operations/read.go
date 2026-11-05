@@ -12,6 +12,7 @@ import (
 	"github.com/prulloac/weave/engine/privacy"
 	"github.com/prulloac/weave/engine/relate"
 	"github.com/prulloac/weave/engine/search"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
 func (e *Executor) readParse(_ context.Context, eng *engine.Engine, _ contractv1.OperationRequest) any {
@@ -125,10 +126,23 @@ func (e *Executor) readPath(_ context.Context, eng *engine.Engine, request contr
 	return success(result)
 }
 
-func (e *Executor) readAudit(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
+func (e *Executor) readAudit(ctx context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
 	failOn := request.FailOn
 	if failOn == "" {
 		failOn = contractv1.AuditFailOnError
+	}
+	extraFindings := make([]contractv1.AuditFinding, 0)
+	if !request.NoDB {
+		if dbPath, err := resolveDBPath(request.DB); err == nil {
+			if store, err := sqlitestore.OpenExisting(dbPath); err == nil {
+				findings, err := store.EmbeddingFindings(ctx, request.Path)
+				store.Close()
+				if err != nil {
+					return failure(contractv1.ErrInternal, err.Error(), map[string]any{"path": request.Path})
+				}
+				extraFindings = findings
+			}
+		}
 	}
 	provider, err := e.resolveProvider(request.Path, request.Provider)
 	if request.Provider == "" && !request.VerifyKeys {
@@ -141,10 +155,11 @@ func (e *Executor) readAudit(_ context.Context, eng *engine.Engine, request cont
 		defer provider.Close()
 	}
 	return success(audit.Build(eng.Bundle(), eng.Graph(), audit.Options{
-		FailOn:     failOn,
-		VerifyKeys: request.VerifyKeys,
-		Permissive: request.Permissive,
-		Provider:   provider,
+		FailOn:        failOn,
+		VerifyKeys:    request.VerifyKeys,
+		Permissive:    request.Permissive,
+		Provider:      provider,
+		ExtraFindings: extraFindings,
 	}))
 }
 

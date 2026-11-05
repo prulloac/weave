@@ -184,6 +184,10 @@ func (s *Store) Sync(
 			if err != nil {
 				return contractv1.SyncReport{}, err
 			}
+			previousEmbeddings, err := loadSourceEmbeddings(ctx, tx, root, concept.ID)
+			if err != nil {
+				return contractv1.SyncReport{}, err
+			}
 			if _, err := tx.ExecContext(ctx,
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
@@ -195,6 +199,9 @@ func (s *Store) Sync(
 					privacySkipped++
 					continue
 				}
+				return contractv1.SyncReport{}, err
+			}
+			if err := restoreSourceEmbeddings(ctx, tx, root, concept.ID, previousEmbeddings); err != nil {
 				return contractv1.SyncReport{}, err
 			}
 			if !enriched {

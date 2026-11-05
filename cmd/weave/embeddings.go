@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/prulloac/weave/engine/extensions"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
@@ -76,14 +77,40 @@ func runEmbeddings(args []string, stdout, stderr io.Writer) int {
 			return usageError(stdout, stderr, flags.json, "embeddings "+action+" requires --model")
 		}
 		dim := flags.dim
-		if dim == 0 {
+		reembed := action == "rebuild" && flags.withEmbedder != ""
+		if dim == 0 && !reembed {
 			dim, err = store.EmbeddingDim(context.Background(), root, flags.model)
 			if err != nil {
 				fmt.Fprintf(stderr, "weave: %v\n", err)
 				return 1
 			}
 		}
-		if action == "rebuild" {
+		documents := 0
+		if reembed {
+			extension, err := extensions.Resolve(root, flags.withEmbedder)
+			if err != nil {
+				fmt.Fprintf(stderr, "weave: %v\n", err)
+				return 1
+			}
+			timeout := flags.timeout
+			if timeout <= 0 {
+				timeout = extensions.DefaultTimeout
+			}
+			runner := extensions.Runner{Timeout: timeout}
+			embedder := func(ctx context.Context, text, mediaType string) (sqlitestore.Embedding, error) {
+				reply, err := runner.Embed(ctx, extension, extensions.EmbeddingRequest{
+					Text: text, MediaType: mediaType, Model: flags.model,
+				})
+				if err != nil {
+					return sqlitestore.Embedding{}, err
+				}
+				return sqlitestore.Embedding{Model: reply.Model, Dim: reply.Dim, Vector: reply.Vector}, nil
+			}
+			documents, err = store.ReembedBundle(context.Background(), root, flags.model, embedder)
+			if err == nil && dim == 0 {
+				dim, _ = store.EmbeddingDim(context.Background(), root, flags.model)
+			}
+		} else if action == "rebuild" {
 			err = store.RebuildEmbeddingSpace(context.Background(), root, flags.model, dim)
 		} else {
 			err = store.DropEmbeddingSpace(context.Background(), root, flags.model, dim, flags.keepSource)
@@ -94,7 +121,7 @@ func runEmbeddings(args []string, stdout, stderr io.Writer) int {
 		}
 		if flags.json {
 			if err := writeJSON(stdout, successEnvelope(map[string]any{
-				"action": action, "model": flags.model, "dim": dim,
+				"action": action, "model": flags.model, "dim": dim, "documents": documents,
 			})); err != nil {
 				fmt.Fprintf(stderr, "weave: %v\n", err)
 				return 1

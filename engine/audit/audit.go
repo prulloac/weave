@@ -15,10 +15,11 @@ import (
 
 // Options controls audit report construction.
 type Options struct {
-	FailOn     contractv1.AuditFailOn
-	VerifyKeys bool
-	Permissive bool
-	Provider   privacy.Provider
+	FailOn        contractv1.AuditFailOn
+	VerifyKeys    bool
+	Permissive    bool
+	Provider      privacy.Provider
+	ExtraFindings []contractv1.AuditFinding
 }
 
 // Build evaluates a parsed bundle and its graph.
@@ -46,6 +47,7 @@ func Build(bundle *contractv1.Bundle, view *graph.Graph, options Options) contra
 	if options.VerifyKeys {
 		addPrivacyFindings(bundle, &report, options.Provider)
 	}
+	report.Findings = append(report.Findings, options.ExtraFindings...)
 
 	sortFindings(report.Findings)
 	report.OK = !hasError(report.Findings)

@@ -70,6 +70,7 @@ var commandHelpText = map[string]commandHelp{
 			"--model <model>                    embedding model",
 			"--dim <n>                          optional dimension override",
 			"--keep-source                      drop only the vec0 index",
+			"--with-embedder <name>             re-embed during rebuild",
 			"--db <file>                        persistent database",
 			"--json                             one weave.cli/v1 envelope",
 		},

@@ -2,10 +2,13 @@ package sqlite_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	_ "modernc.org/sqlite"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
@@ -103,6 +106,69 @@ func TestEmbeddingFailureKeepsDocument(t *testing.T) {
 	}
 	if _, err := store.SemanticHits(ctx, root, "test-model", []float32{1, 0, 0}, 3); err == nil {
 		t.Fatal("expected missing space")
+	}
+}
+
+func TestEmbeddingAuditFindings(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	dbPath := filepath.Join(t.TempDir(), "index.db")
+	store, err := sqlitestore.Open(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err := store.Ingest(ctx, embeddingBundle(root), sqlitestore.IngestOptions{
+		Mode: "strict",
+		Embedder: func(ctx context.Context, text, mediaType string) (sqlitestore.Embedding, error) {
+			return fakeEmbedder(text, mediaType)
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer raw.Close()
+	if _, err := raw.Exec(
+		"UPDATE documents SET content_hash = 'changed' WHERE bundle_root = ? AND id = 'alpha'",
+		root); err != nil {
+		t.Fatal(err)
+	}
+	findings, err := store.EmbeddingFindings(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stale := 0
+	for _, finding := range findings {
+		if finding.Code == contractv1.AuditEmbeddingStale && finding.Concept == "alpha" {
+			stale++
+		}
+	}
+	if stale != 1 {
+		t.Fatalf("stale findings = %+v", findings)
+	}
+
+	spaces, err := store.EmbeddingSpaces(ctx, root)
+	if err != nil || len(spaces) != 1 {
+		t.Fatalf("spaces=%+v err=%v", spaces, err)
+	}
+	if _, err := raw.Exec("DELETE FROM " + spaces[0].Table + " WHERE doc_id = 'beta'"); err != nil {
+		t.Fatal(err)
+	}
+	findings, err = store.EmbeddingFindings(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mismatch := false
+	for _, finding := range findings {
+		if finding.Code == contractv1.AuditEmbeddingIndexMismatch {
+			mismatch = true
+		}
+	}
+	if !mismatch {
+		t.Fatalf("missing mismatch finding: %+v", findings)
 	}
 }
 

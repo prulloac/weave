@@ -55,18 +55,20 @@ const (
 type AuditFindingCode string
 
 const (
-	AuditMissingFrontmatter    AuditFindingCode = "MISSING_FRONTMATTER"
-	AuditMissingType           AuditFindingCode = "MISSING_TYPE"
-	AuditMissingKeywords       AuditFindingCode = "MISSING_KEYWORDS"
-	AuditBrokenLink            AuditFindingCode = "BROKEN_LINK"
-	AuditBrokenRelated         AuditFindingCode = "BROKEN_RELATED"
-	AuditMissingIndexTarget    AuditFindingCode = "MISSING_INDEX_TARGET"
-	AuditUnindexedConcept      AuditFindingCode = "UNINDEXED_CONCEPT"
-	AuditOrphanConcept         AuditFindingCode = "ORPHAN_CONCEPT"
-	AuditUnsupportedOKFVersion AuditFindingCode = "UNSUPPORTED_OKF_VERSION"
-	AuditEmptyBundle           AuditFindingCode = "EMPTY_BUNDLE"
-	AuditDanglingExternal      AuditFindingCode = "DANGLING_EXTERNAL"
-	AuditKeyUnavailable        AuditFindingCode = "KEY_UNAVAILABLE"
+	AuditMissingFrontmatter     AuditFindingCode = "MISSING_FRONTMATTER"
+	AuditMissingType            AuditFindingCode = "MISSING_TYPE"
+	AuditMissingKeywords        AuditFindingCode = "MISSING_KEYWORDS"
+	AuditBrokenLink             AuditFindingCode = "BROKEN_LINK"
+	AuditBrokenRelated          AuditFindingCode = "BROKEN_RELATED"
+	AuditMissingIndexTarget     AuditFindingCode = "MISSING_INDEX_TARGET"
+	AuditUnindexedConcept       AuditFindingCode = "UNINDEXED_CONCEPT"
+	AuditOrphanConcept          AuditFindingCode = "ORPHAN_CONCEPT"
+	AuditUnsupportedOKFVersion  AuditFindingCode = "UNSUPPORTED_OKF_VERSION"
+	AuditEmptyBundle            AuditFindingCode = "EMPTY_BUNDLE"
+	AuditDanglingExternal       AuditFindingCode = "DANGLING_EXTERNAL"
+	AuditKeyUnavailable         AuditFindingCode = "KEY_UNAVAILABLE"
+	AuditEmbeddingStale         AuditFindingCode = "EMBEDDING_STALE"
+	AuditEmbeddingIndexMismatch AuditFindingCode = "EMBEDDING_INDEX_MISMATCH"
 )
 
 type RelateDirection string
