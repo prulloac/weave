@@ -17,7 +17,7 @@ stays media-agnostic; this document covers the integration behavior in `weave`.
 - **When** I run `weave-image --describe --json`
 - **Then** it returns `weave.extension/v1`
 - **And** `asset_types` contains JPEG, PNG, WebP and GIF
-- **And** `requires` names `weave >= 1.1.0` and `weave-ai >= 1.1.0`
+- **And** `requires` names `weave >= 1.0.0` and `weave-ai >= 1.0.0`
 
 ### Scenario: Missing weave-ai still ingests the image
 
@@ -30,7 +30,7 @@ stays media-agnostic; this document covers the integration behavior in `weave`.
 
 ### Scenario: Old weave-ai is rejected
 
-- **Given** `weave-ai` reports a version below `1.1.0`
+- **Given** `weave-ai` reports a version below `1.0.0`
 - **When** `weave-image` tries vision enrichment
 - **Then** the image document is stored with local metadata only
 - **And** the warning names the required version
