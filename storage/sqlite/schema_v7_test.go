@@ -132,8 +132,8 @@ func TestMigrateV6ToV7(t *testing.T) {
 	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 7 {
-		t.Fatalf("user_version = %d, want 7", version)
+	if version != 8 {
+		t.Fatalf("user_version = %d, want 8", version)
 	}
 	var assetTypes string
 	if err := db.QueryRow("SELECT asset_types_json FROM bundles").Scan(&assetTypes); err != nil {

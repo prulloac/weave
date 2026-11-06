@@ -60,6 +60,7 @@ func TestMCPToolDiscovery(t *testing.T) {
 	want := []string{
 		"weave_audit", "weave_backlinks", "weave_contract", "weave_explain",
 		"weave_list", "weave_path", "weave_relate", "weave_search", "weave_show",
+		"weave_sources",
 	}
 	slices.Sort(names)
 	if !slices.Equal(names, want) {

@@ -63,6 +63,12 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if command == "embeddings" {
 		return runEmbeddings(args[1:], stdout, stderr)
 	}
+	if command == "workspace" {
+		return runWorkspaceCommand(args[1:], stdout, stderr)
+	}
+	if command == "source" {
+		return runSourceCommand(args[1:], stdout, stderr)
+	}
 	if command == "mcp" {
 		configPath, noConfig, strict, err := scanConfigArgs(args[1:])
 		if err != nil {

@@ -21,6 +21,7 @@ import (
 
 type mcpCLIOptions struct {
 	bundle         string
+	workspace      string
 	db             string
 	stdio          bool
 	listen         string
@@ -48,6 +49,13 @@ func parseMCPOptions(args []string) (mcpCLIOptions, error) {
 				return options, err
 			}
 			options.bundle = value
+			index = next
+		case "--workspace":
+			value, next, err := mcpFlagValue(args, index, "--workspace")
+			if err != nil {
+				return options, err
+			}
+			options.workspace = value
 			index = next
 		case "--db":
 			value, next, err := mcpFlagValue(args, index, "--db")
@@ -100,13 +108,16 @@ func parseMCPOptions(args []string) (mcpCLIOptions, error) {
 	if options.help {
 		return options, nil
 	}
-	if options.bundle == "" {
-		return options, fmt.Errorf("--bundle is required")
+	if options.bundle == "" && options.workspace == "" {
+		return options, fmt.Errorf("--bundle or --workspace is required")
+	}
+	if options.bundle != "" && options.workspace != "" {
+		return options, fmt.Errorf("--bundle and --workspace are mutually exclusive")
 	}
 	if options.stdio && options.listenSet {
 		return options, fmt.Errorf("--stdio and --listen are mutually exclusive")
 	}
-	if options.watch && options.db == "" {
+	if options.watch && options.db == "" && options.workspace == "" {
 		return options, fmt.Errorf("--watch requires --db")
 	}
 	if !options.stdio && !isLoopbackListen(options.listen) && options.token == "" {
@@ -149,18 +160,45 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 		options.db = cfg.DB
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	executor := operations.New(version, engine.Options{})
 	var sources []contractv1.SourceSpec
-	if len(options.sources) > 0 {
+	var sourceStatuses map[string]string
+	bundle := options.bundle
+	workspaceMode := false
+
+	if options.workspace != "" {
+		workspaceMode = true
+		ws, err := loadWorkspace(options.workspace)
+		if err != nil {
+			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
+			return 2
+		}
+		sources = ws.Sources
+		bundle = ""
+		if len(sources) > 0 {
+			bundle = sources[0].Path
+		}
+		if options.db == "" {
+			options.db = ws.Index
+		}
+		sourceStatuses = sourceStatusMap(ws.Index)
+	} else if len(options.sources) > 0 {
+		var err error
 		sources, err = buildSourceSpecs(options.bundle, options.sources)
 		if err != nil {
 			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
 			return 2
 		}
 	}
+
 	server, err := mcp.New(executor, mcp.Options{
-		Bundle:         options.bundle,
+		Bundle:         bundle,
 		Sources:        sources,
+		SourceStatuses: sourceStatuses,
+		Workspace:      workspaceMode,
 		DB:             options.db,
 		TopKDefault:    options.topKDefault,
 		AllowSensitive: options.allowSensitive,
@@ -169,9 +207,11 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 		fmt.Fprintf(stderr, "weave mcp: %s\n", err)
 		return 2
 	}
+
+	if workspaceMode && options.watch {
+		go reconcileWorkspace(ctx, options.workspace, options.db, server, stderr)
+	}
 	transport := &mcp.Transport{Server: server, Token: options.token, Version: version}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	if options.watch {
 		dbPath, err := sqlitestore.ExpandPath(options.db)
@@ -251,11 +291,13 @@ func printMCPHelp(writer io.Writer) {
 
 usage:
   weave mcp --bundle <path> [--source <alias=path> ...] [--db <file>] [--top-k-default <n>] [--allow-sensitive]
+  weave mcp --workspace <dir|file> [--db <file>] [--watch] [--stdio|--listen <addr>] [--token <t>]
   weave mcp --bundle <path> [--source ...] --stdio [--token <token>]
   weave mcp --bundle <path> [--source ...] --listen 127.0.0.1:7331 [--token <token>]
 
 flags:
-  --bundle <path>       primary bundle root (required)
+  --bundle <path>       primary bundle root (required unless --workspace)
+  --workspace <dir|file> workspace manifest directory or file
   --source <alias=path> additional bundle source; repeatable
   --db <file>           persistent database path
   --stdio               newline-delimited JSON-RPC over stdin/stdout

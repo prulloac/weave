@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/operations"
@@ -17,6 +18,8 @@ import (
 type Options struct {
 	Bundle         string
 	Sources        []contractv1.SourceSpec
+	SourceStatuses map[string]string
+	Workspace      bool
 	DB             string
 	TopKDefault    int
 	AllowSensitive bool
@@ -64,9 +67,12 @@ func (e *Error) Error() string { return e.Message }
 // Server is a bundle-bound MCP tool dispatcher.
 type Server struct {
 	executor       *operations.Executor
+	mu             sync.RWMutex
 	bundle         string
 	sources        []contractv1.SourceSpec
 	sourcePaths    map[string]string
+	statuses       map[string]string
+	workspace      bool
 	db             string
 	topKDefault    int
 	allowSensitive bool
@@ -108,16 +114,76 @@ func New(executor *operations.Executor, options Options) (*Server, error) {
 	if primary == "" {
 		return nil, fmt.Errorf("bundle is required")
 	}
+	statuses := make(map[string]string, len(sources))
+	for alias, status := range options.SourceStatuses {
+		statuses[alias] = status
+	}
+	for _, source := range sources {
+		if _, ok := statuses[source.Alias]; !ok {
+			statuses[source.Alias] = "active"
+		}
+	}
 	return &Server{
 		executor:       executor,
 		bundle:         primary,
 		sources:        sources,
 		sourcePaths:    paths,
+		statuses:       statuses,
+		workspace:      options.Workspace,
 		db:             options.DB,
 		topKDefault:    topK,
 		allowSensitive: options.AllowSensitive,
 		tools:          toolDescriptors(),
 	}, nil
+}
+
+// SetSources swaps the served source set without restarting the server.
+func (s *Server) SetSources(sources []contractv1.SourceSpec, statuses map[string]string) error {
+	paths := make(map[string]string, len(sources))
+	aliases := make(map[string]bool, len(sources))
+	for _, source := range sources {
+		if source.Alias == "" || source.Path == "" {
+			return fmt.Errorf("source alias and path are required")
+		}
+		if aliases[source.Alias] {
+			return fmt.Errorf("duplicate source alias %q", source.Alias)
+		}
+		aliases[source.Alias] = true
+		paths[source.Alias] = source.Path
+	}
+	nextStatuses := make(map[string]string, len(sources))
+	for alias, status := range statuses {
+		nextStatuses[alias] = status
+	}
+	for _, source := range sources {
+		if _, ok := nextStatuses[source.Alias]; !ok {
+			nextStatuses[source.Alias] = "active"
+		}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sources = append([]contractv1.SourceSpec(nil), sources...)
+	s.sourcePaths = paths
+	s.statuses = nextStatuses
+	if len(sources) > 0 {
+		s.bundle = sources[0].Path
+	}
+	return nil
+}
+
+func (s *Server) sourceList() []map[string]any {
+	result := make([]map[string]any, 0, len(s.sources))
+	for _, source := range s.sources {
+		status := s.statuses[source.Alias]
+		if status == "" {
+			status = "active"
+		}
+		result = append(result, map[string]any{
+			"alias": source.Alias, "path": source.Path, "status": status,
+		})
+	}
+	return result
 }
 
 // Tools returns the advertised tool descriptors.
@@ -127,12 +193,16 @@ func (s *Server) Tools() []ToolDescriptor {
 
 // Call dispatches one tool invocation.
 func (s *Server) Call(ctx context.Context, name string, arguments map[string]any) (any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	if arguments == nil {
 		arguments = map[string]any{}
 	}
 
 	var request contractv1.OperationRequest
 	switch name {
+	case "weave_sources":
+		return s.sourceList(), nil
 	case "weave_contract":
 		request = contractv1.OperationRequest{Op: contractv1.OpContract}
 	case "weave_search":
@@ -393,6 +463,8 @@ func (s *Server) sanitize(value any) any {
 
 // Resources returns the static resource descriptors.
 func (s *Server) Resources() []ResourceDescriptor {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	resources := []ResourceDescriptor{
 		{
 			URI:         "weave://bundle/index",
@@ -406,6 +478,14 @@ func (s *Server) Resources() []ResourceDescriptor {
 			Description: "Bundle counts and validation summary.",
 			MimeType:    "application/json",
 		},
+	}
+	if s.workspace {
+		resources = append(resources, ResourceDescriptor{
+			URI:         "weave://workspace/sources",
+			Name:        "Workspace sources",
+			Description: "Registered workspace sources with their lifecycle status.",
+			MimeType:    "application/json",
+		})
 	}
 	if s.db == "" {
 		return resources
@@ -494,6 +574,15 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 
 // ReadResource resolves one resource URI.
 func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.workspace && uri == "weave://workspace/sources" {
+		data, err := json.Marshal(s.sourceList())
+		if err != nil {
+			return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+		}
+		return ResourceContent{URI: uri, MimeType: "application/json", Text: string(data)}, nil
+	}
 	if strings.HasPrefix(uri, "weave://extension/") {
 		return s.readExtensionDataResource(ctx, uri)
 	}
@@ -844,13 +933,18 @@ func toolDescriptors() []ToolDescriptor {
 			),
 		},
 		{
+			Name:        "weave_sources",
+			Description: "List registered workspace sources with their lifecycle status.",
+			InputSchema: objectSchema(map[string]any{}, []any{}),
+		},
+		{
 			Name:        "weave_contract",
 			Description: "Return the operations contract.",
 			InputSchema: objectSchema(map[string]any{}, []any{}),
 		},
 	}
 	for index := range tools {
-		if tools[index].Name == "weave_contract" {
+		if tools[index].Name == "weave_contract" || tools[index].Name == "weave_sources" {
 			continue
 		}
 		properties, ok := tools[index].InputSchema["properties"].(map[string]any)

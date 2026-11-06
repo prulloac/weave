@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const schemaVersion = 7
+const schemaVersion = 8
 
 var migrations = []struct {
 	version int
@@ -18,6 +18,7 @@ var migrations = []struct {
 	{5, migrateV4toV5},
 	{6, migrateV5toV6},
 	{7, migrateV6toV7},
+	{8, migrateV7toV8},
 }
 
 func userVersion(db *sql.DB) (int, error) {
@@ -254,6 +255,23 @@ CREATE TABLE documents_v7 (
 	return tx.Commit()
 }
 
+func migrateV7toV8(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS sources (
+    alias TEXT PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'indexing',
+    generation INTEGER NOT NULL DEFAULT 0,
+    last_synced INTEGER NOT NULL DEFAULT 0,
+    content_hash TEXT NOT NULL DEFAULT ''
+);`)
+	if err != nil {
+		return err
+	}
+	store := &Store{db: db}
+	return store.BackfillSources(context.Background())
+}
+
 func createEmbeddingTables(tx *sql.Tx) error {
 	_, err := tx.Exec(`
 CREATE TABLE IF NOT EXISTS document_embeddings (
@@ -432,6 +450,14 @@ CREATE TABLE IF NOT EXISTS embedding_indexes (
     active INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL,
     PRIMARY KEY (model, dim, metric, element_type)
+);
+CREATE TABLE IF NOT EXISTS sources (
+    alias TEXT PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'indexing',
+    generation INTEGER NOT NULL DEFAULT 0,
+    last_synced INTEGER NOT NULL DEFAULT 0,
+    content_hash TEXT NOT NULL DEFAULT ''
 );
 `)
 	return err

@@ -43,7 +43,7 @@ or check; a scenario without one is a documentation gap.
 | [Watch mode](watch-mode.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `watch/watcher_test.go` |
 | [Weave explain](weave-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/explain_bdd_test.go` |
 | [Weave image](weave-image.md) | [weave-image.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-image.md) | `cmd/weave/blob_assets_bdd_test.go`, `weave-image/main_test.go` |
-| [Workspace and source registry](workspace.md) | [workspace.md](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md) | planned: `cmd/weave/workspace_bdd_test.go`, `storage/sqlite/schema_v8_test.go`, `mcp/workspace_test.go` |
+| [Workspace and source registry](workspace.md) | [workspace.md](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md) | `cmd/weave/workspace_bdd_test.go`, `storage/sqlite/schema_v8_test.go`, `mcp/workspace_test.go` |
 
 Extension-side protocol and provider scenarios live in
 [`weave-ai`](https://github.com/prulloac/weave-ai/blob/main/docs/bdd/ai-plugin.md). Image provider,

@@ -164,7 +164,7 @@ func TestMCPMultiSourceToolSchema(t *testing.T) {
 	rootA, _, sources := multiFixture(t)
 	server := multiServer(t, rootA, sources)
 	for _, tool := range server.Tools() {
-		if tool.Name == "weave_contract" {
+		if tool.Name == "weave_contract" || tool.Name == "weave_sources" {
 			continue
 		}
 		properties, _ := tool.InputSchema["properties"].(map[string]any)
