@@ -260,10 +260,7 @@ func runWorkspaceCommand(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 		if jsonOut {
-			sources := make([]contractv1.SourceSpec, 0, len(ws.Sources))
-			for _, source := range ws.Sources {
-				sources = append(sources, source)
-			}
+			sources := append([]contractv1.SourceSpec(nil), ws.Sources...)
 			if err := writeJSON(stdout, contractv1.SuccessEnvelope{
 				Contract: "weave.contract/v1", CLI: "weave.cli/v1", OK: true,
 				Result: map[string]any{"dir": ws.Dir, "index": ws.Index, "sources": sources},
