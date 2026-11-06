@@ -135,7 +135,7 @@ client-provided path.
 ### Scenario: Workspace bundle resources are explicit
 
 - **When** I read `weave://bundle/index` or `weave://bundle/stats` in workspace mode
-- **Then** the read fails with `INVALID_REQUEST`
+- **Then** the read fails with `RESOURCE_NOT_FOUND`
 - **And** the message points to the workspace or source form
 
 ### Scenario: Empty bundle index is an array
