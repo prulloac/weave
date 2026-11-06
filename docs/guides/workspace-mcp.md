@@ -230,7 +230,7 @@ Tools:
 
 | Tool | Use |
 | --- | --- |
-| `weave_sources` | List workspace sources and their status |
+| `weave_sources` | List workspace sources with status and concept/edge counts |
 | `weave_search` | Keyword, fuzzy, hybrid or BM25 search |
 | `weave_explain` | Explain a result's ranking |
 | `weave_show` | Read one concept |
@@ -243,13 +243,18 @@ Tools:
 
 Resources:
 
-- `weave://workspace/sources` — the live source registry.
+- `weave://workspace/sources` — the live source registry with counts.
+- `weave://workspace/concepts` — the concept catalog across active sources.
+- `weave://workspace/stats` — aggregate and per-source counts.
 - `weave://source/<alias>/concept/<id>` — one concept from a named source.
 - `weave://source/<alias>/bundle/index` and `.../bundle/stats`.
 - `weave://blob/<id>` — opaque blob bytes.
 
-Tell the agent to start with `weave_sources` so it knows which aliases exist, then pass `source` on a
-tool call to scope it:
+`weave://bundle/index` is the bundle's root `index.md` entries, not a concept catalog. In workspace
+mode it is rejected: use `weave://workspace/concepts` or the source form.
+
+Tell the agent to start with `weave_sources`, then use `weave_list` or `weave_search` to find a
+concept before reading it. Pass `source` on a tool call to scope it:
 
 ```json
 {
