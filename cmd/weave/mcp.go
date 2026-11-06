@@ -180,6 +180,7 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 		bundle = ""
 		if len(sources) > 0 {
 			bundle = sources[0].Path
+			options.bundle = bundle
 		}
 		if options.db == "" {
 			options.db = ws.Index
@@ -209,6 +210,10 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 	}
 
 	if workspaceMode && options.watch {
+		if len(sources) == 0 {
+			fmt.Fprintln(stderr, "weave mcp: --watch requires at least one workspace source")
+			return 2
+		}
 		go reconcileWorkspace(ctx, options.workspace, options.db, server, stderr)
 	}
 	transport := &mcp.Transport{Server: server, Token: options.token, Version: version}
