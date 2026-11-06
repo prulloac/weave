@@ -13,7 +13,20 @@ bundles/work  ─┘
 The full behavioral contract is in the
 [Workspace and Source Registry specification](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md).
 
+> **Availability:** workspace support is on `main` and is not part of the published `v1.0.0` release.
+> Until the next release ships, build Weave from `main`:
+>
+> ```sh
+> go install github.com/prulloac/weave/cmd/weave@main
+> export PATH="$(go env GOPATH)/bin:$PATH"
+> weave --version
+> ```
+>
+> Or clone the repository and run `go build -o weave ./cmd/weave`.
+
 ## 1. Install Weave
+
+If your release already includes workspace support, use the user-level installer.
 
 Linux or WSL:
 
@@ -29,7 +42,8 @@ irm https://raw.githubusercontent.com/prulloac/weave/main/scripts/install.ps1 | 
 ```
 
 `weave` is a single static binary. The installer puts it in a user-level bin directory and never needs
-`sudo` or administrator rights.
+`sudo` or administrator rights. For the current `main` build, use the `go install` command above and
+adjust the binary path in the OpenCode configuration to `$(go env GOPATH)/bin/weave`.
 
 ## 2. Create a workspace
 
