@@ -15,6 +15,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/operations"
+	"github.com/prulloac/weave/internal/lockfile"
 	"github.com/prulloac/weave/mcp"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
@@ -418,8 +419,22 @@ func resolveSourcePath(dir, rawPath string) (string, error) {
 	return filepath.Abs(expanded)
 }
 
+// acquireWorkspaceLock takes the single-writer lock for an index database.
+func acquireWorkspaceLock(index string) (*lockfile.Lock, error) {
+	if err := os.MkdirAll(filepath.Dir(index), 0o700); err != nil {
+		return nil, err
+	}
+	return lockfile.Acquire(index + ".lock")
+}
+
 // indexSource ingests one source into the workspace index and records its status.
 func indexSource(index, alias, path string) error {
+	lock, err := acquireWorkspaceLock(index)
+	if err != nil {
+		return err
+	}
+	defer lock.Release()
+
 	executor := operations.New(version, engine.Options{})
 	envelope := executor.Execute(context.Background(), contractv1.OperationRequest{
 		Op:   contractv1.OpIngest,
@@ -555,6 +570,39 @@ func sourceRecord(index, alias string) (sqlitestore.SourceRecord, bool, error) {
 	return store.SourceByAlias(context.Background(), alias)
 }
 
+// recordWorkspaceReport updates registry statuses from a multi-source write report.
+func recordWorkspaceReport(index string, value any) {
+	envelope, ok := value.(contractv1.SuccessEnvelope)
+	if !ok {
+		return
+	}
+	errorsByAlias := map[string]int{}
+	switch report := envelope.Result.(type) {
+	case contractv1.IngestReport:
+		for _, source := range report.Sources {
+			errorsByAlias[source.Source] = source.Errors
+		}
+	case contractv1.SyncReport:
+		for _, source := range report.Sources {
+			errorsByAlias[source.Source] = source.Errors
+		}
+	default:
+		return
+	}
+	store, err := sqlitestore.OpenExisting(index)
+	if err != nil {
+		return
+	}
+	defer store.Close()
+	for alias, failures := range errorsByAlias {
+		status := sqlitestore.SourceActive
+		if failures > 0 {
+			status = sqlitestore.SourceDegraded
+		}
+		_ = store.SetSourceStatus(context.Background(), alias, status)
+	}
+}
+
 func sourceStatusMap(index string) map[string]string {
 	statuses := map[string]string{}
 	store, err := sqlitestore.OpenExisting(index)
@@ -570,6 +618,23 @@ func sourceStatusMap(index string) map[string]string {
 		statuses[record.Alias] = string(record.Status)
 	}
 	return statuses
+}
+
+// reconcileOnce indexes new sources and swaps the served source set.
+func reconcileOnce(workspaceArg string, server *mcp.Server, stderr io.Writer) error {
+	ws, err := loadWorkspace(workspaceArg)
+	if err != nil {
+		return err
+	}
+	for _, source := range ws.Sources {
+		record, ok, _ := sourceRecord(ws.Index, source.Alias)
+		if !ok || record.Status == sqlitestore.SourceIndexing {
+			if err := indexSource(ws.Index, source.Alias, source.Path); err != nil {
+				fmt.Fprintf(stderr, "weave mcp: reconcile %s: %v\n", source.Alias, err)
+			}
+		}
+	}
+	return server.SetSources(ws.Sources, sourceStatusMap(ws.Index))
 }
 
 // reconcileWorkspace watches the manifest and re-reconciles sources at runtime.
@@ -595,16 +660,7 @@ func reconcileWorkspace(ctx context.Context, workspaceArg, index string, server 
 				continue
 			}
 			lastHash = hash
-
-			for _, source := range ws.Sources {
-				record, ok, _ := sourceRecord(ws.Index, source.Alias)
-				if !ok || record.Status == sqlitestore.SourceIndexing {
-					if err := indexSource(ws.Index, source.Alias, source.Path); err != nil {
-						fmt.Fprintf(stderr, "weave mcp: reconcile %s: %v\n", source.Alias, err)
-					}
-				}
-			}
-			if err := server.SetSources(ws.Sources, sourceStatusMap(ws.Index)); err != nil {
+			if err := reconcileOnce(workspaceArg, server, stderr); err != nil {
 				fmt.Fprintf(stderr, "weave mcp: reconcile: %v\n", err)
 			}
 		}

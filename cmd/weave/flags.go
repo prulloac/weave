@@ -33,6 +33,7 @@ type flags struct {
 	extensionName string
 	docID         string
 	db            string
+	workspace     string
 	noDB          bool
 	strict        bool
 	permissive    bool
@@ -191,6 +192,13 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.db = value
+		case "--workspace":
+			value, next, err := flagValue(args, index, "--workspace")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.workspace = value
 		case "--no-db":
 			result.noDB = true
 		case "--strict":

@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/operations"
+	"github.com/prulloac/weave/mcp"
 )
 
 func writeNote(t *testing.T, dir, name string) {
@@ -143,5 +149,108 @@ func TestSourceRemoveUnknownAlias(t *testing.T) {
 	code, _, stderr := Invoke(t, "source", "remove", "missing", "--workspace", dir)
 	if code != 1 || !strings.Contains(stderr, "SOURCE_NOT_FOUND") {
 		t.Fatalf("exit=%d stderr=%q", code, stderr)
+	}
+}
+
+func TestIngestWorkspace(t *testing.T) {
+	dir := t.TempDir()
+	notes := filepath.Join(t.TempDir(), "notes")
+	work := filepath.Join(t.TempDir(), "work")
+	writeNote(t, notes, "Alpha")
+	writeNote(t, work, "Beta")
+
+	Invoke(t, "workspace", "init", dir)
+	Invoke(t, "source", "add", "notes", notes, "--workspace", dir)
+	Invoke(t, "source", "add", "work", work, "--workspace", dir)
+
+	code, stdout, stderr := Invoke(t, "ingest", "--workspace", dir, "--json")
+	if code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"sources"`) ||
+		!strings.Contains(stdout, `"source":"notes"`) ||
+		!strings.Contains(stdout, `"source":"work"`) {
+		t.Fatalf("ingest report = %q", stdout)
+	}
+}
+
+func TestWorkspaceIngestLocked(t *testing.T) {
+	dir := t.TempDir()
+	notes := filepath.Join(t.TempDir(), "notes")
+	writeNote(t, notes, "Alpha")
+	Invoke(t, "workspace", "init", dir)
+	Invoke(t, "source", "add", "notes", notes, "--workspace", dir)
+
+	ws, err := loadWorkspace(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock, err := acquireWorkspaceLock(ws.Index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Release()
+
+	code, _, stderr := Invoke(t, "ingest", "--workspace", dir, "--json")
+	if code != 1 || !strings.Contains(stderr, "INDEX_LOCKED") {
+		t.Fatalf("exit=%d stderr=%q", code, stderr)
+	}
+}
+
+func TestReconcileOnceAddsSource(t *testing.T) {
+	dir := t.TempDir()
+	notes := filepath.Join(t.TempDir(), "notes")
+	work := filepath.Join(t.TempDir(), "work")
+	writeNote(t, notes, "Alpha")
+	writeNote(t, work, "Beta")
+
+	Invoke(t, "workspace", "init", dir)
+	Invoke(t, "source", "add", "notes", notes, "--workspace", dir)
+
+	ws, err := loadWorkspace(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executor := operations.New("test", engine.Options{})
+	server, err := mcp.New(executor, mcp.Options{
+		Bundle:         ws.Sources[0].Path,
+		Sources:        ws.Sources,
+		SourceStatuses: sourceStatusMap(ws.Index),
+		Workspace:      true,
+		DB:             ws.Index,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	file, _, err := loadWorkspaceFile(ws.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Sources["work"] = work
+	if err := writeWorkspaceFile(ws.Dir, file); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := reconcileOnce(dir, server, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+
+	value, err := server.Call(context.Background(), "weave_sources", map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := value.([]map[string]any)
+	if len(items) != 2 {
+		t.Fatalf("sources = %+v", items)
+	}
+	found := false
+	for _, item := range items {
+		if item["alias"] == "work" && item["status"] == "active" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("work not active: %+v", items)
 	}
 }

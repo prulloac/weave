@@ -104,12 +104,48 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	applyConfigToFlags(&flags, cfg, command)
 
-	request, exitCode, err := buildRequest(command, flags)
-	if err != nil {
-		return usageError(stdout, stderr, flags.json, err.Error())
-	}
-	if exitCode != 0 {
-		return exitCode
+	workspaceIndex := ""
+	var request contractv1.OperationRequest
+	if flags.workspace != "" {
+		switch command {
+		case "ingest", "rebuild", "sync":
+		default:
+			return usageError(stdout, stderr, flags.json, "--workspace is only valid for ingest, rebuild and sync")
+		}
+		if len(flags.positionals) > 0 {
+			return usageError(stdout, stderr, flags.json, "--workspace and a bundle path are mutually exclusive")
+		}
+		if len(flags.sources) > 0 {
+			return usageError(stdout, stderr, flags.json, "--workspace and --source are mutually exclusive")
+		}
+		ws, err := loadWorkspace(flags.workspace)
+		if err != nil {
+			return usageError(stdout, stderr, flags.json, err.Error())
+		}
+		if len(ws.Sources) == 0 {
+			return usageError(stdout, stderr, flags.json, "workspace has no sources")
+		}
+		if flags.db == "" {
+			flags.db = ws.Index
+		}
+		workspaceIndex = ws.Index
+		op := contractv1.OpIngest
+		switch command {
+		case "rebuild":
+			op = contractv1.OpRebuild
+		case "sync":
+			op = contractv1.OpSync
+		}
+		request = contractv1.OperationRequest{Op: op, Path: ws.Sources[0].Path, Sources: ws.Sources}
+	} else {
+		req, exitCode, err := buildRequest(command, flags)
+		if err != nil {
+			return usageError(stdout, stderr, flags.json, err.Error())
+		}
+		if exitCode != 0 {
+			return exitCode
+		}
+		request = req
 	}
 	request.DB = flags.db
 	request.NoDB = flags.noDB
@@ -183,6 +219,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	if flags.watch {
+		if flags.workspace != "" {
+			return usageError(stdout, stderr, flags.json, "--watch is not supported with --workspace; use weave mcp --workspace --watch")
+		}
 		if request.Op != contractv1.OpSync {
 			return usageError(stdout, stderr, flags.json, "--watch is only valid for sync")
 		}
@@ -292,10 +331,21 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "weave: %s\n", message)
 		}
 	}
+	if workspaceIndex != "" {
+		lock, err := acquireWorkspaceLock(workspaceIndex)
+		if err != nil {
+			fmt.Fprintln(stderr, "weave: INDEX_LOCKED: another writer holds the index")
+			return 1
+		}
+		defer lock.Release()
+	}
 	started := time.Now()
 	stopProgress := startProgress(stderr, request.Op, !flags.json && !flags.quiet && writerIsTerminal(stderr))
 	value := executor.Execute(context.Background(), request)
 	stopProgress()
+	if workspaceIndex != "" {
+		recordWorkspaceReport(workspaceIndex, value)
+	}
 	if flags.verbose {
 		fmt.Fprintf(stderr, "weave: elapsed: %s\n", time.Since(started).Round(time.Millisecond))
 	}
