@@ -291,4 +291,5 @@ must qualify it as `alias:id`.
 - [MCP Server specification](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-server.md)
 - [Multiple Bundle Sources specification](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md)
 - [Workspace and Source Registry decision](https://github.com/prulloac/weave-docs/blob/main/architecture/adr/0007-workspace-and-source-registry.md)
+- [Agent skills](https://github.com/prulloac/weave-skills) — tested CLI workflows for agents
 - [CLI reference](../../README.md#shipped-commands)
