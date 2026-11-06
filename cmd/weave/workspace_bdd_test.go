@@ -163,9 +163,16 @@ func TestIngestWorkspace(t *testing.T) {
 	Invoke(t, "source", "add", "notes", notes, "--workspace", dir)
 	Invoke(t, "source", "add", "work", work, "--workspace", dir)
 
+	ws, err := loadWorkspace(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	code, stdout, stderr := Invoke(t, "ingest", "--workspace", dir, "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, ws.Index) {
+		t.Fatalf("ingest used the wrong database: %q", stdout)
 	}
 	if !strings.Contains(stdout, `"sources"`) ||
 		!strings.Contains(stdout, `"source":"notes"`) ||

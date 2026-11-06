@@ -125,7 +125,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		if len(ws.Sources) == 0 {
 			return usageError(stdout, stderr, flags.json, "workspace has no sources")
 		}
-		if flags.db == "" {
+		if !flags.explicit["--db"] {
 			flags.db = ws.Index
 		}
 		workspaceIndex = ws.Index
