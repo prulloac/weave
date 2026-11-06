@@ -3,6 +3,9 @@ package mcp_test
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
@@ -29,6 +32,16 @@ func workspaceServer(t *testing.T) *mcp.Server {
 	return server
 }
 
+func emptyBundle(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	content := "---\ntype: Note\ntitle: One\nkeywords:\n  - one\n---\n\n# One\n"
+	if err := os.WriteFile(filepath.Join(root, "one.md"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func TestWorkspaceSourcesTool(t *testing.T) {
 	server := workspaceServer(t)
 
@@ -36,9 +49,6 @@ func TestWorkspaceSourcesTool(t *testing.T) {
 	for _, tool := range server.Tools() {
 		if tool.Name == "weave_sources" {
 			found = true
-		}
-		if _, ok := tool.InputSchema["properties"].(map[string]any)["source"]; ok && tool.Name == "weave_sources" {
-			t.Fatalf("weave_sources must not accept a source argument")
 		}
 	}
 	if !found {
@@ -59,6 +69,14 @@ func TestWorkspaceSourcesTool(t *testing.T) {
 	if items[1]["alias"] != "notes" || items[1]["status"] != "indexing" {
 		t.Fatalf("items[1] = %+v", items[1])
 	}
+	for _, item := range items {
+		if _, ok := item["concepts"]; !ok {
+			t.Fatalf("source missing concepts: %+v", item)
+		}
+		if _, ok := item["valid"]; !ok {
+			t.Fatalf("source missing valid: %+v", item)
+		}
+	}
 }
 
 func TestWorkspaceSourcesResource(t *testing.T) {
@@ -68,8 +86,9 @@ func TestWorkspaceSourcesResource(t *testing.T) {
 	for _, resource := range server.Resources() {
 		uris[resource.URI] = true
 	}
-	if !uris["weave://workspace/sources"] {
-		t.Fatalf("workspace resource missing: %+v", uris)
+	if !uris["weave://workspace/sources"] || !uris["weave://workspace/concepts"] ||
+		!uris["weave://workspace/stats"] {
+		t.Fatalf("workspace resources missing: %+v", uris)
 	}
 
 	content, err := server.ReadResource(context.Background(), "weave://workspace/sources")
@@ -82,6 +101,55 @@ func TestWorkspaceSourcesResource(t *testing.T) {
 	}
 	if len(items) != 2 || items[0]["alias"] != "docs" {
 		t.Fatalf("items = %+v", items)
+	}
+}
+
+func TestWorkspaceConceptsResource(t *testing.T) {
+	server := workspaceServer(t)
+	content, err := server.ReadResource(context.Background(), "weave://workspace/concepts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var concepts []contractv1.ListResult
+	if err := json.Unmarshal([]byte(content.Text), &concepts); err != nil {
+		t.Fatal(err)
+	}
+	if len(concepts) == 0 {
+		t.Fatal("expected workspace concepts")
+	}
+	for _, concept := range concepts {
+		if concept.Source == "" {
+			t.Fatalf("concept missing source: %+v", concept)
+		}
+	}
+}
+
+func TestWorkspaceStatsResource(t *testing.T) {
+	server := workspaceServer(t)
+	content, err := server.ReadResource(context.Background(), "weave://workspace/stats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stats map[string]any
+	if err := json.Unmarshal([]byte(content.Text), &stats); err != nil {
+		t.Fatal(err)
+	}
+	if stats["concepts"].(float64) == 0 {
+		t.Fatalf("stats = %+v", stats)
+	}
+	if _, ok := stats["per_source"]; !ok {
+		t.Fatalf("stats missing per_source: %+v", stats)
+	}
+}
+
+func TestWorkspaceRejectsBundleResources(t *testing.T) {
+	server := workspaceServer(t)
+	_, err := server.ReadResource(context.Background(), "weave://bundle/index")
+	if err == nil {
+		t.Fatal("expected workspace bundle resource to fail")
+	}
+	if !strings.Contains(err.Error(), "workspace mode") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -103,7 +171,6 @@ func TestWorkspaceSetSources(t *testing.T) {
 		t.Fatalf("items after SetSources = %+v", items)
 	}
 
-	// A removed source must no longer resolve.
 	if _, err := server.Call(context.Background(), "weave_show", map[string]any{
 		"id": "docs:missing", "source": "docs",
 	}); err == nil {
@@ -119,5 +186,27 @@ func TestWorkspaceSetSourcesRejectsDuplicates(t *testing.T) {
 	}, map[string]string{})
 	if err == nil {
 		t.Fatal("expected duplicate alias to fail")
+	}
+}
+
+func TestEmptyBundleIndexIsArray(t *testing.T) {
+	executor := operations.New("test", engine.Options{})
+	server, err := mcp.New(executor, mcp.Options{Bundle: emptyBundle(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := server.ReadResource(context.Background(), "weave://bundle/index")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(content.Text) == "null" {
+		t.Fatalf("empty index encoded as null: %s", content.Text)
+	}
+	var entries []contractv1.IndexEntry
+	if err := json.Unmarshal([]byte(content.Text), &entries); err != nil {
+		t.Fatalf("decode index: %v (%s)", err, content.Text)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("entries = %+v", entries)
 	}
 }

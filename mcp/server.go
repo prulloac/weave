@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 
@@ -172,18 +173,119 @@ func (s *Server) SetSources(sources []contractv1.SourceSpec, statuses map[string
 	return nil
 }
 
-func (s *Server) sourceList() []map[string]any {
+func (s *Server) sourceList(ctx context.Context) []map[string]any {
 	result := make([]map[string]any, 0, len(s.sources))
 	for _, source := range s.sources {
 		status := s.statuses[source.Alias]
 		if status == "" {
 			status = "active"
 		}
-		result = append(result, map[string]any{
+		entry := map[string]any{
 			"alias": source.Alias, "path": source.Path, "status": status,
-		})
+		}
+		if stats, err := s.bundleStats(ctx, source.Path); err == nil {
+			for key, value := range stats {
+				entry[key] = value
+			}
+		}
+		result = append(result, entry)
 	}
 	return result
+}
+
+func (s *Server) bundleStats(ctx context.Context, path string) (map[string]any, error) {
+	value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse, Path: path})
+	if err != nil {
+		return nil, err
+	}
+	bundle, ok := value.(*contractv1.Bundle)
+	if !ok {
+		return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected bundle payload"}
+	}
+	graphValue, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpGraph, Path: path})
+	if err != nil {
+		return nil, err
+	}
+	graph, ok := graphValue.(contractv1.Graph)
+	if !ok {
+		return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected graph payload"}
+	}
+	orphans := 0
+	for _, node := range graph.Nodes {
+		if node.InDegree == 0 && node.OutDegree == 0 {
+			orphans++
+		}
+	}
+	version := ""
+	if bundle.OkfVersion != nil {
+		version = string(*bundle.OkfVersion)
+	}
+	return map[string]any{
+		"concepts":      len(bundle.Concepts),
+		"edges":         len(graph.Edges),
+		"orphans":       orphans,
+		"index_entries": len(bundle.Index),
+		"valid":         bundle.Validation.Valid,
+		"okf_version":   version,
+	}, nil
+}
+
+func (s *Server) workspaceConcepts(ctx context.Context) ([]contractv1.ListResult, error) {
+	combined := make([]contractv1.ListResult, 0)
+	limit := 10000
+	for _, source := range s.sources {
+		if status := s.statuses[source.Alias]; status == "removed" || status == "indexing" {
+			continue
+		}
+		value, err := s.execute(ctx, contractv1.OperationRequest{
+			Op: contractv1.OpList, Path: source.Path, Limit: &limit,
+		})
+		if err != nil {
+			continue
+		}
+		results, ok := value.([]contractv1.ListResult)
+		if !ok {
+			continue
+		}
+		for index := range results {
+			results[index].Source = source.Alias
+		}
+		combined = append(combined, results...)
+	}
+	sort.Slice(combined, func(i, j int) bool {
+		if combined[i].Source != combined[j].Source {
+			return combined[i].Source < combined[j].Source
+		}
+		return combined[i].ID < combined[j].ID
+	})
+	return combined, nil
+}
+
+func (s *Server) workspaceStats(ctx context.Context) map[string]any {
+	aggregate := map[string]any{
+		"sources": len(s.sources), "concepts": 0, "edges": 0,
+		"index_entries": 0, "valid": true,
+	}
+	perSource := make([]map[string]any, 0, len(s.sources))
+	for _, source := range s.sources {
+		stats, err := s.bundleStats(ctx, source.Path)
+		if err != nil {
+			continue
+		}
+		perSource = append(perSource, map[string]any{
+			"source":   source.Alias,
+			"concepts": stats["concepts"], "edges": stats["edges"],
+			"index_entries": stats["index_entries"], "valid": stats["valid"],
+		})
+		aggregate["concepts"] = aggregate["concepts"].(int) + stats["concepts"].(int)
+		aggregate["edges"] = aggregate["edges"].(int) + stats["edges"].(int)
+		aggregate["index_entries"] = aggregate["index_entries"].(int) + stats["index_entries"].(int)
+		if valid, ok := stats["valid"].(bool); ok && !valid {
+			aggregate["valid"] = false
+		}
+	}
+	aggregate["per_source"] = perSource
+	return aggregate
 }
 
 // Tools returns the advertised tool descriptors.
@@ -202,7 +304,7 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 	var request contractv1.OperationRequest
 	switch name {
 	case "weave_sources":
-		return s.sourceList(), nil
+		return s.sourceList(ctx), nil
 	case "weave_contract":
 		request = contractv1.OperationRequest{Op: contractv1.OpContract}
 	case "weave_search":
@@ -465,27 +567,43 @@ func (s *Server) sanitize(value any) any {
 func (s *Server) Resources() []ResourceDescriptor {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	resources := []ResourceDescriptor{
-		{
-			URI:         "weave://bundle/index",
-			Name:        "Bundle index",
-			Description: "Root index entries for the bundle.",
-			MimeType:    "application/json",
-		},
-		{
-			URI:         "weave://bundle/stats",
-			Name:        "Bundle stats",
-			Description: "Bundle counts and validation summary.",
-			MimeType:    "application/json",
-		},
-	}
+	var resources []ResourceDescriptor
 	if s.workspace {
-		resources = append(resources, ResourceDescriptor{
-			URI:         "weave://workspace/sources",
-			Name:        "Workspace sources",
-			Description: "Registered workspace sources with their lifecycle status.",
-			MimeType:    "application/json",
-		})
+		resources = []ResourceDescriptor{
+			{
+				URI:         "weave://workspace/sources",
+				Name:        "Workspace sources",
+				Description: "Registered workspace sources with their lifecycle status and counts.",
+				MimeType:    "application/json",
+			},
+			{
+				URI:         "weave://workspace/concepts",
+				Name:        "Workspace concepts",
+				Description: "Concept catalog across all active workspace sources.",
+				MimeType:    "application/json",
+			},
+			{
+				URI:         "weave://workspace/stats",
+				Name:        "Workspace stats",
+				Description: "Aggregate and per-source concept, edge and validation counts.",
+				MimeType:    "application/json",
+			},
+		}
+	} else {
+		resources = []ResourceDescriptor{
+			{
+				URI:         "weave://bundle/index",
+				Name:        "Bundle index",
+				Description: "Root index entries for the bundle.",
+				MimeType:    "application/json",
+			},
+			{
+				URI:         "weave://bundle/stats",
+				Name:        "Bundle stats",
+				Description: "Bundle counts and validation summary.",
+				MimeType:    "application/json",
+			},
+		}
 	}
 	if s.db == "" {
 		return resources
@@ -576,12 +694,31 @@ func (s *Server) ResourceTemplates() []ResourceTemplate {
 func (s *Server) ReadResource(ctx context.Context, uri string) (ResourceContent, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.workspace && uri == "weave://workspace/sources" {
-		data, err := json.Marshal(s.sourceList())
-		if err != nil {
-			return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+	if s.workspace {
+		switch uri {
+		case "weave://workspace/sources":
+			data, err := json.Marshal(s.sourceList(ctx))
+			if err != nil {
+				return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+			}
+			return ResourceContent{URI: uri, MimeType: "application/json", Text: string(data)}, nil
+		case "weave://workspace/concepts":
+			concepts, err := s.workspaceConcepts(ctx)
+			if err != nil {
+				return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+			}
+			data, err := json.Marshal(concepts)
+			if err != nil {
+				return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+			}
+			return ResourceContent{URI: uri, MimeType: "application/json", Text: string(data)}, nil
+		case "weave://workspace/stats":
+			data, err := json.Marshal(s.workspaceStats(ctx))
+			if err != nil {
+				return ResourceContent{}, &Error{Code: contractv1.ErrInternal, Message: err.Error()}
+			}
+			return ResourceContent{URI: uri, MimeType: "application/json", Text: string(data)}, nil
 		}
-		return ResourceContent{URI: uri, MimeType: "application/json", Text: string(data)}, nil
 	}
 	if strings.HasPrefix(uri, "weave://extension/") {
 		return s.readExtensionDataResource(ctx, uri)
@@ -650,6 +787,13 @@ func isBlobResource(uri string) bool {
 }
 
 func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
+	if s.workspace && strings.HasPrefix(uri, "weave://bundle/") {
+		return nil, &Error{
+			Code: contractv1.ErrInvalidRequest,
+			Message: "workspace mode: use weave://workspace/... or " +
+				"weave://source/<alias>/... instead of " + uri,
+		}
+	}
 	path := s.bundle
 	rest := uri
 	sourceAlias := ""
@@ -679,42 +823,16 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 		if !ok {
 			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected bundle payload"}
 		}
+		if bundle.Index == nil {
+			return []contractv1.IndexEntry{}, nil
+		}
 		return bundle.Index, nil
 	case "weave://bundle/stats":
-		value, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpParse, Path: path})
+		stats, err := s.bundleStats(ctx, path)
 		if err != nil {
 			return nil, err
 		}
-		bundle, ok := value.(*contractv1.Bundle)
-		if !ok {
-			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected bundle payload"}
-		}
-		graphValue, err := s.execute(ctx, contractv1.OperationRequest{Op: contractv1.OpGraph, Path: path})
-		if err != nil {
-			return nil, err
-		}
-		view, ok := graphValue.(contractv1.Graph)
-		if !ok {
-			return nil, &Error{Code: contractv1.ErrInternal, Message: "unexpected graph payload"}
-		}
-		orphans := 0
-		for _, node := range view.Nodes {
-			if node.InDegree == 0 && node.OutDegree == 0 {
-				orphans++
-			}
-		}
-		version := ""
-		if bundle.OkfVersion != nil {
-			version = string(*bundle.OkfVersion)
-		}
-		return map[string]any{
-			"concepts":      len(bundle.Concepts),
-			"edges":         len(view.Edges),
-			"orphans":       orphans,
-			"index_entries": len(bundle.Index),
-			"valid":         bundle.Validation.Valid,
-			"okf_version":   version,
-		}, nil
+		return stats, nil
 	}
 
 	for _, prefix := range []string{"weave://concept/", "weave://blob/", "weave://graph/neighborhood/"} {
@@ -726,6 +844,9 @@ func (s *Server) resourcePayload(ctx context.Context, uri string) (any, error) {
 			return nil, &Error{Code: contractv1.ErrInvalidRequest, Message: "resource not found: " + uri}
 		}
 		request := contractv1.OperationRequest{Path: path, Target: id, Decrypt: s.allowSensitive}
+		if s.workspace && sourceAlias == "" {
+			request.Sources = s.sources
+		}
 		if prefix == "weave://concept/" || prefix == "weave://blob/" {
 			request.Op = contractv1.OpShow
 		} else {

@@ -4,7 +4,7 @@ Human-readable behavior cases for a durable multi-source workspace: a manifest, 
 registry, CLI management commands, and an MCP server that re-reconciles sources at runtime.
 
 **Spec reference:** [workspace.md](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md)
-**Go tests:** planned: `cmd/weave/workspace_bdd_test.go`, `storage/sqlite/schema_v8_test.go`, `mcp/workspace_test.go`
+**Go tests:** `cmd/weave/workspace_bdd_test.go`, `storage/sqlite/schema_v8_test.go`, `mcp/workspace_test.go`
 
 A workspace groups named bundle sources under one index database. Sources are added and removed
 through the CLI or manifest edits; MCP serves the workspace read-only and never accepts a
@@ -115,17 +115,34 @@ client-provided path.
 - **Then** tools read the active sources
 - **And** the advertised tools are unchanged
 
-### Scenario: Registry is exposed read-only
+### Scenario: Registry is exposed with counts
 
 - **When** I call `weave_sources`
-- **Then** the result lists each source with `alias`, `path` and `status`
+- **Then** the result lists each source with `alias`, `path`, `status`, `concepts`, `edges`,
+  `index_entries` and `valid`
 
 ### Scenario: Workspace resources resolve
 
 - **When** I read `weave://workspace/sources`
-- **Then** the payload is the registry JSON
+- **Then** the payload is the registry JSON with counts
+- **When** I read `weave://workspace/concepts`
+- **Then** the payload lists concepts across active sources with `source`
+- **When** I read `weave://workspace/stats`
+- **Then** the payload contains aggregate and per-source counts
 - **When** I read `weave://source/docs/concept/common`
 - **Then** the concept comes from the `docs` source
+
+### Scenario: Workspace bundle resources are explicit
+
+- **When** I read `weave://bundle/index` or `weave://bundle/stats` in workspace mode
+- **Then** the read fails with `INVALID_REQUEST`
+- **And** the message points to the workspace or source form
+
+### Scenario: Empty bundle index is an array
+
+- **Given** a non-workspace bundle with no root `index.md`
+- **When** I read `weave://bundle/index`
+- **Then** the payload is `[]`, not `null`
 
 ### Scenario: MCP never accepts a client path
 
