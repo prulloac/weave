@@ -13,6 +13,31 @@ type commandHelp struct {
 }
 
 var commandHelpText = map[string]commandHelp{
+	"workspace": {
+		Usage:   "weave workspace init|show|path [flags]",
+		Summary: "Create or inspect a workspace manifest and its index.",
+		Flags: []string{
+			"--workspace <dir>                  manifest directory or file",
+			"--json                             one weave.cli/v1 envelope",
+		},
+		Examples: []string{
+			`weave workspace init ~/weave-workspace`,
+			`weave workspace show --workspace ~/weave-workspace --json`,
+		},
+	},
+	"source": {
+		Usage:   "weave source add|remove|list|show [flags]",
+		Summary: "Register, remove or inspect workspace bundle sources.",
+		Flags: []string{
+			"--workspace <dir>                  manifest directory or file",
+			"--prune                            delete index rows on remove",
+			"--json                             one weave.cli/v1 envelope",
+		},
+		Examples: []string{
+			`weave source add notes ~/notes --workspace ~/weave-workspace`,
+			`weave source list --workspace ~/weave-workspace --json`,
+		},
+	},
 	"search": {
 		Usage:   "weave search <path> <query> [flags]",
 		Summary: "Rank concepts with keyword, fuzzy, hybrid or BM25 search.",
@@ -259,6 +284,8 @@ read:
   parse graph search list show backlinks path relate explain audit
 write:
   ingest rebuild sync export
+workspace:
+  workspace source
 configure & integrate:
   config codecs embeddings extensions completion mcp contract version
 

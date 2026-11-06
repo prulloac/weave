@@ -177,6 +177,10 @@ func loadWorkspaceFile(dir string) (workspaceFile, string, error) {
 }
 
 func runWorkspaceCommand(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
+		printCommandHelp(stdout, "workspace")
+		return 0
+	}
 	if len(args) == 0 {
 		fmt.Fprintln(stderr, "workspace requires a subcommand: init, show or path")
 		return 2
@@ -293,6 +297,10 @@ func firstNonEmpty(values ...string) string {
 }
 
 func runSourceCommand(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
+		printCommandHelp(stdout, "source")
+		return 0
+	}
 	if len(args) == 0 {
 		fmt.Fprintln(stderr, "source requires a subcommand: add, remove, list or show")
 		return 2
