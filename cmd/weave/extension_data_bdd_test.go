@@ -112,6 +112,24 @@ func TestExtensionDataCLIListAndGet(t *testing.T) {
 		t.Fatalf("unexpected item: %+v", item)
 	}
 
+	code, stdout, stderr = Invoke(t, "extensions", "data", "get", root, "data", "assets/missing.bin",
+		"--out", filepath.Join(t.TempDir(), "missing.bin"), "--db", db, "--json")
+	if code != 1 {
+		t.Fatalf("missing data exit=%d stderr=%q", code, stderr)
+	}
+	var failure struct {
+		OK    bool `json:"ok"`
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &failure); err != nil {
+		t.Fatal(err)
+	}
+	if failure.OK || failure.Error.Code != "EXTENSION_DATA_NOT_FOUND" {
+		t.Fatalf("unexpected missing-data envelope: %s", stdout)
+	}
+
 	output := filepath.Join(t.TempDir(), "sample.bin")
 	code, _, stderr = Invoke(t, "extensions", "data", "get", root, "data", item.Key, "--out", output, "--db", db, "--json")
 	if code != 0 {

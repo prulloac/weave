@@ -16,6 +16,7 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Weighted fuzzy search** over title, description and body.
 - **Hybrid top-K results** with component scores and match metadata.
 - **BM25 lexical ranking** through SQLite FTS5 with field weights, phrases and negative terms.
+- **Semantic search** over durable embeddings with per-space `vec0` KNN.
 - **Calibrated hybrid ranking** using normalized BM25 plus fuzzy scores.
 - **MCP tool harness** over operations, with stdio/TCP JSON-RPC transport, token auth and resources.
 - **Graph navigation**: show, backlinks and shortest path.
@@ -23,7 +24,12 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Graph relate**: bounded depth/direction neighborhoods.
 - **Bundle audit**: conformance, link, orphan and index-quality findings.
 - **SQLite persistence**: bundle-scoped default database at `~/.weave/index.db`; `--no-db` opts out.
+- **Workspaces and multiple sources**: persisted source registry, `--workspace` writes and
+  `weave mcp --workspace` with runtime re-reconciliation.
+- **Blob assets**: opaque documents with content metadata; `weave-image` adds OCR, EXIF and vision.
 - **Body compression**: text-readable bodies stored raw; binary blobs zstd by default, with per-row codecs, codec extensions and corruption recovery.
+- **Codec extensions**: `weave-codec-<name>` raw-byte codecs; LZ4 is the first-party extension.
+- **Extension data**: list, read and garbage-collect extension-owned opaque artifacts.
 - **Permissive ingestion**: index non-OKF Markdown with deterministic synthetic metadata and warnings.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
@@ -406,6 +412,69 @@ weave export ~/notes --out ./export --format encrypted --key-id export-2026 --js
 
 Spec: [Bundle Export](https://github.com/prulloac/weave-docs/blob/main/specs/bundle-export.md).
 
+#### `weave embeddings`
+
+Inspect, rebuild or drop the embedding spaces used by `--mode semantic`.
+
+```sh
+weave embeddings list ~/notes --json
+weave embeddings rebuild ~/notes --model nomic-embed-text --with-embedder ai --db ~/.weave/index.db
+weave embeddings drop ~/notes --model nomic-embed-text --keep-source --db ~/.weave/index.db
+```
+
+- Embeddings are durable and scoped by model, dimension and metric.
+- `--keep-source` drops only the `vec0` index; rebuild re-inserts from stored vectors.
+- `ingest`, `sync` and `rebuild` write embeddings with `--with-embedder <name>`.
+
+Spec: [Embeddings](https://github.com/prulloac/weave-docs/blob/main/specs/embeddings.md).
+
+#### `weave codecs`
+
+List built-in and extension-provided body codecs.
+
+```sh
+weave codecs list ~/notes --json
+```
+
+- `zstd` is built in; `none` stores bytes unchanged.
+- LZ4 and other algorithms come from `weave-codec-<name>` extensions.
+
+Spec: [Codec Extensions](https://github.com/prulloac/weave-docs/blob/main/specs/codec-extensions.md).
+
+#### `weave workspace`
+
+Create or inspect a durable workspace manifest and its index.
+
+```sh
+weave workspace init ~/weave-workspace
+weave workspace show --workspace ~/weave-workspace --json
+weave workspace path --workspace ~/weave-workspace
+```
+
+- The manifest is `weave.workspace.yaml`; the default index is `<workspace>/.weave/index.db`.
+- `ingest`, `rebuild` and `sync` accept `--workspace` instead of a bundle path.
+- Only one writer may hold the index; a second writer reports `INDEX_LOCKED`.
+
+Spec: [Workspace and Source Registry](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md).
+Guide: [Connect an agent over MCP](docs/guides/workspace-mcp.md).
+
+#### `weave source`
+
+Register, remove or inspect workspace bundle sources.
+
+```sh
+weave source add notes ~/notes --workspace ~/weave-workspace
+weave source list --workspace ~/weave-workspace --json
+weave source show notes --workspace ~/weave-workspace --json
+weave source remove work --workspace ~/weave-workspace --prune
+```
+
+- Aliases must match `[a-z0-9][a-z0-9-]*`; `contract`, `weave` and `workspace` are reserved.
+- `add` writes the manifest and indexes the source; `--prune` deletes index rows on remove.
+- Source status is `active`, `indexing` or `degraded`.
+
+Spec: [Workspace and Source Registry](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md).
+
 #### Privacy directives
 
 Declare per-document policies in frontmatter or protect inline spans with HTML comments. Weave
@@ -466,10 +535,14 @@ Spec: [External Crypto Providers](https://github.com/prulloac/weave-docs/blob/ma
 
 List executable `weave-<name>` extensions from `<path>/.weave/bin/` and `$PATH`. Enrichers run
 during writes with `--with-enricher`, rerankers during search with `--rerank`; both speak
-`weave.cli/v1` JSON over stdin/stdout.
+`weave.cli/v1` JSON over stdin/stdout. `weave extensions data` reads and garbage-collects opaque
+artifacts published by extensions.
 
 ```sh
 weave extensions list ~/notes --json
+weave extensions data list ~/notes --extension images --json
+weave extensions data get ~/notes images assets/architecture.png --out architecture.png --json
+weave extensions data gc ~/notes --dry-run --json
 weave ingest ~/notes --db ~/.weave/index.db --with-enricher keywords --json
 weave search ~/notes "token rotation" --rerank keywords --json
 ```
@@ -478,8 +551,11 @@ weave search ~/notes "token rotation" --rerank keywords --json
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.
 - Default timeout is `5s`; override with `--timeout`.
+- `extensions data get` writes exact bytes to `--out`; `--force` replaces an existing file.
+- `extensions data gc` removes blobs with no metadata row; `--dry-run` reports only.
 
-Spec: [Extension Subprocess IPC](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md).
+Specs: [Extension Subprocess IPC](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md),
+[Extension Data API](https://github.com/prulloac/weave-docs/blob/main/specs/extension-data.md).
 
 #### `weave-ai`
 
@@ -514,16 +590,20 @@ weave mcp --bundle ~/notes --stdio
 weave mcp --bundle ~/notes --listen 127.0.0.1:7331 --token secret
 weave mcp --bundle ~/notes --db ~/.weave/index.db
 weave mcp --bundle ~/notes --source work=~/work/notes --db ~/.weave/index.db --watch
+weave mcp --workspace ~/weave-workspace --watch --stdio
 ```
 
 - `--source` adds bundle sources; tools accept an optional `source` alias and resources expose
   `weave://source/<alias>/...`.
+- `--workspace` serves a workspace manifest read-only; `--watch` reconciles added and removed
+  sources without restarting the server.
 - Encrypted bodies are redacted by default; `--allow-sensitive` decrypts `weave_show` and concept
   resources without making encrypted documents searchable.
 - Without `source`, tools merge sources and reject ambiguous targets.
 
 Specs: [MCP Server](https://github.com/prulloac/weave-docs/blob/main/specs/mcp-server.md), [Watch Mode](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md),
-[Multiple Bundle Sources](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md).
+[Multiple Bundle Sources](https://github.com/prulloac/weave-docs/blob/main/specs/multi-bundle.md),
+[Workspace and Source Registry](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md).
 
 #### `weave version`
 

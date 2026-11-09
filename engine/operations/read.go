@@ -7,6 +7,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/audit"
+	"github.com/prulloac/weave/engine/codecs"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/nav"
 	"github.com/prulloac/weave/engine/privacy"
@@ -154,12 +155,21 @@ func (e *Executor) readAudit(ctx context.Context, eng *engine.Engine, request co
 	if provider != nil {
 		defer provider.Close()
 	}
+	installedCodecs := make([]string, 0)
+	if !request.NoDB {
+		if infos, err := codecs.New(request.Path, codecs.DefaultTimeout).List(ctx); err == nil {
+			for _, info := range infos {
+				installedCodecs = append(installedCodecs, info.Name)
+			}
+		}
+	}
 	return success(audit.Build(eng.Bundle(), eng.Graph(), audit.Options{
 		FailOn:        failOn,
 		VerifyKeys:    request.VerifyKeys,
 		Permissive:    request.Permissive,
 		Provider:      provider,
 		ExtraFindings: extraFindings,
+		Codecs:        installedCodecs,
 	}))
 }
 

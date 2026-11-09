@@ -154,6 +154,39 @@ func TestFailedUsesConfiguredThreshold(t *testing.T) {
 	}
 }
 
+func TestBuildReportsMissingStoredCodec(t *testing.T) {
+	bundle := &contractv1.Bundle{
+		Root: "/bundle",
+		Concepts: []contractv1.OkfConcept{
+			{ID: "compressed", Path: "compressed.md", Type: "Blob", Keywords: []string{"blob"}, BodyCodec: "lz4"},
+			{ID: "raw", Path: "raw.md", Type: "Concept", Keywords: []string{"raw"}},
+		},
+		Validation: contractv1.Validation{Valid: true},
+	}
+
+	report := Build(bundle, graph.Build(bundle), Options{Codecs: []string{"none", "zstd"}})
+
+	if !hasCode(report, contractv1.AuditCodecMissing) {
+		t.Fatalf("expected CODEC_MISSING, got %v", codes(report))
+	}
+	if !report.OK {
+		t.Fatal("a missing codec is a warning, not an error")
+	}
+	for _, finding := range report.Findings {
+		if finding.Code != contractv1.AuditCodecMissing {
+			continue
+		}
+		if finding.Concept != "compressed" || finding.Target != "lz4" {
+			t.Fatalf("unexpected codec finding: %+v", finding)
+		}
+	}
+
+	report = Build(bundle, graph.Build(bundle), Options{Codecs: []string{"none", "zstd", "lz4"}})
+	if hasCode(report, contractv1.AuditCodecMissing) {
+		t.Fatalf("installed codec must not be reported: %v", codes(report))
+	}
+}
+
 func codes(report contractv1.AuditReport) []contractv1.AuditFindingCode {
 	result := make([]contractv1.AuditFindingCode, len(report.Findings))
 	for index, finding := range report.Findings {

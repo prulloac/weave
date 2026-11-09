@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/extensions"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
@@ -60,16 +61,16 @@ func runExtensionData(args []string, stdout, stderr io.Writer) int {
 	if dbPath == "" {
 		dbPath, err = sqlitestore.DefaultPath()
 		if err != nil {
-			return extensionDataError(stdout, stderr, flags.json, err.Error())
+			return extensionDataError(stdout, stderr, flags.json, err)
 		}
 	}
 	dbPath, err = sqlitestore.ExpandPath(dbPath)
 	if err != nil {
-		return extensionDataError(stdout, stderr, flags.json, err.Error())
+		return extensionDataError(stdout, stderr, flags.json, err)
 	}
 	store, err := sqlitestore.OpenExisting(dbPath)
 	if err != nil {
-		return extensionDataError(stdout, stderr, flags.json, err.Error())
+		return extensionDataError(stdout, stderr, flags.json, err)
 	}
 	defer store.Close()
 
@@ -84,7 +85,7 @@ func runExtensionData(args []string, stdout, stderr io.Writer) int {
 			DocID:     flags.docID,
 		})
 		if err != nil {
-			return extensionDataError(stdout, stderr, flags.json, err.Error())
+			return extensionDataError(stdout, stderr, flags.json, err)
 		}
 		result := extensionDataListResult{Data: make([]extensionDataResult, 0, len(records))}
 		for _, record := range records {
@@ -136,15 +137,15 @@ func runExtensionData(args []string, stdout, stderr io.Writer) int {
 			)
 		}
 		if err != nil {
-			return extensionDataError(stdout, stderr, flags.json, err.Error())
+			return extensionDataError(stdout, stderr, flags.json, err)
 		}
 		if _, err := os.Stat(flags.out); err == nil && !flags.force {
 			return usageError(stdout, stderr, flags.json, "OUTPUT_EXISTS: "+flags.out+" already exists; use --force")
 		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return extensionDataError(stdout, stderr, flags.json, err.Error())
+			return extensionDataError(stdout, stderr, flags.json, err)
 		}
 		if err := os.WriteFile(flags.out, data, 0o600); err != nil {
-			return extensionDataError(stdout, stderr, flags.json, err.Error())
+			return extensionDataError(stdout, stderr, flags.json, err)
 		}
 		result := extensionDataResult{
 			Extension: record.Extension,
@@ -167,7 +168,7 @@ func runExtensionData(args []string, stdout, stderr io.Writer) int {
 		}
 		removed, err := store.GCExtensionDataWithOptions(context.Background(), flags.positional(1), flags.dryRun)
 		if err != nil {
-			return extensionDataError(stdout, stderr, flags.json, err.Error())
+			return extensionDataError(stdout, stderr, flags.json, err)
 		}
 		result := extensionDataGCResult{Removed: removed, DryRun: flags.dryRun}
 		if flags.json {
@@ -185,8 +186,21 @@ func runExtensionData(args []string, stdout, stderr io.Writer) int {
 	}
 }
 
-func extensionDataError(stdout, stderr io.Writer, jsonMode bool, message string) int {
+func extensionDataError(stdout, stderr io.Writer, jsonMode bool, err error) int {
 	code := contractv1.ErrInternal
+	switch {
+	case errors.Is(err, sqlitestore.ErrExtensionDataNotFound):
+		code = contractv1.ErrExtensionDataNotFound
+	case errors.Is(err, sqlitestore.ErrExtensionDataAmbiguous):
+		code = contractv1.ErrInvalidRequest
+	case errors.Is(err, extensions.ErrDataInvalid):
+		code = contractv1.ErrExtensionDataInvalid
+	case errors.Is(err, extensions.ErrDataTooLarge):
+		code = contractv1.ErrExtensionDataTooLarge
+	case errors.Is(err, extensions.ErrDataQuota):
+		code = contractv1.ErrExtensionDataQuota
+	}
+	message := err.Error()
 	if jsonMode {
 		_ = writeJSON(stdout, contractv1.FailureEnvelope{
 			Contract: "weave.contract/v1",
