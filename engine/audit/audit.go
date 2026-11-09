@@ -20,6 +20,9 @@ type Options struct {
 	Permissive    bool
 	Provider      privacy.Provider
 	ExtraFindings []contractv1.AuditFinding
+	// Codecs lists installed codec names. When non-empty, stored body codecs
+	// that are absent from this list produce a CODEC_MISSING warning.
+	Codecs []string
 }
 
 // Build evaluates a parsed bundle and its graph.
@@ -44,6 +47,7 @@ func Build(bundle *contractv1.Bundle, view *graph.Graph, options Options) contra
 	addGraphFindings(bundle, view, &report)
 	addIndexFindings(bundle, &report)
 	addBundleWarnings(bundle, &report)
+	addCodecFindings(bundle, &report, options.Codecs)
 	if options.VerifyKeys {
 		addPrivacyFindings(bundle, &report, options.Provider)
 	}
@@ -255,6 +259,30 @@ func addBundleWarnings(bundle *contractv1.Bundle, report *contractv1.AuditReport
 				warning,
 			))
 		}
+	}
+}
+
+func addCodecFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport, installed []string) {
+	if len(installed) == 0 {
+		return
+	}
+	known := make(map[string]bool, len(installed))
+	for _, name := range installed {
+		known[name] = true
+	}
+	for _, concept := range bundle.Concepts {
+		codec := strings.TrimSpace(concept.BodyCodec)
+		if codec == "" || codec == "none" || known[codec] {
+			continue
+		}
+		report.Findings = append(report.Findings, finding(
+			contractv1.AuditCodecMissing,
+			contractv1.AuditSeverityWarning,
+			concept.ID,
+			"",
+			codec,
+			"body codec "+codec+" is not installed",
+		))
 	}
 }
 
