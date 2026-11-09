@@ -274,6 +274,7 @@ type KeywordHit struct {
 	MatchedKeywords []string `json:"matched_keywords"`
 	Score           float64  `json:"score"`
 	RerankScore     *float64 `json:"rerank_score,omitempty"`
+	ScorerScore     *float64 `json:"scorer_score,omitempty"`
 }
 
 // FuzzyHit is a fuzzy-dimension search result.
@@ -287,6 +288,7 @@ type FuzzyHit struct {
 	MatchedFields []SearchField `json:"matched_fields"`
 	Snippet       *string       `json:"snippet,omitempty"`
 	RerankScore   *float64      `json:"rerank_score,omitempty"`
+	ScorerScore   *float64      `json:"scorer_score,omitempty"`
 }
 
 // HybridHit is a combined search result.
@@ -304,6 +306,7 @@ type HybridHit struct {
 	MatchedFields   []SearchField `json:"matched_fields"`
 	Snippet         *string       `json:"snippet,omitempty"`
 	RerankScore     *float64      `json:"rerank_score,omitempty"`
+	ScorerScore     *float64      `json:"scorer_score,omitempty"`
 }
 
 // LexicalHit is one BM25 lexical search result.
@@ -316,6 +319,7 @@ type LexicalHit struct {
 	RawScore    float64  `json:"raw_score"`
 	Score       float64  `json:"score"`
 	RerankScore *float64 `json:"rerank_score,omitempty"`
+	ScorerScore *float64 `json:"scorer_score,omitempty"`
 }
 
 // SemanticHit is one semantic search result.
@@ -332,6 +336,13 @@ type SemanticHit struct {
 	EmbeddingDim   int      `json:"embedding_dim"`
 }
 
+// ScorerInfo describes the scorer applied to one search response.
+type ScorerInfo struct {
+	Name       string  `json:"name"`
+	Weight     float64 `json:"weight"`
+	CandidateK int     `json:"candidate_k"`
+}
+
 // SearchResponse contains the keyword, fuzzy, hybrid, lexical and semantic top-K lists.
 type SearchResponse struct {
 	Query    string        `json:"query"`
@@ -342,6 +353,7 @@ type SearchResponse struct {
 	Hybrid   []HybridHit   `json:"hybrid"`
 	Lexical  []LexicalHit  `json:"lexical,omitempty"`
 	Semantic []SemanticHit `json:"semantic,omitempty"`
+	Scorer   *ScorerInfo   `json:"scorer,omitempty"`
 }
 
 // ListResult is one metadata-filtered concept.
@@ -559,6 +571,17 @@ type ExplainResult struct {
 	Fuzzy   ExplainFuzzy    `json:"fuzzy"`
 	Hybrid  ExplainHybrid   `json:"hybrid"`
 	Lexical *ExplainLexical `json:"lexical,omitempty"`
+	Scorer  *ExplainScorer  `json:"explain_scorer,omitempty"`
+}
+
+// ExplainScorer is the scorer evidence for one explained result.
+type ExplainScorer struct {
+	Name        string  `json:"name"`
+	Weight      float64 `json:"weight"`
+	CandidateK  int     `json:"candidate_k"`
+	CoreScore   float64 `json:"core_score"`
+	ScorerScore float64 `json:"scorer_score"`
+	FinalScore  float64 `json:"final_score"`
 }
 
 // IngestReport is the result of `weave ingest` or `weave rebuild`.
@@ -754,45 +777,48 @@ type CodecList struct {
 
 // OperationRequest is the transport-neutral request shape for stdio/MCP.
 type OperationRequest struct {
-	ID         string          `json:"id,omitempty"`
-	Op         OperationName   `json:"op"`
-	Path       string          `json:"path,omitempty"`
-	Query      string          `json:"query,omitempty"`
-	Mode       SearchMode      `json:"mode,omitempty"`
-	TopK       *int            `json:"top_k,omitempty"`
-	Target     string          `json:"target,omitempty"`
-	From       string          `json:"from,omitempty"`
-	To         string          `json:"to,omitempty"`
-	Types      []string        `json:"types,omitempty"`
-	Tags       []string        `json:"tags,omitempty"`
-	Status     string          `json:"status,omitempty"`
-	Limit      *int            `json:"limit,omitempty"`
-	FailOn     AuditFailOn     `json:"fail_on,omitempty"`
-	VerifyKeys bool            `json:"verify_keys,omitempty"`
-	Decrypt    bool            `json:"decrypt,omitempty"`
-	Depth      *int            `json:"depth,omitempty"`
-	Direction  RelateDirection `json:"direction,omitempty"`
-	DB         string          `json:"db,omitempty"`
-	NoDB       bool            `json:"no_db,omitempty"`
-	Strict     bool            `json:"strict,omitempty"`
-	Permissive bool            `json:"permissive,omitempty"`
-	Assets     bool            `json:"assets,omitempty"`
-	NoAssets   bool            `json:"no_assets,omitempty"`
-	AssetTypes []string        `json:"asset_types,omitempty"`
-	Codec      string          `json:"codec,omitempty"`
-	CodecSet   bool            `json:"codec_set,omitempty"`
-	Enricher   string          `json:"enricher,omitempty"`
-	Embedder   string          `json:"embedder,omitempty"`
-	Rerank     string          `json:"rerank,omitempty"`
-	TimeoutMS  int64           `json:"timeout_ms,omitempty"`
-	Sources    []SourceSpec    `json:"sources,omitempty"`
-	Out        string          `json:"out,omitempty"`
-	Format     string          `json:"format,omitempty"`
-	KeyID      string          `json:"key_id,omitempty"`
-	Provider   string          `json:"provider,omitempty"`
-	Force      bool            `json:"force,omitempty"`
-	Confirmed  bool            `json:"confirmed,omitempty"`
-	DryRun     bool            `json:"dry_run,omitempty"`
+	ID           string          `json:"id,omitempty"`
+	Op           OperationName   `json:"op"`
+	Path         string          `json:"path,omitempty"`
+	Query        string          `json:"query,omitempty"`
+	Mode         SearchMode      `json:"mode,omitempty"`
+	TopK         *int            `json:"top_k,omitempty"`
+	Target       string          `json:"target,omitempty"`
+	From         string          `json:"from,omitempty"`
+	To           string          `json:"to,omitempty"`
+	Types        []string        `json:"types,omitempty"`
+	Tags         []string        `json:"tags,omitempty"`
+	Status       string          `json:"status,omitempty"`
+	Limit        *int            `json:"limit,omitempty"`
+	FailOn       AuditFailOn     `json:"fail_on,omitempty"`
+	VerifyKeys   bool            `json:"verify_keys,omitempty"`
+	Decrypt      bool            `json:"decrypt,omitempty"`
+	Depth        *int            `json:"depth,omitempty"`
+	Direction    RelateDirection `json:"direction,omitempty"`
+	DB           string          `json:"db,omitempty"`
+	NoDB         bool            `json:"no_db,omitempty"`
+	Strict       bool            `json:"strict,omitempty"`
+	Permissive   bool            `json:"permissive,omitempty"`
+	Assets       bool            `json:"assets,omitempty"`
+	NoAssets     bool            `json:"no_assets,omitempty"`
+	AssetTypes   []string        `json:"asset_types,omitempty"`
+	Codec        string          `json:"codec,omitempty"`
+	CodecSet     bool            `json:"codec_set,omitempty"`
+	Enricher     string          `json:"enricher,omitempty"`
+	Embedder     string          `json:"embedder,omitempty"`
+	Rerank       string          `json:"rerank,omitempty"`
+	Scorer       string          `json:"scorer,omitempty"`
+	ScorerWeight *float64        `json:"scorer_weight,omitempty"`
+	CandidateK   *int            `json:"candidate_k,omitempty"`
+	TimeoutMS    int64           `json:"timeout_ms,omitempty"`
+	Sources      []SourceSpec    `json:"sources,omitempty"`
+	Out          string          `json:"out,omitempty"`
+	Format       string          `json:"format,omitempty"`
+	KeyID        string          `json:"key_id,omitempty"`
+	Provider     string          `json:"provider,omitempty"`
+	Force        bool            `json:"force,omitempty"`
+	Confirmed    bool            `json:"confirmed,omitempty"`
+	DryRun       bool            `json:"dry_run,omitempty"`
 }
 
 // OperationError is the stable error shape shared by CLI and future transports.

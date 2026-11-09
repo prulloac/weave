@@ -578,6 +578,11 @@
 					"minimum": 0,
 					"maximum": 1
 				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
 				"source": {
 					"type": "string"
 				}
@@ -622,6 +627,11 @@
 					"type": "string"
 				},
 				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"scorer_score": {
 					"type": "number",
 					"minimum": 0,
 					"maximum": 1
@@ -698,6 +708,11 @@
 					"minimum": 0,
 					"maximum": 1
 				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
 				"source": {
 					"type": "string"
 				}
@@ -737,6 +752,11 @@
 					"maximum": 1
 				},
 				"rerank_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"scorer_score": {
 					"type": "number",
 					"minimum": 0,
 					"maximum": 1
@@ -846,6 +866,33 @@
 					"items": {
 						"$ref": "#/$defs/LexicalHit"
 					}
+				},
+				"scorer": {
+					"$ref": "#/$defs/ScorerInfo"
+				}
+			}
+		},
+		"ScorerInfo": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"name",
+				"weight",
+				"candidate_k"
+			],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
 				}
 			}
 		},
@@ -1584,8 +1631,53 @@
 				"lexical": {
 					"$ref": "#/$defs/ExplainLexical"
 				},
+				"explain_scorer": {
+					"$ref": "#/$defs/ExplainScorer"
+				},
 				"source": {
 					"type": "string"
+				}
+			}
+		},
+		"ExplainScorer": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"name",
+				"weight",
+				"candidate_k",
+				"core_score",
+				"scorer_score",
+				"final_score"
+			],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				},
+				"core_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"final_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
 				}
 			}
 		},
@@ -1993,6 +2085,19 @@
 				},
 				"rerank": {
 					"type": "string"
+				},
+				"scorer": {
+					"type": "string"
+				},
+				"scorer_weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
 				},
 				"timeout_ms": {
 					"type": "integer",

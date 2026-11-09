@@ -41,7 +41,8 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 			"path": request.Path,
 		}), true
 	}
-	fuzzy, err := store.FuzzyHits(ctx, request.Path, request.Query, topK)
+	limit := searchLimit(request, topK)
+	fuzzy, err := store.FuzzyHits(ctx, request.Path, request.Query, limit)
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrSearchIndexUnavailable) {
 			return nil, false
@@ -56,37 +57,49 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 		mode = contractv1.SearchHybrid
 	}
 	if explicitHybrid {
-		lexical, err := store.SearchBM25(ctx, request.Path, request.Query, topK)
+		lexical, err := store.SearchBM25(ctx, request.Path, request.Query, limit)
 		if err != nil {
 			if errors.Is(err, search.ErrInvalidTopK) {
 				return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK}), true
 			}
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path}), true
 		}
-		return success(contractv1.SearchResponse{
+		response := contractv1.SearchResponse{
 			Query:   request.Query,
 			Mode:    contractv1.SearchHybrid,
 			TopK:    topK,
 			Keyword: []contractv1.KeywordHit{},
 			Fuzzy:   fuzzy,
-			Hybrid:  search.HybridBM25(lexical, fuzzy, topK),
+			Hybrid:  search.HybridBM25(lexical, fuzzy, limit),
 			Lexical: lexical,
-		}), true
+		}
+		if err := e.applyScorerFromStore(ctx, request, store, &response); err != nil {
+			return failure(extensionErrorCode(err), err.Error(), map[string]any{
+				"scorer": request.Scorer,
+			}), true
+		}
+		return success(response), true
 	}
 
-	keyword, err := store.KeywordHits(ctx, request.Path, request.Query, topK)
+	keyword, err := store.KeywordHits(ctx, request.Path, request.Query, limit)
 	if err != nil {
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path}), true
 	}
-	return success(contractv1.SearchResponse{
+	response := contractv1.SearchResponse{
 		Query:   request.Query,
 		Mode:    mode,
 		TopK:    topK,
 		Keyword: keyword,
 		Fuzzy:   fuzzy,
-		Hybrid:  search.CombineHybrid(keyword, fuzzy, topK),
-	}), true
+		Hybrid:  search.CombineHybrid(keyword, fuzzy, limit),
+	}
+	if err := e.applyScorerFromStore(ctx, request, store, &response); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"scorer": request.Scorer,
+		}), true
+	}
+	return success(response), true
 }
 
 func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.OperationRequest) any {
@@ -119,7 +132,8 @@ func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.Op
 			"path": request.Path,
 		})
 	}
-	hits, err := store.KeywordHits(ctx, request.Path, request.Query, topK)
+	limit := searchLimit(request, topK)
+	hits, err := store.KeywordHits(ctx, request.Path, request.Query, limit)
 	if err != nil {
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path})
@@ -138,14 +152,20 @@ func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.Op
 			MatchedFields:   []contractv1.SearchField{},
 		})
 	}
-	return success(contractv1.SearchResponse{
+	response := contractv1.SearchResponse{
 		Query:   request.Query,
 		Mode:    contractv1.SearchKeyword,
 		TopK:    topK,
 		Keyword: hits,
 		Fuzzy:   []contractv1.FuzzyHit{},
 		Hybrid:  hybrid,
-	})
+	}
+	if err := e.applyScorerFromStore(ctx, request, store, &response); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"scorer": request.Scorer,
+		})
+	}
+	return success(response)
 }
 
 func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationRequest) any {
@@ -183,7 +203,8 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 			"path": request.Path,
 		})
 	}
-	hits, err := store.SearchBM25(ctx, root, request.Query, topK)
+	limit := searchLimit(request, topK)
+	hits, err := store.SearchBM25(ctx, root, request.Query, limit)
 	if err != nil {
 		if errors.Is(err, search.ErrInvalidTopK) {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK})
@@ -202,6 +223,11 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 	if err := e.applyRerank(ctx, request, &response); err != nil {
 		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Rerank,
+		})
+	}
+	if err := e.applyScorerFromStore(ctx, request, store, &response); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"scorer": request.Scorer,
 		})
 	}
 	return success(response)
@@ -245,21 +271,22 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 	eng := engine.FromBundle(bundle)
 	defer eng.Close()
 
-	fuzzyResponse, err := eng.Search(request.Query, contractv1.SearchFuzzy, topK)
+	limit := searchLimit(request, topK)
+	fuzzyResponse, err := eng.Search(request.Query, contractv1.SearchFuzzy, limit)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"query": request.Query,
 			"top_k": topK,
 		})
 	}
-	lexical, err := store.SearchBM25(ctx, root, request.Query, topK)
+	lexical, err := store.SearchBM25(ctx, root, request.Query, limit)
 	if err != nil {
 		if errors.Is(err, search.ErrInvalidTopK) {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK})
 		}
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
 	}
-	hybrid := search.HybridBM25(lexical, fuzzyResponse.Fuzzy, topK)
+	hybrid := search.HybridBM25(lexical, fuzzyResponse.Fuzzy, limit)
 	response := contractv1.SearchResponse{
 		Query:   request.Query,
 		Mode:    contractv1.SearchHybrid,
@@ -272,6 +299,11 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 	if err := e.applyRerank(ctx, request, &response); err != nil {
 		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Rerank,
+		})
+	}
+	if err := e.applyScorer(ctx, request, eng, &response); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"scorer": request.Scorer,
 		})
 	}
 	return success(response)
@@ -326,7 +358,7 @@ func (e *Executor) explainBM25(ctx context.Context, request contractv1.Operation
 		})
 	}
 	lexical := explanation.Lexical
-	return success(contractv1.ExplainResult{
+	result := contractv1.ExplainResult{
 		Query: request.Query,
 		Mode:  contractv1.SearchBM25,
 		TopK:  topK,
@@ -344,7 +376,11 @@ func (e *Executor) explainBM25(ctx context.Context, request contractv1.Operation
 		},
 		Hybrid:  contractv1.ExplainHybrid{},
 		Lexical: &lexical,
-	})
+	}
+	if failureEnvelope, failed := e.applyScorerExplain(ctx, request, &result); failed {
+		return failureEnvelope
+	}
+	return success(result)
 }
 
 func (e *Executor) explainHybridBM25(ctx context.Context, request contractv1.OperationRequest) any {
@@ -445,7 +481,7 @@ func (e *Executor) explainHybridBM25(ctx context.Context, request contractv1.Ope
 	lexicalComponent := lexicalExplanation.Lexical
 	total := search.RoundScore(keywordWeightForExplain*lexicalComponent.Score + fuzzyWeightForExplain*fuzzyExplanation.Fuzzy.Score)
 
-	return success(contractv1.ExplainResult{
+	result := contractv1.ExplainResult{
 		Query: request.Query,
 		Mode:  contractv1.SearchHybrid,
 		TopK:  topK,
@@ -464,7 +500,11 @@ func (e *Executor) explainHybridBM25(ctx context.Context, request contractv1.Ope
 			Total:         total,
 		},
 		Lexical: &lexicalComponent,
-	})
+	}
+	if failureEnvelope, failed := e.applyScorerExplain(ctx, request, &result); failed {
+		return failureEnvelope
+	}
+	return success(result)
 }
 
 func (e *Executor) explainPersistent(
@@ -532,7 +572,7 @@ func (e *Executor) explainPersistent(
 	}
 	lexicalComponent := lexicalExplanation.Lexical
 	total := search.RoundScore(keywordWeightForExplain*lexicalComponent.Score + fuzzyWeightForExplain*fuzzyExplanation.Score)
-	return success(contractv1.ExplainResult{
+	result := contractv1.ExplainResult{
 		Query: request.Query,
 		Mode:  contractv1.SearchHybrid,
 		TopK:  topK,
@@ -551,7 +591,11 @@ func (e *Executor) explainPersistent(
 			Total:         total,
 		},
 		Lexical: &lexicalComponent,
-	}), true
+	}
+	if failureEnvelope, failed := e.applyScorerExplain(ctx, request, &result); failed {
+		return failureEnvelope, true
+	}
+	return success(result), true
 }
 
 const (

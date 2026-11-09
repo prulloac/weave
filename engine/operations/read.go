@@ -38,7 +38,8 @@ func (e *Executor) readSearch(ctx context.Context, eng *engine.Engine, request c
 	if mode == "" {
 		mode = contractv1.SearchHybrid
 	}
-	result, err := eng.Search(request.Query, mode, topK)
+	limit := searchLimit(request, topK)
+	result, err := eng.Search(request.Query, mode, limit)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"query": request.Query,
@@ -46,9 +47,15 @@ func (e *Executor) readSearch(ctx context.Context, eng *engine.Engine, request c
 			"top_k": topK,
 		})
 	}
+	result.TopK = topK
 	if err := e.applyRerank(ctx, request, &result); err != nil {
 		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Rerank,
+		})
+	}
+	if err := e.applyScorer(ctx, request, eng, &result); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"scorer": request.Scorer,
 		})
 	}
 	return success(result)
@@ -208,7 +215,7 @@ func (e *Executor) readRelate(_ context.Context, eng *engine.Engine, request con
 	return success(result)
 }
 
-func (e *Executor) readExplain(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
+func (e *Executor) readExplain(ctx context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
 	topK := 10
 	if request.TopK != nil {
 		topK = *request.TopK
@@ -232,6 +239,9 @@ func (e *Executor) readExplain(_ context.Context, eng *engine.Engine, request co
 				"top_k": topK,
 			})
 		}
+	}
+	if failureEnvelope, failed := e.applyScorerExplain(ctx, request, &result); failed {
+		return failureEnvelope
 	}
 	return success(result)
 }

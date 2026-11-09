@@ -34,6 +34,8 @@ Weave is CLI-first, local and offline. It has **no browser UI**.
 - **Incremental sync**: SHA-256 add/update/remove/skip with cascade reconciliation.
 - **Privacy directives**: declared encrypt, tokenize and hash policies with key resolution.
 - **Extensions**: `weave-<name>` enrichment during writes and reranking during search.
+- **Pluggable scoring**: `--scorer` reorders a bounded candidate set with safe document context and
+  a configurable blend weight.
 - **AI extension**: optional [`weave-ai`](https://github.com/prulloac/weave-ai) with Ollama,
   OpenAI-compatible and Gemini providers.
 - **Deterministic** JSON envelopes for machine integration.
@@ -236,10 +238,16 @@ prefix matching with AND semantics; fuzzy tolerates typos; BM25 ranks multi-toke
 Persistent hybrid search combines normalized BM25 and fuzzy at 50/50 (default); `--no-db` retains
 the legacy keyword + fuzzy fallback.
 
-- `--mode hybrid|keyword|fuzzy|bm25` — default `hybrid`.
+- `--mode hybrid|keyword|fuzzy|bm25|semantic` — default `hybrid`.
 - `--top-k <n>` — default `10`, valid range `1..100`.
 - `--rerank <name>` — optional `weave-<name>` reranker; failures fall back to core order.
-- `--timeout <duration>` — extension timeout, default `5s`.
+- `--scorer <name>` — optional `weave-<name>` scorer that receives the query and safe document
+  context for up to `--candidate-k` candidates; `--scorer-weight` blends the result.
+- `--scorer-weight <0..1>` — default `0.5`; `0` skips the scorer, `1` ranks by the scorer alone.
+- `--candidate-k <n>` — candidate set to score, default `100`, valid range `1..100`, at least `--top-k`.
+- `--scorer` and `--rerank` are mutually exclusive. A missing scorer exits `2`; a failed or
+  timed-out scorer warns on stderr and returns the core result.
+- `--timeout <duration>` — extension timeout, default `5s` (`10s` for a scorer).
 - Fuzzy field weights: **title 1.00, description 0.60, body 0.30**.
 - BM25 requires persistent storage; `--no-db` with `--mode bm25` is an error.
 - In `--json` mode an empty result exits `1`.
@@ -250,6 +258,7 @@ weave search ~/notes "oauth tokn" --mode fuzzy --top-k 5
 weave search ~/notes "security" --mode keyword --json
 weave search ~/notes "alpha beta" --mode bm25 --json
 weave search ~/notes "token rotation" --rerank keywords --timeout 2s --json
+weave search ~/notes "token rotation" --scorer semantic --scorer-weight 0.8 --candidate-k 50 --json
 ```
 
 #### Multiple bundle sources
