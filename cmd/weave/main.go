@@ -92,6 +92,10 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		printCommandHelp(stdout, command)
 		return 0
 	}
+	if (flags.scorer != "" || flags.scorerWeight != nil || flags.candidateK != nil) &&
+		command != "search" && command != "explain" {
+		return usageError(stdout, stderr, flags.json, "--scorer, --scorer-weight and --candidate-k are only valid for search and explain")
+	}
 	if flags.configPath != "" && flags.noConfig {
 		return usageError(stdout, stderr, flags.json, "--config and --no-config are mutually exclusive")
 	}

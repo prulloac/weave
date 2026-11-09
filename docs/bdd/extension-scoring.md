@@ -18,7 +18,7 @@ status: stable
 
 Specification: [extension-scoring.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-scoring.md)
 
-Go tests (planned): `cmd/weave/scoring_bdd_test.go`, `engine/extensions/scoring_test.go`.
+Go tests: `cmd/weave/scoring_bdd_test.go`, `engine/extensions/scoring_test.go`.
 
 These scenarios describe observable behavior. They do not prescribe implementation details.
 
@@ -69,8 +69,8 @@ These scenarios describe observable behavior. They do not prescribe implementati
 ### Scenario: Candidate K broadens the candidate set
 
 - **Given** an indexed bundle with at least 200 matching documents
-- **When** I run search with `--candidate-k 200 --top-k 10`
-- **Then** the scorer receives at most 200 candidates
+- **When** I run search with `--candidate-k 100 --top-k 10`
+- **Then** the scorer receives at most 100 candidates
 - **And** the final response contains at most 10 hits
 
 ### Scenario: Candidate K must cover Top K
@@ -83,7 +83,7 @@ These scenarios describe observable behavior. They do not prescribe implementati
 ### Scenario: Candidate K is capped
 
 - **Given** a search request
-- **When** I pass `--candidate-k 1001`
+- **When** I pass `--candidate-k 101`
 - **Then** the command exits `2`
 
 ## Feature: Blend weights

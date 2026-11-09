@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 )
@@ -25,13 +26,17 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 		if err := requirePositional(command, flags, 2); err != nil {
 			return contractv1.OperationRequest{}, 0, err
 		}
-		return contractv1.OperationRequest{
+		request := contractv1.OperationRequest{
 			Op:    contractv1.OpSearch,
 			Path:  flags.positional(0),
 			Query: flags.positional(1),
 			Mode:  flags.mode,
 			TopK:  flags.topK,
-		}, 0, nil
+		}
+		if err := scorerRequest(&request, flags); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return request, 0, nil
 	case "list":
 		if err := requirePositional(command, flags, 1); err != nil {
 			return contractv1.OperationRequest{}, 0, err
@@ -105,14 +110,18 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 		if err := requirePositional(command, flags, 2); err != nil {
 			return contractv1.OperationRequest{}, 0, err
 		}
-		return contractv1.OperationRequest{
+		request := contractv1.OperationRequest{
 			Op:     contractv1.OpExplain,
 			Path:   flags.positional(0),
 			Query:  flags.positional(1),
 			Target: flags.id,
 			Mode:   flags.mode,
 			TopK:   flags.topK,
-		}, 0, nil
+		}
+		if err := scorerRequest(&request, flags); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return request, 0, nil
 	case "ingest", "rebuild":
 		if err := requirePositional(command, flags, 1); err != nil {
 			return contractv1.OperationRequest{}, 0, err
@@ -185,6 +194,44 @@ func (f flags) positional(index int) string {
 func requirePositional(command string, f flags, count int) error {
 	if len(f.positionals) != count {
 		return fmt.Errorf("%s requires %d positional argument(s)", command, count)
+	}
+	return nil
+}
+
+func scorerRequest(request *contractv1.OperationRequest, f flags) error {
+	if f.scorer == "" {
+		if f.scorerWeight != nil || f.candidateK != nil {
+			return fmt.Errorf("--scorer-weight and --candidate-k require --scorer")
+		}
+		return nil
+	}
+	if f.rerank != "" {
+		return fmt.Errorf("--scorer and --rerank are mutually exclusive")
+	}
+	if request.Mode == contractv1.SearchSemantic {
+		return fmt.Errorf("--scorer is not supported with --mode semantic")
+	}
+	topK := 10
+	if f.topK != nil {
+		topK = *f.topK
+	}
+	request.Scorer = f.scorer
+	if f.scorerWeight != nil {
+		weight := *f.scorerWeight
+		if math.IsNaN(weight) || math.IsInf(weight, 0) || weight < 0 || weight > 1 {
+			return fmt.Errorf("--scorer-weight must be between 0 and 1")
+		}
+		request.ScorerWeight = &weight
+	}
+	if f.candidateK != nil {
+		candidateK := *f.candidateK
+		if candidateK < 1 || candidateK > 100 {
+			return fmt.Errorf("--candidate-k must be between 1 and 100")
+		}
+		if candidateK < topK {
+			return fmt.Errorf("--candidate-k must be at least --top-k (%d)", topK)
+		}
+		request.CandidateK = &candidateK
 	}
 	return nil
 }

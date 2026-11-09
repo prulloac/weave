@@ -45,6 +45,9 @@ type flags struct {
 	withEmbedder  string
 	embedder      string
 	rerank        string
+	scorer        string
+	scorerWeight  *float64
+	candidateK    *int
 	timeout       time.Duration
 	timeoutSet    bool
 	sources       []string
@@ -262,6 +265,35 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.rerank = value
+		case "--scorer":
+			value, next, err := flagValue(args, index, "--scorer")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.scorer = value
+		case "--scorer-weight":
+			value, next, err := flagValue(args, index, "--scorer-weight")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				return result, fmt.Errorf("--scorer-weight requires a number between 0 and 1")
+			}
+			result.scorerWeight = &parsed
+		case "--candidate-k":
+			value, next, err := flagValue(args, index, "--candidate-k")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.Atoi(value)
+			if err != nil {
+				return result, fmt.Errorf("--candidate-k requires a number")
+			}
+			result.candidateK = &parsed
 		case "--timeout":
 			value, next, err := flagValue(args, index, "--timeout")
 			if err != nil {
@@ -396,9 +428,9 @@ func parseFlags(args []string) (flags, error) {
 	if result.quiet && result.verbose {
 		return result, fmt.Errorf("--quiet and --verbose are mutually exclusive")
 	}
-	if result.timeoutSet && result.enricher == "" && result.rerank == "" &&
+	if result.timeoutSet && result.enricher == "" && result.rerank == "" && result.scorer == "" &&
 		result.withEmbedder == "" && result.embedder == "" {
-		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder or --rerank")
+		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank or --scorer")
 	}
 	return result, nil
 }

@@ -788,6 +788,9 @@
 			],
 			"additional_properties": false,
 			"properties": {
+				"explain_scorer": {
+					"ref": "#/$defs/ExplainScorer"
+				},
 				"found": {
 					"type": "boolean"
 				},
@@ -823,6 +826,48 @@
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 100
+				}
+			}
+		},
+		"ExplainScorer": {
+			"type": "object",
+			"required": [
+				"candidate_k",
+				"core_score",
+				"final_score",
+				"name",
+				"scorer_score",
+				"weight"
+			],
+			"additional_properties": false,
+			"properties": {
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				},
+				"core_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"final_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"name": {
+					"type": "string"
+				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
 				}
 			}
 		},
@@ -1204,6 +1249,11 @@
 					"minimum": 0,
 					"maximum": 1
 				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
 				"snippet": {
 					"type": "string"
 				},
@@ -1377,6 +1427,11 @@
 					"minimum": 0,
 					"maximum": 1
 				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
 				"snippet": {
 					"type": "string"
 				},
@@ -1514,6 +1569,11 @@
 					"minimum": 0,
 					"maximum": 1
 				},
+				"scorer_score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
 				"source": {
 					"type": "string"
 				},
@@ -1553,6 +1613,11 @@
 					"maximum": 1
 				},
 				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"scorer_score": {
 					"type": "number",
 					"minimum": 0,
 					"maximum": 1
@@ -1807,6 +1872,11 @@
 				"assets": {
 					"type": "boolean"
 				},
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				},
 				"codec": {
 					"type": "string"
 				},
@@ -1894,6 +1964,14 @@
 				},
 				"rerank": {
 					"type": "string"
+				},
+				"scorer": {
+					"type": "string"
+				},
+				"scorer_weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
 				},
 				"sources": {
 					"type": "array",
@@ -2112,6 +2190,30 @@
 				}
 			}
 		},
+		"ScorerInfo": {
+			"type": "object",
+			"required": [
+				"candidate_k",
+				"name",
+				"weight"
+			],
+			"additional_properties": false,
+			"properties": {
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100
+				},
+				"name": {
+					"type": "string"
+				},
+				"weight": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
 		"SearchField": {
 			"type": "string",
 			"enum": [
@@ -2172,6 +2274,9 @@
 				},
 				"query": {
 					"type": "string"
+				},
+				"scorer": {
+					"ref": "#/$defs/ScorerInfo"
 				},
 				"semantic": {
 					"type": "array",

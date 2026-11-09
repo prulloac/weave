@@ -46,8 +46,11 @@ var commandHelpText = map[string]commandHelp{
 			"--top-k <n>                        1..100, default 10",
 			"--embedder <name>                  embedder for semantic search",
 			"--rerank <name>                    rerank with a weave-<name> extension",
+			"--scorer <name>                    score with a weave-<name> extension",
+			"--scorer-weight <0..1>             blend weight, default 0.5",
+			"--candidate-k <n>                  candidates to score, 1..100, default 100",
 			"--source <alias=path>              add a bundle source (repeatable)",
-			"--timeout <duration>               extension timeout, default 5s",
+			"--timeout <duration>               extension timeout, default 5s (scorer: 10s)",
 			"--db <file> | --no-db              persistent or transient",
 			"--json                             one weave.cli/v1 envelope",
 		},
@@ -55,6 +58,7 @@ var commandHelpText = map[string]commandHelp{
 			`weave search ~/notes "token rotation"`,
 			`weave search ~/notes "oauth tokn" --mode fuzzy --top-k 5`,
 			`weave search ~/notes "alpha" --mode bm25 --json`,
+			`weave search ~/notes "alpha" --scorer semantic --scorer-weight 0.8`,
 		},
 	},
 	"ingest": {
@@ -244,7 +248,7 @@ var commandHelpText = map[string]commandHelp{
 		Summary: "Show a bounded graph neighborhood.",
 	},
 	"explain": {
-		Usage:   "weave explain <path> <query> [--id <id>] [--mode ...]",
+		Usage:   "weave explain <path> <query> [--id <id>] [--mode ...] [--scorer <name>]",
 		Summary: "Explain ranking evidence for one result.",
 	},
 	"contract": {
