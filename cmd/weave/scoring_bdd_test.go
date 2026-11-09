@@ -86,9 +86,8 @@ func main() {
 }
 `
 
-func scorerBundle(t *testing.T) (string, string) {
+func installScorerBinary(t *testing.T, root string) {
 	t.Helper()
-	root := t.TempDir()
 	bin := filepath.Join(root, ".weave", "bin")
 	if err := os.MkdirAll(bin, 0o755); err != nil {
 		t.Fatal(err)
@@ -102,6 +101,12 @@ func scorerBundle(t *testing.T) (string, string) {
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build scorer fixture: %v\n%s", err, output)
 	}
+}
+
+func scorerBundle(t *testing.T) (string, string) {
+	t.Helper()
+	root := t.TempDir()
+	installScorerBinary(t, root)
 	for _, name := range []string{"alpha", "beta", "gamma"} {
 		body := "---\ntype: Concept\nkeywords: [alpha]\ntitle: " + name + "\n---\n\nalpha " + name + " body.\n"
 		if err := os.WriteFile(filepath.Join(root, name+".md"), []byte(body), 0o644); err != nil {
@@ -417,6 +422,28 @@ func TestScorerPersistentHybridAndTopK(t *testing.T) {
 		if hit.ScorerScore == nil {
 			t.Fatalf("missing scorer_score: %+v", hit)
 		}
+	}
+}
+
+func TestScorerRequestExcludesEncryptedContent(t *testing.T) {
+	root := privacyFixture(t)
+	privacyKeys(t)
+	installScorerBinary(t, root)
+	db := privacyDB(t)
+	privacyIngest(t, root, db)
+	capture := filepath.Join(t.TempDir(), "request.json")
+	t.Setenv("SCORER_CAPTURE", capture)
+	code, _, stderr := Invoke(t, "search", root, "plain", "--db", db, "--mode", "hybrid",
+		"--scorer", "score", "--json")
+	if code != 0 {
+		t.Fatalf("exit=%d stderr=%q", code, stderr)
+	}
+	raw, err := os.ReadFile(capture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "zanzibar") || strings.Contains(string(raw), "secret.md") {
+		t.Fatalf("scorer request leaked encrypted content: %s", raw)
 	}
 }
 
