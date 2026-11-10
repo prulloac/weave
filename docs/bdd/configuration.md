@@ -107,7 +107,7 @@ Precedence: explicit CLI flag → `WEAVE_*` environment variable → config file
 - **When** the parser caches a bundle
 - **Then** the cache lives under `os.UserCacheDir()/weave/okf`
 
-### Scenario: Database stays at the v1.0 path
+### Scenario: Database stays at the 0.7 path
 
 - **Given** no `--db`, `WEAVE_DB` or `db` key
 - **Then** the database is `~/.weave/index.db`

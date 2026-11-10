@@ -106,7 +106,7 @@ these fixtures for its own conformance tests.
 
 ## Compatibility
 
-`weave.cli/v1` output is additive inside v1.0:
+`weave.cli/v1` output is additive inside the v1 contract:
 
 - no result field is removed and no field changes JSON type;
 - new fields are optional;
@@ -126,5 +126,5 @@ allowing optional additions and new enum values. See
 
 - Domain: `weave.contract/v1` (new in-place v1 with keywords and search).
 - CLI envelope: `weave.cli/v1`.
-- Until v1.0.0 GA, `contract/v1` may evolve in place. After GA, breaking changes require
+- Until 1.0.0, `contract/v1` may evolve in place. After 1.0.0, breaking changes require
   `contract/v2` or `cli/v2`.

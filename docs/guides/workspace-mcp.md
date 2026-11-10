@@ -13,7 +13,7 @@ bundles/work  ─┘
 The full behavioral contract is in the
 [Workspace and Source Registry specification](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md).
 
-> **Availability:** workspace support ships in `v1.0.0`. For development builds, use
+> **Availability:** workspace support ships in `v0.7.0`. For development builds, use
 > `go install github.com/prulloac/weave/cmd/weave@main`.
 
 ## 1. Install Weave

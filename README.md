@@ -165,7 +165,7 @@ rerank: ""
   `WEAVE_RERANK`; `WEAVE_CONFIG` selects the file.
 - Config resolves through `os.UserConfigDir` (XDG on Linux, `%AppData%` on Windows, Application
   Support on macOS). The parse cache uses `os.UserCacheDir`.
-- v1.0 keeps the database at `~/.weave/index.db`; use `--db`, `WEAVE_DB` or the `db` key to move
+- 0.7 keeps the database at `~/.weave/index.db`; use `--db`, `WEAVE_DB` or the `db` key to move
   it. XDG state migration is deferred (see the
   [configuration-path decision](https://github.com/prulloac/weave-docs/blob/main/architecture/adr/0002-config-paths-and-db-location.md)).
 - `config show` and `config get` report every value with `source` and `origin`; `config paths`

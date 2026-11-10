@@ -620,7 +620,7 @@ const defaultConfigTemplate = `# Weave global configuration
 # Values here are defaults; WEAVE_* environment variables and explicit CLI flags win.
 # Set WEAVE_CONFIG to use a different file.
 
-# db: ~/.weave/index.db  # v1.0 keeps the legacy path; use --db or WEAVE_DB
+# db: ~/.weave/index.db  # 0.7 keeps the legacy path; use --db or WEAVE_DB
 # no_db: false
 # cache: true
 # cache_dir: ""           # empty uses the user cache directory

@@ -356,7 +356,7 @@ flags:
 
 paths (Linux): XDG_CONFIG_HOME or ~/.config; macOS: Application Support;
 Windows: %AppData%. WEAVE_CONFIG overrides the config file.
-database: ~/.weave/index.db in v1.0; use --db or WEAVE_DB to move it.
+database: ~/.weave/index.db in 0.7; use --db or WEAVE_DB to move it.
 precedence: explicit CLI flag > WEAVE_* environment > config file > default
 `)
 }

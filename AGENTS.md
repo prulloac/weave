@@ -43,8 +43,8 @@ demand), three fuzzers, docs-lint and gofmt. It needs bash and network: use WSL 
   `go test ./contract/v1`.
 - `contract/v1/golden/expected/` is generated; never hand-edit it. `golden/schema-baseline.json` is
   also generated (use `go run ./cmd/schema-diff -write` after a reviewed additive change).
-- Contract changes are additive inside v1.0. Until GA, `contract/v1` may evolve in place; after GA,
-  breaking changes need `contract/v2` / `cli/v2`.
+- Contract changes are additive inside the v1 contract. Until 1.0.0, `contract/v1` may evolve in
+  place; after 1.0.0, breaking changes need `contract/v2` / `cli/v2`.
 - Golden output is deterministic: POSIX separators, sorted nodes/edges/results, scores rounded to
   four decimals.
 - Core: `engine/` (parse, graph, search, nav, audit, relate, privacy, compression, extensions).
