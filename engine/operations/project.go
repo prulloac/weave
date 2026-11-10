@@ -126,6 +126,24 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 	for position := range bundle.Concepts {
 		index[bundle.Concepts[position].ID] = position
 	}
+	kept := make(map[string]bool, len(response.Documents))
+	for _, document := range response.Documents {
+		kept[document.ID] = true
+	}
+	filtered := bundle.Concepts[:0]
+	for _, concept := range bundle.Concepts {
+		if concept.Type == "Code" && concept.ContentKind == "blob" && !kept[concept.ID] {
+			// The project analyzer skipped this source file (ignore rules,
+			// generated code or a resource limit).
+			continue
+		}
+		filtered = append(filtered, concept)
+	}
+	bundle.Concepts = filtered
+	index = make(map[string]int, len(bundle.Concepts))
+	for position := range bundle.Concepts {
+		index[bundle.Concepts[position].ID] = position
+	}
 	upsert := func(document extensions.ProjectDocument, docType, kind string) int {
 		if position, ok := index[document.ID]; ok {
 			concept := &bundle.Concepts[position]

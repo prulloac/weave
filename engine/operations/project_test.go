@@ -7,6 +7,28 @@ import (
 	"github.com/prulloac/weave/engine/extensions"
 )
 
+func TestApplyProjectResponseSkipsOmittedFiles(t *testing.T) {
+	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{
+		{ID: "a.go", Path: "a.go", Type: "Code", ContentKind: "blob"},
+		{ID: "b.gen.go", Path: "b.gen.go", Type: "Code", ContentKind: "blob"},
+		{ID: "index.md", Path: "index.md", Type: "Index"},
+	}}
+	response := extensions.ProjectAnalysisResponse{
+		Documents: []extensions.ProjectDocument{{ID: "a.go"}},
+	}
+	applyProjectResponse(bundle, response)
+	ids := map[string]bool{}
+	for _, concept := range bundle.Concepts {
+		ids[concept.ID] = true
+	}
+	if !ids["a.go"] || !ids["index.md"] {
+		t.Fatalf("expected retained documents, got %+v", bundle.Concepts)
+	}
+	if ids["b.gen.go"] {
+		t.Fatal("omitted code file must be removed")
+	}
+}
+
 func TestApplyProjectExternalThreshold(t *testing.T) {
 	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{
 		{ID: "a.go", Path: "a.go", Type: "Code"},

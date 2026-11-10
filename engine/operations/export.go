@@ -206,6 +206,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			}
 			continue
 		}
+		if concept.ContentKind == "symbol" {
+			report.Documents--
+			e.warn("export: synthetic document excluded from file tree: %s", concept.ID)
+			continue
+		}
 		body := concept.Body
 		switch conceptPolicy(concept) {
 		case contractv1.PrivacyEncrypt:
@@ -331,6 +336,10 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			return failure(contractv1.ErrInternal, err.Error(), nil)
 		}
 		report.ExtensionData = count
+		if err := writeCodeExport(target, bundle.Concepts); err != nil {
+			cleanup()
+			return failure(contractv1.ErrInternal, err.Error(), nil)
+		}
 	} else if len(extensionRecords) > 0 {
 		report.ExtensionDataSkipped = len(extensionRecords)
 		e.warn("export: extension data is omitted from encrypted exports")

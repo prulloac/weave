@@ -163,6 +163,45 @@ func TestWeaveCodeProjectSyncRemovesSymbols(t *testing.T) {
 	}
 }
 
+func TestWeaveCodeRawExportSyntheticDocuments(t *testing.T) {
+	root := weaveCodeRepo(t)
+	t.Setenv("WEAVE_CODE_SYMBOL_DOCUMENTS", "1")
+	db := filepath.Join(t.TempDir(), "index.db")
+	if code, _, stderr := Invoke(t, "ingest", root, "--with-enricher", "code", "--db", db, "--strict", "--json"); code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	out := filepath.Join(t.TempDir(), "export")
+	code, stdout, stderr := Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("export exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	if !decodeEnvelope(t, stdout).OK {
+		t.Fatalf("export failed: %s", stdout)
+	}
+	if err := filepath.WalkDir(out, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.Contains(entry.Name(), "#") {
+			t.Fatalf("synthetic document written as a file: %s", path)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	symbols := readExportFile(t, filepath.Join(out, "_code", "symbols.json"))
+	if !strings.Contains(symbols, `"main.go#main"`) || !strings.Contains(symbols, `"weave.code-symbols/v1"`) {
+		t.Fatalf("unexpected symbols export: %s", symbols)
+	}
+	relations := readExportFile(t, filepath.Join(out, "_code", "relations.json"))
+	if !strings.Contains(relations, `"imports"`) || !strings.Contains(relations, `"weave.code-relations/v1"`) {
+		t.Fatalf("unexpected relations export: %s", relations)
+	}
+	if !strings.Contains(stderr, "synthetic document excluded from file tree") {
+		t.Fatalf("expected synthetic export warning, stderr=%q", stderr)
+	}
+}
+
 func containsEmptyList(payload string) bool {
 	return strings.Contains(payload, `"result":[]`)
 }
