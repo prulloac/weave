@@ -514,6 +514,18 @@ func collectEdges(bundle *contractv1.Bundle) ([]storedEdge, error) {
 				dangling: !found,
 			})
 		}
+		for _, relation := range concept.Relations {
+			if relation.To == "" || relation.Kind == "" {
+				continue
+			}
+			_, found := view.Nodes[relation.To]
+			add(storedEdge{
+				from:     concept.ID,
+				to:       relation.To,
+				kind:     string(relation.Kind),
+				dangling: !found,
+			})
+		}
 	}
 	return edges, nil
 }

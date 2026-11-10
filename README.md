@@ -225,10 +225,12 @@ weave parse ~/notes --no-cache
 #### `weave graph`
 
 Build the concept graph from Markdown links and `related` entries, and report node and edge counts.
+`--relation` filters the edge list by relation kind.
 
 ```sh
 weave graph ~/notes
 weave graph ~/notes --json
+weave graph ~/notes --relation imports,declares --json
 ```
 
 #### `weave search`
@@ -310,10 +312,13 @@ weave backlinks ~/notes concepts/token-storage --json
 #### `weave path`
 
 Find the shortest path between two concepts with breadth-first search and print the hop sequence.
+`--relation` overrides the default traversal set. The default includes `link`, `related`, `imports`,
+`declares`, `inherits` and `implements`; `calls` and `references` require an explicit flag.
 
 ```sh
 weave path ~/notes concepts/oauth-token-rotation concepts/token-storage
 weave path ~/notes concepts/oauth-token-rotation concepts/token-storage --json
+weave path ~/notes src/main.go src/server.go --relation imports,declares,calls --json
 ```
 
 #### `weave audit`
@@ -332,11 +337,13 @@ Spec: [Weave Audit](https://github.com/prulloac/weave-docs/blob/main/specs/weave
 #### `weave relate`
 
 Return the bounded graph neighborhood of a concept by depth and direction, as a deterministic
-subgraph.
+subgraph. `--relation` overrides the default traversal set; `calls` and `references` must be named
+explicitly.
 
 ```sh
 weave relate ~/notes concepts/okf-bundle --depth 2 --direction both --json
 weave relate ~/notes concepts/okf-bundle --depth 1 --direction out
+weave relate ~/notes src/main.go#main --depth 2 --relation imports,declares,calls --json
 ```
 
 Spec: [Weave Relate](https://github.com/prulloac/weave-docs/blob/main/specs/weave-relate.md).

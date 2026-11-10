@@ -299,6 +299,10 @@ func (r Runner) Embed(ctx context.Context, extension Extension, request Embeddin
 }
 
 func (r Runner) invoke(ctx context.Context, extension Extension, payload, target any) error {
+	return r.invokeWithLimit(ctx, extension, payload, target, maxOutput)
+}
+
+func (r Runner) invokeWithLimit(ctx context.Context, extension Extension, payload, target any, outputLimit int) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrProtocol, err)
@@ -313,7 +317,7 @@ func (r Runner) invoke(ctx context.Context, extension Extension, payload, target
 	command := exec.CommandContext(runContext, extension.Path)
 	command.WaitDelay = 100 * time.Millisecond
 	command.Stdin = bytes.NewReader(append(data, '\n'))
-	stdout := &cappedBuffer{limit: maxOutput}
+	stdout := &cappedBuffer{limit: outputLimit}
 	stderr := &cappedBuffer{limit: maxStderr}
 	command.Stdout = stdout
 	command.Stderr = stderr

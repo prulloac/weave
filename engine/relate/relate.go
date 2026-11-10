@@ -23,12 +23,23 @@ type queueItem struct {
 	depth int
 }
 
-// Build returns the bounded neighborhood of root.
+// Build returns the bounded neighborhood of root using default relations.
 func Build(
 	view *graph.Graph,
 	root string,
 	direction contractv1.RelateDirection,
 	depth int,
+) (contractv1.RelateResult, error) {
+	return BuildWithOptions(view, root, direction, depth, graph.TraversalOptions{})
+}
+
+// BuildWithOptions returns the bounded neighborhood of root allowed by options.
+func BuildWithOptions(
+	view *graph.Graph,
+	root string,
+	direction contractv1.RelateDirection,
+	depth int,
+	options graph.TraversalOptions,
 ) (contractv1.RelateResult, error) {
 	if depth < 0 || depth > 5 {
 		return contractv1.RelateResult{}, ErrInvalidDepth
@@ -86,11 +97,17 @@ func Build(
 
 		if direction == contractv1.RelateOut || direction == contractv1.RelateBoth {
 			for _, edge := range view.Outgoing[item.id] {
+				if !options.Allows(edge.Source) {
+					continue
+				}
 				addEdge(edge, edge.To, nextDepth)
 			}
 		}
 		if direction == contractv1.RelateIn || direction == contractv1.RelateBoth {
 			for _, edge := range view.Incoming[item.id] {
+				if !options.Allows(edge.Source) {
+					continue
+				}
 				addEdge(edge, edge.From, nextDepth)
 			}
 		}

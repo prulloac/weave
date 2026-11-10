@@ -292,12 +292,18 @@
 						"$ref": "#/$defs/OkfLink"
 					}
 				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ConceptRelation"
+					}
+				},
 				"privacy": {
 					"$ref": "#/$defs/PrivacyDirective"
 				},
 				"content_kind": {
 					"type": "string",
-					"enum": ["document", "blob"]
+					"enum": ["document", "blob", "symbol"]
 				},
 				"media_type": {
 					"type": "string"
@@ -472,6 +478,38 @@
 				}
 			}
 		},
+		"RelationKind": {
+			"type": "string",
+			"enum": [
+				"link",
+				"related",
+				"imports",
+				"declares",
+				"references",
+				"calls",
+				"inherits",
+				"implements"
+			]
+		},
+		"ConceptRelation": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"to",
+				"kind"
+			],
+			"properties": {
+				"to": {
+					"type": "string"
+				},
+				"kind": {
+					"$ref": "#/$defs/RelationKind"
+				},
+				"raw": {
+					"type": "string"
+				}
+			}
+		},
 		"GraphEdge": {
 			"type": "object",
 			"additionalProperties": false,
@@ -488,11 +526,7 @@
 					"type": "string"
 				},
 				"source": {
-					"type": "string",
-					"enum": [
-						"link",
-						"related"
-					]
+					"$ref": "#/$defs/RelationKind"
 				},
 				"raw": {
 					"type": "string"
@@ -939,7 +973,7 @@
 				},
 				"content_kind": {
 					"type": "string",
-					"enum": ["document", "blob"]
+					"enum": ["document", "blob", "symbol"]
 				},
 				"media_type": {
 					"type": "string"
@@ -1044,7 +1078,7 @@
 				},
 				"content_kind": {
 					"type": "string",
-					"enum": ["document", "blob"]
+					"enum": ["document", "blob", "symbol"]
 				},
 				"media_type": {
 					"type": "string"
@@ -1295,11 +1329,7 @@
 					"type": "string"
 				},
 				"source": {
-					"type": "string",
-					"enum": [
-						"link",
-						"related"
-					]
+					"$ref": "#/$defs/RelationKind"
 				},
 				"raw": {
 					"type": "string"
@@ -2043,6 +2073,12 @@
 				},
 				"direction": {
 					"$ref": "#/$defs/RelateDirection"
+				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/RelationKind"
+					}
 				},
 				"db": {
 					"type": "string"

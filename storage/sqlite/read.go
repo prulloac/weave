@@ -157,6 +157,42 @@ func (s *Store) LoadBundle(ctx context.Context, bundleRoot string) (*contractv1.
 		}
 	}
 
+	conceptIndexByID := make(map[string]int, len(concepts))
+	for conceptIndex := range concepts {
+		conceptIndexByID[concepts[conceptIndex].ID] = conceptIndex
+	}
+	relationRows, err := s.db.QueryContext(ctx, `
+		SELECT source_id, target_id, edge_type
+		FROM edges
+		WHERE bundle_root = ?
+		ORDER BY source_id, target_id, edge_type`, root)
+	if err != nil {
+		return nil, err
+	}
+	for relationRows.Next() {
+		var sourceID, targetID, edgeType string
+		if err := relationRows.Scan(&sourceID, &targetID, &edgeType); err != nil {
+			relationRows.Close()
+			return nil, err
+		}
+		if edgeType == string(contractv1.RelationLink) || edgeType == string(contractv1.RelationRelated) {
+			continue
+		}
+		conceptIndex, ok := conceptIndexByID[sourceID]
+		if !ok {
+			continue
+		}
+		concepts[conceptIndex].Relations = append(concepts[conceptIndex].Relations, contractv1.ConceptRelation{
+			To:   targetID,
+			Kind: contractv1.RelationKind(edgeType),
+		})
+	}
+	if err := relationRows.Err(); err != nil {
+		relationRows.Close()
+		return nil, err
+	}
+	relationRows.Close()
+
 	var index []contractv1.IndexEntry
 	if err := json.Unmarshal([]byte(indexJSON), &index); err != nil {
 		return nil, err

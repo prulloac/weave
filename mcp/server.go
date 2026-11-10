@@ -363,11 +363,16 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 		if err != nil {
 			return nil, err
 		}
+		relations, err := optionalRelations(arguments, "relations")
+		if err != nil {
+			return nil, err
+		}
 		request = contractv1.OperationRequest{
 			Op:        contractv1.OpRelate,
 			Target:    id,
 			Depth:     depth,
 			Direction: contractv1.RelateDirection(direction),
+			Relations: relations,
 		}
 	case "weave_audit":
 		failOn, err := optionalString(arguments, "fail_on")
@@ -429,7 +434,11 @@ func (s *Server) Call(ctx context.Context, name string, arguments map[string]any
 		if err != nil {
 			return nil, err
 		}
-		request = contractv1.OperationRequest{Op: contractv1.OpPath, From: from, To: to}
+		relations, err := optionalRelations(arguments, "relations")
+		if err != nil {
+			return nil, err
+		}
+		request = contractv1.OperationRequest{Op: contractv1.OpPath, From: from, To: to, Relations: relations}
 	default:
 		return nil, &Error{
 			Code:    contractv1.ErrInvalidRequest,
@@ -924,6 +933,18 @@ func optionalStringSlice(arguments map[string]any, name string) ([]string, error
 	return values, nil
 }
 
+func optionalRelations(arguments map[string]any, name string) ([]contractv1.RelationKind, error) {
+	values, err := optionalStringSlice(arguments, name)
+	if err != nil {
+		return nil, err
+	}
+	relations := make([]contractv1.RelationKind, 0, len(values))
+	for _, value := range values {
+		relations = append(relations, contractv1.RelationKind(value))
+	}
+	return relations, nil
+}
+
 func optionalBool(arguments map[string]any, name string) (bool, error) {
 	value, ok := arguments[name]
 	if !ok || value == nil {
@@ -998,6 +1019,7 @@ func toolDescriptors() []ToolDescriptor {
 					"id":        map[string]any{"type": "string"},
 					"depth":     map[string]any{"type": "integer", "minimum": 0, "maximum": 5},
 					"direction": map[string]any{"type": "string", "enum": []any{"out", "in", "both"}},
+					"relations": relationSchema(),
 				},
 				[]any{"id"},
 			),
@@ -1047,8 +1069,9 @@ func toolDescriptors() []ToolDescriptor {
 			Description: "Find a shortest path between concepts.",
 			InputSchema: objectSchema(
 				map[string]any{
-					"from": map[string]any{"type": "string"},
-					"to":   map[string]any{"type": "string"},
+					"from":      map[string]any{"type": "string"},
+					"to":        map[string]any{"type": "string"},
+					"relations": relationSchema(),
 				},
 				[]any{"from", "to"},
 			),
@@ -1075,6 +1098,18 @@ func toolDescriptors() []ToolDescriptor {
 		properties["source"] = map[string]any{"type": "string"}
 	}
 	return tools
+}
+
+func relationSchema() map[string]any {
+	return map[string]any{
+		"type": "array",
+		"items": map[string]any{
+			"type": "string",
+			"enum": []any{
+				"link", "related", "imports", "declares", "references", "calls", "inherits", "implements",
+			},
+		},
+	}
 }
 
 func objectSchema(properties map[string]any, required []any) map[string]any {

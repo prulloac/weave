@@ -29,6 +29,7 @@ type flags struct {
 	decrypt       bool
 	depth         *int
 	direction     contractv1.RelateDirection
+	relations     []string
 	id            string
 	extensionName string
 	docID         string
@@ -407,6 +408,19 @@ func parseFlags(args []string) (flags, error) {
 				result.direction = direction
 			default:
 				return result, fmt.Errorf("--direction must be out, in or both")
+			}
+		case "--relation":
+			value, next, err := flagValue(args, index, "--relation")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			for _, relation := range strings.Split(value, ",") {
+				relation = strings.TrimSpace(relation)
+				if relation == "" {
+					return result, fmt.Errorf("--relation requires comma-separated relation kinds")
+				}
+				result.relations = append(result.relations, relation)
 			}
 		case "--":
 			result.positionals = append(result.positionals, args[index+1:]...)

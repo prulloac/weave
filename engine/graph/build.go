@@ -80,6 +80,18 @@ func Build(bundle *contractv1.Bundle) *Graph {
 	}
 
 	for _, concept := range bundle.Concepts {
+		for _, relation := range concept.Relations {
+			if relation.To == "" || relation.Kind == "" {
+				continue
+			}
+			if _, ok := graph.Nodes[relation.To]; !ok {
+				continue
+			}
+			addEdge(graph, concept.ID, relation.To, string(relation.Kind), relation.Raw)
+		}
+	}
+
+	for _, concept := range bundle.Concepts {
 		from := concept.ID
 		for _, edge := range graph.Outgoing[from] {
 			graph.Incoming[edge.To] = append(graph.Incoming[edge.To], edge)

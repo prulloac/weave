@@ -232,20 +232,31 @@ var commandHelpText = map[string]commandHelp{
 		Summary: "Parse a bundle and report validation and index state.",
 	},
 	"graph": {
-		Usage:   "weave graph <path> [--source ...] [--json]",
+		Usage:   "weave graph <path> [--source ...] [--relation <kind,...>] [--json]",
 		Summary: "Print nodes, edges and dangling links.",
+		Flags: []string{
+			"--relation <kind,...>              filter edges by relation kind",
+		},
 	},
 	"backlinks": {
 		Usage:   "weave backlinks <path> <id|file> [--json]",
 		Summary: "List incoming references for a concept.",
 	},
 	"path": {
-		Usage:   "weave path <path> <from> <to> [--json]",
+		Usage:   "weave path <path> <from> <to> [--relation <kind,...>] [--json]",
 		Summary: "Find a shortest directed path.",
+		Flags: []string{
+			"--relation <kind,...>              override the default traversal set",
+		},
 	},
 	"relate": {
-		Usage:   "weave relate <path> <id|file> [--depth <n>] [--direction out|in|both]",
+		Usage:   "weave relate <path> <id|file> [--depth <n>] [--direction out|in|both] [--relation <kind,...>]",
 		Summary: "Show a bounded graph neighborhood.",
+		Flags: []string{
+			"--depth <n>                        0..5, default 1",
+			"--direction out|in|both            default both",
+			"--relation <kind,...>              override the default traversal set",
+		},
 	},
 	"explain": {
 		Usage:   "weave explain <path> <query> [--id <id>] [--mode ...] [--scorer <name>]",

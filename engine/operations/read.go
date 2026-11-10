@@ -20,11 +20,11 @@ func (e *Executor) readParse(_ context.Context, eng *engine.Engine, _ contractv1
 	return success(eng.Bundle())
 }
 
-func (e *Executor) readGraph(_ context.Context, eng *engine.Engine, _ contractv1.OperationRequest) any {
+func (e *Executor) readGraph(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
 	view := eng.Graph()
 	return success(contractv1.Graph{
 		Nodes:    graph.SortedNodes(view),
-		Edges:    graph.SortedEdges(view),
+		Edges:    graph.FilterEdges(graph.SortedEdges(view), request.Relations),
 		Dangling: view.Dangling,
 	})
 }
@@ -118,7 +118,11 @@ func (e *Executor) readBacklinks(_ context.Context, eng *engine.Engine, request 
 }
 
 func (e *Executor) readPath(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
-	result, ok := eng.Path(request.From, request.To)
+	options, err := traversalOptions(request.Relations)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"relations": request.Relations})
+	}
+	result, ok := nav.PathWithOptions(eng.Bundle(), eng.Graph(), request.From, request.To, options)
 	if !ok {
 		return failure(contractv1.ErrConceptNotFound, "concept not found", map[string]any{
 			"from": request.From,
@@ -195,7 +199,13 @@ func (e *Executor) readRelate(_ context.Context, eng *engine.Engine, request con
 	if direction == "" {
 		direction = contractv1.RelateBoth
 	}
-	result, err := relate.Build(eng.Graph(), id, direction, depth)
+	options, err := traversalOptions(request.Relations)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
+			"relations": request.Relations,
+		})
+	}
+	result, err := relate.BuildWithOptions(eng.Graph(), id, direction, depth, options)
 	if err != nil {
 		switch {
 		case errors.Is(err, relate.ErrInvalidDepth), errors.Is(err, relate.ErrInvalidDirection):

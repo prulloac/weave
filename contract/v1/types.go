@@ -145,6 +145,27 @@ type OkfLink struct {
 	ResolvesInBundle bool    `json:"resolves_in_bundle"`
 }
 
+// RelationKind is one graph relation kind.
+type RelationKind string
+
+const (
+	RelationLink       RelationKind = "link"
+	RelationRelated    RelationKind = "related"
+	RelationImports    RelationKind = "imports"
+	RelationDeclares   RelationKind = "declares"
+	RelationReferences RelationKind = "references"
+	RelationCalls      RelationKind = "calls"
+	RelationInherits   RelationKind = "inherits"
+	RelationImplements RelationKind = "implements"
+)
+
+// ConceptRelation is one extension-provided relation from this concept to another.
+type ConceptRelation struct {
+	To   string       `json:"to"`
+	Kind RelationKind `json:"kind"`
+	Raw  *string      `json:"raw,omitempty"`
+}
+
 // OkfConcept is one parsed OKF concept document.
 type OkfConcept struct {
 	ID              string            `json:"id"`
@@ -158,6 +179,7 @@ type OkfConcept struct {
 	Status          *ConceptStatus    `json:"status,omitempty"`
 	Body            string            `json:"body"`
 	Links           []OkfLink         `json:"links"`
+	Relations       []ConceptRelation `json:"relations,omitempty"`
 	Privacy         *PrivacyDirective `json:"privacy,omitempty"`
 	ContentKind     string            `json:"content_kind,omitempty"`
 	MediaType       string            `json:"media_type,omitempty"`
@@ -795,6 +817,7 @@ type OperationRequest struct {
 	Decrypt      bool            `json:"decrypt,omitempty"`
 	Depth        *int            `json:"depth,omitempty"`
 	Direction    RelateDirection `json:"direction,omitempty"`
+	Relations    []RelationKind  `json:"relations,omitempty"`
 	DB           string          `json:"db,omitempty"`
 	NoDB         bool            `json:"no_db,omitempty"`
 	Strict       bool            `json:"strict,omitempty"`
