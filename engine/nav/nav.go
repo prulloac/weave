@@ -192,8 +192,18 @@ func Backlinks(bundle *contractv1.Bundle, nodeGraph *graph.Graph, target string)
 	return &contractv1.BacklinksResult{ID: id, Backlinks: entries}, true
 }
 
-// Path returns the shortest directed path between two concepts.
+// Path returns the shortest directed path between two concepts using default relations.
 func Path(bundle *contractv1.Bundle, nodeGraph *graph.Graph, fromInput, toInput string) (*contractv1.PathResult, bool) {
+	return PathWithOptions(bundle, nodeGraph, fromInput, toInput, graph.TraversalOptions{})
+}
+
+// PathWithOptions returns the shortest directed path allowed by options.
+func PathWithOptions(
+	bundle *contractv1.Bundle,
+	nodeGraph *graph.Graph,
+	fromInput, toInput string,
+	options graph.TraversalOptions,
+) (*contractv1.PathResult, bool) {
 	from, ok := NormalizeTarget(bundle, fromInput)
 	if !ok {
 		return nil, false
@@ -202,7 +212,7 @@ func Path(bundle *contractv1.Bundle, nodeGraph *graph.Graph, fromInput, toInput 
 	if !ok {
 		return nil, false
 	}
-	return &contractv1.PathResult{From: from, To: to, Path: graph.FindPath(nodeGraph, from, to)}, true
+	return &contractv1.PathResult{From: from, To: to, Path: graph.FindPathWithOptions(nodeGraph, from, to, options)}, true
 }
 
 // NormalizeTarget resolves an id, relative path or absolute path to a concept id.

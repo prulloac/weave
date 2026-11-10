@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 )
@@ -21,7 +22,11 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 	case "parse":
 		return contractv1.OperationRequest{Op: contractv1.OpParse, Path: flags.positional(0)}, 0, requirePositional(command, flags, 1)
 	case "graph":
-		return contractv1.OperationRequest{Op: contractv1.OpGraph, Path: flags.positional(0)}, 0, requirePositional(command, flags, 1)
+		relations, err := relationKinds(flags.relations)
+		if err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{Op: contractv1.OpGraph, Path: flags.positional(0), Relations: relations}, 0, requirePositional(command, flags, 1)
 	case "search":
 		if err := requirePositional(command, flags, 2); err != nil {
 			return contractv1.OperationRequest{}, 0, err
@@ -66,11 +71,16 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 		if err := requirePositional(command, flags, 3); err != nil {
 			return contractv1.OperationRequest{}, 0, err
 		}
+		relations, err := relationKinds(flags.relations)
+		if err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
 		return contractv1.OperationRequest{
-			Op:   contractv1.OpPath,
-			Path: flags.positional(0),
-			From: flags.positional(1),
-			To:   flags.positional(2),
+			Op:        contractv1.OpPath,
+			Path:      flags.positional(0),
+			From:      flags.positional(1),
+			To:        flags.positional(2),
+			Relations: relations,
 		}, 0, nil
 	case "audit":
 		if err := requirePositional(command, flags, 1); err != nil {
@@ -99,12 +109,17 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 		if direction == "" {
 			direction = contractv1.RelateBoth
 		}
+		relations, err := relationKinds(flags.relations)
+		if err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
 		return contractv1.OperationRequest{
 			Op:        contractv1.OpRelate,
 			Path:      flags.positional(0),
 			Target:    flags.positional(1),
 			Depth:     depth,
 			Direction: direction,
+			Relations: relations,
 		}, 0, nil
 	case "explain":
 		if err := requirePositional(command, flags, 2); err != nil {
@@ -196,6 +211,25 @@ func requirePositional(command string, f flags, count int) error {
 		return fmt.Errorf("%s requires %d positional argument(s)", command, count)
 	}
 	return nil
+}
+
+func relationKinds(values []string) ([]contractv1.RelationKind, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	result := make([]contractv1.RelationKind, 0, len(values))
+	for _, value := range values {
+		kind := contractv1.RelationKind(strings.TrimSpace(value))
+		switch kind {
+		case contractv1.RelationLink, contractv1.RelationRelated, contractv1.RelationImports,
+			contractv1.RelationDeclares, contractv1.RelationReferences, contractv1.RelationCalls,
+			contractv1.RelationInherits, contractv1.RelationImplements:
+			result = append(result, kind)
+		default:
+			return nil, fmt.Errorf("unknown relation kind %q", value)
+		}
+	}
+	return result, nil
 }
 
 func scorerRequest(request *contractv1.OperationRequest, f flags) error {

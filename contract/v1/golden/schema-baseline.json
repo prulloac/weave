@@ -253,6 +253,25 @@
 				}
 			}
 		},
+		"ConceptRelation": {
+			"type": "object",
+			"required": [
+				"kind",
+				"to"
+			],
+			"additional_properties": false,
+			"properties": {
+				"kind": {
+					"ref": "#/$defs/RelationKind"
+				},
+				"raw": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				}
+			}
+		},
 		"ConceptStatus": {
 			"type": "string",
 			"enum": [
@@ -1310,11 +1329,7 @@
 					"type": "string"
 				},
 				"source": {
-					"type": "string",
-					"enum": [
-						"link",
-						"related"
-					]
+					"ref": "#/$defs/RelationKind"
 				},
 				"to": {
 					"type": "string"
@@ -1648,7 +1663,8 @@
 					"type": "string",
 					"enum": [
 						"blob",
-						"document"
+						"document",
+						"symbol"
 					]
 				},
 				"id": {
@@ -1709,7 +1725,8 @@
 					"type": "string",
 					"enum": [
 						"blob",
-						"document"
+						"document",
+						"symbol"
 					]
 				},
 				"content_metadata": {
@@ -1744,6 +1761,12 @@
 				},
 				"privacy": {
 					"ref": "#/$defs/PrivacyDirective"
+				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ConceptRelation"
+					}
 				},
 				"status": {
 					"ref": "#/$defs/ConceptStatus"
@@ -1962,6 +1985,12 @@
 				"query": {
 					"type": "string"
 				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/RelationKind"
+					}
+				},
 				"rerank": {
 					"type": "string"
 				},
@@ -2140,11 +2169,7 @@
 					"type": "string"
 				},
 				"source": {
-					"type": "string",
-					"enum": [
-						"link",
-						"related"
-					]
+					"ref": "#/$defs/RelationKind"
 				},
 				"to": {
 					"type": "string"
@@ -2189,6 +2214,19 @@
 					"type": "string"
 				}
 			}
+		},
+		"RelationKind": {
+			"type": "string",
+			"enum": [
+				"calls",
+				"declares",
+				"implements",
+				"imports",
+				"inherits",
+				"link",
+				"references",
+				"related"
+			]
 		},
 		"ScorerInfo": {
 			"type": "object",
@@ -2401,7 +2439,8 @@
 					"type": "string",
 					"enum": [
 						"blob",
-						"document"
+						"document",
+						"symbol"
 					]
 				},
 				"content_metadata": {

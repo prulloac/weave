@@ -180,12 +180,18 @@ func detect(rel, path string) (string, bool) {
 	if err != nil {
 		return extType, false
 	}
+	if extType != "" && textLike(extType) && utf8.Valid(data) && !strings.ContainsRune(string(data), 0) {
+		return extType, false
+	}
 	detected := http.DetectContentType(data)
 	if index := strings.IndexByte(detected, ';'); index >= 0 {
 		detected = strings.TrimSpace(detected[:index])
 	}
 	detected = magicType(data, detected)
 	if extType == "" {
+		return detected, false
+	}
+	if textLike(extType) && (!utf8.Valid(data) || strings.ContainsRune(string(data), 0)) {
 		return detected, false
 	}
 	if detected == "" || detected == "application/octet-stream" {
@@ -237,7 +243,11 @@ func extensionType(ext string) string {
 		return "text/css"
 	case ".js":
 		return "application/javascript"
+	case ".jsx":
+		return "text/jsx"
 	case ".ts":
+		return "text/x-typescript"
+	case ".tsx":
 		return "text/x-typescript"
 	case ".go":
 		return "text/x-go"
@@ -245,6 +255,22 @@ func extensionType(ext string) string {
 		return "text/x-python"
 	case ".rs":
 		return "text/x-rust"
+	case ".c":
+		return "text/x-c"
+	case ".h":
+		return "text/x-c"
+	case ".cc", ".cpp", ".cxx":
+		return "text/x-c++"
+	case ".hpp", ".hh", ".hxx":
+		return "text/x-c++"
+	case ".java":
+		return "text/x-java"
+	case ".scala", ".sc":
+		return "text/x-scala"
+	case ".dart":
+		return "text/x-dart"
+	case ".zig":
+		return "text/x-zig"
 	case ".sh":
 		return "text/x-shellscript"
 	case ".sql":

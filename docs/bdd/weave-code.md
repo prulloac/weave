@@ -7,7 +7,7 @@ tags:
   - "code"
   - "extensions"
   - "graph"
-status: draft
+status: stable
 generated:
   by: opencode/deepseek-v4.1-flash
 ---
