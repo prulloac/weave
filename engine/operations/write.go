@@ -54,11 +54,20 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			DryRun:    true,
 		})
 	}
-	enricher, err := e.newEnricher(request)
+	projectExt, projectManifest, projectMode, err := e.projectExtension(ctx, request)
 	if err != nil {
 		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Enricher,
 		})
+	}
+	var enricher sqlitestore.Enricher
+	if !projectMode {
+		enricher, err = e.newEnricher(request)
+		if err != nil {
+			return failure(extensionErrorCode(err), err.Error(), map[string]any{
+				"extension": request.Enricher,
+			})
+		}
 	}
 	embedder, err := e.newEmbedder(request)
 	if err != nil {
@@ -94,7 +103,10 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	defer store.Close()
 
 	assetTypes := request.AssetTypes
-	if len(assetTypes) == 0 && !request.NoAssets {
+	if projectMode && len(assetTypes) == 0 {
+		assetTypes = projectAssetTypes(projectManifest)
+	}
+	if len(assetTypes) == 0 && !request.NoAssets && !projectMode {
 		stored, err := store.AssetTypes(ctx, request.Path)
 		if err != nil {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
@@ -103,19 +115,34 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	}
 	if request.NoAssets {
 		assetTypes = nil
+		projectMode = false
 	}
-	if request.Assets && len(assetTypes) == 0 {
+	if request.Assets && len(assetTypes) == 0 && !projectMode {
 		return failure(contractv1.ErrAssetTypesRequired, "asset scanning requires --asset-types", map[string]any{
 			"path": request.Path,
 		})
 	}
+	scannedConcepts := []contractv1.OkfConcept{}
 	if len(assetTypes) > 0 {
 		scanned, err := assets.Scan(ctx, request.Path, assets.Filter{Types: assetTypes})
 		if err != nil {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
 		}
+		scannedConcepts = scanned.Concepts
 		eng.Bundle().Concepts = append(eng.Bundle().Concepts, scanned.Concepts...)
 		eng.Bundle().Validation.Warnings = append(eng.Bundle().Validation.Warnings, scanned.Warnings...)
+	}
+	if projectMode {
+		if err := e.applyProjectAnalysis(ctx, request, projectExt, eng, scannedConcepts); err != nil {
+			if request.Permissive {
+				e.warn("project %s: %v", projectExt.Name, err)
+			} else {
+				return failure(extensionErrorCode(err), err.Error(), map[string]any{
+					"extension": request.Enricher,
+					"path":      request.Path,
+				})
+			}
+		}
 	}
 
 	var report contractv1.IngestReport
@@ -191,6 +218,17 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			Documents: len(bundle.Concepts),
 			Warnings:  len(bundle.Validation.Warnings),
 			DryRun:    true,
+		})
+	}
+	_, _, projectMode, err := e.projectExtension(ctx, request)
+	if err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{
+			"extension": request.Enricher,
+		})
+	}
+	if projectMode {
+		return failure(contractv1.ErrInvalidRequest, "project analysis sync is not implemented yet; run weave rebuild "+request.Path, map[string]any{
+			"path": request.Path,
 		})
 	}
 	enricher, err := e.newEnricher(request)
