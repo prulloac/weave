@@ -16,7 +16,10 @@ func TestApplyProjectResponseSkipsOmittedFiles(t *testing.T) {
 	response := extensions.ProjectAnalysisResponse{
 		Documents: []extensions.ProjectDocument{{ID: "a.go"}},
 	}
-	applyProjectResponse(bundle, response)
+	applyProjectResponse(bundle, response, []contractv1.OkfConcept{
+		{ID: "a.go", Path: "a.go"},
+		{ID: "b.gen.go", Path: "b.gen.go"},
+	})
 	ids := map[string]bool{}
 	for _, concept := range bundle.Concepts {
 		ids[concept.ID] = true
@@ -46,7 +49,7 @@ func TestApplyProjectExternalThreshold(t *testing.T) {
 			{From: "b.go", To: "_code/external/go/os", Kind: "imports"},
 		},
 	}
-	applyProjectResponse(bundle, response)
+	applyProjectResponse(bundle, response, bundle.Concepts)
 
 	ids := map[string]bool{}
 	for _, concept := range bundle.Concepts {

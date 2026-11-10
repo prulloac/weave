@@ -62,7 +62,7 @@ func (e *Executor) applyProjectAnalysis(
 	if err != nil {
 		return err
 	}
-	applyProjectResponse(eng.Bundle(), response)
+	applyProjectResponse(eng.Bundle(), response, scanned)
 	return nil
 }
 
@@ -121,7 +121,11 @@ func absoluteRoot(root string) string {
 	return absolute
 }
 
-func applyProjectResponse(bundle *contractv1.Bundle, response extensions.ProjectAnalysisResponse) {
+func applyProjectResponse(bundle *contractv1.Bundle, response extensions.ProjectAnalysisResponse, analyzed []contractv1.OkfConcept) {
+	requested := make(map[string]bool, len(analyzed))
+	for _, concept := range analyzed {
+		requested[concept.ID] = true
+	}
 	index := make(map[string]int, len(bundle.Concepts))
 	for position := range bundle.Concepts {
 		index[bundle.Concepts[position].ID] = position
@@ -132,7 +136,7 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 	}
 	filtered := bundle.Concepts[:0]
 	for _, concept := range bundle.Concepts {
-		if concept.Type == "Code" && concept.ContentKind == "blob" && !kept[concept.ID] {
+		if requested[concept.ID] && !kept[concept.ID] {
 			// The project analyzer skipped this source file (ignore rules,
 			// generated code or a resource limit).
 			continue

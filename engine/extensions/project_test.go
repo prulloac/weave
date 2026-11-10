@@ -12,24 +12,25 @@ import (
 func TestProjectAnalysisCoverage(t *testing.T) {
 	dir := t.TempDir()
 	cases := map[string]struct {
-		body  string
-		valid bool
+		body      string
+		valid     bool
+		relations int
 	}{
 		"valid": {
 			`printf '%s' '{"v":"weave.cli/v1","documents":[{"id":"main.go"},{"id":"app.py"}],"relations":[{"from":"main.go","to":"app.py","kind":"imports"}]}'`,
-			true,
+			true, 1,
 		},
 		"missing": {
 			`printf '%s' '{"v":"weave.cli/v1","documents":[{"id":"main.go"}]}'`,
-			false,
+			true, 0,
 		},
 		"extra": {
 			`printf '%s' '{"v":"weave.cli/v1","documents":[{"id":"main.go"},{"id":"app.py"},{"id":"x.go"}]}'`,
-			false,
+			false, 0,
 		},
 		"duplicate": {
 			`printf '%s' '{"v":"weave.cli/v1","documents":[{"id":"main.go"},{"id":"main.go"}]}'`,
-			false,
+			false, 0,
 		},
 	}
 	for name, testCase := range cases {
@@ -46,7 +47,7 @@ func TestProjectAnalysisCoverage(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s: %v", name, err)
 			}
-			if len(response.Relations) != 1 || response.Relations[0].Kind != "imports" {
+			if len(response.Relations) != testCase.relations {
 				t.Fatalf("%s: unexpected relations: %+v", name, response.Relations)
 			}
 			continue

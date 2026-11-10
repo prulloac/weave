@@ -74,9 +74,9 @@ func (r Runner) ProjectAnalysis(ctx context.Context, extension Extension, reques
 	if err := r.invokeWithLimit(ctx, extension, request, &response, MaxProjectAnalysisBytes); err != nil {
 		return ProjectAnalysisResponse{}, err
 	}
-	if len(response.Documents) != len(request.Files) {
-		return ProjectAnalysisResponse{}, fmt.Errorf("%w: expected %d documents, got %d", ErrProtocol, len(request.Files), len(response.Documents))
-	}
+	// Files may be omitted when the analyzer skips them because of ignore
+	// rules, generated-code policy or a resource limit. Every returned
+	// document must still map to one request file and appear at most once.
 	expected := make(map[string]bool, len(request.Files))
 	for _, file := range request.Files {
 		expected[file.ID] = true
@@ -90,11 +90,6 @@ func (r Runner) ProjectAnalysis(ctx context.Context, extension Extension, reques
 			return ProjectAnalysisResponse{}, fmt.Errorf("%w: duplicate document %q", ErrProtocol, document.ID)
 		}
 		seen[document.ID] = true
-	}
-	for id := range expected {
-		if !seen[id] {
-			return ProjectAnalysisResponse{}, fmt.Errorf("%w: missing document %q", ErrProtocol, id)
-		}
 	}
 	return response, nil
 }
