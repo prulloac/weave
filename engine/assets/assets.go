@@ -174,6 +174,18 @@ func within(root, path string) bool {
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
+// MediaTypeForExtension returns the media type for a known file extension,
+// or an empty string when the extension is unknown.
+func MediaTypeForExtension(ext string) string {
+	if ext == "" {
+		return ""
+	}
+	if ext[0] != '.' {
+		ext = "." + ext
+	}
+	return extensionType(strings.ToLower(ext))
+}
+
 func detect(rel, path string) (string, bool) {
 	extType := extensionType(strings.ToLower(filepath.Ext(rel)))
 	data, err := os.ReadFile(path)

@@ -18,8 +18,9 @@ Specification: [weave-code.md](https://github.com/prulloac/weave-docs/blob/main/
 
 Architecture decision: [extension-provided graph relations and project analysis](https://github.com/prulloac/weave-docs/blob/main/architecture/adr/0010-extension-provided-graph-relations-and-project-analysis.md)
 
-Go tests (planned): `cmd/weave/weave_code_bdd_test.go`, `engine/assets/code_test.go`,
-`engine/graph/relations_test.go`, and the standalone `weave-code` repository tests.
+Go tests: `cmd/weave/weave_code_bdd_test.go`, `cmd/weave/code_relations_bdd_test.go`,
+`engine/assets/code_test.go`, `engine/graph/relations_test.go`, `engine/extensions/project_test.go`,
+`storage/sqlite/relations_test.go`, and the standalone `weave-code` repository tests.
 
 These scenarios describe observable behavior. They do not prescribe implementation details.
 

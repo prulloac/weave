@@ -38,6 +38,7 @@ type ProjectDocument struct {
 	Title           string            `json:"title,omitempty"`
 	Description     string            `json:"description,omitempty"`
 	Keywords        []string          `json:"keywords,omitempty"`
+	Body            string            `json:"body,omitempty"`
 	ContentMetadata map[string]any    `json:"content_metadata,omitempty"`
 	SymbolDocuments []ProjectDocument `json:"symbol_documents,omitempty"`
 }
