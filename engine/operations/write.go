@@ -299,7 +299,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			}
 		} else {
 			bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
-			applyProjectResponse(bundle, response)
+			applyProjectResponse(bundle, response, scanned.Concepts)
 			projectConcepts = bundle.Concepts
 		}
 	}
