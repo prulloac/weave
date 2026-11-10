@@ -1,0 +1,94 @@
+name: Defect or regression
+description: Report a reproducible mismatch with documented Weave behavior.
+title: "[defect] "
+labels:
+  - needs-repro
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only for reproducible defects in a first-party product
+        (`weave`, `weave-ai`, `weave-codec-lz4`, `weave-image` or the agent skills).
+        Security reports must use the private advisory link instead.
+  - type: dropdown
+    id: product
+    attributes:
+      label: Product
+      options:
+        - weave
+        - weave-ai
+        - weave-codec-lz4
+        - weave-image
+        - weave-skills
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `weave version --json` or the extension `--version`.
+      placeholder: v0.7.0
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Revision
+      description: Release tag or `main` commit under test.
+      placeholder: v0.7.0 / a54f883
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture and install method.
+      placeholder: Linux amd64, release archive; or Windows 11, install.ps1
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: Exact command and flags that reproduce the defect.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What the specification or documentation says should happen. Link the spec.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exit code and relevant stderr. Do not paste secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Bundle shape, frontmatter, fixture or dataset needed to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant output, stack traces or JSON envelopes, with secrets removed.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for a duplicate.
+          required: true
+        - label: This report contains no secrets, private content or security details.
+          required: true
+        - label: This is a first-party defect, not a third-party extension bug.
+          required: true

@@ -725,6 +725,14 @@ User documentation lives in this repository; project documentation lives in
 - [Roadmap](https://github.com/prulloac/weave-docs/blob/main/ROADMAP.md)
 - [Backlog](https://github.com/prulloac/weave-docs/blob/main/backlog.md)
 
+## Issues
+
+This repository is the only issue tracker for Weave. Report defects and documentation errors with
+the issue forms; security reports use
+[private vulnerability reporting](https://github.com/prulloac/weave/security/advisories/new). Feature
+requests are roadmap decisions, not issues. The triage policy and the 30-day 1.0 stability gate are
+in [1.0 Stability Gate and Issue Policy](https://github.com/prulloac/weave-docs/blob/main/specs/stability-gate.md).
+
 ## License
 
 Weave is released under the [MIT License](LICENSE).

@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/prulloac/weave/security/advisories/new
+    about: Report vulnerabilities and privacy leaks privately. Never open a public issue for a security defect.
+  - name: Roadmap and backlog
+    url: https://github.com/prulloac/weave-docs/blob/main/ROADMAP.md
+    about: Feature proposals and sequencing decisions are tracked in the roadmap, not as issues.
+  - name: Documentation
+    url: https://github.com/prulloac/weave/blob/main/docs/README.md
+    about: Read the installation, command and workspace documentation before filing a defect.
+  - name: Other repositories
+    url: https://github.com/prulloac/weave/issues/new/choose
+    about: weave-ai, weave-codec-lz4, weave-image, weave-skills and weave-docs do not accept issues; report first-party defects here.

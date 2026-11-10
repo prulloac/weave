@@ -72,6 +72,29 @@ stay in this repository.
 
 Documentation rules are in the [documentation style guide](https://github.com/prulloac/weave-docs/blob/main/STYLE.md).
 
+## Reporting Issues
+
+Only [`prulloac/weave`](https://github.com/prulloac/weave/issues/new/choose) accepts issues. The
+other repositories (`weave-ai`, `weave-codec-lz4`, `weave-image`, `weave-skills`, `weave-docs`)
+disable issues and point here.
+
+Supported:
+
+- **Defects and regressions** in a first-party product, with version, revision, environment,
+  command, expected behavior and a minimal reproduction.
+- **Documentation defects** with the file and a suggested correction.
+- **Packaging or install defects** for archives, installers, checksums or version floors.
+- **Security defects** only through
+  [private vulnerability reporting](https://github.com/prulloac/weave/security/advisories/new).
+
+Not supported as issues: usage questions, feature requests, third-party extension bugs and reports
+without a reproducible command.
+
+Triage targets: acknowledge within 3 business days, reproduce within 7 days, confirm or close within
+14 days. Confirmed defects get `confirmed-defect`; a fix on `main` restarts the 30-day 1.0 stability
+window. The full policy is the
+[1.0 Stability Gate and Issue Policy](https://github.com/prulloac/weave-docs/blob/main/specs/stability-gate.md).
+
 ## Code Style
 
 - `gofmt` and `goimports` formatting; tabs.

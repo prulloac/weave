@@ -1,0 +1,38 @@
+name: Documentation defect
+description: Report wrong, missing or contradictory Weave documentation.
+title: "[docs] "
+labels:
+  - documentation
+  - needs-repro
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Document
+      description: File path or URL.
+      placeholder: README.md, docs/guides/workspace-mcp.md, weave-docs/specs/...
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+      description: Quote the incorrect or missing text.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: What the behavior or wording should be, with a command or spec reference if possible.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for a duplicate.
+          required: true
+        - label: This is a documentation defect, not a feature request.
+          required: true
