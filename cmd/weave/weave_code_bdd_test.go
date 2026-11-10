@@ -122,6 +122,25 @@ func TestWeaveCodeProjectSync(t *testing.T) {
 	}
 }
 
+func TestWeaveCodeProjectSyncEnablesSymbols(t *testing.T) {
+	root := weaveCodeRepo(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	if code, _, stderr := Invoke(t, "ingest", root, "--with-enricher", "code", "--db", db, "--strict", "--json"); code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	t.Setenv("WEAVE_CODE_SYMBOL_DOCUMENTS", "1")
+	if code, _, stderr := Invoke(t, "sync", root, "--with-enricher", "code", "--db", db, "--strict", "--json"); code != 0 {
+		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
+	}
+	code, stdout, stderr := Invoke(t, "list", root, "--type", "CodeSymbol", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("list exit=%d stderr=%q", code, stderr)
+	}
+	if strings.Contains(stdout, `"result":[]`) {
+		t.Fatalf("expected symbols after sync, got %s", stdout)
+	}
+}
+
 func TestWeaveCodeProjectSyncRemovesSymbols(t *testing.T) {
 	root := weaveCodeRepo(t)
 	t.Setenv("WEAVE_CODE_SYMBOL_DOCUMENTS", "1")

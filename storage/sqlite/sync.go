@@ -65,7 +65,7 @@ func (s *Store) Sync(
 		}
 	}
 	addedPaths, updatedPaths, removedPaths := changedPaths(existing, scanned)
-	if len(addedPaths) == 0 && len(updatedPaths) == 0 && len(removedPaths) == 0 {
+	if len(addedPaths) == 0 && len(updatedPaths) == 0 && len(removedPaths) == 0 && len(options.ProjectConcepts) == 0 {
 		return contractv1.SyncReport{
 			DB:        s.path,
 			Bundle:    root,
