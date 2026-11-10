@@ -48,6 +48,8 @@ type SyncOptions struct {
 	Enricher   Enricher
 	Embedder   Embedder
 	Provider   privacy.Provider
+	// ProjectConcepts are precomputed code, symbol and external documents.
+	ProjectConcepts []contractv1.OkfConcept
 }
 
 // DefaultPath returns the default user database path.
