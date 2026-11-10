@@ -142,6 +142,13 @@ These scenarios describe observable behavior. They do not prescribe implementati
 - **Then** the previous code relations remain
 - **And** one warning is reported
 
+### Scenario: Sync applies project analysis
+
+- **Given** an indexed project with code documents
+- **When** I add a source file and run `weave sync --with-enricher code`
+- **Then** the new file becomes a code document
+- **And** the updated relation set is stored in the same sync transaction
+
 ## Feature: Symbol documents
 
 ### Scenario: Symbol documents are off by default

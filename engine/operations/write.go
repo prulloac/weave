@@ -220,22 +220,32 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			DryRun:    true,
 		})
 	}
-	_, _, projectMode, err := e.projectExtension(ctx, request)
+	projectExt, projectManifest, projectMode, err := e.projectExtension(ctx, request)
 	if err != nil {
 		return failure(extensionErrorCode(err), err.Error(), map[string]any{
 			"extension": request.Enricher,
 		})
 	}
 	if projectMode {
-		return failure(contractv1.ErrInvalidRequest, "project analysis sync is not implemented yet; run weave rebuild "+request.Path, map[string]any{
-			"path": request.Path,
-		})
+		has, err := store.HasBundle(ctx, request.Path)
+		if err != nil {
+			code, message := mapStorageError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+		if !has {
+			return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
+				"path": request.Path,
+			})
+		}
 	}
-	enricher, err := e.newEnricher(request)
-	if err != nil {
-		return failure(extensionErrorCode(err), err.Error(), map[string]any{
-			"extension": request.Enricher,
-		})
+	var enricher sqlitestore.Enricher
+	if !projectMode {
+		enricher, err = e.newEnricher(request)
+		if err != nil {
+			return failure(extensionErrorCode(err), err.Error(), map[string]any{
+				"extension": request.Enricher,
+			})
+		}
 	}
 	embedder, err := e.newEmbedder(request)
 	if err != nil {
@@ -250,26 +260,59 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 	if provider != nil {
 		defer provider.Close()
 	}
-	if request.Assets && len(request.AssetTypes) == 0 {
+	assetTypes := request.AssetTypes
+	if projectMode && len(assetTypes) == 0 {
+		assetTypes = projectAssetTypes(projectManifest)
+	}
+	if len(assetTypes) == 0 && !request.NoAssets {
 		stored, err := store.AssetTypes(ctx, request.Path)
 		if err != nil {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
 		}
-		if len(stored) == 0 {
-			return failure(contractv1.ErrAssetTypesRequired, "asset scanning requires --asset-types", map[string]any{
-				"path": request.Path,
-			})
+		assetTypes = stored
+	}
+	if request.NoAssets {
+		assetTypes = nil
+		projectMode = false
+	}
+	if request.Assets && len(assetTypes) == 0 && !projectMode {
+		return failure(contractv1.ErrAssetTypesRequired, "asset scanning requires --asset-types", map[string]any{
+			"path": request.Path,
+		})
+	}
+	projectConcepts := []contractv1.OkfConcept{}
+	if projectMode && len(assetTypes) > 0 {
+		scanned, err := assets.Scan(ctx, request.Path, assets.Filter{Types: assetTypes})
+		if err != nil {
+			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
+		}
+		response, err := e.runProjectAnalysis(ctx, request, projectExt, scanned.Concepts)
+		if err != nil {
+			if request.Permissive {
+				e.warn("project %s: %v", projectExt.Name, err)
+				projectConcepts = scanned.Concepts
+			} else {
+				return failure(extensionErrorCode(err), err.Error(), map[string]any{
+					"extension": request.Enricher,
+					"path":      request.Path,
+				})
+			}
+		} else {
+			bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
+			applyProjectResponse(bundle, response)
+			projectConcepts = bundle.Concepts
 		}
 	}
 	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
-		Mode:       mode,
-		Codec:      request.Codec,
-		CodecSet:   request.CodecSet,
-		AssetTypes: request.AssetTypes,
-		NoAssets:   request.NoAssets,
-		Enricher:   enricher,
-		Embedder:   embedder,
-		Provider:   provider,
+		Mode:            mode,
+		Codec:           request.Codec,
+		CodecSet:        request.CodecSet,
+		AssetTypes:      assetTypes,
+		NoAssets:        request.NoAssets,
+		Enricher:        enricher,
+		Embedder:        embedder,
+		Provider:        provider,
+		ProjectConcepts: projectConcepts,
 	})
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {

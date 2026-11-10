@@ -58,6 +58,20 @@ func (e *Executor) applyProjectAnalysis(
 	eng *engine.Engine,
 	scanned []contractv1.OkfConcept,
 ) error {
+	response, err := e.runProjectAnalysis(ctx, request, extension, scanned)
+	if err != nil {
+		return err
+	}
+	applyProjectResponse(eng.Bundle(), response)
+	return nil
+}
+
+func (e *Executor) runProjectAnalysis(
+	ctx context.Context,
+	request contractv1.OperationRequest,
+	extension extensions.Extension,
+	scanned []contractv1.OkfConcept,
+) (extensions.ProjectAnalysisResponse, error) {
 	files := make([]extensions.ProjectFile, 0, len(scanned))
 	for _, concept := range scanned {
 		files = append(files, extensions.ProjectFile{
@@ -76,13 +90,12 @@ func (e *Executor) applyProjectAnalysis(
 		},
 	})
 	if err != nil {
-		return err
+		return extensions.ProjectAnalysisResponse{}, err
 	}
-	applyProjectResponse(eng.Bundle(), response)
 	for _, warning := range response.Warnings {
 		e.warn("project %s: %s", extension.Name, warning)
 	}
-	return nil
+	return response, nil
 }
 
 func projectTimeout(request contractv1.OperationRequest) time.Duration {

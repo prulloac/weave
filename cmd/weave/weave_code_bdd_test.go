@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -89,6 +90,62 @@ func weaveCodeRepo(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return root
+}
+
+func TestWeaveCodeProjectSync(t *testing.T) {
+	root := weaveCodeRepo(t)
+	db := filepath.Join(t.TempDir(), "index.db")
+	if code, _, stderr := Invoke(t, "ingest", root, "--with-enricher", "code", "--db", db, "--strict", "--json"); code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	if err := os.WriteFile(filepath.Join(root, "extra.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := Invoke(t, "sync", root, "--with-enricher", "code", "--db", db, "--strict", "--json")
+	if code != 0 {
+		t.Fatalf("sync exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	var list struct {
+		Result []struct {
+			ID string `json:"id"`
+		} `json:"result"`
+	}
+	code, stdout, stderr = Invoke(t, "list", root, "--type", "Code", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("list exit=%d stderr=%q", code, stderr)
+	}
+	if err := json.Unmarshal([]byte(stdout), &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Result) != 3 {
+		t.Fatalf("expected 3 code documents after sync, got %+v", list.Result)
+	}
+}
+
+func TestWeaveCodeProjectSyncRemovesSymbols(t *testing.T) {
+	root := weaveCodeRepo(t)
+	t.Setenv("WEAVE_CODE_SYMBOL_DOCUMENTS", "1")
+	db := filepath.Join(t.TempDir(), "index.db")
+	if code, _, stderr := Invoke(t, "ingest", root, "--with-enricher", "code", "--db", db, "--strict", "--json"); code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q", code, stderr)
+	}
+	if err := os.Remove(filepath.Join(root, "main.go")); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, stderr := Invoke(t, "sync", root, "--with-enricher", "code", "--db", db, "--strict", "--json"); code != 0 {
+		t.Fatalf("sync exit=%d stderr=%q", code, stderr)
+	}
+	code, stdout, stderr := Invoke(t, "list", root, "--type", "CodeSymbol", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("list exit=%d stderr=%q", code, stderr)
+	}
+	if string(stdout) == "" || !containsEmptyList(stdout) {
+		t.Fatalf("expected no symbols after removal, got %s", stdout)
+	}
+}
+
+func containsEmptyList(payload string) bool {
+	return strings.Contains(payload, `"result":[]`)
 }
 
 func TestWeaveCodeProjectIngest(t *testing.T) {

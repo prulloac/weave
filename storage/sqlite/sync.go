@@ -80,6 +80,7 @@ func (s *Store) Sync(
 		return contractv1.SyncReport{}, err
 	}
 	bundle.Concepts = append(bundle.Concepts, scannedAssets.Concepts...)
+	bundle.Concepts = append(bundle.Concepts, options.ProjectConcepts...)
 	bundle.Validation.Warnings = append(bundle.Validation.Warnings, scannedAssets.Warnings...)
 
 	current := make(map[string]contractv1.OkfConcept, len(bundle.Concepts))
