@@ -27,7 +27,7 @@ body:
     attributes:
       label: Version
       description: Output of `weave version --json` or the extension `--version`.
-      placeholder: v0.7.0
+      placeholder: v0.8.0
     validations:
       required: true
   - type: input
@@ -35,7 +35,7 @@ body:
     attributes:
       label: Revision
       description: Release tag or `main` commit under test.
-      placeholder: v0.7.0 / a54f883
+      placeholder: v0.8.0
     validations:
       required: true
   - type: input
