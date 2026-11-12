@@ -16,6 +16,7 @@ var allRelations = map[contractv1.RelationKind]bool{
 	contractv1.RelationCalls:      true,
 	contractv1.RelationInherits:   true,
 	contractv1.RelationImplements: true,
+	contractv1.RelationContains:   true,
 }
 
 func traversalOptions(relations []contractv1.RelationKind) (graph.TraversalOptions, error) {

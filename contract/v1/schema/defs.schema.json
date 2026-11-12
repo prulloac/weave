@@ -488,7 +488,8 @@
 				"references",
 				"calls",
 				"inherits",
-				"implements"
+				"implements",
+				"contains"
 			]
 		},
 		"ConceptRelation": {
@@ -2426,6 +2427,15 @@
 				},
 				"path": {
 					"type": "string"
+				},
+				"provider": {
+					"type": "string"
+				},
+				"ref": {
+					"type": "string"
+				},
+				"worktree": {
+					"type": "boolean"
 				}
 			}
 		},

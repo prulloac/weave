@@ -29,6 +29,11 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	if permissive {
 		mode = "permissive"
 	}
+	if request.Source != nil {
+		// Source snapshots are arbitrary repositories. Missing OKF metadata in
+		// their Markdown is a warning, not a write failure.
+		mode = "permissive"
+	}
 	codec := request.Codec
 	if request.DryRun {
 		options := e.Options
@@ -84,6 +89,11 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	}
 	options := e.Options
 	options.Permissive = permissive
+	if request.Source != nil {
+		// Source snapshots are arbitrary repositories, not OKF bundles. The
+		// repository README is represented by the synthetic _repo node.
+		options.Permissive = true
+	}
 	eng, err := engine.Open(ctx, request.Path, options)
 	if err != nil {
 		code, message := mapOpenError(err)
@@ -144,6 +154,7 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			}
 		}
 	}
+	applySourceRepository(eng.Bundle(), request.Source)
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
@@ -290,7 +301,9 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		if err != nil {
 			if request.Permissive {
 				e.warn("project %s: %v", projectExt.Name, err)
-				projectConcepts = scanned.Concepts
+				bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
+				applySourceRepository(bundle, request.Source)
+				projectConcepts = bundle.Concepts
 			} else {
 				return failure(extensionErrorCode(err), err.Error(), map[string]any{
 					"extension": request.Enricher,
@@ -300,6 +313,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		} else {
 			bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
 			applyProjectResponse(bundle, response, scanned.Concepts)
+			applySourceRepository(bundle, request.Source)
 			projectConcepts = bundle.Concepts
 		}
 	}

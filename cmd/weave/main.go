@@ -151,6 +151,30 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		}
 		request = req
 	}
+	if flags.git {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:
+		default:
+			return usageError(stdout, stderr, flags.json, "--git is only valid for ingest, rebuild and sync")
+		}
+		if flags.workspace != "" {
+			return usageError(stdout, stderr, flags.json, "--git is not supported with --workspace")
+		}
+		if len(flags.sources) > 0 {
+			return usageError(stdout, stderr, flags.json, "--git is not supported with --source")
+		}
+		alias, err := deriveSourceAlias(flags.positional(0))
+		if err != nil {
+			return usageError(stdout, stderr, flags.json, err.Error())
+		}
+		request.Sources = []contractv1.SourceSpec{{
+			Alias:    alias,
+			Path:     flags.positional(0),
+			Provider: "git",
+			Ref:      flags.gitRef,
+			Worktree: flags.gitWorktree,
+		}}
+	}
 	request.DB = flags.db
 	request.NoDB = flags.noDB
 	request.Strict = flags.strict

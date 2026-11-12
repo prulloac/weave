@@ -157,6 +157,7 @@ const (
 	RelationCalls      RelationKind = "calls"
 	RelationInherits   RelationKind = "inherits"
 	RelationImplements RelationKind = "implements"
+	RelationContains   RelationKind = "contains"
 )
 
 // ConceptRelation is one extension-provided relation from this concept to another.
@@ -729,8 +730,30 @@ type WatchEvent struct {
 
 // SourceSpec is one bundle source passed to a multi-source invocation.
 type SourceSpec struct {
-	Alias string `json:"alias"`
-	Path  string `json:"path"`
+	Alias    string `json:"alias"`
+	Path     string `json:"path"`
+	Provider string `json:"provider,omitempty"`
+	Ref      string `json:"ref,omitempty"`
+	Worktree bool   `json:"worktree,omitempty"`
+}
+
+// SourceContext carries materialized source provenance through an in-process
+// write. It is never serialized on the wire.
+type SourceContext struct {
+	Alias           string
+	Provider        string
+	URI             string
+	Ref             string
+	Commit          string
+	SnapshotPath    string
+	RepositoryName  string
+	RepositoryTitle string
+	Description     string
+	Readme          string
+	Host            string
+	Owner           string
+	License         string
+	Worktree        bool
 }
 
 // SourceBundle is one per-source parse result.
@@ -835,6 +858,7 @@ type OperationRequest struct {
 	CandidateK   *int            `json:"candidate_k,omitempty"`
 	TimeoutMS    int64           `json:"timeout_ms,omitempty"`
 	Sources      []SourceSpec    `json:"sources,omitempty"`
+	Source       *SourceContext  `json:"-"`
 	Out          string          `json:"out,omitempty"`
 	Format       string          `json:"format,omitempty"`
 	KeyID        string          `json:"key_id,omitempty"`

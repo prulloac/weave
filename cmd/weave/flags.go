@@ -52,6 +52,9 @@ type flags struct {
 	timeout       time.Duration
 	timeoutSet    bool
 	sources       []string
+	git           bool
+	gitRef        string
+	gitWorktree   bool
 	watch         bool
 	events        bool
 	out           string
@@ -314,6 +317,17 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.sources = append(result.sources, value)
+		case "--git":
+			result.git = true
+		case "--ref":
+			value, next, err := flagValue(args, index, "--ref")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.gitRef = value
+		case "--worktree":
+			result.gitWorktree = true
 		case "--watch":
 			result.watch = true
 		case "--events":
@@ -445,6 +459,9 @@ func parseFlags(args []string) (flags, error) {
 	if result.timeoutSet && result.enricher == "" && result.rerank == "" && result.scorer == "" &&
 		result.withEmbedder == "" && result.embedder == "" {
 		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank or --scorer")
+	}
+	if (result.gitRef != "" || result.gitWorktree) && !result.git {
+		return result, fmt.Errorf("--ref and --worktree require --git")
 	}
 	return result, nil
 }

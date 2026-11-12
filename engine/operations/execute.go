@@ -130,7 +130,8 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 		return handler(e, ctx, request)
 	}
 
-	if len(request.Sources) > 1 {
+	if len(request.Sources) > 1 ||
+		(len(request.Sources) == 1 && request.Sources[0].Provider != "" && request.Sources[0].Provider != "path") {
 		return e.executeMulti(ctx, request)
 	}
 	if len(request.Sources) == 1 {
