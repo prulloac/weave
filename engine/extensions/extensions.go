@@ -303,6 +303,10 @@ func (r Runner) invoke(ctx context.Context, extension Extension, payload, target
 }
 
 func (r Runner) invokeWithLimit(ctx context.Context, extension Extension, payload, target any, outputLimit int) error {
+	return r.invokeVersionWithLimit(ctx, extension, payload, target, outputLimit, ProtocolVersion)
+}
+
+func (r Runner) invokeVersionWithLimit(ctx context.Context, extension Extension, payload, target any, outputLimit int, protocolVersion string) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrProtocol, err)
@@ -337,7 +341,7 @@ func (r Runner) invokeWithLimit(ctx context.Context, extension Extension, payloa
 	if err := json.Unmarshal(stdout.Bytes(), &envelope); err != nil {
 		return fmt.Errorf("%w: %s returned invalid JSON", ErrProtocol, extension.Name)
 	}
-	if envelope.V != ProtocolVersion {
+	if envelope.V != protocolVersion {
 		return fmt.Errorf("%w: %s reported version %q", ErrProtocol, extension.Name, envelope.V)
 	}
 	if err := json.Unmarshal(stdout.Bytes(), target); err != nil {

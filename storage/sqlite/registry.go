@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"strconv"
@@ -30,6 +31,8 @@ type SourceRecord struct {
 	Generation  int
 	LastSynced  int64
 	ContentHash string
+	Provider    string
+	Metadata    json.RawMessage
 }
 
 // UpsertSource inserts or replaces a source record.
@@ -41,16 +44,29 @@ func (s *Store) UpsertSource(ctx context.Context, record SourceRecord) error {
 	if status == "" {
 		status = SourceIndexing
 	}
+	provider := strings.TrimSpace(record.Provider)
+	if provider == "" {
+		provider = "path"
+	}
+	metadata := record.Metadata
+	if len(metadata) == 0 {
+		metadata = json.RawMessage("{}")
+	}
+	if !json.Valid(metadata) {
+		return errors.New("source metadata must be valid JSON")
+	}
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO sources (alias, path, status, generation, last_synced, content_hash)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO sources (alias, path, status, generation, last_synced, content_hash, provider, metadata_json)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(alias) DO UPDATE SET
 			path = excluded.path,
 			status = excluded.status,
 			generation = excluded.generation,
 			last_synced = excluded.last_synced,
-			content_hash = excluded.content_hash`,
-		record.Alias, record.Path, string(status), record.Generation, record.LastSynced, record.ContentHash)
+			content_hash = excluded.content_hash,
+			provider = excluded.provider,
+			metadata_json = excluded.metadata_json`,
+		record.Alias, record.Path, string(status), record.Generation, record.LastSynced, record.ContentHash, provider, string(metadata))
 	return err
 }
 
@@ -70,11 +86,11 @@ func (s *Store) SetSourceStatus(ctx context.Context, alias string, status Source
 // SourceByAlias returns the source registered under alias.
 func (s *Store) SourceByAlias(ctx context.Context, alias string) (SourceRecord, bool, error) {
 	var record SourceRecord
-	var status string
+	var status, provider, metadata string
 	err := s.db.QueryRowContext(ctx, `
-		SELECT alias, path, status, generation, last_synced, content_hash
+		SELECT alias, path, status, generation, last_synced, content_hash, provider, metadata_json
 		FROM sources WHERE alias = ?`, alias).
-		Scan(&record.Alias, &record.Path, &status, &record.Generation, &record.LastSynced, &record.ContentHash)
+		Scan(&record.Alias, &record.Path, &status, &record.Generation, &record.LastSynced, &record.ContentHash, &provider, &metadata)
 	if errors.Is(err, sql.ErrNoRows) {
 		return SourceRecord{}, false, nil
 	}
@@ -82,13 +98,15 @@ func (s *Store) SourceByAlias(ctx context.Context, alias string) (SourceRecord, 
 		return SourceRecord{}, false, err
 	}
 	record.Status = SourceStatus(status)
+	record.Provider = provider
+	record.Metadata = json.RawMessage(metadata)
 	return record, true, nil
 }
 
 // ListSources returns all registered sources ordered by alias.
 func (s *Store) ListSources(ctx context.Context) ([]SourceRecord, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT alias, path, status, generation, last_synced, content_hash
+		SELECT alias, path, status, generation, last_synced, content_hash, provider, metadata_json
 		FROM sources ORDER BY alias`)
 	if err != nil {
 		return nil, err
@@ -98,12 +116,14 @@ func (s *Store) ListSources(ctx context.Context) ([]SourceRecord, error) {
 	records := make([]SourceRecord, 0)
 	for rows.Next() {
 		var record SourceRecord
-		var status string
+		var status, provider, metadata string
 		if err := rows.Scan(&record.Alias, &record.Path, &status, &record.Generation,
-			&record.LastSynced, &record.ContentHash); err != nil {
+			&record.LastSynced, &record.ContentHash, &provider, &metadata); err != nil {
 			return nil, err
 		}
 		record.Status = SourceStatus(status)
+		record.Provider = provider
+		record.Metadata = json.RawMessage(metadata)
 		records = append(records, record)
 	}
 	return records, rows.Err()
@@ -164,6 +184,7 @@ func (s *Store) BackfillSources(ctx context.Context) error {
 			Path:       root,
 			Status:     SourceActive,
 			Generation: 1,
+			Provider:   "path",
 		}); err != nil {
 			return err
 		}

@@ -15,12 +15,23 @@ type Manifest struct {
 	AssetTypes       []string `json:"asset_types,omitempty"`
 	SourceExtensions []string `json:"source_extensions,omitempty"`
 	AnalysisModes    []string `json:"analysis_modes,omitempty"`
+	SourceProviders  []string `json:"source_providers,omitempty"`
 }
 
 // SupportsProjectAnalysis reports whether the manifest declares project analysis.
 func (m Manifest) SupportsProjectAnalysis() bool {
 	for _, mode := range m.AnalysisModes {
 		if mode == "project" {
+			return true
+		}
+	}
+	return false
+}
+
+// SupportsSourceProvider reports whether the extension provides the named source provider.
+func (m Manifest) SupportsSourceProvider(provider string) bool {
+	for _, value := range m.SourceProviders {
+		if value == provider {
 			return true
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const schemaVersion = 8
+const schemaVersion = 9
 
 var migrations = []struct {
 	version int
@@ -19,6 +19,7 @@ var migrations = []struct {
 	{6, migrateV5toV6},
 	{7, migrateV6toV7},
 	{8, migrateV7toV8},
+	{9, migrateV8toV9},
 }
 
 func userVersion(db *sql.DB) (int, error) {
@@ -263,13 +264,62 @@ CREATE TABLE IF NOT EXISTS sources (
     status TEXT NOT NULL DEFAULT 'indexing',
     generation INTEGER NOT NULL DEFAULT 0,
     last_synced INTEGER NOT NULL DEFAULT 0,
-    content_hash TEXT NOT NULL DEFAULT ''
+    content_hash TEXT NOT NULL DEFAULT '',
+    provider TEXT NOT NULL DEFAULT 'path',
+    metadata_json TEXT NOT NULL DEFAULT '{}'
 );`)
 	if err != nil {
 		return err
 	}
 	store := &Store{db: db}
 	return store.BackfillSources(context.Background())
+}
+
+func migrateV8toV9(db *sql.DB) error {
+	for _, column := range []struct {
+		name      string
+		statement string
+	}{
+		{"provider", `ALTER TABLE sources ADD COLUMN provider TEXT NOT NULL DEFAULT 'path';`},
+		{"metadata_json", `ALTER TABLE sources ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}';`},
+	} {
+		exists, err := sourceColumnExists(db, column.name)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		if _, err := db.Exec(column.statement); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func sourceColumnExists(db *sql.DB, name string) (bool, error) {
+	rows, err := db.Query("PRAGMA table_info(sources)")
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			cid        int
+			column     string
+			kind       string
+			notNull    int
+			defaultV   sql.NullString
+			primaryKey int
+		)
+		if err := rows.Scan(&cid, &column, &kind, &notNull, &defaultV, &primaryKey); err != nil {
+			return false, err
+		}
+		if column == name {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
 }
 
 func createEmbeddingTables(tx *sql.Tx) error {
@@ -457,7 +507,9 @@ CREATE TABLE IF NOT EXISTS sources (
     status TEXT NOT NULL DEFAULT 'indexing',
     generation INTEGER NOT NULL DEFAULT 0,
     last_synced INTEGER NOT NULL DEFAULT 0,
-    content_hash TEXT NOT NULL DEFAULT ''
+    content_hash TEXT NOT NULL DEFAULT '',
+    provider TEXT NOT NULL DEFAULT 'path',
+    metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 `)
 	return err
