@@ -44,6 +44,7 @@ or check; a scenario without one is a documentation gap.
 | [Weave explain](weave-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/explain_bdd_test.go` |
 | [Weave image](weave-image.md) | [weave-image.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-image.md) | `cmd/weave/blob_assets_bdd_test.go`, `weave-image/main_test.go` |
 | [Weave code](weave-code.md) | [weave-code.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-code.md) | `cmd/weave/weave_code_bdd_test.go`, `cmd/weave/code_relations_bdd_test.go`, `engine/assets/code_test.go`, `engine/graph/relations_test.go`, `engine/extensions/project_test.go`, `storage/sqlite/relations_test.go`; extension tests live in `weave-code` |
+| [Weave git source](weave-git.md) | [weave-git.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-git.md) | planned: `cmd/weave/weave_git_bdd_test.go`, `engine/extensions/source_test.go`, `engine/operations/source_test.go`, `storage/sqlite/schema_v9_test.go`, `mcp/workspace_test.go`; provider tests live in `weave-git` |
 | [Workspace and source registry](workspace.md) | [workspace.md](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md) | `cmd/weave/workspace_bdd_test.go`, `storage/sqlite/schema_v8_test.go`, `mcp/workspace_test.go` |
 
 Extension-side protocol and provider scenarios live in
