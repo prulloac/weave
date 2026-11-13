@@ -18,7 +18,7 @@ if [ "$1" = "--describe" ]; then
   exit 0
 fi
 cat >/dev/null
-printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"HEAD","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"A fixture repository.","readme":"README.md"},"warnings":["fixture warning"]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
+printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"HEAD","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"A fixture repository.","readme":"README.md"},"projects":[{"path":"","name":"fixture","ecosystem":"npm","manifest":"package.json","dependencies":[{"name":"react","version":"^18","scope":"runtime"}]}],"warnings":["fixture warning"]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
 `
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
@@ -63,6 +63,27 @@ func TestWeaveGitLocalSourceIngest(t *testing.T) {
 	}
 	if !strings.Contains(stdout, `"_repo"`) || !strings.Contains(stdout, `"main.go"`) {
 		t.Fatalf("expected contains edge from _repo: %s", stdout)
+	}
+	code, stdout, stderr = Invoke(t, "list", root, "--type", "Project", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("project list exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"_project"`) {
+		t.Fatalf("expected _project document: %s", stdout)
+	}
+	code, stdout, stderr = Invoke(t, "list", root, "--type", "ExternalPackage", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("package list exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"_package/npm/react"`) {
+		t.Fatalf("expected react package document: %s", stdout)
+	}
+	code, stdout, stderr = Invoke(t, "graph", root, "--relation", "depends_on", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("dependency graph exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"_project"`) || !strings.Contains(stdout, `"_package/npm/react"`) {
+		t.Fatalf("expected depends_on edge: %s", stdout)
 	}
 	out := filepath.Join(t.TempDir(), "export")
 	code, stdout, stderr = Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")

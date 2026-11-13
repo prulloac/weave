@@ -15,6 +15,7 @@ var DefaultRelations = []contractv1.RelationKind{
 	contractv1.RelationInherits,
 	contractv1.RelationImplements,
 	contractv1.RelationContains,
+	contractv1.RelationDependsOn,
 }
 
 // TraversalOptions restricts traversal to a set of relation kinds.

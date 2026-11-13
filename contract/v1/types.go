@@ -158,6 +158,7 @@ const (
 	RelationInherits   RelationKind = "inherits"
 	RelationImplements RelationKind = "implements"
 	RelationContains   RelationKind = "contains"
+	RelationDependsOn  RelationKind = "depends_on"
 )
 
 // ConceptRelation is one extension-provided relation from this concept to another.
@@ -757,6 +758,24 @@ type SourceContext struct {
 	License         string
 	Worktree        bool
 	Warnings        []string
+	Projects        []SourceProject
+}
+
+// SourceProject is one manifest-backed project discovered in a source snapshot.
+type SourceProject struct {
+	Path         string
+	Name         string
+	Description  string
+	Manifest     string
+	Ecosystem    string
+	Dependencies []SourceDependency
+}
+
+// SourceDependency is one declared project dependency.
+type SourceDependency struct {
+	Name    string
+	Version string
+	Scope   string
 }
 
 // SourceBundle is one per-source parse result.

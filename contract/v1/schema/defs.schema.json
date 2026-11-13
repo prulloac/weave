@@ -489,7 +489,8 @@
 				"calls",
 				"inherits",
 				"implements",
-				"contains"
+				"contains",
+				"depends_on"
 			]
 		},
 		"ConceptRelation": {

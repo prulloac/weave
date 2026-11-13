@@ -2221,6 +2221,7 @@
 				"calls",
 				"contains",
 				"declares",
+				"depends_on",
 				"implements",
 				"imports",
 				"inherits",

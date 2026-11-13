@@ -223,7 +223,8 @@ func relationKinds(values []string) ([]contractv1.RelationKind, error) {
 		switch kind {
 		case contractv1.RelationLink, contractv1.RelationRelated, contractv1.RelationImports,
 			contractv1.RelationDeclares, contractv1.RelationReferences, contractv1.RelationCalls,
-			contractv1.RelationInherits, contractv1.RelationImplements, contractv1.RelationContains:
+			contractv1.RelationInherits, contractv1.RelationImplements, contractv1.RelationContains,
+			contractv1.RelationDependsOn:
 			result = append(result, kind)
 		default:
 			return nil, fmt.Errorf("unknown relation kind %q", value)

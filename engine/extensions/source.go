@@ -61,12 +61,30 @@ type SourceRepository struct {
 	License     string `json:"license,omitempty"`
 }
 
+// SourceProject describes one manifest-backed project in the snapshot.
+type SourceProject struct {
+	Path         string             `json:"path"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description,omitempty"`
+	Manifest     string             `json:"manifest"`
+	Ecosystem    string             `json:"ecosystem"`
+	Dependencies []SourceDependency `json:"dependencies,omitempty"`
+}
+
+// SourceDependency describes one declared project dependency.
+type SourceDependency struct {
+	Name    string `json:"name"`
+	Version string `json:"version,omitempty"`
+	Scope   string `json:"scope,omitempty"`
+}
+
 // SourceResponse is one validated source-provider reply.
 type SourceResponse struct {
 	V          string           `json:"v"`
 	Type       string           `json:"type,omitempty"`
 	Snapshot   SourceSnapshot   `json:"snapshot"`
 	Repository SourceRepository `json:"repository"`
+	Projects   []SourceProject  `json:"projects,omitempty"`
 	Warnings   []string         `json:"warnings,omitempty"`
 }
 

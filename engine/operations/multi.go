@@ -23,6 +23,7 @@ type resolvedSource struct {
 	Commit     string
 	Worktree   bool
 	Repository extensions.SourceRepository
+	Projects   []extensions.SourceProject
 	Warnings   []string
 }
 
@@ -133,6 +134,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 			source.Commit = response.Snapshot.Commit
 			source.Worktree = spec.Worktree
 			source.Repository = response.Repository
+			source.Projects = response.Projects
 			source.Warnings = response.Warnings
 			for _, warning := range response.Warnings {
 				e.warn("source %s: %s", alias, warning)
@@ -271,11 +273,36 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 			License:         source.Repository.License,
 			Worktree:        source.Worktree,
 			Warnings:        source.Warnings,
+			Projects:        contractSourceProjects(source.Projects),
 		}
 	} else {
 		request.Source = nil
 	}
 	return request
+}
+
+func contractSourceProjects(values []extensions.SourceProject) []contractv1.SourceProject {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]contractv1.SourceProject, 0, len(values))
+	for _, value := range values {
+		dependencies := make([]contractv1.SourceDependency, 0, len(value.Dependencies))
+		for _, dependency := range value.Dependencies {
+			dependencies = append(dependencies, contractv1.SourceDependency{
+				Name: dependency.Name, Version: dependency.Version, Scope: dependency.Scope,
+			})
+		}
+		result = append(result, contractv1.SourceProject{
+			Path:         value.Path,
+			Name:         value.Name,
+			Description:  value.Description,
+			Manifest:     value.Manifest,
+			Ecosystem:    value.Ecosystem,
+			Dependencies: dependencies,
+		})
+	}
+	return result
 }
 
 func unwrap(value any) (any, *contractv1.FailureEnvelope) {

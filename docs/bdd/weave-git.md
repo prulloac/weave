@@ -203,6 +203,37 @@ These scenarios describe observable behavior. They do not prescribe implementati
 - **When** I inspect the graph
 - **Then** `imports`, `declares`, `calls`, `references`, `inherits` and `implements` behave as before
 
+## Feature: Projects and dependencies
+
+### Scenario: A repository project becomes a graph node
+
+- **Given** an indexed repository whose root contains a supported manifest
+- **When** I inspect the graph
+- **Then** a `Project` document with ID `_project` exists
+- **And** `_repo` contains `_project`
+
+### Scenario: Nested manifests become monorepo projects
+
+- **Given** an indexed repository with manifests in nested directories
+- **When** I inspect the graph
+- **Then** each project has ID `_project/<relative-path>`
+- **And** each project contains the files under its directory
+- **And** the deepest project owns a file when projects nest
+
+### Scenario: Manifest dependencies become external packages
+
+- **Given** an indexed repository whose projects declare dependencies
+- **When** I inspect the graph
+- **Then** each dependency has an `ExternalPackage` document
+- **And** a `depends_on` edge links the project to the dependency
+- **And** versions and scopes are recorded in metadata
+
+### Scenario: Project discovery is deterministic
+
+- **Given** the same repository ingested twice
+- **When** I inspect projects and dependencies
+- **Then** node IDs and edges are identical
+
 ## Feature: Workspace and MCP
 
 ### Scenario: A workspace declares a git source
