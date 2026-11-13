@@ -123,7 +123,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 				URI:      source.InputPath,
 				Ref:      source.Ref,
 				CacheDir: sourceCacheDir(),
-				Options:  extensions.SourceOptions{Worktree: spec.Worktree},
+				Options:  extensions.SourceOptions{Worktree: spec.Worktree, Permissive: request.Permissive},
 			})
 			if err != nil {
 				return nil, err

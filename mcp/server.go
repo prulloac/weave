@@ -15,15 +15,27 @@ import (
 	"github.com/prulloac/weave/engine/operations"
 )
 
+// SourceProvenance describes the acquisition metadata for one workspace source.
+type SourceProvenance struct {
+	Provider string `json:"provider,omitempty"`
+	URI      string `json:"uri,omitempty"`
+	Ref      string `json:"ref,omitempty"`
+	Commit   string `json:"commit,omitempty"`
+	Host     string `json:"host,omitempty"`
+	Owner    string `json:"owner,omitempty"`
+	Name     string `json:"name,omitempty"`
+}
+
 // Options configures an MCP server.
 type Options struct {
-	Bundle         string
-	Sources        []contractv1.SourceSpec
-	SourceStatuses map[string]string
-	Workspace      bool
-	DB             string
-	TopKDefault    int
-	AllowSensitive bool
+	Bundle           string
+	Sources          []contractv1.SourceSpec
+	SourceStatuses   map[string]string
+	SourceProvenance map[string]SourceProvenance
+	Workspace        bool
+	DB               string
+	TopKDefault      int
+	AllowSensitive   bool
 }
 
 // ToolDescriptor describes one MCP tool.
@@ -73,6 +85,7 @@ type Server struct {
 	sources        []contractv1.SourceSpec
 	sourcePaths    map[string]string
 	statuses       map[string]string
+	provenance     map[string]SourceProvenance
 	workspace      bool
 	db             string
 	topKDefault    int
@@ -124,12 +137,17 @@ func New(executor *operations.Executor, options Options) (*Server, error) {
 			statuses[source.Alias] = "active"
 		}
 	}
+	provenance := make(map[string]SourceProvenance, len(options.SourceProvenance))
+	for alias, value := range options.SourceProvenance {
+		provenance[alias] = value
+	}
 	return &Server{
 		executor:       executor,
 		bundle:         primary,
 		sources:        sources,
 		sourcePaths:    paths,
 		statuses:       statuses,
+		provenance:     provenance,
 		workspace:      options.Workspace,
 		db:             options.DB,
 		topKDefault:    topK,
@@ -173,6 +191,17 @@ func (s *Server) SetSources(sources []contractv1.SourceSpec, statuses map[string
 	return nil
 }
 
+// SetSourceProvenance swaps the acquisition metadata for the served sources.
+func (s *Server) SetSourceProvenance(values map[string]SourceProvenance) {
+	provenance := make(map[string]SourceProvenance, len(values))
+	for alias, value := range values {
+		provenance[alias] = value
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.provenance = provenance
+}
+
 func (s *Server) sourceList(ctx context.Context) []map[string]any {
 	result := make([]map[string]any, 0, len(s.sources))
 	for _, source := range s.sources {
@@ -182,6 +211,28 @@ func (s *Server) sourceList(ctx context.Context) []map[string]any {
 		}
 		entry := map[string]any{
 			"alias": source.Alias, "path": source.Path, "status": status,
+		}
+		provenance := s.provenance[source.Alias]
+		if provenance.Provider != "" {
+			entry["provider"] = provenance.Provider
+		}
+		if provenance.URI != "" {
+			entry["uri"] = provenance.URI
+		}
+		if provenance.Ref != "" {
+			entry["ref"] = provenance.Ref
+		}
+		if provenance.Commit != "" {
+			entry["commit"] = provenance.Commit
+		}
+		if provenance.Host != "" {
+			entry["host"] = provenance.Host
+		}
+		if provenance.Owner != "" {
+			entry["owner"] = provenance.Owner
+		}
+		if provenance.Name != "" {
+			entry["name"] = provenance.Name
 		}
 		if stats, err := s.bundleStats(ctx, source.Path); err == nil {
 			for key, value := range stats {

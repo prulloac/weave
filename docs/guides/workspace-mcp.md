@@ -230,7 +230,7 @@ Tools:
 
 | Tool | Use |
 | --- | --- |
-| `weave_sources` | List workspace sources with status and concept/edge counts |
+| `weave_sources` | List workspace sources with status, concept/edge counts and git provenance |
 | `weave_search` | Keyword, fuzzy, hybrid or BM25 search |
 | `weave_explain` | Explain a result's ranking |
 | `weave_show` | Read one concept |
@@ -243,7 +243,8 @@ Tools:
 
 Resources:
 
-- `weave://workspace/sources` — the live source registry with counts.
+- `weave://workspace/sources` — the live source registry with counts and provider, URI, ref and
+  commit provenance for git-backed sources.
 - `weave://workspace/concepts` — the concept catalog across active sources.
 - `weave://workspace/stats` — aggregate and per-source counts.
 - `weave://source/<alias>/concept/<id>` — one concept from a named source.

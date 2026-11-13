@@ -166,6 +166,7 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 	executor := operations.New(version, engine.Options{})
 	var sources []contractv1.SourceSpec
 	var sourceStatuses map[string]string
+	var sourceProvenance map[string]mcp.SourceProvenance
 	bundle := options.bundle
 	workspaceMode := false
 
@@ -176,7 +177,7 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 			fmt.Fprintf(stderr, "weave mcp: %s\n", err)
 			return 2
 		}
-		sources = ws.Sources
+		sources, sourceProvenance = resolvedWorkspaceSources(ws)
 		bundle = ""
 		if len(sources) > 0 {
 			bundle = sources[0].Path
@@ -196,13 +197,14 @@ func runMCP(args []string, stdout io.Writer, stderr io.Writer, cfg appConfig) in
 	}
 
 	server, err := mcp.New(executor, mcp.Options{
-		Bundle:         bundle,
-		Sources:        sources,
-		SourceStatuses: sourceStatuses,
-		Workspace:      workspaceMode,
-		DB:             options.db,
-		TopKDefault:    options.topKDefault,
-		AllowSensitive: options.allowSensitive,
+		Bundle:           bundle,
+		Sources:          sources,
+		SourceStatuses:   sourceStatuses,
+		SourceProvenance: sourceProvenance,
+		Workspace:        workspaceMode,
+		DB:               options.db,
+		TopKDefault:      options.topKDefault,
+		AllowSensitive:   options.allowSensitive,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "weave mcp: %s\n", err)

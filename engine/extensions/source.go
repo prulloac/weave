@@ -25,6 +25,7 @@ type SourceOptions struct {
 	Submodules bool `json:"submodules,omitempty"`
 	LFS        bool `json:"lfs,omitempty"`
 	Depth      int  `json:"depth,omitempty"`
+	Permissive bool `json:"permissive,omitempty"`
 }
 
 // SourceRequest is one source-provider request payload.

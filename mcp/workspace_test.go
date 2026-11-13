@@ -25,6 +25,17 @@ func workspaceServer(t *testing.T) *mcp.Server {
 			{Alias: "notes", Path: fixture()},
 		},
 		SourceStatuses: map[string]string{"docs": "active", "notes": "indexing"},
+		SourceProvenance: map[string]mcp.SourceProvenance{
+			"docs": {
+				Provider: "git",
+				URI:      "git+https://example.com/team/docs.git",
+				Ref:      "main",
+				Commit:   "8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c",
+				Host:     "example.com",
+				Owner:    "team",
+				Name:     "docs",
+			},
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -76,6 +87,14 @@ func TestWorkspaceSourcesTool(t *testing.T) {
 		if _, ok := item["valid"]; !ok {
 			t.Fatalf("source missing valid: %+v", item)
 		}
+	}
+	if items[0]["provider"] != "git" || items[0]["uri"] != "git+https://example.com/team/docs.git" ||
+		items[0]["ref"] != "main" || items[0]["commit"] != "8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c" ||
+		items[0]["host"] != "example.com" || items[0]["owner"] != "team" || items[0]["name"] != "docs" {
+		t.Fatalf("source provenance missing: %+v", items[0])
+	}
+	if _, ok := items[1]["provider"]; ok {
+		t.Fatalf("notes should not have git provenance: %+v", items[1])
 	}
 }
 

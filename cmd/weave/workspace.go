@@ -763,6 +763,49 @@ func sourceStatusMap(index string) map[string]string {
 	return statuses
 }
 
+// resolvedWorkspaceSources maps manifest sources to their indexed snapshot paths and provenance.
+func resolvedWorkspaceSources(ws workspace) ([]contractv1.SourceSpec, map[string]mcp.SourceProvenance) {
+	specs := append([]contractv1.SourceSpec(nil), ws.Sources...)
+	provenance := make(map[string]mcp.SourceProvenance, len(specs))
+	records := map[string]sqlitestore.SourceRecord{}
+	if store, err := sqlitestore.OpenExisting(ws.Index); err == nil {
+		if values, listErr := store.ListSources(context.Background()); listErr == nil {
+			for _, record := range values {
+				records[record.Alias] = record
+			}
+		}
+		store.Close()
+	}
+	for index := range specs {
+		spec := &specs[index]
+		provider := spec.Provider
+		if provider == "" {
+			provider = "path"
+		}
+		value := mcp.SourceProvenance{Provider: provider, URI: spec.Path}
+		if record, ok := records[spec.Alias]; ok {
+			if record.Path != "" {
+				spec.Path = record.Path
+			}
+			value.Provider = sourceProvider(record)
+			value.URI = sourceURI(record)
+			value.Ref = sourceMetadata(record, "ref_name")
+			value.Commit = sourceMetadata(record, "commit_sha")
+			value.Host = sourceMetadata(record, "host")
+			value.Owner = sourceMetadata(record, "owner")
+			value.Name = sourceMetadata(record, "name")
+		}
+		if value.Provider == "" {
+			value.Provider = "path"
+		}
+		if value.URI == "" {
+			value.URI = spec.Path
+		}
+		provenance[spec.Alias] = value
+	}
+	return specs, provenance
+}
+
 // reconcileOnce indexes new sources and swaps the served source set.
 func reconcileOnce(workspaceArg string, server *mcp.Server, stderr io.Writer) error {
 	ws, err := loadWorkspace(workspaceArg)
@@ -777,7 +820,12 @@ func reconcileOnce(workspaceArg string, server *mcp.Server, stderr io.Writer) er
 			}
 		}
 	}
-	return server.SetSources(ws.Sources, sourceStatusMap(ws.Index))
+	sources, provenance := resolvedWorkspaceSources(ws)
+	if err := server.SetSources(sources, sourceStatusMap(ws.Index)); err != nil {
+		return err
+	}
+	server.SetSourceProvenance(provenance)
+	return nil
 }
 
 // reconcileWorkspace watches the manifest and re-reconciles sources at runtime.

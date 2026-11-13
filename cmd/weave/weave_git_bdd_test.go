@@ -104,6 +104,43 @@ func TestWeaveGitSourceAdd(t *testing.T) {
 	}
 }
 
+func TestResolvedWorkspaceSourcesUseSnapshot(t *testing.T) {
+	sourceRoot := weaveCodeRepo(t)
+	writeFakeGitProvider(t, sourceRoot)
+	snapshot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(snapshot, "README.md"), []byte("# Snapshot\n\nIndexed snapshot body.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(snapshot, "notes.md"), []byte("snapshot note\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	workspaceDir := t.TempDir()
+	manifest := fmt.Sprintf("version: 1\nsources:\n  core:\n    git: %s\n    ref: HEAD\n    worktree: true\n", sourceRoot)
+	if err := os.WriteFile(filepath.Join(workspaceDir, "weave.workspace.yaml"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WEAVE_CACHE_DIR", workspaceDir)
+	t.Setenv("TEST_SNAPSHOT", snapshot)
+	t.Setenv("TEST_SOURCE_ID", extensions.WorkspaceSourceID(workspaceDir, "core", sourceRoot))
+	if code, _, stderr := Invoke(t, "ingest", "--workspace", workspaceDir, "--json"); code != 0 {
+		t.Fatalf("workspace ingest exit=%d stderr=%q", code, stderr)
+	}
+	ws, err := loadWorkspace(workspaceDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	specs, provenance := resolvedWorkspaceSources(ws)
+	if len(specs) != 1 || specs[0].Path != snapshot {
+		t.Fatalf("specs = %+v, want snapshot %s", specs, snapshot)
+	}
+	value := provenance["core"]
+	if value.Provider != "git" || value.URI != sourceRoot ||
+		value.Commit != "8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c" ||
+		value.Ref != "HEAD" {
+		t.Fatalf("provenance = %+v", value)
+	}
+}
+
 func TestWeaveGitWorkspaceSource(t *testing.T) {
 	sourceRoot := weaveCodeRepo(t)
 	writeFakeGitProvider(t, sourceRoot)
