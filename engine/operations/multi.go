@@ -97,8 +97,8 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 				return nil, err
 			}
 			sourceID := extensions.SingleSourceID(source.InputPath)
-			if len(request.Sources) > 1 {
-				sourceID = extensions.WorkspaceSourceID("", alias, source.InputPath)
+			if request.WorkspaceRoot != "" {
+				sourceID = extensions.WorkspaceSourceID(request.WorkspaceRoot, alias, source.InputPath)
 			}
 			runner := extensions.Runner{Timeout: sourceTimeout(request)}
 			response, err := runner.MaterializeSource(ctx, provider, extensions.SourceRequest{

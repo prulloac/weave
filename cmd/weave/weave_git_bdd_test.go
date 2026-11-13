@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,11 +10,8 @@ import (
 	"github.com/prulloac/weave/engine/extensions"
 )
 
-func TestWeaveGitLocalSourceIngest(t *testing.T) {
-	root := weaveCodeRepo(t)
-	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Fixture\n\nA fixture repository.\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+func writeFakeGitProvider(t *testing.T, root string) {
+	t.Helper()
 	provider := `#!/bin/sh
 if [ "$1" = "--describe" ]; then
   printf '{"v":"weave.extension/v1","name":"git","source_providers":["git"]}'
@@ -25,6 +23,14 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestWeaveGitLocalSourceIngest(t *testing.T) {
+	root := weaveCodeRepo(t)
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Fixture\n\nA fixture repository.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeFakeGitProvider(t, root)
 	t.Setenv("WEAVE_CACHE_DIR", root)
 	t.Setenv("TEST_SNAPSHOT", root)
 	t.Setenv("TEST_SOURCE_ID", extensions.SingleSourceID(root))
@@ -72,5 +78,55 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	}
 	if !strings.Contains(string(repositories), `"_repo"`) || !strings.Contains(string(repositories), `"main.go"`) {
 		t.Fatalf("unexpected repository export: %s", repositories)
+	}
+}
+
+func TestWeaveGitSourceAdd(t *testing.T) {
+	sourceRoot := weaveCodeRepo(t)
+	writeFakeGitProvider(t, sourceRoot)
+	workspaceDir := t.TempDir()
+	if code, _, stderr := Invoke(t, "workspace", "init", workspaceDir, "--json"); code != 0 {
+		t.Fatalf("workspace init exit=%d stderr=%q", code, stderr)
+	}
+	t.Setenv("WEAVE_CACHE_DIR", workspaceDir)
+	t.Setenv("TEST_SNAPSHOT", sourceRoot)
+	t.Setenv("TEST_SOURCE_ID", extensions.WorkspaceSourceID(workspaceDir, "core", sourceRoot))
+	code, stdout, stderr := Invoke(t, "source", "add", "core", sourceRoot, "--git", "--ref", "HEAD", "--worktree", "--workspace", workspaceDir, "--json")
+	if code != 0 {
+		t.Fatalf("source add exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	code, stdout, stderr = Invoke(t, "source", "list", "--workspace", workspaceDir, "--json")
+	if code != 0 {
+		t.Fatalf("source list exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"provider":"git"`) || !strings.Contains(stdout, `"commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"`) {
+		t.Fatalf("unexpected source list: %s", stdout)
+	}
+}
+
+func TestWeaveGitWorkspaceSource(t *testing.T) {
+	sourceRoot := weaveCodeRepo(t)
+	writeFakeGitProvider(t, sourceRoot)
+	workspaceDir := t.TempDir()
+	manifest := fmt.Sprintf("version: 1\nsources:\n  core:\n    git: %s\n    ref: HEAD\n    worktree: true\n", sourceRoot)
+	if err := os.WriteFile(filepath.Join(workspaceDir, "weave.workspace.yaml"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WEAVE_CACHE_DIR", workspaceDir)
+	t.Setenv("TEST_SNAPSHOT", sourceRoot)
+	t.Setenv("TEST_SOURCE_ID", extensions.WorkspaceSourceID(workspaceDir, "core", sourceRoot))
+
+	code, stdout, stderr := Invoke(t, "ingest", "--workspace", workspaceDir, "--with-enricher", "code", "--json")
+	if code != 0 {
+		t.Fatalf("workspace ingest exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	code, stdout, stderr = Invoke(t, "source", "list", "--workspace", workspaceDir, "--json")
+	if code != 0 {
+		t.Fatalf("source list exit=%d stderr=%q", code, stderr)
+	}
+	for _, want := range []string{`"provider":"git"`, `"uri":"` + sourceRoot + `"`, `"commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"`} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("source list missing %s: %s", want, stdout)
+		}
 	}
 }

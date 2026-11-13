@@ -234,7 +234,7 @@ func TestReconcileOnceAddsSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file.Sources["work"] = work
+	file.Sources["work"] = workspaceSource{Path: work}
 	if err := writeWorkspaceFile(ws.Dir, file); err != nil {
 		t.Fatal(err)
 	}

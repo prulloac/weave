@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -23,9 +24,49 @@ import (
 const workspaceManifestName = "weave.workspace.yaml"
 
 type workspaceFile struct {
-	Version int               `yaml:"version"`
-	Index   string            `yaml:"index,omitempty"`
-	Sources map[string]string `yaml:"sources,omitempty"`
+	Version int                        `yaml:"version"`
+	Index   string                     `yaml:"index,omitempty"`
+	Sources map[string]workspaceSource `yaml:"sources,omitempty"`
+}
+
+// workspaceSource accepts either a local path string or a provider object.
+type workspaceSource struct {
+	Path     string
+	Git      string
+	Ref      string
+	Worktree bool
+}
+
+func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind == yaml.ScalarNode {
+		s.Path = node.Value
+		return nil
+	}
+	var value struct {
+		Path     string `yaml:"path"`
+		Git      string `yaml:"git"`
+		Ref      string `yaml:"ref"`
+		Worktree bool   `yaml:"worktree"`
+	}
+	if err := node.Decode(&value); err != nil {
+		return err
+	}
+	s.Path = value.Path
+	s.Git = value.Git
+	s.Ref = value.Ref
+	s.Worktree = value.Worktree
+	return nil
+}
+
+func (s workspaceSource) MarshalYAML() (any, error) {
+	if s.Git == "" {
+		return s.Path, nil
+	}
+	return struct {
+		Git      string `yaml:"git"`
+		Ref      string `yaml:"ref,omitempty"`
+		Worktree bool   `yaml:"worktree,omitempty"`
+	}{Git: s.Git, Ref: s.Ref, Worktree: s.Worktree}, nil
 }
 
 // workspace is a resolved manifest with absolute paths.
@@ -118,23 +159,35 @@ func loadWorkspace(target string) (workspace, error) {
 
 	sources := make([]contractv1.SourceSpec, 0, len(file.Sources))
 	seenPaths := map[string]string{}
-	for alias, path := range file.Sources {
+	for alias, source := range file.Sources {
 		if !validSourceAlias(alias) || isReservedSourceAlias(alias) {
 			return workspace{}, fmt.Errorf("WORKSPACE_INVALID: invalid source alias %q", alias)
 		}
-		resolved, err := expandTilde(path)
-		if err != nil {
-			return workspace{}, err
+		spec := contractv1.SourceSpec{Alias: alias}
+		var identity string
+		if source.Git != "" {
+			spec.Path = source.Git
+			spec.Provider = "git"
+			spec.Ref = source.Ref
+			spec.Worktree = source.Worktree
+			identity = strings.TrimSpace(source.Git)
+		} else {
+			resolved, err := expandTilde(source.Path)
+			if err != nil {
+				return workspace{}, err
+			}
+			if !filepath.IsAbs(resolved) {
+				resolved = filepath.Join(dir, resolved)
+			}
+			resolved, _ = filepath.Abs(resolved)
+			spec.Path = resolved
+			identity = resolved
 		}
-		if !filepath.IsAbs(resolved) {
-			resolved = filepath.Join(dir, resolved)
+		if existing, ok := seenPaths[identity]; ok {
+			return workspace{}, fmt.Errorf("WORKSPACE_INVALID: aliases %q and %q share source %q", existing, alias, identity)
 		}
-		resolved, _ = filepath.Abs(resolved)
-		if existing, ok := seenPaths[resolved]; ok {
-			return workspace{}, fmt.Errorf("WORKSPACE_INVALID: aliases %q and %q share path %q", existing, alias, resolved)
-		}
-		seenPaths[resolved] = alias
-		sources = append(sources, contractv1.SourceSpec{Alias: alias, Path: resolved})
+		seenPaths[identity] = alias
+		sources = append(sources, spec)
 	}
 	sortSourceSpecs(sources)
 
@@ -151,7 +204,7 @@ func sortSourceSpecs(specs []contractv1.SourceSpec) {
 
 func writeWorkspaceFile(dir string, file workspaceFile) error {
 	if file.Sources == nil {
-		file.Sources = map[string]string{}
+		file.Sources = map[string]workspaceSource{}
 	}
 	data, err := yaml.Marshal(file)
 	if err != nil {
@@ -171,7 +224,7 @@ func loadWorkspaceFile(dir string) (workspaceFile, string, error) {
 		return workspaceFile{}, path, err
 	}
 	if file.Sources == nil {
-		file.Sources = map[string]string{}
+		file.Sources = map[string]workspaceSource{}
 	}
 	return file, path, nil
 }
@@ -311,6 +364,9 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 	workspaceArg := ""
 	jsonOut := false
 	prune := false
+	gitSource := false
+	gitRef := ""
+	gitWorktree := false
 	positionals := make([]string, 0)
 	for index := 0; index < len(rest); index++ {
 		arg := rest[index]
@@ -319,6 +375,17 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 			jsonOut = true
 		case "--prune":
 			prune = true
+		case "--git":
+			gitSource = true
+		case "--ref":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--ref requires a value")
+				return 2
+			}
+			gitRef = rest[index+1]
+			index++
+		case "--worktree":
+			gitWorktree = true
 		case "--workspace":
 			if index+1 >= len(rest) {
 				fmt.Fprintln(stderr, "--workspace requires a value")
@@ -341,7 +408,7 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "source add requires <alias> <path>")
 			return 2
 		}
-		return addSource(positionals[0], positionals[1], firstNonEmpty(workspaceArg, "."), jsonOut, stdout, stderr)
+		return addSource(positionals[0], positionals[1], firstNonEmpty(workspaceArg, "."), gitSource, gitRef, gitWorktree, jsonOut, stdout, stderr)
 	case "remove":
 		if len(positionals) != 1 {
 			fmt.Fprintln(stderr, "source remove requires <alias>")
@@ -362,10 +429,16 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 	}
 }
 
-func addSource(alias, rawPath, workspaceArg string, jsonOut bool, stdout, stderr io.Writer) int {
+func addSource(alias, rawPath, workspaceArg string, gitSource bool, gitRef string, gitWorktree bool, jsonOut bool, stdout, stderr io.Writer) int {
 	if !validSourceAlias(alias) || isReservedSourceAlias(alias) {
 		fmt.Fprintf(stderr, "weave: INVALID_REQUEST: invalid source alias %q\n", alias)
 		return 2
+	}
+	if gitRef != "" || gitWorktree {
+		if !gitSource {
+			fmt.Fprintln(stderr, "weave: --ref and --worktree require --git")
+			return 2
+		}
 	}
 	ws, err := loadWorkspace(workspaceArg)
 	if err != nil {
@@ -381,38 +454,59 @@ func addSource(alias, rawPath, workspaceArg string, jsonOut bool, stdout, stderr
 		fmt.Fprintf(stderr, "weave: WORKSPACE_INVALID: duplicate source alias %q\n", alias)
 		return 2
 	}
-	resolved, err := resolveSourcePath(ws.Dir, rawPath)
-	if err != nil {
-		fmt.Fprintf(stderr, "weave: %v\n", err)
-		return 2
+	spec := contractv1.SourceSpec{Alias: alias, Path: rawPath}
+	var source workspaceSource
+	identity := ""
+	if gitSource {
+		rawPath = strings.TrimSpace(rawPath)
+		if rawPath == "" {
+			fmt.Fprintln(stderr, "weave: source URI is required")
+			return 2
+		}
+		spec = contractv1.SourceSpec{Alias: alias, Path: rawPath, Provider: "git", Ref: gitRef, Worktree: gitWorktree}
+		source = workspaceSource{Git: rawPath, Ref: gitRef, Worktree: gitWorktree}
+		identity = rawPath
+	} else {
+		resolved, err := resolveSourcePath(ws.Dir, rawPath)
+		if err != nil {
+			fmt.Fprintf(stderr, "weave: %v\n", err)
+			return 2
+		}
+		spec.Path = resolved
+		source = workspaceSource{Path: rawPath}
+		identity = resolved
 	}
-	for otherAlias, otherPath := range file.Sources {
-		otherResolved, _ := resolveSourcePath(ws.Dir, otherPath)
-		if otherResolved == resolved {
-			fmt.Fprintf(stderr, "weave: WORKSPACE_INVALID: aliases %q and %q share path %q\n", otherAlias, alias, resolved)
+	for otherAlias, other := range file.Sources {
+		otherIdentity := other.Git
+		if otherIdentity == "" {
+			otherResolved, _ := resolveSourcePath(ws.Dir, other.Path)
+			otherIdentity = otherResolved
+		}
+		if otherIdentity == identity {
+			fmt.Fprintf(stderr, "weave: WORKSPACE_INVALID: aliases %q and %q share source %q\n", otherAlias, alias, identity)
 			return 2
 		}
 	}
-	file.Sources[alias] = rawPath
+	file.Sources[alias] = source
 	if err := writeWorkspaceFile(ws.Dir, file); err != nil {
 		fmt.Fprintf(stderr, "weave: %v\n", err)
 		return 1
 	}
 
-	if err := indexSource(ws.Index, alias, resolved); err != nil {
+	if err := indexSource(ws.Index, alias, spec, ws.Dir); err != nil {
 		fmt.Fprintf(stderr, "weave: SOURCE_DEGRADED: %s: %v\n", alias, err)
 	}
 
 	if jsonOut {
 		if err := writeJSON(stdout, contractv1.SuccessEnvelope{
 			Contract: "weave.contract/v1", CLI: "weave.cli/v1", OK: true,
-			Result: map[string]any{"alias": alias, "path": resolved},
+			Result: map[string]any{"alias": alias, "path": spec.Path},
 		}); err != nil {
 			return 1
 		}
 		return 0
 	}
-	fmt.Fprintf(stdout, "added source %s -> %s\n", alias, resolved)
+	fmt.Fprintf(stdout, "added source %s -> %s\n", alias, spec.Path)
 	return 0
 }
 
@@ -436,7 +530,7 @@ func acquireWorkspaceLock(index string) (*lockfile.Lock, error) {
 }
 
 // indexSource ingests one source into the workspace index and records its status.
-func indexSource(index, alias, path string) error {
+func indexSource(index, alias string, spec contractv1.SourceSpec, workspaceRoot string) error {
 	lock, err := acquireWorkspaceLock(index)
 	if err != nil {
 		return err
@@ -445,9 +539,11 @@ func indexSource(index, alias, path string) error {
 
 	executor := operations.New(version, engine.Options{})
 	envelope := executor.Execute(context.Background(), contractv1.OperationRequest{
-		Op:   contractv1.OpIngest,
-		Path: path,
-		DB:   index,
+		Op:            contractv1.OpIngest,
+		Path:          spec.Path,
+		Sources:       []contractv1.SourceSpec{spec},
+		WorkspaceRoot: workspaceRoot,
+		DB:            index,
 	})
 
 	store, err := sqlitestore.Open(index)
@@ -460,8 +556,11 @@ func indexSource(index, alias, path string) error {
 	if _, ok := envelope.(contractv1.FailureEnvelope); ok {
 		status = sqlitestore.SourceDegraded
 	}
+	if _, exists, err := store.SourceByAlias(context.Background(), alias); err == nil && exists {
+		return store.SetSourceStatus(context.Background(), alias, status)
+	}
 	return store.UpsertSource(context.Background(), sqlitestore.SourceRecord{
-		Alias: alias, Path: path, Status: status, Generation: 1,
+		Alias: alias, Path: spec.Path, Status: status, Generation: 1, Provider: spec.Provider,
 	})
 }
 
@@ -523,9 +622,7 @@ func listSources(workspaceArg string, jsonOut bool, stdout, stderr io.Writer) in
 	if jsonOut {
 		items := make([]map[string]any, 0, len(records))
 		for _, record := range records {
-			items = append(items, map[string]any{
-				"alias": record.Alias, "path": record.Path, "status": string(record.Status),
-			})
+			items = append(items, sourceListItem(record))
 		}
 		if err := writeJSON(stdout, contractv1.SuccessEnvelope{
 			Contract: "weave.contract/v1", CLI: "weave.cli/v1", OK: true,
@@ -539,6 +636,44 @@ func listSources(workspaceArg string, jsonOut bool, stdout, stderr io.Writer) in
 		fmt.Fprintf(stdout, "%s\t%s\t%s\n", record.Alias, record.Status, record.Path)
 	}
 	return 0
+}
+
+func sourceListItem(record sqlitestore.SourceRecord) map[string]any {
+	return map[string]any{
+		"alias":    record.Alias,
+		"path":     record.Path,
+		"status":   string(record.Status),
+		"provider": sourceProvider(record),
+		"uri":      sourceURI(record),
+		"ref":      sourceMetadata(record, "ref_name"),
+		"commit":   sourceMetadata(record, "commit_sha"),
+	}
+}
+
+func sourceProvider(record sqlitestore.SourceRecord) string {
+	if strings.TrimSpace(record.Provider) == "" {
+		return "path"
+	}
+	return record.Provider
+}
+
+func sourceURI(record sqlitestore.SourceRecord) string {
+	if value := sourceMetadata(record, "uri"); value != "" {
+		return value
+	}
+	return record.Path
+}
+
+func sourceMetadata(record sqlitestore.SourceRecord, key string) string {
+	if len(record.Metadata) == 0 {
+		return ""
+	}
+	var values map[string]any
+	if json.Unmarshal(record.Metadata, &values) != nil {
+		return ""
+	}
+	value, _ := values[key].(string)
+	return value
 }
 
 func showSource(alias, workspaceArg string, jsonOut bool, stdout, stderr io.Writer) int {
@@ -559,7 +694,7 @@ func showSource(alias, workspaceArg string, jsonOut bool, stdout, stderr io.Writ
 	if jsonOut {
 		if err := writeJSON(stdout, contractv1.SuccessEnvelope{
 			Contract: "weave.contract/v1", CLI: "weave.cli/v1", OK: true,
-			Result: map[string]any{"alias": record.Alias, "path": record.Path, "status": string(record.Status)},
+			Result: sourceListItem(record),
 		}); err != nil {
 			return 1
 		}
@@ -637,7 +772,7 @@ func reconcileOnce(workspaceArg string, server *mcp.Server, stderr io.Writer) er
 	for _, source := range ws.Sources {
 		record, ok, _ := sourceRecord(ws.Index, source.Alias)
 		if !ok || record.Status == sqlitestore.SourceIndexing {
-			if err := indexSource(ws.Index, source.Alias, source.Path); err != nil {
+			if err := indexSource(ws.Index, source.Alias, source, ws.Dir); err != nil {
 				fmt.Fprintf(stderr, "weave mcp: reconcile %s: %v\n", source.Alias, err)
 			}
 		}

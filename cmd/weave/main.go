@@ -140,7 +140,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		case "sync":
 			op = contractv1.OpSync
 		}
-		request = contractv1.OperationRequest{Op: op, Path: ws.Sources[0].Path, Sources: ws.Sources}
+		request = contractv1.OperationRequest{Op: op, Path: ws.Sources[0].Path, Sources: ws.Sources, WorkspaceRoot: ws.Dir}
 	} else {
 		req, exitCode, err := buildRequest(command, flags)
 		if err != nil {
