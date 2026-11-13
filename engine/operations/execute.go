@@ -125,6 +125,9 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 	if request.Op == "" {
 		return failure(contractv1.ErrInvalidRequest, "operation is required", nil)
 	}
+	if request.Op == contractv1.OpExport {
+		request = e.resolveReadPath(ctx, request)
+	}
 
 	if handler, ok := preflightHandlers[request.Op]; ok {
 		return handler(e, ctx, request)
@@ -146,6 +149,8 @@ func (e *Executor) Execute(ctx context.Context, request contractv1.OperationRequ
 	if handler, ok := requestHandlers[request.Op]; ok {
 		return handler(e, ctx, request)
 	}
+
+	request = e.resolveReadPath(ctx, request)
 
 	if request.Op == contractv1.OpSearch && !request.NoDB && request.Rerank == "" {
 		switch request.Mode {
@@ -230,6 +235,27 @@ func openFailure(request contractv1.OperationRequest, err error) any {
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path})
 	}
+}
+
+func (e *Executor) resolveReadPath(ctx context.Context, request contractv1.OperationRequest) contractv1.OperationRequest {
+	if request.NoDB || request.Path == "" {
+		return request
+	}
+	input := canonicalSourceIdentity(request.Path)
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return request
+	}
+	store, err := sqlitestore.OpenExisting(dbPath)
+	if err != nil {
+		return request
+	}
+	defer store.Close()
+	record, ok, err := store.SourceByInput(ctx, input)
+	if err == nil && ok && record.Path != "" {
+		request.Path = record.Path
+	}
+	return request
 }
 
 func (e *Executor) openEngine(

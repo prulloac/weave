@@ -182,6 +182,11 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		Documents: len(bundle.Concepts),
 	}
 	for _, concept := range bundle.Concepts {
+		if concept.Type == "Repository" {
+			report.Documents--
+			e.warn("export: synthetic repository document excluded from file tree: %s", concept.ID)
+			continue
+		}
 		if concept.ContentKind == "blob" {
 			report.Blobs++
 			if format == "encrypted" {
@@ -337,6 +342,10 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 		}
 		report.ExtensionData = count
 		if err := writeCodeExport(target, bundle.Concepts); err != nil {
+			cleanup()
+			return failure(contractv1.ErrInternal, err.Error(), nil)
+		}
+		if err := writeRepositoryExport(target, bundle.Concepts); err != nil {
 			cleanup()
 			return failure(contractv1.ErrInternal, err.Error(), nil)
 		}

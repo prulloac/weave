@@ -17,6 +17,10 @@ func writeSourceProvider(t *testing.T, root string) {
 		t.Fatal(err)
 	}
 	body := `#!/bin/sh
+if [ "$1" = "--describe" ]; then
+  printf '{"v":"weave.extension/v1","name":"git","source_providers":["git"]}'
+  exit 0
+fi
 cat >/dev/null
 printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"main","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"Fixture repository","readme":"README.md"}}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
 `

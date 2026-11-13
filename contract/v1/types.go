@@ -754,6 +754,7 @@ type SourceContext struct {
 	Owner           string
 	License         string
 	Worktree        bool
+	Warnings        []string
 }
 
 // SourceBundle is one per-source parse result.

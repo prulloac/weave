@@ -22,6 +22,7 @@ type resolvedSource struct {
 	Commit     string
 	Worktree   bool
 	Repository extensions.SourceRepository
+	Warnings   []string
 }
 
 func (e *Executor) executeMulti(
@@ -83,7 +84,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		source := resolvedSource{
 			Alias:     alias,
 			Path:      inputPath,
-			InputPath: inputPath,
+			InputPath: canonicalSourceIdentity(inputPath),
 			Provider:  strings.TrimSpace(spec.Provider),
 			Ref:       strings.TrimSpace(spec.Ref),
 		}
@@ -91,18 +92,18 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		case "", "path":
 			source.Provider = "path"
 		case "git":
-			provider, err := resolveSourceProvider(inputPath, request.Path)
+			provider, err := resolveSourceProvider(ctx, inputPath, request.Path)
 			if err != nil {
 				return nil, err
 			}
-			sourceID := extensions.SingleSourceID(inputPath)
+			sourceID := extensions.SingleSourceID(source.InputPath)
 			if len(request.Sources) > 1 {
-				sourceID = extensions.WorkspaceSourceID("", alias, inputPath)
+				sourceID = extensions.WorkspaceSourceID("", alias, source.InputPath)
 			}
 			runner := extensions.Runner{Timeout: sourceTimeout(request)}
 			response, err := runner.MaterializeSource(ctx, provider, extensions.SourceRequest{
 				SourceID: sourceID,
-				URI:      inputPath,
+				URI:      source.InputPath,
 				Ref:      source.Ref,
 				CacheDir: sourceCacheDir(),
 				Options:  extensions.SourceOptions{Worktree: spec.Worktree},
@@ -115,6 +116,10 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 			source.Commit = response.Snapshot.Commit
 			source.Worktree = spec.Worktree
 			source.Repository = response.Repository
+			source.Warnings = response.Warnings
+			for _, warning := range response.Warnings {
+				e.warn("source %s: %s", alias, warning)
+			}
 		default:
 			return nil, fmt.Errorf("unsupported source provider %q", source.Provider)
 		}
@@ -123,17 +128,32 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 	return sources, nil
 }
 
-func resolveSourceProvider(inputPath, workspacePath string) (extensions.Extension, error) {
+func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string) (extensions.Extension, error) {
 	for _, root := range []string{inputPath, workspacePath} {
 		if strings.TrimSpace(root) == "" {
 			continue
 		}
 		provider, err := extensions.Resolve(root, "git")
 		if err == nil {
-			return provider, nil
+			return validateSourceProvider(ctx, provider)
 		}
 	}
-	return extensions.Resolve("", "git")
+	provider, err := extensions.Resolve("", "git")
+	if err != nil {
+		return extensions.Extension{}, err
+	}
+	return validateSourceProvider(ctx, provider)
+}
+
+func validateSourceProvider(ctx context.Context, provider extensions.Extension) (extensions.Extension, error) {
+	manifest, err := extensions.Describe(ctx, provider)
+	if err != nil {
+		return extensions.Extension{}, err
+	}
+	if !manifest.SupportsSourceProvider("git") {
+		return extensions.Extension{}, fmt.Errorf("%w: %s does not declare the git source provider", extensions.ErrProtocol, provider.Name)
+	}
+	return provider, nil
 }
 
 func canonicalSourceIdentity(value string) string {
@@ -195,6 +215,7 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 			Owner:           source.Repository.Owner,
 			License:         source.Repository.License,
 			Worktree:        source.Worktree,
+			Warnings:        source.Warnings,
 		}
 	} else {
 		request.Source = nil

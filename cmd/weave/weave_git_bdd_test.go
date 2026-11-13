@@ -15,8 +15,12 @@ func TestWeaveGitLocalSourceIngest(t *testing.T) {
 		t.Fatal(err)
 	}
 	provider := `#!/bin/sh
+if [ "$1" = "--describe" ]; then
+  printf '{"v":"weave.extension/v1","name":"git","source_providers":["git"]}'
+  exit 0
+fi
 cat >/dev/null
-printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"HEAD","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"A fixture repository.","readme":"README.md"}}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
+printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"HEAD","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"A fixture repository.","readme":"README.md"},"warnings":["fixture warning"]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
 `
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
@@ -29,6 +33,9 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	code, stdout, stderr := Invoke(t, "ingest", root, "--git", "--with-enricher", "code", "--db", db, "--strict", "--json")
 	if code != 0 {
 		t.Fatalf("ingest exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	if !strings.Contains(stderr, "fixture warning") {
+		t.Fatalf("expected provider warning in stderr: %q", stderr)
 	}
 	code, stdout, stderr = Invoke(t, "list", root, "--type", "Code", "--db", db, "--json")
 	if code != 0 {
@@ -50,5 +57,20 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	}
 	if !strings.Contains(stdout, `"_repo"`) || !strings.Contains(stdout, `"main.go"`) {
 		t.Fatalf("expected contains edge from _repo: %s", stdout)
+	}
+	out := filepath.Join(t.TempDir(), "export")
+	code, stdout, stderr = Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("export exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	if _, err := os.Stat(filepath.Join(out, "_repo")); !os.IsNotExist(err) {
+		t.Fatalf("_repo must not be exported as a file: %v", err)
+	}
+	repositories, err := os.ReadFile(filepath.Join(out, "_sources", "repositories.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(repositories), `"_repo"`) || !strings.Contains(string(repositories), `"main.go"`) {
+		t.Fatalf("unexpected repository export: %s", repositories)
 	}
 }

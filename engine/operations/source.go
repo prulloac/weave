@@ -1,11 +1,15 @@
 package operations
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
 const repositoryDocumentID = "_repo"
@@ -72,6 +76,7 @@ func applySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceC
 		})
 	}
 	bundle.Concepts = append(bundle.Concepts, concept)
+	bundle.Validation.Warnings = append(bundle.Validation.Warnings, source.Warnings...)
 }
 
 func readRepositoryBody(source *contractv1.SourceContext) string {
@@ -108,4 +113,37 @@ func repositoryKeywords(source *contractv1.SourceContext, title string) []string
 	add(title)
 	add(source.License)
 	return result
+}
+
+func recordSource(ctx context.Context, store *sqlitestore.Store, source *contractv1.SourceContext) error {
+	if store == nil || source == nil || source.Provider == "" || source.Provider == "path" {
+		return nil
+	}
+	metadata, err := json.Marshal(map[string]any{
+		"v":          1,
+		"uri":        source.URI,
+		"ref_name":   source.Ref,
+		"commit_sha": source.Commit,
+		"host":       source.Host,
+		"owner":      source.Owner,
+		"name":       source.RepositoryName,
+		"worktree":   source.Worktree,
+	})
+	if err != nil {
+		return err
+	}
+	alias := strings.TrimSpace(source.Alias)
+	if alias == "" {
+		alias = filepath.Base(filepath.Clean(source.SnapshotPath))
+	}
+	return store.UpsertSource(ctx, sqlitestore.SourceRecord{
+		Alias:       alias,
+		Path:        source.SnapshotPath,
+		Status:      sqlitestore.SourceActive,
+		Generation:  1,
+		LastSynced:  time.Now().Unix(),
+		ContentHash: source.Commit,
+		Provider:    source.Provider,
+		Metadata:    metadata,
+	})
 }

@@ -129,6 +129,31 @@ func (s *Store) ListSources(ctx context.Context) ([]SourceRecord, error) {
 	return records, rows.Err()
 }
 
+// SourceByInput resolves a user-supplied source path or URI to its registry
+// entry. The materialized path, metadata URI and alias are all accepted.
+func (s *Store) SourceByInput(ctx context.Context, input string) (SourceRecord, bool, error) {
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return SourceRecord{}, false, nil
+	}
+	records, err := s.ListSources(ctx)
+	if err != nil {
+		return SourceRecord{}, false, err
+	}
+	for _, record := range records {
+		if record.Path == input || record.Alias == input {
+			return record, true, nil
+		}
+		var metadata struct {
+			URI string `json:"uri"`
+		}
+		if len(record.Metadata) > 0 && json.Unmarshal(record.Metadata, &metadata) == nil && metadata.URI == input {
+			return record, true, nil
+		}
+	}
+	return SourceRecord{}, false, nil
+}
+
 // RemoveSource marks a source removed without deleting its index rows.
 func (s *Store) RemoveSource(ctx context.Context, alias string) error {
 	return s.SetSourceStatus(ctx, alias, SourceRemoved)

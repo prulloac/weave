@@ -35,6 +35,21 @@ type codeExportRelations struct {
 	Relations []codeExportRelation `json:"relations"`
 }
 
+type repositoryExport struct {
+	ID              string               `json:"id"`
+	Title           string               `json:"title,omitempty"`
+	Description     string               `json:"description,omitempty"`
+	Keywords        []string             `json:"keywords,omitempty"`
+	Body            string               `json:"body,omitempty"`
+	ContentMetadata map[string]any       `json:"content_metadata,omitempty"`
+	Contains        []codeExportRelation `json:"contains,omitempty"`
+}
+
+type repositoriesExport struct {
+	V            string             `json:"v"`
+	Repositories []repositoryExport `json:"repositories"`
+}
+
 // writeCodeExport writes synthetic symbol documents and code relations under
 // _code/. It does nothing when the bundle has no code data, so Markdown-only
 // exports are unchanged.
@@ -99,6 +114,46 @@ func writeCodeJSON(path string, value any) error {
 		return err
 	}
 	return os.WriteFile(path, append(encoded, '\n'), 0o644)
+}
+
+// writeRepositoryExport writes synthetic repository documents under _sources/.
+func writeRepositoryExport(target string, concepts []contractv1.OkfConcept) error {
+	repositories := make([]repositoryExport, 0)
+	for _, concept := range concepts {
+		if concept.Type != "Repository" {
+			continue
+		}
+		record := repositoryExport{
+			ID:              concept.ID,
+			Title:           stringValue(concept.Title),
+			Description:     stringValue(concept.Description),
+			Keywords:        concept.Keywords,
+			Body:            concept.Body,
+			ContentMetadata: concept.ContentMetadata,
+		}
+		for _, relation := range concept.Relations {
+			if relation.Kind != contractv1.RelationContains {
+				continue
+			}
+			record.Contains = append(record.Contains, codeExportRelation{
+				From: concept.ID,
+				To:   relation.To,
+				Kind: string(relation.Kind),
+			})
+		}
+		repositories = append(repositories, record)
+	}
+	if len(repositories) == 0 {
+		return nil
+	}
+	sort.Slice(repositories, func(i, j int) bool { return repositories[i].ID < repositories[j].ID })
+	dir := filepath.Join(target, "_sources")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	return writeCodeJSON(filepath.Join(dir, "repositories.json"), repositoriesExport{
+		V: "weave.repositories/v1", Repositories: repositories,
+	})
 }
 
 func codeExportRelationKind(kind string) bool {

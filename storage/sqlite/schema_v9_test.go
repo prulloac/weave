@@ -37,6 +37,10 @@ func TestSchemaV9SourceProvenance(t *testing.T) {
 	if string(record.Metadata) != string(metadata) {
 		t.Fatalf("metadata = %s", record.Metadata)
 	}
+	found, ok, err := store.SourceByInput(context.Background(), "git+https://example.com/team/weave.git")
+	if err != nil || !ok || found.Alias != "core" {
+		t.Fatalf("source by input: ok=%v alias=%q err=%v", ok, found.Alias, err)
+	}
 }
 
 func TestMigrateV8ToV9BackfillsSourceProvenance(t *testing.T) {

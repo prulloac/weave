@@ -180,6 +180,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"db":   dbPath,
 		})
 	}
+	if err := recordSource(ctx, store, request.Source); err != nil {
+		return failure(contractv1.ErrInternal, err.Error(), map[string]any{
+			"path": request.Path,
+			"db":   dbPath,
+		})
+	}
 	return success(report)
 }
 
@@ -351,6 +357,15 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			"path": request.Path,
 			"db":   dbPath,
 		})
+	}
+	if err := recordSource(ctx, store, request.Source); err != nil {
+		return failure(contractv1.ErrInternal, err.Error(), map[string]any{
+			"path": request.Path,
+			"db":   dbPath,
+		})
+	}
+	if request.Source != nil {
+		report.Warnings += len(request.Source.Warnings)
 	}
 	return success(report)
 }
