@@ -20,7 +20,7 @@ Specification: [weave-git.md](https://github.com/prulloac/weave-docs/blob/main/s
 Architecture decision:
 [git repositories as source providers](https://github.com/prulloac/weave-docs/blob/main/architecture/adr/0011-git-repositories-as-source-providers.md)
 
-Planned Go tests: `cmd/weave/weave_git_bdd_test.go`, `engine/extensions/source_test.go`,
+Go tests: `cmd/weave/weave_git_bdd_test.go`, `engine/extensions/source_test.go`,
 `engine/operations/source_test.go`, `storage/sqlite/schema_v9_test.go`, `mcp/workspace_test.go`, and
 the standalone `weave-git` repository tests.
 
