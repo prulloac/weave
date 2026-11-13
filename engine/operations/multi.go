@@ -11,6 +11,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/extensions"
 	"github.com/prulloac/weave/engine/okf"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
 type resolvedSource struct {
@@ -29,9 +30,25 @@ func (e *Executor) executeMulti(
 	ctx context.Context,
 	request contractv1.OperationRequest,
 ) any {
-	sources, err := e.resolveSources(ctx, request)
+	var (
+		sources []resolvedSource
+		err     error
+	)
+	switch request.Op {
+	case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:
+		if request.Permissive {
+			sources, err = e.resolveWriteSources(ctx, request)
+		} else {
+			sources, err = e.resolveSources(ctx, request)
+		}
+	default:
+		sources, err = e.resolveSources(ctx, request)
+	}
 	if err != nil {
 		return failure(extensionErrorCode(err), err.Error(), nil)
+	}
+	if len(sources) == 0 && (request.Op == contractv1.OpIngest || request.Op == contractv1.OpRebuild || request.Op == contractv1.OpSync) {
+		return failure(contractv1.ErrExtensionFailed, "all sources are degraded", nil)
 	}
 
 	switch request.Op {
@@ -126,6 +143,44 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		sources = append(sources, source)
 	}
 	return sources, nil
+}
+
+func (e *Executor) resolveWriteSources(ctx context.Context, request contractv1.OperationRequest) ([]resolvedSource, error) {
+	sources := make([]resolvedSource, 0, len(request.Sources))
+	for _, spec := range request.Sources {
+		single := request
+		single.Sources = []contractv1.SourceSpec{spec}
+		resolved, err := e.resolveSources(ctx, single)
+		if err != nil {
+			e.warn("source %s: %v", spec.Alias, err)
+			e.markSourceDegraded(ctx, request, spec)
+			continue
+		}
+		sources = append(sources, resolved...)
+	}
+	return sources, nil
+}
+
+func (e *Executor) markSourceDegraded(ctx context.Context, request contractv1.OperationRequest, spec contractv1.SourceSpec) {
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return
+	}
+	store, err := sqlitestore.Open(dbPath)
+	if err != nil {
+		return
+	}
+	defer store.Close()
+	if _, exists, _ := store.SourceByAlias(ctx, spec.Alias); exists {
+		_ = store.SetSourceStatus(ctx, spec.Alias, sqlitestore.SourceDegraded)
+		return
+	}
+	_ = store.UpsertSource(ctx, sqlitestore.SourceRecord{
+		Alias:    spec.Alias,
+		Path:     spec.Path,
+		Status:   sqlitestore.SourceDegraded,
+		Provider: spec.Provider,
+	})
 }
 
 func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string) (extensions.Extension, error) {

@@ -8,6 +8,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/extensions"
+	sqlitestore "github.com/prulloac/weave/storage/sqlite"
 )
 
 func writeSourceProvider(t *testing.T, root string) {
@@ -79,5 +80,56 @@ func TestResolveSourcesMissingGitProvider(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected a missing provider error")
+	}
+}
+
+func TestResolveWriteSourcesMarksDegraded(t *testing.T) {
+	cache := t.TempDir()
+	workspace := t.TempDir()
+	good := filepath.Join(workspace, "good")
+	bad := filepath.Join(workspace, "bad")
+	for _, dir := range []string{good, bad} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeSourceProvider(t, good)
+	snapshot := filepath.Join(cache, "snapshot")
+	if err := os.MkdirAll(snapshot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("WEAVE_CACHE_DIR", cache)
+	t.Setenv("TEST_SNAPSHOT", snapshot)
+	t.Setenv("TEST_SOURCE_ID", extensions.WorkspaceSourceID(workspace, "good", good))
+	db := filepath.Join(t.TempDir(), "index.db")
+
+	executor := Executor{}
+	sources, err := executor.resolveWriteSources(context.Background(), contractv1.OperationRequest{
+		Path:          workspace,
+		WorkspaceRoot: workspace,
+		DB:            db,
+		Permissive:    true,
+		Sources: []contractv1.SourceSpec{
+			{Alias: "good", Path: good, Provider: "git", Ref: "main"},
+			{Alias: "bad", Path: bad, Provider: "git", Ref: "main"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sources) != 1 || sources[0].Alias != "good" {
+		t.Fatalf("sources = %+v", sources)
+	}
+	store, err := sqlitestore.OpenExisting(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	record, ok, err := store.SourceByAlias(context.Background(), "bad")
+	if err != nil || !ok {
+		t.Fatalf("bad source: ok=%v err=%v", ok, err)
+	}
+	if record.Status != sqlitestore.SourceDegraded {
+		t.Fatalf("status = %q, want degraded", record.Status)
 	}
 }
