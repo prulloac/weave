@@ -55,6 +55,8 @@ type flags struct {
 	git           bool
 	gitRef        string
 	gitWorktree   bool
+	gitSubmodules bool
+	gitLFS        bool
 	watch         bool
 	events        bool
 	out           string
@@ -328,6 +330,10 @@ func parseFlags(args []string) (flags, error) {
 			result.gitRef = value
 		case "--worktree":
 			result.gitWorktree = true
+		case "--submodules":
+			result.gitSubmodules = true
+		case "--lfs":
+			result.gitLFS = true
 		case "--watch":
 			result.watch = true
 		case "--events":
@@ -460,8 +466,8 @@ func parseFlags(args []string) (flags, error) {
 		result.withEmbedder == "" && result.embedder == "" {
 		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank or --scorer")
 	}
-	if (result.gitRef != "" || result.gitWorktree) && !result.git {
-		return result, fmt.Errorf("--ref and --worktree require --git")
+	if (result.gitRef != "" || result.gitWorktree || result.gitSubmodules || result.gitLFS) && !result.git {
+		return result, fmt.Errorf("--ref, --worktree, --submodules and --lfs require --git")
 	}
 	return result, nil
 }

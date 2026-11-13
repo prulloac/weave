@@ -730,11 +730,13 @@ type WatchEvent struct {
 
 // SourceSpec is one bundle source passed to a multi-source invocation.
 type SourceSpec struct {
-	Alias    string `json:"alias"`
-	Path     string `json:"path"`
-	Provider string `json:"provider,omitempty"`
-	Ref      string `json:"ref,omitempty"`
-	Worktree bool   `json:"worktree,omitempty"`
+	Alias      string `json:"alias"`
+	Path       string `json:"path"`
+	Provider   string `json:"provider,omitempty"`
+	Ref        string `json:"ref,omitempty"`
+	Worktree   bool   `json:"worktree,omitempty"`
+	Submodules bool   `json:"submodules,omitempty"`
+	LFS        bool   `json:"lfs,omitempty"`
 }
 
 // SourceContext carries materialized source provenance through an in-process

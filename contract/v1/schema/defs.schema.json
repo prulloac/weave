@@ -2436,6 +2436,12 @@
 				},
 				"worktree": {
 					"type": "boolean"
+				},
+				"submodules": {
+					"type": "boolean"
+				},
+				"lfs": {
+					"type": "boolean"
 				}
 			}
 		},

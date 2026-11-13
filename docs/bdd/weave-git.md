@@ -252,8 +252,9 @@ These scenarios describe observable behavior. They do not prescribe implementati
 
 - **Given** a repository with submodules and LFS objects
 - **When** it is ingested with defaults
-- **Then** submodules are recorded as external references or skipped
-- **And** LFS objects are not fetched
+- **Then** submodules are skipped and LFS pointers are not expanded
+- **And** `--git --submodules` materializes committed submodule trees
+- **And** `--git --lfs` expands LFS objects when `git-lfs` is available
 - **And** enabling either option changes only that behavior
 
 ### Scenario: Oversized repositories fail safely

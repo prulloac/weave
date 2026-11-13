@@ -168,11 +168,13 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return usageError(stdout, stderr, flags.json, err.Error())
 		}
 		request.Sources = []contractv1.SourceSpec{{
-			Alias:    alias,
-			Path:     flags.positional(0),
-			Provider: "git",
-			Ref:      flags.gitRef,
-			Worktree: flags.gitWorktree,
+			Alias:      alias,
+			Path:       flags.positional(0),
+			Provider:   "git",
+			Ref:        flags.gitRef,
+			Worktree:   flags.gitWorktree,
+			Submodules: flags.gitSubmodules,
+			LFS:        flags.gitLFS,
 		}}
 	}
 	request.DB = flags.db

@@ -2219,6 +2219,7 @@
 			"type": "string",
 			"enum": [
 				"calls",
+				"contains",
 				"declares",
 				"implements",
 				"imports",
@@ -2616,8 +2617,23 @@
 				"alias": {
 					"type": "string"
 				},
+				"lfs": {
+					"type": "boolean"
+				},
 				"path": {
 					"type": "string"
+				},
+				"provider": {
+					"type": "string"
+				},
+				"ref": {
+					"type": "string"
+				},
+				"submodules": {
+					"type": "boolean"
+				},
+				"worktree": {
+					"type": "boolean"
 				}
 			}
 		},

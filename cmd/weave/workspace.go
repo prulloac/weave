@@ -31,10 +31,12 @@ type workspaceFile struct {
 
 // workspaceSource accepts either a local path string or a provider object.
 type workspaceSource struct {
-	Path     string
-	Git      string
-	Ref      string
-	Worktree bool
+	Path       string
+	Git        string
+	Ref        string
+	Worktree   bool
+	Submodules bool
+	LFS        bool
 }
 
 func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
@@ -43,10 +45,12 @@ func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
 		return nil
 	}
 	var value struct {
-		Path     string `yaml:"path"`
-		Git      string `yaml:"git"`
-		Ref      string `yaml:"ref"`
-		Worktree bool   `yaml:"worktree"`
+		Path       string `yaml:"path"`
+		Git        string `yaml:"git"`
+		Ref        string `yaml:"ref"`
+		Worktree   bool   `yaml:"worktree"`
+		Submodules bool   `yaml:"submodules"`
+		LFS        bool   `yaml:"lfs"`
 	}
 	if err := node.Decode(&value); err != nil {
 		return err
@@ -55,6 +59,8 @@ func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
 	s.Git = value.Git
 	s.Ref = value.Ref
 	s.Worktree = value.Worktree
+	s.Submodules = value.Submodules
+	s.LFS = value.LFS
 	return nil
 }
 
@@ -63,10 +69,12 @@ func (s workspaceSource) MarshalYAML() (any, error) {
 		return s.Path, nil
 	}
 	return struct {
-		Git      string `yaml:"git"`
-		Ref      string `yaml:"ref,omitempty"`
-		Worktree bool   `yaml:"worktree,omitempty"`
-	}{Git: s.Git, Ref: s.Ref, Worktree: s.Worktree}, nil
+		Git        string `yaml:"git"`
+		Ref        string `yaml:"ref,omitempty"`
+		Worktree   bool   `yaml:"worktree,omitempty"`
+		Submodules bool   `yaml:"submodules,omitempty"`
+		LFS        bool   `yaml:"lfs,omitempty"`
+	}{Git: s.Git, Ref: s.Ref, Worktree: s.Worktree, Submodules: s.Submodules, LFS: s.LFS}, nil
 }
 
 // workspace is a resolved manifest with absolute paths.
@@ -170,6 +178,8 @@ func loadWorkspace(target string) (workspace, error) {
 			spec.Provider = "git"
 			spec.Ref = source.Ref
 			spec.Worktree = source.Worktree
+			spec.Submodules = source.Submodules
+			spec.LFS = source.LFS
 			identity = strings.TrimSpace(source.Git)
 		} else {
 			resolved, err := expandTilde(source.Path)
@@ -367,6 +377,8 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 	gitSource := false
 	gitRef := ""
 	gitWorktree := false
+	gitSubmodules := false
+	gitLFS := false
 	positionals := make([]string, 0)
 	for index := 0; index < len(rest); index++ {
 		arg := rest[index]
@@ -386,6 +398,10 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 			index++
 		case "--worktree":
 			gitWorktree = true
+		case "--submodules":
+			gitSubmodules = true
+		case "--lfs":
+			gitLFS = true
 		case "--workspace":
 			if index+1 >= len(rest) {
 				fmt.Fprintln(stderr, "--workspace requires a value")
@@ -408,7 +424,7 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "source add requires <alias> <path>")
 			return 2
 		}
-		return addSource(positionals[0], positionals[1], firstNonEmpty(workspaceArg, "."), gitSource, gitRef, gitWorktree, jsonOut, stdout, stderr)
+		return addSource(positionals[0], positionals[1], firstNonEmpty(workspaceArg, "."), gitSource, gitRef, gitWorktree, gitSubmodules, gitLFS, jsonOut, stdout, stderr)
 	case "remove":
 		if len(positionals) != 1 {
 			fmt.Fprintln(stderr, "source remove requires <alias>")
@@ -429,14 +445,14 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 	}
 }
 
-func addSource(alias, rawPath, workspaceArg string, gitSource bool, gitRef string, gitWorktree bool, jsonOut bool, stdout, stderr io.Writer) int {
+func addSource(alias, rawPath, workspaceArg string, gitSource bool, gitRef string, gitWorktree bool, gitSubmodules bool, gitLFS bool, jsonOut bool, stdout, stderr io.Writer) int {
 	if !validSourceAlias(alias) || isReservedSourceAlias(alias) {
 		fmt.Fprintf(stderr, "weave: INVALID_REQUEST: invalid source alias %q\n", alias)
 		return 2
 	}
-	if gitRef != "" || gitWorktree {
+	if gitRef != "" || gitWorktree || gitSubmodules || gitLFS {
 		if !gitSource {
-			fmt.Fprintln(stderr, "weave: --ref and --worktree require --git")
+			fmt.Fprintln(stderr, "weave: --ref, --worktree, --submodules and --lfs require --git")
 			return 2
 		}
 	}
@@ -463,8 +479,8 @@ func addSource(alias, rawPath, workspaceArg string, gitSource bool, gitRef strin
 			fmt.Fprintln(stderr, "weave: source URI is required")
 			return 2
 		}
-		spec = contractv1.SourceSpec{Alias: alias, Path: rawPath, Provider: "git", Ref: gitRef, Worktree: gitWorktree}
-		source = workspaceSource{Git: rawPath, Ref: gitRef, Worktree: gitWorktree}
+		spec = contractv1.SourceSpec{Alias: alias, Path: rawPath, Provider: "git", Ref: gitRef, Worktree: gitWorktree, Submodules: gitSubmodules, LFS: gitLFS}
+		source = workspaceSource{Git: rawPath, Ref: gitRef, Worktree: gitWorktree, Submodules: gitSubmodules, LFS: gitLFS}
 		identity = rawPath
 	} else {
 		resolved, err := resolveSourcePath(ws.Dir, rawPath)

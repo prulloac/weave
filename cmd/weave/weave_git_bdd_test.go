@@ -91,9 +91,17 @@ func TestWeaveGitSourceAdd(t *testing.T) {
 	t.Setenv("WEAVE_CACHE_DIR", workspaceDir)
 	t.Setenv("TEST_SNAPSHOT", sourceRoot)
 	t.Setenv("TEST_SOURCE_ID", extensions.WorkspaceSourceID(workspaceDir, "core", sourceRoot))
-	code, stdout, stderr := Invoke(t, "source", "add", "core", sourceRoot, "--git", "--ref", "HEAD", "--worktree", "--workspace", workspaceDir, "--json")
+	code, stdout, stderr := Invoke(t, "source", "add", "core", sourceRoot, "--git", "--ref", "HEAD", "--worktree", "--submodules", "--lfs", "--workspace", workspaceDir, "--json")
 	if code != 0 {
 		t.Fatalf("source add exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	file, _, err := loadWorkspaceFile(workspaceDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := file.Sources["core"]
+	if !source.Submodules || !source.LFS || !source.Worktree || source.Ref != "HEAD" {
+		t.Fatalf("workspace source = %+v", source)
 	}
 	code, stdout, stderr = Invoke(t, "source", "list", "--workspace", workspaceDir, "--json")
 	if code != 0 {
