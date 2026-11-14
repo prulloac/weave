@@ -42,7 +42,7 @@ type Options struct {
 type ToolDescriptor struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
-	InputSchema map[string]any `json:"input_schema"`
+	InputSchema map[string]any `json:"inputSchema"`
 }
 
 // ResourceDescriptor describes one static MCP resource.

@@ -104,6 +104,16 @@ func TestMCPStdioInitializeAndTools(t *testing.T) {
 	if !ok || len(tools) != 10 {
 		t.Fatalf("expected 10 tools, got %+v", listResult)
 	}
+	first, ok := tools[0].(map[string]any)
+	if !ok {
+		t.Fatalf("tool descriptor is not an object: %+v", tools[0])
+	}
+	if _, ok := first["inputSchema"].(map[string]any); !ok {
+		t.Fatalf("tool descriptor is missing inputSchema: %+v", first)
+	}
+	if _, ok := first["input_schema"]; ok {
+		t.Fatalf("tool descriptor uses non-MCP input_schema: %+v", first)
+	}
 }
 
 func TestMCPStdioBeforeInitialize(t *testing.T) {
