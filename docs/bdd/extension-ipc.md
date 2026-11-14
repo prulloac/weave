@@ -19,6 +19,26 @@ degrade to core behavior with warnings; they never abort writes or searches.
 - **Then** the bundle-local extension wins on name conflicts
 - **And** entries are sorted by name and source
 
+### Scenario: Short listing prints names only
+
+- **Given** a bundle-local extension and a PATH extension
+- **When** I run `weave extensions list <path> --short`
+- **Then** stdout contains one extension name per line
+- **And** stdout omits the source column, the path column and the `searched:` line
+- **And** the command exits `0`
+
+### Scenario: Short does not change machine output
+
+- **When** I run `weave extensions list <path> --short --json`
+- **Then** stdout is one `weave.cli/v1` envelope
+- **And** the result matches the same command without `--short`
+
+### Scenario: Short is scoped to extension listing
+
+- **When** I run `weave list <path> --short`
+- **Then** the command exits `2`
+- **And** the error code is `INVALID_REQUEST`
+
 ### Scenario: Invalid names are rejected
 
 - **When** I run `weave ingest --with-enricher ../escape`
