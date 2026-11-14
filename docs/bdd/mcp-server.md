@@ -20,6 +20,13 @@ TCP, stdio, auth, resources and watch mode are transport-slice features.
 - **And** each descriptor has an input schema
 - **And** required fields match the tool contract
 
+### Scenario: Tool descriptors use MCP wire names
+
+- **Given** the `tools/list` response
+- **When** I inspect a tool descriptor
+- **Then** it carries `name`, `description` and `inputSchema`
+- **And** it does not use the non-MCP `input_schema` key
+
 ### Scenario: Search requires a query
 
 - **Given** the tool descriptors
