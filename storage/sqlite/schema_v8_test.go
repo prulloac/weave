@@ -24,8 +24,8 @@ func TestSchemaV8HasSources(t *testing.T) {
 	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 9 {
-		t.Fatalf("user_version = %d, want 9", version)
+	if version != 10 {
+		t.Fatalf("user_version = %d, want 10", version)
 	}
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM sources").Scan(&count); err != nil {

@@ -32,6 +32,7 @@ type resolvedSource struct {
 	DocumentNamespaces []string
 	ArtifactNamespaces []string
 	RelationKinds      []string
+	DefaultRelations   []string
 	Warnings           []string
 }
 
@@ -159,6 +160,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 			source.DocumentNamespaces = manifest.DocumentNamespaces
 			source.ArtifactNamespaces = manifest.ArtifactNamespaces
 			source.RelationKinds = relationKindNames(manifest)
+			source.DefaultRelations = relationDefaultNames(manifest)
 			source.Warnings = response.Warnings
 			for _, warning := range response.Warnings {
 				e.warn("source %s: %s", alias, warning)
@@ -247,6 +249,16 @@ func relationKindNames(manifest extensions.Manifest) []string {
 	return result
 }
 
+func relationDefaultNames(manifest extensions.Manifest) []string {
+	result := make([]string, 0, len(manifest.RelationKinds))
+	for _, declaration := range manifest.RelationKinds {
+		if name := strings.TrimSpace(declaration.Name); name != "" && declaration.Default {
+			result = append(result, name)
+		}
+	}
+	return result
+}
+
 func canonicalSourceIdentity(value string) string {
 	if strings.Contains(value, "://") || strings.HasPrefix(value, "git@") {
 		return strings.TrimSpace(value)
@@ -319,6 +331,7 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 			DocumentNamespaces: source.DocumentNamespaces,
 			ArtifactNamespaces: source.ArtifactNamespaces,
 			RelationKinds:      source.RelationKinds,
+			DefaultRelations:   source.DefaultRelations,
 		}
 	} else {
 		request.Source = nil

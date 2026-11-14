@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const schemaVersion = 9
+const schemaVersion = 10
 
 var migrations = []struct {
 	version int
@@ -20,6 +20,7 @@ var migrations = []struct {
 	{7, migrateV6toV7},
 	{8, migrateV7toV8},
 	{9, migrateV8toV9},
+	{10, migrateV9toV10},
 }
 
 func userVersion(db *sql.DB) (int, error) {
@@ -297,6 +298,25 @@ func migrateV8toV9(db *sql.DB) error {
 	return nil
 }
 
+func migrateV9toV10(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS extension_artifacts (
+    bundle_root TEXT NOT NULL,
+    path TEXT NOT NULL,
+    media_type TEXT NOT NULL DEFAULT 'application/json',
+    content_json TEXT NOT NULL DEFAULT 'null',
+    PRIMARY KEY (bundle_root, path)
+);
+CREATE TABLE IF NOT EXISTS extension_relations (
+    bundle_root TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    extension TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (bundle_root, kind)
+);`)
+	return err
+}
+
 func sourceColumnExists(db *sql.DB, name string) (bool, error) {
 	rows, err := db.Query("PRAGMA table_info(sources)")
 	if err != nil {
@@ -510,6 +530,20 @@ CREATE TABLE IF NOT EXISTS sources (
     content_hash TEXT NOT NULL DEFAULT '',
     provider TEXT NOT NULL DEFAULT 'path',
     metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS extension_artifacts (
+    bundle_root TEXT NOT NULL,
+    path TEXT NOT NULL,
+    media_type TEXT NOT NULL DEFAULT 'application/json',
+    content_json TEXT NOT NULL DEFAULT 'null',
+    PRIMARY KEY (bundle_root, path)
+);
+CREATE TABLE IF NOT EXISTS extension_relations (
+    bundle_root TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    extension TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (bundle_root, kind)
 );
 `)
 	return err

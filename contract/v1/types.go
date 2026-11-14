@@ -785,6 +785,7 @@ type SourceContext struct {
 	DocumentNamespaces []string
 	ArtifactNamespaces []string
 	RelationKinds      []string
+	DefaultRelations   []string
 }
 
 // SyntheticDocument is one extension-owned synthetic graph document.

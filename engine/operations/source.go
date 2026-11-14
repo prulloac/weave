@@ -720,6 +720,30 @@ func repositoryKeywords(source *contractv1.SourceContext, title string) []string
 	return result
 }
 
+func sourceRelationDefaults(source *contractv1.SourceContext) []string {
+	if source == nil {
+		return nil
+	}
+	return source.DefaultRelations
+}
+
+func artifactRecords(source *contractv1.SourceContext) ([]sqlitestore.ArtifactRecord, error) {
+	if source == nil || len(source.Artifacts) == 0 {
+		return nil, nil
+	}
+	result := make([]sqlitestore.ArtifactRecord, 0, len(source.Artifacts))
+	for _, artifact := range source.Artifacts {
+		content, err := json.Marshal(artifact.Content)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, sqlitestore.ArtifactRecord{
+			Path: artifact.Path, MediaType: artifact.MediaType, Content: content,
+		})
+	}
+	return result, nil
+}
+
 func mergeSourceMetadata(source *contractv1.SourceContext) map[string]any {
 	values := map[string]any{
 		"v":          1,

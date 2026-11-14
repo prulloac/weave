@@ -36,6 +36,9 @@ type IngestOptions struct {
 	Enricher   Enricher
 	Embedder   Embedder
 	Provider   privacy.Provider
+	Artifacts  []ArtifactRecord
+	// RelationDefaults are active extension default traversal kinds.
+	RelationDefaults []string
 }
 
 // SyncOptions controls incremental synchronization.
@@ -50,6 +53,12 @@ type SyncOptions struct {
 	Provider   privacy.Provider
 	// ProjectConcepts are precomputed code, symbol and external documents.
 	ProjectConcepts []contractv1.OkfConcept
+	// Artifacts replaces stored extension artifacts when ArtifactsSet is true.
+	Artifacts    []ArtifactRecord
+	ArtifactsSet bool
+	// RelationDefaults replaces stored extension defaults when RelationDefaultsSet is true.
+	RelationDefaults    []string
+	RelationDefaultsSet bool
 }
 
 // DefaultPath returns the default user database path.
@@ -126,7 +135,33 @@ func Open(path string) (*Store, error) {
 		}
 	}
 
+	if version == schemaVersion {
+		if err := ensureExtensionTables(db); err != nil {
+			db.Close()
+			return nil, err
+		}
+	}
+
 	return &Store{db: db, path: path}, nil
+}
+
+func ensureExtensionTables(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS extension_artifacts (
+    bundle_root TEXT NOT NULL,
+    path TEXT NOT NULL,
+    media_type TEXT NOT NULL DEFAULT 'application/json',
+    content_json TEXT NOT NULL DEFAULT 'null',
+    PRIMARY KEY (bundle_root, path)
+);
+CREATE TABLE IF NOT EXISTS extension_relations (
+    bundle_root TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    extension TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (bundle_root, kind)
+);`)
+	return err
 }
 
 // OpenExisting opens an existing database without creating one.

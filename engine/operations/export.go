@@ -312,6 +312,12 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 	if format == "raw" {
 		extensionDataCount = len(extensionRecords)
 	}
+	if format == "raw" {
+		if err := writeStoredArtifacts(ctx, target, store, root); err != nil {
+			cleanup()
+			return failure(contractv1.ErrInternal, err.Error(), nil)
+		}
+	}
 	manifest := exportManifest{
 		Contract:      ContractVersion,
 		CLI:           CLIVersion,

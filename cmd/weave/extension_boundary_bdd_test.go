@@ -14,7 +14,7 @@ func writeGenericProvider(t *testing.T, root string) {
 	t.Helper()
 	provider := `#!/bin/sh
 if [ "$1" = "--describe" ]; then
-  printf '%s' '{"v":"weave.extension/v1","name":"git","source_providers":["git"],"document_namespaces":["_repo","_project/"],"artifact_namespaces":["_sources/"],"relation_kinds":[{"name":"custom_edge"}]}'
+  printf '%s' '{"v":"weave.extension/v1","name":"git","source_providers":["git"],"document_namespaces":["_repo","_project/"],"artifact_namespaces":["_fixture/"],"relation_kinds":[{"name":"custom_edge","default":true}]}'
   exit 0
 fi
 if [ -n "${TEST_REQUEST:-}" ]; then
@@ -22,7 +22,7 @@ if [ -n "${TEST_REQUEST:-}" ]; then
 else
   cat >/dev/null
 fi
-printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","revision":"rev-42","ref":"HEAD","read_only":true},"source_metadata":{"provider":"git","uri":"%s","ref":"HEAD","revision":"rev-42","host_kind":"generic"},"documents":[{"id":"_repo","type":"Repository","content_kind":"blob","title":"Generated","scope":"","consumes":["README.md"]},{"id":"_project/core","type":"Project","content_kind":"symbol","title":"Core","scope":""}],"relations":[{"from":"_repo","to":"_project/core","kind":"contains"},{"from":"_project/core","to_path":"notes.md","kind":"custom_edge"}]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID" "$TEST_SNAPSHOT"
+printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","revision":"rev-42","ref":"HEAD","read_only":true},"source_metadata":{"provider":"git","uri":"%s","ref":"HEAD","revision":"rev-42","host_kind":"generic"},"documents":[{"id":"_repo","type":"Repository","content_kind":"blob","title":"Generated","scope":"","consumes":["README.md"]},{"id":"_project/core","type":"Project","content_kind":"symbol","title":"Core","scope":""}],"relations":[{"from":"_repo","to":"_project/core","kind":"contains"},{"from":"_project/core","to_path":"notes.md","kind":"custom_edge"}],"artifacts":[{"path":"_fixture/hello.json","media_type":"application/json","content":{"hello":"world"}}]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID" "$TEST_SNAPSHOT"
 `
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
@@ -76,6 +76,22 @@ func TestGenericProviderDescriptors(t *testing.T) {
 	code, stdout, stderr = Invoke(t, "graph", root, "--relation", "custom_edge", "--db", db, "--json")
 	if code != 0 || !strings.Contains(stdout, `"notes"`) {
 		t.Fatalf("graph exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	code, stdout, stderr = Invoke(t, "relate", root, "_project/core", "--db", db, "--json")
+	if code != 0 || !strings.Contains(stdout, `"notes"`) {
+		t.Fatalf("default relation traversal exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	out := filepath.Join(t.TempDir(), "export")
+	code, stdout, stderr = Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("export exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	artifact, err := os.ReadFile(filepath.Join(out, "_fixture", "hello.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(artifact), `"hello":"world"`) {
+		t.Fatalf("artifact = %s", artifact)
 	}
 }
 

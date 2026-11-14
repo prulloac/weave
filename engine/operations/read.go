@@ -117,8 +117,8 @@ func (e *Executor) readBacklinks(_ context.Context, eng *engine.Engine, request 
 	return success(result)
 }
 
-func (e *Executor) readPath(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
-	options, err := traversalOptions(request.Relations)
+func (e *Executor) readPath(ctx context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
+	options, err := e.traversalOptions(ctx, request)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"relations": request.Relations})
 	}
@@ -184,7 +184,7 @@ func (e *Executor) readAudit(ctx context.Context, eng *engine.Engine, request co
 	}))
 }
 
-func (e *Executor) readRelate(_ context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
+func (e *Executor) readRelate(ctx context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
 	id, ok := nav.NormalizeTarget(eng.Bundle(), request.Target)
 	if !ok {
 		return failure(contractv1.ErrConceptNotFound, "concept not found: "+request.Target, map[string]any{
@@ -199,7 +199,7 @@ func (e *Executor) readRelate(_ context.Context, eng *engine.Engine, request con
 	if direction == "" {
 		direction = contractv1.RelateBoth
 	}
-	options, err := traversalOptions(request.Relations)
+	options, err := e.traversalOptions(ctx, request)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"relations": request.Relations,

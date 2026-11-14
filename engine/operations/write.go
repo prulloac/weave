@@ -159,12 +159,16 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"path": request.Path,
 		})
 	}
+	artifacts, err := artifactRecords(request.Source)
+	if err != nil {
+		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+	}
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider, Artifacts: artifacts, RelationDefaults: sourceRelationDefaults(request.Source)})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider, Artifacts: artifacts, RelationDefaults: sourceRelationDefaults(request.Source)})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -331,16 +335,24 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			projectConcepts = bundle.Concepts
 		}
 	}
+	artifacts, err := artifactRecords(request.Source)
+	if err != nil {
+		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+	}
 	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
-		Mode:            mode,
-		Codec:           request.Codec,
-		CodecSet:        request.CodecSet,
-		AssetTypes:      assetTypes,
-		NoAssets:        request.NoAssets,
-		Enricher:        enricher,
-		Embedder:        embedder,
-		Provider:        provider,
-		ProjectConcepts: projectConcepts,
+		Mode:                mode,
+		Codec:               request.Codec,
+		CodecSet:            request.CodecSet,
+		AssetTypes:          assetTypes,
+		NoAssets:            request.NoAssets,
+		Enricher:            enricher,
+		Embedder:            embedder,
+		Provider:            provider,
+		ProjectConcepts:     projectConcepts,
+		Artifacts:           artifacts,
+		ArtifactsSet:        true,
+		RelationDefaults:    sourceRelationDefaults(request.Source),
+		RelationDefaultsSet: true,
 	})
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrBundleNotIndexed) {

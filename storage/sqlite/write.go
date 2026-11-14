@@ -95,6 +95,9 @@ func (s *Store) writeBundle(
 	if _, err := tx.ExecContext(ctx, "DELETE FROM extension_data WHERE bundle_root = ?", root); err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM extension_artifacts WHERE bundle_root = ?", root); err != nil {
+		return contractv1.IngestReport{}, err
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, asset_types_json, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -153,6 +156,12 @@ func (s *Store) writeBundle(
 		return contractv1.IngestReport{}, err
 	}
 	if err := populateSearchTokens(ctx, tx, root, bundle); err != nil {
+		return contractv1.IngestReport{}, err
+	}
+	if err := replaceArtifactsTx(ctx, tx, root, options.Artifacts); err != nil {
+		return contractv1.IngestReport{}, err
+	}
+	if err := replaceRelationDefaultsTx(ctx, tx, root, options.RelationDefaults); err != nil {
 		return contractv1.IngestReport{}, err
 	}
 

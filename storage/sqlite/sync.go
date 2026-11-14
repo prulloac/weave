@@ -65,7 +65,7 @@ func (s *Store) Sync(
 		}
 	}
 	addedPaths, updatedPaths, removedPaths := changedPaths(existing, scanned)
-	if len(addedPaths) == 0 && len(updatedPaths) == 0 && len(removedPaths) == 0 && len(options.ProjectConcepts) == 0 {
+	if len(addedPaths) == 0 && len(updatedPaths) == 0 && len(removedPaths) == 0 && len(options.ProjectConcepts) == 0 && !options.ArtifactsSet && !options.RelationDefaultsSet {
 		return contractv1.SyncReport{
 			DB:        s.path,
 			Bundle:    root,
@@ -279,6 +279,16 @@ func (s *Store) Sync(
 		}
 	} else if updated > 0 {
 		if err := updateSearchTokens(ctx, tx, root, bundle, changedConcepts); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	}
+	if options.ArtifactsSet {
+		if err := replaceArtifactsTx(ctx, tx, root, options.Artifacts); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	}
+	if options.RelationDefaultsSet {
+		if err := replaceRelationDefaultsTx(ctx, tx, root, options.RelationDefaults); err != nil {
 			return contractv1.SyncReport{}, err
 		}
 	}
