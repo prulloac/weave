@@ -51,6 +51,10 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 
 	command := args[0]
+	if command != "extensions" && contains(args[1:], "--short") &&
+		!contains(args[1:], "--help") && !contains(args[1:], "-h") {
+		return usageError(stdout, stderr, contains(args[1:], "--json"), "--short is only valid for extensions list")
+	}
 	if command == "extensions" && len(args) > 1 && args[1] == "data" {
 		return runExtensionData(args[2:], stdout, stderr)
 	}
@@ -437,7 +441,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			}
 			return 0
 		}
-		return printHuman(stdout, stderr, request.Op, envelope.Result, flags.ascii)
+		return printHuman(stdout, stderr, request.Op, envelope.Result, flags.ascii, flags.short)
 	case contractv1.FailureEnvelope:
 		if flags.json {
 			if err := writeJSON(stdout, envelope); err != nil {

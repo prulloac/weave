@@ -556,6 +556,7 @@ artifacts published by extensions.
 
 ```sh
 weave extensions list ~/notes --json
+weave extensions list ~/notes --short
 weave extensions data list ~/notes --extension images --json
 weave extensions data get ~/notes images assets/architecture.png --out architecture.png --json
 weave extensions data gc ~/notes --dry-run --json
@@ -564,6 +565,7 @@ weave search ~/notes "token rotation" --rerank keywords --json
 ```
 
 - Bundle-local extensions win over `$PATH` entries with the same name.
+- `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.
 - Default timeout is `5s`; override with `--timeout`.

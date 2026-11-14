@@ -42,6 +42,9 @@ func runExtensionData(args []string, stdout, stderr io.Writer) int {
 		printExtensionDataHelp(stdout)
 		return 0
 	}
+	if flags.short {
+		return usageError(stdout, stderr, flags.json, "--short is only valid for extensions list")
+	}
 	action := flags.positionals[0]
 	if action == "get" && len(flags.positionals) == 4 && strings.TrimSpace(flags.out) == "" {
 		return usageError(stdout, stderr, flags.json, "OUTPUT_REQUIRED: --out <file> is required")

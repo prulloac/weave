@@ -16,6 +16,7 @@ type flags struct {
 	quiet         bool
 	verbose       bool
 	ascii         bool
+	short         bool
 	noCache       bool
 	help          bool
 	limit         *int
@@ -97,6 +98,8 @@ func parseFlags(args []string) (flags, error) {
 			result.verbose = true
 		case "--ascii":
 			result.ascii = true
+		case "--short":
+			result.short = true
 		case "--no-cache":
 			result.noCache = true
 		case "--help", "-h":

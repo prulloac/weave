@@ -173,7 +173,7 @@ func searchEmpty(result any) bool {
 	}
 }
 
-func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName, result any, ascii bool) int {
+func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName, result any, ascii bool, short bool) int {
 	switch op {
 	case contractv1.OpContract:
 		info := result.(contractv1.ContractInfo)
@@ -195,6 +195,12 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 			fmt.Fprintln(stderr, "hint: install weave-<name> in .weave/bin or PATH")
 			if len(list.SearchPaths) > 0 {
 				fmt.Fprintf(stderr, "searched: %s\n", strings.Join(list.SearchPaths, ", "))
+			}
+			return 0
+		}
+		if short {
+			for _, extension := range list.Extensions {
+				fmt.Fprintln(stdout, extension.Name)
 			}
 			return 0
 		}

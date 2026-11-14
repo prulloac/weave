@@ -207,10 +207,14 @@ var commandHelpText = map[string]commandHelp{
 		},
 	},
 	"extensions": {
-		Usage:   "weave extensions list [<path>] [--json]\n  weave extensions data list <path> [--extension <name>] [--doc <id>] [--json]\n  weave extensions data get <path> <extension> <key> --out <file> [--force] [--json]\n  weave extensions data gc <path> [--dry-run] [--json]",
+		Usage:   "weave extensions list [<path>] [--short] [--json]\n  weave extensions data list <path> [--extension <name>] [--doc <id>] [--json]\n  weave extensions data get <path> <extension> <key> --out <file> [--force] [--json]\n  weave extensions data gc <path> [--dry-run] [--json]",
 		Summary: "List extensions and read extension-owned opaque data.",
+		Flags: []string{
+			"--short                            print extension names only",
+		},
 		Examples: []string{
 			`weave extensions list ~/notes --json`,
+			`weave extensions list ~/notes --short`,
 			`weave extensions data list ~/notes --extension images --json`,
 			`weave extensions data get ~/notes images images/architecture.png --out architecture.png --json`,
 		},
