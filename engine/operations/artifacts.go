@@ -37,16 +37,3 @@ func writeStoredArtifacts(ctx context.Context, target string, store *sqlitestore
 	}
 	return nil
 }
-
-func hasStoredArtifact(ctx context.Context, store *sqlitestore.Store, root, path string) bool {
-	records, err := store.ListArtifacts(ctx, root)
-	if err != nil {
-		return false
-	}
-	for _, record := range records {
-		if record.Path == path {
-			return true
-		}
-	}
-	return false
-}

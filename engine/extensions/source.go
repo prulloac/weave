@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -16,8 +15,6 @@ const SourceProtocolVersion = "weave.source/v1"
 
 // MaxSourceResponseBytes bounds one source-provider response.
 const MaxSourceResponseBytes = 1 << 20
-
-var sourceCommitPattern = regexp.MustCompile(`^[0-9a-f]{40}$|^[0-9a-f]{64}$`)
 
 // SourceOptions controls one source materialization.
 type SourceOptions struct {
@@ -46,52 +43,10 @@ type SourceRequest struct {
 type SourceSnapshot struct {
 	Path     string `json:"path"`
 	SourceID string `json:"source_id"`
-	Revision string `json:"revision,omitempty"`
-	Commit   string `json:"commit,omitempty"`
+	Revision string `json:"revision"`
 	Ref      string `json:"ref,omitempty"`
 	URI      string `json:"uri,omitempty"`
 	ReadOnly bool   `json:"read_only,omitempty"`
-}
-
-// SourceRepository describes the repository itself.
-type SourceRepository struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Title       string `json:"title,omitempty"`
-	Description string `json:"description,omitempty"`
-	Readme      string `json:"readme,omitempty"`
-	Host        string `json:"host,omitempty"`
-	Owner       string `json:"owner,omitempty"`
-	License     string `json:"license,omitempty"`
-	HostKind    string `json:"host_kind,omitempty"`
-	WebURL      string `json:"web_url,omitempty"`
-	CommitURL   string `json:"commit_url,omitempty"`
-}
-
-// SourceProject describes one manifest-backed project in the snapshot.
-type SourceProject struct {
-	Path         string             `json:"path"`
-	Name         string             `json:"name"`
-	Description  string             `json:"description,omitempty"`
-	Manifest     string             `json:"manifest"`
-	Ecosystem    string             `json:"ecosystem"`
-	Dependencies []SourceDependency `json:"dependencies,omitempty"`
-}
-
-// SourceDependency describes one declared project dependency.
-type SourceDependency struct {
-	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
-	Scope   string `json:"scope,omitempty"`
-}
-
-// SourceCommit is one commit in the opt-in history window.
-type SourceCommit struct {
-	SHA     string   `json:"sha"`
-	Parents []string `json:"parents,omitempty"`
-	Author  string   `json:"author,omitempty"`
-	Date    string   `json:"date,omitempty"`
-	Subject string   `json:"subject,omitempty"`
 }
 
 // SyntheticDocument is one extension-owned synthetic graph document.
@@ -131,9 +86,6 @@ type SourceResponse struct {
 	V              string              `json:"v"`
 	Type           string              `json:"type,omitempty"`
 	Snapshot       SourceSnapshot      `json:"snapshot"`
-	Repository     SourceRepository    `json:"repository"`
-	Projects       []SourceProject     `json:"projects,omitempty"`
-	Commits        []SourceCommit      `json:"commits,omitempty"`
 	Documents      []SyntheticDocument `json:"documents,omitempty"`
 	Relations      []SyntheticRelation `json:"relations,omitempty"`
 	Artifacts      []SyntheticArtifact `json:"artifacts,omitempty"`
@@ -161,16 +113,12 @@ func (r Runner) MaterializeSource(ctx context.Context, extension Extension, requ
 	}
 	revision := strings.TrimSpace(response.Snapshot.Revision)
 	if revision == "" {
-		revision = strings.TrimSpace(response.Snapshot.Commit)
-		if !sourceCommitPattern.MatchString(revision) {
-			return SourceResponse{}, fmt.Errorf("%w: invalid commit %q", ErrProtocol, response.Snapshot.Commit)
-		}
-	}
-	if revision == "" {
 		return SourceResponse{}, fmt.Errorf("%w: snapshot revision is required", ErrProtocol)
 	}
-	response.Snapshot.Commit = revision
 	response.Snapshot.Revision = revision
+	if len(response.Documents) == 0 {
+		return SourceResponse{}, fmt.Errorf("%w: synthetic documents are required", ErrProtocol)
+	}
 	if len(response.Documents) > 1000 {
 		return SourceResponse{}, fmt.Errorf("%w: too many synthetic documents", ErrProtocol)
 	}
@@ -205,30 +153,6 @@ func (r Runner) MaterializeSource(ctx context.Context, extension Extension, requ
 	}
 	if !filepath.IsAbs(response.Snapshot.Path) {
 		return SourceResponse{}, fmt.Errorf("%w: snapshot path must be absolute", ErrProtocol)
-	}
-	legacyRepository := response.Repository.ID != "" || len(response.Projects) > 0 || len(response.Commits) > 0
-	if legacyRepository {
-		if response.Repository.ID != "_repo" {
-			return SourceResponse{}, fmt.Errorf("%w: repository id must be _repo", ErrProtocol)
-		}
-		if strings.TrimSpace(response.Repository.Name) == "" {
-			return SourceResponse{}, fmt.Errorf("%w: repository name is required", ErrProtocol)
-		}
-	} else if len(response.Documents) == 0 && len(response.Relations) == 0 {
-		return SourceResponse{}, fmt.Errorf("%w: repository id must be _repo", ErrProtocol)
-	}
-	if len(response.Commits) > 100 {
-		return SourceResponse{}, fmt.Errorf("%w: commit history exceeds 100 entries", ErrProtocol)
-	}
-	for _, commit := range response.Commits {
-		if !sourceCommitPattern.MatchString(commit.SHA) {
-			return SourceResponse{}, fmt.Errorf("%w: invalid commit history sha %q", ErrProtocol, commit.SHA)
-		}
-		for _, parent := range commit.Parents {
-			if !sourceCommitPattern.MatchString(parent) {
-				return SourceResponse{}, fmt.Errorf("%w: invalid parent sha %q", ErrProtocol, parent)
-			}
-		}
 	}
 	if !request.Options.Worktree && request.CacheDir != "" {
 		if err := requireWithin(request.CacheDir, response.Snapshot.Path); err != nil {

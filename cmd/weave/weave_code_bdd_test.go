@@ -28,6 +28,8 @@ type request struct {
 
 type document struct {
 	ID              string   ` + "`json:\"id\"`" + `
+	Type            string   ` + "`json:\"type,omitempty\"`" + `
+	ContentKind     string   ` + "`json:\"content_kind,omitempty\"`" + `
 	Title           string   ` + "`json:\"title\"`" + `
 	Description     string   ` + "`json:\"description,omitempty\"`" + `
 	Keywords        []string ` + "`json:\"keywords,omitempty\"`" + `
@@ -47,11 +49,11 @@ func main() {
 	relations := []map[string]string{}
 	for _, file := range req.Files {
 		doc := document{
-			ID: file.ID, Title: "go package", Keywords: []string{"go", "main"},
+			ID: file.ID, Type: "Code", ContentKind: "blob", Title: "go package", Keywords: []string{"go", "main"},
 			ContentMetadata: map[string]any{"v": 1, "language": "go"},
 		}
 		if file.ID == "main.go" {
-			doc.SymbolDocuments = []document{{ID: "main.go#main", Title: "main", Body: "func main()"}}
+			doc.SymbolDocuments = []document{{ID: "main.go#main", Type: "CodeSymbol", ContentKind: "symbol", Title: "main", Body: "func main()"}}
 		}
 		documents = append(documents, doc)
 	}
@@ -61,8 +63,23 @@ func main() {
 			map[string]string{"from": req.Files[0].ID + "#main", "to": req.Files[1].ID, "kind": "calls"},
 		)
 	}
+	symbols := []map[string]any{}
+	for _, document := range documents {
+		for _, symbol := range document.SymbolDocuments {
+			symbols = append(symbols, map[string]any{
+				"id": symbol.ID, "type": symbol.Type, "content_kind": symbol.ContentKind,
+				"title": symbol.Title, "body": symbol.Body,
+			})
+		}
+	}
+	artifacts := []map[string]any{
+		{"path": "_code/symbols.json", "media_type": "application/json",
+			"content": map[string]any{"v": "weave.code-symbols/v1", "symbols": symbols}},
+		{"path": "_code/relations.json", "media_type": "application/json",
+			"content": map[string]any{"v": "weave.code-relations/v1", "relations": relations}},
+	}
 	_ = json.NewEncoder(os.Stdout).Encode(map[string]any{
-		"v": "weave.cli/v1", "documents": documents, "relations": relations,
+		"v": "weave.cli/v1", "documents": documents, "relations": relations, "artifacts": artifacts,
 	})
 }
 `

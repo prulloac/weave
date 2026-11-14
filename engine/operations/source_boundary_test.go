@@ -62,6 +62,7 @@ func TestApplySyntheticSourceOutput(t *testing.T) {
 func TestApplySyntheticSourceOutputRejectsUnknownNamespace(t *testing.T) {
 	bundle := &contractv1.Bundle{}
 	source := &contractv1.SourceContext{
+		Provider:           "git",
 		DocumentNamespaces: []string{"_project/"},
 		Documents:          []contractv1.SyntheticDocument{{ID: "_custom/node", Type: "Node"}},
 	}
@@ -76,6 +77,7 @@ func TestApplySyntheticSourceOutputRejectsUnknownRelationKind(t *testing.T) {
 		{ID: "notes", Path: "notes.md", Type: "Document"},
 	}}
 	source := &contractv1.SourceContext{
+		Provider:           "git",
 		DocumentNamespaces: []string{"_repo"},
 		Documents:          []contractv1.SyntheticDocument{{ID: "_repo", Type: "Repository"}},
 		Relations: []contractv1.SyntheticRelation{
@@ -94,6 +96,7 @@ func TestApplySyntheticSourceOutputResolvesPathTargets(t *testing.T) {
 	}}
 	scope := "web"
 	source := &contractv1.SourceContext{
+		Provider:           "git",
 		DocumentNamespaces: []string{"_project/"},
 		Documents:          []contractv1.SyntheticDocument{{ID: "_project/web", Type: "Project", Scope: &scope}},
 		Relations: []contractv1.SyntheticRelation{
@@ -112,46 +115,4 @@ func TestApplySyntheticSourceOutputResolvesPathTargets(t *testing.T) {
 	if len(bundle.Validation.Warnings) == 0 || !strings.Contains(strings.Join(bundle.Validation.Warnings, " "), "web/missing.ts") {
 		t.Fatalf("warnings = %+v", bundle.Validation.Warnings)
 	}
-}
-
-func TestLegacyAndDescriptorSourceParity(t *testing.T) {
-	files := []contractv1.OkfConcept{{ID: "notes", Path: "notes.md", Type: "Document"}}
-	legacy := &contractv1.Bundle{Concepts: append([]contractv1.OkfConcept(nil), files...)}
-	if err := applySourceRepository(legacy, &contractv1.SourceContext{
-		Provider: "git", RepositoryName: "repo", RepositoryTitle: "Repo",
-	}); err != nil {
-		t.Fatal(err)
-	}
-	scope := ""
-	descriptor := &contractv1.Bundle{Concepts: append([]contractv1.OkfConcept(nil), files...)}
-	if err := applySourceRepository(descriptor, &contractv1.SourceContext{
-		Provider:           "git",
-		DocumentNamespaces: []string{"_repo"},
-		Documents: []contractv1.SyntheticDocument{
-			{ID: "_repo", Type: "Repository", ContentKind: "blob", Title: "Repo", Scope: &scope},
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if len(legacy.Concepts) != len(descriptor.Concepts) {
-		t.Fatalf("legacy=%+v descriptor=%+v", legacy.Concepts, descriptor.Concepts)
-	}
-	legacyRepo := conceptByID(t, legacy, "_repo")
-	descriptorRepo := conceptByID(t, descriptor, "_repo")
-	if legacyRepo.Type != descriptorRepo.Type || legacyRepo.ContentKind != descriptorRepo.ContentKind {
-		t.Fatalf("legacy=%+v descriptor=%+v", legacyRepo, descriptorRepo)
-	}
-	assertRelation(t, legacyRepo, "notes", contractv1.RelationContains)
-	assertRelation(t, descriptorRepo, "notes", contractv1.RelationContains)
-}
-
-func conceptByID(t *testing.T, bundle *contractv1.Bundle, id string) contractv1.OkfConcept {
-	t.Helper()
-	for _, concept := range bundle.Concepts {
-		if concept.ID == id {
-			return concept
-		}
-	}
-	t.Fatalf("missing %s: %+v", id, bundle.Concepts)
-	return contractv1.OkfConcept{}
 }

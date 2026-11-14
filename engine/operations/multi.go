@@ -22,9 +22,6 @@ type resolvedSource struct {
 	Ref                string
 	Commit             string
 	Worktree           bool
-	Repository         extensions.SourceRepository
-	Projects           []extensions.SourceProject
-	Commits            []extensions.SourceCommit
 	Documents          []extensions.SyntheticDocument
 	Relations          []extensions.SyntheticRelation
 	Artifacts          []extensions.SyntheticArtifact
@@ -148,11 +145,8 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 			}
 			source.Path = response.Snapshot.Path
 			source.Ref = response.Snapshot.Ref
-			source.Commit = response.Snapshot.Commit
+			source.Commit = response.Snapshot.Revision
 			source.Worktree = spec.Worktree
-			source.Repository = response.Repository
-			source.Projects = response.Projects
-			source.Commits = response.Commits
 			source.Documents = response.Documents
 			source.Relations = response.Relations
 			source.Artifacts = response.Artifacts
@@ -310,20 +304,8 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 			Ref:                source.Ref,
 			Commit:             source.Commit,
 			SnapshotPath:       source.Path,
-			RepositoryName:     source.Repository.Name,
-			RepositoryTitle:    source.Repository.Title,
-			Description:        source.Repository.Description,
-			Readme:             source.Repository.Readme,
-			Host:               source.Repository.Host,
-			Owner:              source.Repository.Owner,
-			License:            source.Repository.License,
-			HostKind:           source.Repository.HostKind,
-			WebURL:             source.Repository.WebURL,
-			CommitURL:          source.Repository.CommitURL,
 			Worktree:           source.Worktree,
 			Warnings:           source.Warnings,
-			Projects:           contractSourceProjects(source.Projects),
-			Commits:            contractSourceCommits(source.Commits),
 			Documents:          contractSyntheticDocuments(source.Documents),
 			Relations:          contractSyntheticRelations(source.Relations),
 			Artifacts:          contractSyntheticArtifacts(source.Artifacts),
@@ -337,47 +319,6 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 		request.Source = nil
 	}
 	return request
-}
-
-func contractSourceProjects(values []extensions.SourceProject) []contractv1.SourceProject {
-	if len(values) == 0 {
-		return nil
-	}
-	result := make([]contractv1.SourceProject, 0, len(values))
-	for _, value := range values {
-		dependencies := make([]contractv1.SourceDependency, 0, len(value.Dependencies))
-		for _, dependency := range value.Dependencies {
-			dependencies = append(dependencies, contractv1.SourceDependency{
-				Name: dependency.Name, Version: dependency.Version, Scope: dependency.Scope,
-			})
-		}
-		result = append(result, contractv1.SourceProject{
-			Path:         value.Path,
-			Name:         value.Name,
-			Description:  value.Description,
-			Manifest:     value.Manifest,
-			Ecosystem:    value.Ecosystem,
-			Dependencies: dependencies,
-		})
-	}
-	return result
-}
-
-func contractSourceCommits(values []extensions.SourceCommit) []contractv1.SourceCommit {
-	if len(values) == 0 {
-		return nil
-	}
-	result := make([]contractv1.SourceCommit, 0, len(values))
-	for _, value := range values {
-		result = append(result, contractv1.SourceCommit{
-			SHA:     value.SHA,
-			Parents: append([]string(nil), value.Parents...),
-			Author:  value.Author,
-			Date:    value.Date,
-			Subject: value.Subject,
-		})
-	}
-	return result
 }
 
 func contractSyntheticDocuments(values []extensions.SyntheticDocument) []contractv1.SyntheticDocument {

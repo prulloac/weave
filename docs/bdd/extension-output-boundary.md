@@ -152,18 +152,20 @@ These scenarios describe observable behavior. They do not prescribe internal imp
 
 ## Feature: Compatibility and behavioral preservation
 
-### Scenario: Legacy source responses remain equivalent
+### Scenario: Legacy source responses are rejected
 
-- **Given** a provider returning legacy `repository`, `projects` and `commits`
+- **Given** a provider returning `repository`, `projects` or `commits` without synthetic documents
 - **When** I ingest the source
-- **Then** the graph matches the descriptor path
-- **And** search, export, provenance and MCP results are unchanged
+- **Then** ingestion fails with `EXTENSION_PROTOCOL`
+- **And** no partial graph is written
+- **And** the error tells the operator to upgrade the extension
 
-### Scenario: Legacy project responses remain equivalent
+### Scenario: Legacy project responses are rejected
 
-- **Given** a code analyzer returning legacy `Code`, `CodeSymbol` and `CodeExternal` output
+- **Given** a code analyzer returning documents without `type` or `content_kind`
 - **When** I ingest the project
-- **Then** the graph and `_code` export match the descriptor path
+- **Then** ingestion fails with `EXTENSION_PROTOCOL`
+- **And** no `_code` fallback export is generated
 
 ### Scenario: Enrichment and reranking are unchanged
 
@@ -183,10 +185,10 @@ These scenarios describe observable behavior. They do not prescribe internal imp
 - **When** the generic boundary is enabled
 - **Then** redaction, requests, responses, artifacts and list/get/gc behavior are unchanged
 
-### Scenario: The legacy path is removed only after parity
+### Scenario: The supported extension floor is explicit
 
-- **Given** the migration release
-- **When** any first-party extension conformance or parity test fails
-- **Then** the legacy adapter remains available
-- **And** the hardcoded core branches are not removed
-- **And** the release does not claim the migration complete
+- **Given** a core release with the generic boundary
+- **When** the operator uses a descriptor-capable `weave-git` or `weave-code`
+- **Then** ingestion and export succeed
+- **And** older extension releases must be upgraded before use
+- **And** the release notes state the minimum extension versions

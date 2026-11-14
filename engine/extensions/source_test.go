@@ -13,7 +13,7 @@ func TestMaterializeSource(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "weave-git")
 	writeScript(t, path, `cat >/dev/null
-printf '%s' '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"/cache/weave/sources/abc/worktree","source_id":"abc","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"main","uri":"git+https://example.com/team/weave.git","read_only":true},"repository":{"id":"_repo","name":"weave","title":"Weave","description":"Local-first database","readme":"README.md","host":"example.com","owner":"team"},"warnings":[]}'
+printf '%s' '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"/cache/weave/sources/abc/worktree","source_id":"abc","revision":"rev-8f3c","ref":"main","uri":"git+https://example.com/team/weave.git","read_only":true},"documents":[{"id":"_repo","type":"Repository","content_kind":"blob","title":"Weave"}],"warnings":[]}'
 `)
 	response, err := extensions.Runner{}.MaterializeSource(context.Background(), extensions.Extension{Name: "git", Path: path}, extensions.SourceRequest{
 		SourceID: "abc",
@@ -24,22 +24,22 @@ printf '%s' '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":
 	if err != nil {
 		t.Fatal(err)
 	}
-	if response.Snapshot.SourceID != "abc" || response.Snapshot.Commit == "" {
+	if response.Snapshot.SourceID != "abc" || response.Snapshot.Revision != "rev-8f3c" {
 		t.Fatalf("unexpected snapshot: %+v", response.Snapshot)
 	}
-	if response.Repository.ID != "_repo" || response.Repository.Name != "weave" {
-		t.Fatalf("unexpected repository: %+v", response.Repository)
+	if len(response.Documents) != 1 || response.Documents[0].ID != "_repo" {
+		t.Fatalf("unexpected documents: %+v", response.Documents)
 	}
 }
 
 func TestMaterializeSourceValidation(t *testing.T) {
 	cases := map[string]string{
-		"wrong-version": `{"v":"weave.cli/v1","snapshot":{"path":"/cache/worktree","source_id":"abc","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"},"repository":{"id":"_repo","name":"weave"}}`,
-		"source-id":     `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"other","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"},"repository":{"id":"_repo","name":"weave"}}`,
-		"no-commit":     `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"abc"},"repository":{"id":"_repo","name":"weave"}}`,
-		"bad-commit":    `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"abc","commit":"main"},"repository":{"id":"_repo","name":"weave"}}`,
-		"relative-path": `{"v":"weave.source/v1","snapshot":{"path":"worktree","source_id":"abc","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"},"repository":{"id":"_repo","name":"weave"}}`,
-		"no-repository": `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"abc","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"}}`,
+		"wrong-version":   `{"v":"weave.cli/v1","snapshot":{"path":"/cache/worktree","source_id":"abc","revision":"rev"},"documents":[{"id":"_repo","type":"Repository"}]}`,
+		"source-id":       `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"other","revision":"rev"},"documents":[{"id":"_repo","type":"Repository"}]}`,
+		"no-revision":     `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"abc"},"documents":[{"id":"_repo","type":"Repository"}]}`,
+		"no-documents":    `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"abc","revision":"rev"}}`,
+		"relative-path":   `{"v":"weave.source/v1","snapshot":{"path":"worktree","source_id":"abc","revision":"rev"},"documents":[{"id":"_repo","type":"Repository"}]}`,
+		"unsafe-artifact": `{"v":"weave.source/v1","snapshot":{"path":"/cache/worktree","source_id":"abc","revision":"rev"},"documents":[{"id":"_repo","type":"Repository"}],"artifacts":[{"path":"../escape.json","content":{}}]}`,
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {

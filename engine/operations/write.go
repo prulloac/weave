@@ -339,7 +339,9 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			}
 		} else {
 			bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
-			applyProjectResponse(bundle, response, scanned.Concepts)
+			if err := applyProjectResponse(bundle, response, scanned.Concepts); err != nil {
+				return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+			}
 			if err := applySourceRepository(bundle, request.Source); err != nil {
 				return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
 			}

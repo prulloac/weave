@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -62,7 +63,9 @@ func (e *Executor) applyProjectAnalysis(
 	if err != nil {
 		return nil, err
 	}
-	applyProjectResponse(eng.Bundle(), response, scanned)
+	if err := applyProjectResponse(eng.Bundle(), response, scanned); err != nil {
+		return nil, err
+	}
 	return response.Artifacts, nil
 }
 
@@ -121,7 +124,7 @@ func absoluteRoot(root string) string {
 	return absolute
 }
 
-func applyProjectResponse(bundle *contractv1.Bundle, response extensions.ProjectAnalysisResponse, analyzed []contractv1.OkfConcept) {
+func applyProjectResponse(bundle *contractv1.Bundle, response extensions.ProjectAnalysisResponse, analyzed []contractv1.OkfConcept) error {
 	requested := make(map[string]bool, len(analyzed))
 	for _, concept := range analyzed {
 		requested[concept.ID] = true
@@ -148,19 +151,19 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 	for position := range bundle.Concepts {
 		index[bundle.Concepts[position].ID] = position
 	}
-	upsert := func(document extensions.ProjectDocument, defaultType, defaultKind string) int {
+	upsert := func(document extensions.ProjectDocument) (int, error) {
 		if position, ok := index[document.ID]; ok {
 			concept := &bundle.Concepts[position]
 			applyProjectMetadata(concept, document)
-			return position
+			return position, nil
 		}
 		docType := strings.TrimSpace(document.Type)
 		if docType == "" {
-			docType = defaultType
+			return 0, fmt.Errorf("project document %q type is required", document.ID)
 		}
 		kind := strings.TrimSpace(document.ContentKind)
 		if kind == "" {
-			kind = defaultKind
+			return 0, fmt.Errorf("project document %q content_kind is required", document.ID)
 		}
 		title := document.Title
 		concept := contractv1.OkfConcept{
@@ -179,12 +182,16 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 		bundle.Concepts = append(bundle.Concepts, concept)
 		position := len(bundle.Concepts) - 1
 		index[document.ID] = position
-		return position
+		return position, nil
 	}
 	for _, document := range response.Documents {
-		upsert(document, "Code", "blob")
+		if _, err := upsert(document); err != nil {
+			return err
+		}
 		for _, symbol := range document.SymbolDocuments {
-			upsert(symbol, "CodeSymbol", "symbol")
+			if _, err := upsert(symbol); err != nil {
+				return err
+			}
 		}
 	}
 	external := make(map[string]bool, len(response.ExternalDocuments))
@@ -199,7 +206,9 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 		if !external[document.ID] {
 			continue
 		}
-		upsert(document, "CodeExternal", "symbol")
+		if _, err := upsert(document); err != nil {
+			return err
+		}
 	}
 	for _, relation := range response.Relations {
 		if _, isExternal := external[relation.To]; isExternal && !external[relation.To] {
@@ -213,7 +222,7 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 			continue
 		}
 		kind := contractv1.RelationKind(strings.TrimSpace(relation.Kind))
-		if !validProjectRelation(kind) {
+		if !contractv1.ValidRelationKind(kind) {
 			continue
 		}
 		bundle.Concepts[position].Relations = append(bundle.Concepts[position].Relations, contractv1.ConceptRelation{
@@ -221,6 +230,7 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 			Kind: kind,
 		})
 	}
+	return nil
 }
 
 func applyProjectMetadata(concept *contractv1.OkfConcept, document extensions.ProjectDocument) {
@@ -243,19 +253,6 @@ func applyProjectMetadata(concept *contractv1.OkfConcept, document extensions.Pr
 	}
 	if len(document.ContentMetadata) > 0 {
 		concept.ContentMetadata = document.ContentMetadata
-	}
-	if concept.Type == "" {
-		concept.Type = "Code"
-	}
-}
-
-func validProjectRelation(kind contractv1.RelationKind) bool {
-	switch kind {
-	case contractv1.RelationImports, contractv1.RelationDeclares, contractv1.RelationReferences,
-		contractv1.RelationCalls, contractv1.RelationInherits, contractv1.RelationImplements:
-		return true
-	default:
-		return false
 	}
 }
 

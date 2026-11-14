@@ -16,7 +16,9 @@ func TestApplyProjectResponseUsesDeclaredTypes(t *testing.T) {
 			ID: "a.custom", Type: "CustomDocument", ContentKind: "blob", Title: "Custom",
 		}},
 	}
-	applyProjectResponse(bundle, response, bundle.Concepts[:1])
+	if err := applyProjectResponse(bundle, response, bundle.Concepts[:1]); err != nil {
+		t.Fatal(err)
+	}
 	for _, concept := range bundle.Concepts {
 		if concept.ID == "a.custom" {
 			if concept.Type != "CustomDocument" || concept.ContentKind != "blob" {
@@ -28,6 +30,16 @@ func TestApplyProjectResponseUsesDeclaredTypes(t *testing.T) {
 	t.Fatal("a.custom missing")
 }
 
+func TestApplyProjectResponseRequiresType(t *testing.T) {
+	bundle := &contractv1.Bundle{}
+	response := extensions.ProjectAnalysisResponse{
+		Documents: []extensions.ProjectDocument{{ID: "_code/external/go/fmt"}},
+	}
+	if err := applyProjectResponse(bundle, response, nil); err == nil {
+		t.Fatal("expected a missing type error")
+	}
+}
+
 func TestApplyProjectResponseSkipsOmittedFiles(t *testing.T) {
 	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{
 		{ID: "a.go", Path: "a.go", Type: "Code", ContentKind: "blob"},
@@ -35,12 +47,14 @@ func TestApplyProjectResponseSkipsOmittedFiles(t *testing.T) {
 		{ID: "index.md", Path: "index.md", Type: "Index"},
 	}}
 	response := extensions.ProjectAnalysisResponse{
-		Documents: []extensions.ProjectDocument{{ID: "a.go"}},
+		Documents: []extensions.ProjectDocument{{ID: "a.go", Type: "Code", ContentKind: "blob"}},
 	}
-	applyProjectResponse(bundle, response, []contractv1.OkfConcept{
+	if err := applyProjectResponse(bundle, response, []contractv1.OkfConcept{
 		{ID: "a.go", Path: "a.go"},
 		{ID: "b.gen.go", Path: "b.gen.go"},
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	ids := map[string]bool{}
 	for _, concept := range bundle.Concepts {
 		ids[concept.ID] = true
@@ -59,10 +73,13 @@ func TestApplyProjectExternalThreshold(t *testing.T) {
 		{ID: "b.go", Path: "b.go", Type: "Code"},
 	}}
 	response := extensions.ProjectAnalysisResponse{
-		Documents: []extensions.ProjectDocument{{ID: "a.go"}, {ID: "b.go"}},
+		Documents: []extensions.ProjectDocument{
+			{ID: "a.go", Type: "Code", ContentKind: "blob"},
+			{ID: "b.go", Type: "Code", ContentKind: "blob"},
+		},
 		ExternalDocuments: []extensions.ProjectDocument{
-			{ID: "_code/external/go/fmt"},
-			{ID: "_code/external/go/os"},
+			{ID: "_code/external/go/fmt", Type: "CodeExternal", ContentKind: "symbol"},
+			{ID: "_code/external/go/os", Type: "CodeExternal", ContentKind: "symbol"},
 		},
 		Relations: []extensions.ProjectRelation{
 			{From: "a.go", To: "_code/external/go/fmt", Kind: "imports"},
@@ -70,7 +87,9 @@ func TestApplyProjectExternalThreshold(t *testing.T) {
 			{From: "b.go", To: "_code/external/go/os", Kind: "imports"},
 		},
 	}
-	applyProjectResponse(bundle, response, bundle.Concepts)
+	if err := applyProjectResponse(bundle, response, bundle.Concepts); err != nil {
+		t.Fatal(err)
+	}
 
 	ids := map[string]bool{}
 	for _, concept := range bundle.Concepts {

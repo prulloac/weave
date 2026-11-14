@@ -764,20 +764,8 @@ type SourceContext struct {
 	Ref                string
 	Commit             string
 	SnapshotPath       string
-	RepositoryName     string
-	RepositoryTitle    string
-	Description        string
-	Readme             string
-	Host               string
-	Owner              string
-	License            string
-	HostKind           string
-	WebURL             string
-	CommitURL          string
 	Worktree           bool
 	Warnings           []string
-	Projects           []SourceProject
-	Commits            []SourceCommit
 	Documents          []SyntheticDocument
 	Relations          []SyntheticRelation
 	Artifacts          []SyntheticArtifact
@@ -818,32 +806,6 @@ type SyntheticArtifact struct {
 	Path      string
 	MediaType string
 	Content   any
-}
-
-// SourceProject is one manifest-backed project discovered in a source snapshot.
-type SourceProject struct {
-	Path         string
-	Name         string
-	Description  string
-	Manifest     string
-	Ecosystem    string
-	Dependencies []SourceDependency
-}
-
-// SourceDependency is one declared project dependency.
-type SourceDependency struct {
-	Name    string
-	Version string
-	Scope   string
-}
-
-// SourceCommit is one commit in the opt-in history window.
-type SourceCommit struct {
-	SHA     string
-	Parents []string
-	Author  string
-	Date    string
-	Subject string
 }
 
 // SourceBundle is one per-source parse result.
