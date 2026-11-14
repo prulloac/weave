@@ -234,6 +234,29 @@ These scenarios describe observable behavior. They do not prescribe implementati
 - **When** I inspect projects and dependencies
 - **Then** node IDs and edges are identical
 
+## Feature: Commit history
+
+### Scenario: Commit history is opt-in
+
+- **Given** an indexed git source without history
+- **When** I inspect commits
+- **Then** no `Commit` documents exist
+
+### Scenario: Commits become graph nodes
+
+- **Given** an indexed git source with `--git --history`
+- **When** I inspect the graph
+- **Then** `_repo` contains `_commit/<sha>` documents
+- **And** `parent_of` edges link commits to parents inside the window
+- **And** parents outside the window stay metadata
+
+### Scenario: Host enrichment is recorded
+
+- **Given** an indexed remote git source on a known host
+- **When** I show the repository document
+- **Then** metadata includes `host_kind`, `web_url` and `commit_url`
+- **And** no hosting API was called
+
 ## Feature: Workspace and MCP
 
 ### Scenario: A workspace declares a git source

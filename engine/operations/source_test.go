@@ -51,6 +51,9 @@ func TestApplySourceRepositoryProjectsAndDependencies(t *testing.T) {
 				{Name: "react", Version: "^18", Scope: "peer"},
 			}},
 		},
+		Commits: []contractv1.SourceCommit{
+			{SHA: "dddddddddddddddddddddddddddddddddddddddd", Author: "Test", Date: "2026-11-13T00:00:00Z", Subject: "Initial"},
+		},
 	}
 	applySourceRepository(bundle, source)
 
@@ -76,6 +79,10 @@ func TestApplySourceRepositoryProjectsAndDependencies(t *testing.T) {
 	if len(versions) != 1 || versions[0] != "^18" || len(scopes) != 2 || scopes[0] != "peer" || scopes[1] != "runtime" {
 		t.Fatalf("react metadata = %+v", byID[reactID].ContentMetadata)
 	}
+	if len(byID[reactID].Relations) != 0 {
+		t.Fatalf("external package should not depend on anything: %+v", byID[reactID].Relations)
+	}
+	assertRelation(t, byID["_repo"], "_commit/dddddddddddddddddddddddddddddddddddddddd", contractv1.RelationContains)
 
 	assertRelation(t, byID["_repo"], "_project/web", contractv1.RelationContains)
 	assertRelation(t, byID["_project"], "main.go", contractv1.RelationContains)
@@ -87,6 +94,53 @@ func TestApplySourceRepositoryProjectsAndDependencies(t *testing.T) {
 	assertRelation(t, byID["_project/web"], reactID, contractv1.RelationDependsOn)
 	assertRelation(t, byID["_project/web/pkg"], reactID, contractv1.RelationDependsOn)
 	assertRelation(t, byID["_project"], libID, contractv1.RelationDependsOn)
+}
+
+func TestApplySourceRepositoryCommits(t *testing.T) {
+	shaA := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	shaB := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	shaC := "cccccccccccccccccccccccccccccccccccccccc"
+	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{
+		{ID: "main.go", Path: "main.go", ContentKind: "blob"},
+	}}
+	source := &contractv1.SourceContext{
+		Alias: "core", Provider: "git", URI: "git+https://github.com/acme/weave.git",
+		Ref: "main", Commit: shaA, SnapshotPath: "/cache/sources/src/worktree",
+		RepositoryName: "weave", RepositoryTitle: "Weave",
+		Host: "github.com", Owner: "acme", HostKind: "github",
+		WebURL: "https://github.com/acme/weave", CommitURL: "https://github.com/acme/weave/commit/" + shaA,
+		Commits: []contractv1.SourceCommit{
+			{SHA: shaA, Parents: []string{shaB}, Author: "Ada", Date: "2026-11-13T00:00:00Z", Subject: "Newest"},
+			{SHA: shaB, Parents: []string{shaC}, Author: "Grace", Date: "2026-11-12T00:00:00Z", Subject: "Older"},
+		},
+	}
+	applySourceRepository(bundle, source)
+
+	byID := map[string]contractv1.OkfConcept{}
+	for _, concept := range bundle.Concepts {
+		byID[concept.ID] = concept
+	}
+	if byID["_repo"].ContentMetadata["host_kind"] != "github" ||
+		byID["_repo"].ContentMetadata["web_url"] != "https://github.com/acme/weave" {
+		t.Fatalf("repository enrichment = %+v", byID["_repo"].ContentMetadata)
+	}
+	for _, sha := range []string{shaA, shaB} {
+		concept, ok := byID["_commit/"+sha]
+		if !ok || concept.Type != "Commit" {
+			t.Fatalf("missing commit %s: %+v", sha, bundle.Concepts)
+		}
+	}
+	if _, ok := byID["_commit/"+shaC]; ok {
+		t.Fatal("parent outside the window must not become a document")
+	}
+	if byID["_commit/"+shaA].Title == nil || *byID["_commit/"+shaA].Title != "Newest" {
+		t.Fatalf("commit title = %+v", byID["_commit/"+shaA])
+	}
+	assertRelation(t, byID["_repo"], "_commit/"+shaA, contractv1.RelationContains)
+	assertRelation(t, byID["_commit/"+shaA], "_commit/"+shaB, contractv1.RelationParentOf)
+	if hasRelation(byID["_commit/"+shaB], "_commit/"+shaC, contractv1.RelationParentOf) {
+		t.Fatal("edge must not point outside the history window")
+	}
 }
 
 func assertRelation(t *testing.T, concept contractv1.OkfConcept, to string, kind contractv1.RelationKind) {

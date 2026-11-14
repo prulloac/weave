@@ -57,6 +57,8 @@ type flags struct {
 	gitWorktree   bool
 	gitSubmodules bool
 	gitLFS        bool
+	gitHistory    bool
+	gitHistoryLim int
 	watch         bool
 	events        bool
 	out           string
@@ -334,6 +336,19 @@ func parseFlags(args []string) (flags, error) {
 			result.gitSubmodules = true
 		case "--lfs":
 			result.gitLFS = true
+		case "--history":
+			result.gitHistory = true
+		case "--history-limit":
+			value, next, err := flagValue(args, index, "--history-limit")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			limit, err := strconv.Atoi(value)
+			if err != nil || limit < 1 || limit > 100 {
+				return result, fmt.Errorf("--history-limit requires an integer between 1 and 100")
+			}
+			result.gitHistoryLim = limit
 		case "--watch":
 			result.watch = true
 		case "--events":
@@ -466,8 +481,12 @@ func parseFlags(args []string) (flags, error) {
 		result.withEmbedder == "" && result.embedder == "" {
 		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank or --scorer")
 	}
-	if (result.gitRef != "" || result.gitWorktree || result.gitSubmodules || result.gitLFS) && !result.git {
-		return result, fmt.Errorf("--ref, --worktree, --submodules and --lfs require --git")
+	if (result.gitRef != "" || result.gitWorktree || result.gitSubmodules || result.gitLFS ||
+		result.gitHistory || result.gitHistoryLim != 0) && !result.git {
+		return result, fmt.Errorf("--ref, --worktree, --submodules, --lfs and --history require --git")
+	}
+	if result.gitHistoryLim != 0 && !result.gitHistory {
+		return result, fmt.Errorf("--history-limit requires --history")
 	}
 	return result, nil
 }

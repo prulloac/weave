@@ -2226,6 +2226,7 @@
 				"imports",
 				"inherits",
 				"link",
+				"parent_of",
 				"references",
 				"related"
 			]
@@ -2617,6 +2618,14 @@
 			"properties": {
 				"alias": {
 					"type": "string"
+				},
+				"history": {
+					"type": "boolean"
+				},
+				"history_limit": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100
 				},
 				"lfs": {
 					"type": "boolean"

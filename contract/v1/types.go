@@ -159,6 +159,7 @@ const (
 	RelationImplements RelationKind = "implements"
 	RelationContains   RelationKind = "contains"
 	RelationDependsOn  RelationKind = "depends_on"
+	RelationParentOf   RelationKind = "parent_of"
 )
 
 // ConceptRelation is one extension-provided relation from this concept to another.
@@ -738,6 +739,9 @@ type SourceSpec struct {
 	Worktree   bool   `json:"worktree,omitempty"`
 	Submodules bool   `json:"submodules,omitempty"`
 	LFS        bool   `json:"lfs,omitempty"`
+	History    bool   `json:"history,omitempty"`
+	// HistoryLimit bounds the opt-in commit window; zero uses the provider default.
+	HistoryLimit int `json:"history_limit,omitempty"`
 }
 
 // SourceContext carries materialized source provenance through an in-process
@@ -756,9 +760,13 @@ type SourceContext struct {
 	Host            string
 	Owner           string
 	License         string
+	HostKind        string
+	WebURL          string
+	CommitURL       string
 	Worktree        bool
 	Warnings        []string
 	Projects        []SourceProject
+	Commits         []SourceCommit
 }
 
 // SourceProject is one manifest-backed project discovered in a source snapshot.
@@ -776,6 +784,15 @@ type SourceDependency struct {
 	Name    string
 	Version string
 	Scope   string
+}
+
+// SourceCommit is one commit in the opt-in history window.
+type SourceCommit struct {
+	SHA     string
+	Parents []string
+	Author  string
+	Date    string
+	Subject string
 }
 
 // SourceBundle is one per-source parse result.

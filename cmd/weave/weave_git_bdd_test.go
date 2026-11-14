@@ -18,7 +18,7 @@ if [ "$1" = "--describe" ]; then
   exit 0
 fi
 cat >/dev/null
-printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"HEAD","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"A fixture repository.","readme":"README.md"},"projects":[{"path":"","name":"fixture","ecosystem":"npm","manifest":"package.json","dependencies":[{"name":"react","version":"^18","scope":"runtime"}]}],"warnings":["fixture warning"]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
+printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s","source_id":"%s","commit":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","ref":"HEAD","read_only":true},"repository":{"id":"_repo","name":"fixture","title":"Fixture","description":"A fixture repository.","readme":"README.md"},"projects":[{"path":"","name":"fixture","ecosystem":"npm","manifest":"package.json","dependencies":[{"name":"react","version":"^18","scope":"runtime"}]}],"commits":[{"sha":"8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c","parents":["7e2d1c0b9a8f7e6d5c4b3a29180f7e6d5c4b3a29"],"author":"Test","date":"2026-11-13T00:00:00Z","subject":"Newest"},{"sha":"7e2d1c0b9a8f7e6d5c4b3a29180f7e6d5c4b3a29","parents":[],"author":"Test","date":"2026-11-12T00:00:00Z","subject":"Older"}],"warnings":["fixture warning"]}' "$TEST_SNAPSHOT" "$TEST_SOURCE_ID"
 `
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
@@ -84,6 +84,21 @@ func TestWeaveGitLocalSourceIngest(t *testing.T) {
 	}
 	if !strings.Contains(stdout, `"_project"`) || !strings.Contains(stdout, `"_package/npm/react"`) {
 		t.Fatalf("expected depends_on edge: %s", stdout)
+	}
+	code, stdout, stderr = Invoke(t, "list", root, "--type", "Commit", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("commit list exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"_commit/8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"`) {
+		t.Fatalf("expected commit document: %s", stdout)
+	}
+	code, stdout, stderr = Invoke(t, "graph", root, "--relation", "parent_of", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("history graph exit=%d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, `"_commit/8f3c2a1d4b5e6f708192a3b4c5d6e7f8091a2b3c"`) ||
+		!strings.Contains(stdout, `"_commit/7e2d1c0b9a8f7e6d5c4b3a29180f7e6d5c4b3a29"`) {
+		t.Fatalf("expected parent_of edge: %s", stdout)
 	}
 	out := filepath.Join(t.TempDir(), "export")
 	code, stdout, stderr = Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")

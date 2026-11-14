@@ -24,6 +24,7 @@ type resolvedSource struct {
 	Worktree   bool
 	Repository extensions.SourceRepository
 	Projects   []extensions.SourceProject
+	Commits    []extensions.SourceCommit
 	Warnings   []string
 }
 
@@ -124,7 +125,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 				URI:      source.InputPath,
 				Ref:      source.Ref,
 				CacheDir: sourceCacheDir(),
-				Options:  extensions.SourceOptions{Worktree: spec.Worktree, Submodules: spec.Submodules, LFS: spec.LFS, Permissive: request.Permissive},
+				Options:  extensions.SourceOptions{Worktree: spec.Worktree, Submodules: spec.Submodules, LFS: spec.LFS, History: spec.History, HistoryLimit: spec.HistoryLimit, Permissive: request.Permissive},
 			})
 			if err != nil {
 				return nil, err
@@ -135,6 +136,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 			source.Worktree = spec.Worktree
 			source.Repository = response.Repository
 			source.Projects = response.Projects
+			source.Commits = response.Commits
 			source.Warnings = response.Warnings
 			for _, warning := range response.Warnings {
 				e.warn("source %s: %s", alias, warning)
@@ -271,9 +273,13 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 			Host:            source.Repository.Host,
 			Owner:           source.Repository.Owner,
 			License:         source.Repository.License,
+			HostKind:        source.Repository.HostKind,
+			WebURL:          source.Repository.WebURL,
+			CommitURL:       source.Repository.CommitURL,
 			Worktree:        source.Worktree,
 			Warnings:        source.Warnings,
 			Projects:        contractSourceProjects(source.Projects),
+			Commits:         contractSourceCommits(source.Commits),
 		}
 	} else {
 		request.Source = nil
@@ -300,6 +306,23 @@ func contractSourceProjects(values []extensions.SourceProject) []contractv1.Sour
 			Manifest:     value.Manifest,
 			Ecosystem:    value.Ecosystem,
 			Dependencies: dependencies,
+		})
+	}
+	return result
+}
+
+func contractSourceCommits(values []extensions.SourceCommit) []contractv1.SourceCommit {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]contractv1.SourceCommit, 0, len(values))
+	for _, value := range values {
+		result = append(result, contractv1.SourceCommit{
+			SHA:     value.SHA,
+			Parents: append([]string(nil), value.Parents...),
+			Author:  value.Author,
+			Date:    value.Date,
+			Subject: value.Subject,
 		})
 	}
 	return result

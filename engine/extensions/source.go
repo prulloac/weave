@@ -21,11 +21,13 @@ var sourceCommitPattern = regexp.MustCompile(`^[0-9a-f]{40}$|^[0-9a-f]{64}$`)
 
 // SourceOptions controls one source materialization.
 type SourceOptions struct {
-	Worktree   bool `json:"worktree,omitempty"`
-	Submodules bool `json:"submodules,omitempty"`
-	LFS        bool `json:"lfs,omitempty"`
-	Depth      int  `json:"depth,omitempty"`
-	Permissive bool `json:"permissive,omitempty"`
+	Worktree     bool `json:"worktree,omitempty"`
+	Submodules   bool `json:"submodules,omitempty"`
+	LFS          bool `json:"lfs,omitempty"`
+	Depth        int  `json:"depth,omitempty"`
+	Permissive   bool `json:"permissive,omitempty"`
+	History      bool `json:"history,omitempty"`
+	HistoryLimit int  `json:"history_limit,omitempty"`
 }
 
 // SourceRequest is one source-provider request payload.
@@ -59,6 +61,9 @@ type SourceRepository struct {
 	Host        string `json:"host,omitempty"`
 	Owner       string `json:"owner,omitempty"`
 	License     string `json:"license,omitempty"`
+	HostKind    string `json:"host_kind,omitempty"`
+	WebURL      string `json:"web_url,omitempty"`
+	CommitURL   string `json:"commit_url,omitempty"`
 }
 
 // SourceProject describes one manifest-backed project in the snapshot.
@@ -78,6 +83,15 @@ type SourceDependency struct {
 	Scope   string `json:"scope,omitempty"`
 }
 
+// SourceCommit is one commit in the opt-in history window.
+type SourceCommit struct {
+	SHA     string   `json:"sha"`
+	Parents []string `json:"parents,omitempty"`
+	Author  string   `json:"author,omitempty"`
+	Date    string   `json:"date,omitempty"`
+	Subject string   `json:"subject,omitempty"`
+}
+
 // SourceResponse is one validated source-provider reply.
 type SourceResponse struct {
 	V          string           `json:"v"`
@@ -85,6 +99,7 @@ type SourceResponse struct {
 	Snapshot   SourceSnapshot   `json:"snapshot"`
 	Repository SourceRepository `json:"repository"`
 	Projects   []SourceProject  `json:"projects,omitempty"`
+	Commits    []SourceCommit   `json:"commits,omitempty"`
 	Warnings   []string         `json:"warnings,omitempty"`
 }
 
@@ -117,6 +132,19 @@ func (r Runner) MaterializeSource(ctx context.Context, extension Extension, requ
 	}
 	if strings.TrimSpace(response.Repository.Name) == "" {
 		return SourceResponse{}, fmt.Errorf("%w: repository name is required", ErrProtocol)
+	}
+	if len(response.Commits) > 100 {
+		return SourceResponse{}, fmt.Errorf("%w: commit history exceeds 100 entries", ErrProtocol)
+	}
+	for _, commit := range response.Commits {
+		if !sourceCommitPattern.MatchString(commit.SHA) {
+			return SourceResponse{}, fmt.Errorf("%w: invalid commit history sha %q", ErrProtocol, commit.SHA)
+		}
+		for _, parent := range commit.Parents {
+			if !sourceCommitPattern.MatchString(parent) {
+				return SourceResponse{}, fmt.Errorf("%w: invalid parent sha %q", ErrProtocol, parent)
+			}
+		}
 	}
 	if !request.Options.Worktree && request.CacheDir != "" {
 		if err := requireWithin(request.CacheDir, response.Snapshot.Path); err != nil {

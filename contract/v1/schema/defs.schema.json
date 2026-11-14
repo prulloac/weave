@@ -490,7 +490,8 @@
 				"inherits",
 				"implements",
 				"contains",
-				"depends_on"
+				"depends_on",
+				"parent_of"
 			]
 		},
 		"ConceptRelation": {
@@ -2443,6 +2444,14 @@
 				},
 				"lfs": {
 					"type": "boolean"
+				},
+				"history": {
+					"type": "boolean"
+				},
+				"history_limit": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100
 				}
 			}
 		},

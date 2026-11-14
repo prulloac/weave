@@ -54,17 +54,20 @@ func applySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceC
 		BodyText:    true,
 		ContentKind: "blob",
 		ContentMetadata: map[string]any{
-			"v":        1,
-			"provider": source.Provider,
-			"uri":      source.URI,
-			"ref":      source.Ref,
-			"commit":   source.Commit,
-			"host":     source.Host,
-			"owner":    source.Owner,
-			"name":     source.RepositoryName,
-			"readme":   source.Readme,
-			"license":  source.License,
-			"worktree": source.Worktree,
+			"v":          1,
+			"provider":   source.Provider,
+			"uri":        source.URI,
+			"ref":        source.Ref,
+			"commit":     source.Commit,
+			"host":       source.Host,
+			"owner":      source.Owner,
+			"name":       source.RepositoryName,
+			"host_kind":  source.HostKind,
+			"web_url":    source.WebURL,
+			"commit_url": source.CommitURL,
+			"readme":     source.Readme,
+			"license":    source.License,
+			"worktree":   source.Worktree,
 		},
 	}
 	for _, current := range bundle.Concepts {
@@ -77,8 +80,84 @@ func applySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceC
 		})
 	}
 	bundle.Concepts = append(bundle.Concepts, concept)
-	applySourceProjects(bundle, len(bundle.Concepts)-1, source)
+	repositoryIndex := len(bundle.Concepts) - 1
+	applySourceProjects(bundle, repositoryIndex, source)
+	applySourceCommits(bundle, repositoryIndex, source)
 	bundle.Validation.Warnings = append(bundle.Validation.Warnings, source.Warnings...)
+}
+
+func applySourceCommits(bundle *contractv1.Bundle, repositoryIndex int, source *contractv1.SourceContext) {
+	if bundle == nil || source == nil || len(source.Commits) == 0 {
+		return
+	}
+	positions := make(map[string]int, len(source.Commits))
+	for _, commit := range source.Commits {
+		sha := strings.ToLower(strings.TrimSpace(commit.SHA))
+		if sha == "" {
+			continue
+		}
+		if _, exists := positions[sha]; exists {
+			continue
+		}
+		id := "_commit/" + sha
+		title := strings.TrimSpace(commit.Subject)
+		if title == "" {
+			title = shortSHA(sha)
+		}
+		parents := make([]string, 0, len(commit.Parents))
+		for _, parent := range commit.Parents {
+			if value := strings.ToLower(strings.TrimSpace(parent)); value != "" {
+				parents = append(parents, value)
+			}
+		}
+		keywords := boundedKeywords([]string{"commit", shortSHA(sha), commit.Author, title})
+		concept := contractv1.OkfConcept{
+			ID:          id,
+			Path:        id,
+			Type:        "Commit",
+			Title:       stringPointer(title),
+			Description: stringPointer(strings.TrimSpace(commit.Subject)),
+			Keywords:    keywords,
+			BodyText:    true,
+			ContentKind: "symbol",
+			ContentMetadata: map[string]any{
+				"v":        1,
+				"sha":      sha,
+				"parents":  parents,
+				"author":   commit.Author,
+				"date":     commit.Date,
+				"subject":  commit.Subject,
+				"repo_uri": source.URI,
+				"repo_ref": source.Ref,
+			},
+			Links: []contractv1.OkfLink{},
+		}
+		bundle.Concepts = append(bundle.Concepts, concept)
+		positions[sha] = len(bundle.Concepts) - 1
+		addConceptRelation(&bundle.Concepts[repositoryIndex], id, contractv1.RelationContains)
+	}
+	for _, commit := range source.Commits {
+		sha := strings.ToLower(strings.TrimSpace(commit.SHA))
+		position, ok := positions[sha]
+		if !ok {
+			continue
+		}
+		for _, parent := range commit.Parents {
+			parent = strings.ToLower(strings.TrimSpace(parent))
+			parentPosition, ok := positions[parent]
+			if !ok {
+				continue
+			}
+			addConceptRelation(&bundle.Concepts[position], bundle.Concepts[parentPosition].ID, contractv1.RelationParentOf)
+		}
+	}
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 8 {
+		return sha[:8]
+	}
+	return sha
 }
 
 func applySourceProjects(bundle *contractv1.Bundle, repositoryIndex int, source *contractv1.SourceContext) {
