@@ -95,6 +95,38 @@ func TestGenericProviderDescriptors(t *testing.T) {
 	}
 }
 
+func TestProjectAnalyzerArtifact(t *testing.T) {
+	root := weaveCodeRepo(t)
+	provider := `#!/bin/sh
+if [ "$1" = "--describe" ]; then
+  printf '%s' '{"v":"weave.extension/v1","name":"code","source_extensions":[".go"],"analysis_modes":["project"],"artifact_namespaces":["_code/"]}'
+  exit 0
+fi
+cat >/dev/null
+printf '%s' '{"v":"weave.cli/v1","type":"project_analysis_response","documents":[],"artifacts":[{"path":"_code/symbols.json","media_type":"application/json","content":{"v":"custom-project-artifact"}}]}'
+`
+	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-code"), []byte(provider), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	db := filepath.Join(t.TempDir(), "index.db")
+	code, stdout, stderr := Invoke(t, "ingest", root, "--with-enricher", "code", "--db", db, "--strict", "--json")
+	if code != 0 {
+		t.Fatalf("ingest exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	out := filepath.Join(t.TempDir(), "export")
+	code, stdout, stderr = Invoke(t, "export", root, "--out", out, "--format", "raw", "--yes", "--db", db, "--json")
+	if code != 0 {
+		t.Fatalf("export exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	artifact, err := os.ReadFile(filepath.Join(out, "_code", "symbols.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(artifact), "custom-project-artifact") {
+		t.Fatalf("artifact = %s", artifact)
+	}
+}
+
 func TestGenericSourceMetadata(t *testing.T) {
 	sourceRoot := weaveCodeRepo(t)
 	if err := os.WriteFile(filepath.Join(sourceRoot, "README.md"), []byte("# Generated\n"), 0o644); err != nil {

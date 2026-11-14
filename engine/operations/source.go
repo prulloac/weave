@@ -728,11 +728,18 @@ func sourceRelationDefaults(source *contractv1.SourceContext) []string {
 }
 
 func artifactRecords(source *contractv1.SourceContext) ([]sqlitestore.ArtifactRecord, error) {
-	if source == nil || len(source.Artifacts) == 0 {
+	if source == nil {
 		return nil, nil
 	}
-	result := make([]sqlitestore.ArtifactRecord, 0, len(source.Artifacts))
-	for _, artifact := range source.Artifacts {
+	return artifactRecordsFrom(source.Artifacts)
+}
+
+func artifactRecordsFrom(values []contractv1.SyntheticArtifact) ([]sqlitestore.ArtifactRecord, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	result := make([]sqlitestore.ArtifactRecord, 0, len(values))
+	for _, artifact := range values {
 		content, err := json.Marshal(artifact.Content)
 		if err != nil {
 			return nil, err

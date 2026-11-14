@@ -54,11 +54,12 @@ type ProjectRelation struct {
 
 // ProjectAnalysisResponse is the validated project analysis result.
 type ProjectAnalysisResponse struct {
-	V                 string            `json:"v"`
-	Documents         []ProjectDocument `json:"documents"`
-	ExternalDocuments []ProjectDocument `json:"external_documents,omitempty"`
-	Relations         []ProjectRelation `json:"relations,omitempty"`
-	Warnings          []string          `json:"warnings,omitempty"`
+	V                 string              `json:"v"`
+	Documents         []ProjectDocument   `json:"documents"`
+	ExternalDocuments []ProjectDocument   `json:"external_documents,omitempty"`
+	Relations         []ProjectRelation   `json:"relations,omitempty"`
+	Artifacts         []SyntheticArtifact `json:"artifacts,omitempty"`
+	Warnings          []string            `json:"warnings,omitempty"`
 }
 
 // ProjectAnalysis invokes a project analyzer and validates file coverage.
@@ -92,6 +93,14 @@ func (r Runner) ProjectAnalysis(ctx context.Context, extension Extension, reques
 			return ProjectAnalysisResponse{}, fmt.Errorf("%w: duplicate document %q", ErrProtocol, document.ID)
 		}
 		seen[document.ID] = true
+	}
+	if len(response.Artifacts) > 100 {
+		return ProjectAnalysisResponse{}, fmt.Errorf("%w: too many project artifacts", ErrProtocol)
+	}
+	for _, artifact := range response.Artifacts {
+		if err := validateArtifactPath(artifact.Path); err != nil {
+			return ProjectAnalysisResponse{}, fmt.Errorf("%w: %v", ErrProtocol, err)
+		}
 	}
 	return response, nil
 }

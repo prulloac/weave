@@ -7,6 +7,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/assets"
+	"github.com/prulloac/weave/engine/extensions"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/privacy"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
@@ -142,8 +143,10 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 		eng.Bundle().Concepts = append(eng.Bundle().Concepts, scanned.Concepts...)
 		eng.Bundle().Validation.Warnings = append(eng.Bundle().Validation.Warnings, scanned.Warnings...)
 	}
+	projectArtifacts := []extensions.SyntheticArtifact{}
 	if projectMode {
-		if err := e.applyProjectAnalysis(ctx, request, projectExt, eng, scannedConcepts); err != nil {
+		artifacts, err := e.applyProjectAnalysis(ctx, request, projectExt, eng, scannedConcepts)
+		if err != nil {
 			if request.Permissive {
 				e.warn("project %s: %v", projectExt.Name, err)
 			} else {
@@ -152,6 +155,8 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 					"path":      request.Path,
 				})
 			}
+		} else {
+			projectArtifacts = artifacts
 		}
 	}
 	if err := applySourceRepository(eng.Bundle(), request.Source); err != nil {
@@ -163,6 +168,11 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	if err != nil {
 		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
 	}
+	projectRecords, err := artifactRecordsFrom(contractSyntheticArtifacts(projectArtifacts))
+	if err != nil {
+		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+	}
+	artifacts = append(artifacts, projectRecords...)
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
@@ -306,6 +316,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		})
 	}
 	projectConcepts := []contractv1.OkfConcept{}
+	projectArtifacts := []extensions.SyntheticArtifact{}
 	if projectMode && len(assetTypes) > 0 {
 		scanned, err := assets.Scan(ctx, request.Path, assets.Filter{Types: assetTypes})
 		if err != nil {
@@ -333,12 +344,18 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 				return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
 			}
 			projectConcepts = bundle.Concepts
+			projectArtifacts = response.Artifacts
 		}
 	}
 	artifacts, err := artifactRecords(request.Source)
 	if err != nil {
 		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
 	}
+	projectRecords, err := artifactRecordsFrom(contractSyntheticArtifacts(projectArtifacts))
+	if err != nil {
+		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+	}
+	artifacts = append(artifacts, projectRecords...)
 	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
 		Mode:                mode,
 		Codec:               request.Codec,

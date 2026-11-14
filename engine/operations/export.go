@@ -347,13 +347,18 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 			return failure(contractv1.ErrInternal, err.Error(), nil)
 		}
 		report.ExtensionData = count
-		if err := writeCodeExport(target, bundle.Concepts); err != nil {
-			cleanup()
-			return failure(contractv1.ErrInternal, err.Error(), nil)
+		if !hasStoredArtifact(ctx, store, root, "_code/symbols.json") &&
+			!hasStoredArtifact(ctx, store, root, "_code/relations.json") {
+			if err := writeCodeExport(target, bundle.Concepts); err != nil {
+				cleanup()
+				return failure(contractv1.ErrInternal, err.Error(), nil)
+			}
 		}
-		if err := writeRepositoryExport(target, bundle.Concepts); err != nil {
-			cleanup()
-			return failure(contractv1.ErrInternal, err.Error(), nil)
+		if !hasStoredArtifact(ctx, store, root, "_sources/repositories.json") {
+			if err := writeRepositoryExport(target, bundle.Concepts); err != nil {
+				cleanup()
+				return failure(contractv1.ErrInternal, err.Error(), nil)
+			}
 		}
 	} else if len(extensionRecords) > 0 {
 		report.ExtensionDataSkipped = len(extensionRecords)

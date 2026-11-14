@@ -57,13 +57,13 @@ func (e *Executor) applyProjectAnalysis(
 	extension extensions.Extension,
 	eng *engine.Engine,
 	scanned []contractv1.OkfConcept,
-) error {
+) ([]extensions.SyntheticArtifact, error) {
 	response, err := e.runProjectAnalysis(ctx, request, extension, scanned)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	applyProjectResponse(eng.Bundle(), response, scanned)
-	return nil
+	return response.Artifacts, nil
 }
 
 func (e *Executor) runProjectAnalysis(
