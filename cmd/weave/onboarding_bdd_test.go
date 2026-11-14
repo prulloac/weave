@@ -33,6 +33,7 @@ func TestEmptyListSuggestsIngest(t *testing.T) {
 }
 
 func TestEmptyExtensionsSuggestsInstall(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
 	root := fixturePath()
 	code, _, stderr := InvokeRead(t, "extensions", "list", root)
 	if code != 0 {

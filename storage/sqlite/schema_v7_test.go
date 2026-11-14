@@ -174,6 +174,7 @@ func TestMigrateV6ToV7(t *testing.T) {
 }
 
 func TestMigrateV6RequiresLZ4Codec(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
 	path := filepath.Join(t.TempDir(), "index.db")
 	raw, err := sql.Open("sqlite", path)
 	if err != nil {

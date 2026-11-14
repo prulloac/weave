@@ -113,6 +113,7 @@ func TestCustomCodecRoundTrip(t *testing.T) {
 }
 
 func TestMissingCodecFailsBeforeWrite(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
 	root := blobBundle(t)
 	db := filepath.Join(t.TempDir(), "index.db")
 	code, stdout, _ := Invoke(t, "ingest", root, "--db", db,
