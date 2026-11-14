@@ -137,7 +137,8 @@ func keywordIDs(response bddRerankResponse) []string {
 	return ids
 }
 
-func TestExtensionsList(t *testing.T) {
+func extensionListFixture(t *testing.T) string {
+	t.Helper()
 	root := extensionFixture(t)
 	installExtension(t, root, "echo", "echo.sh")
 
@@ -155,7 +156,12 @@ func TestExtensionsList(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	t.Setenv("PATH", pathDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("PATH", pathDir)
+	return root
+}
+
+func TestExtensionsList(t *testing.T) {
+	root := extensionListFixture(t)
 
 	code, stdout, stderr := Invoke(t, "extensions", "list", root, "--json")
 	if code != 0 || stderr != "" {
@@ -173,6 +179,43 @@ func TestExtensionsList(t *testing.T) {
 	}
 	if listed.Extensions[1].Name != "other" || listed.Extensions[1].Source != "path" {
 		t.Fatalf("unexpected path extension: %+v", listed.Extensions[1])
+	}
+}
+
+func TestExtensionsListShort(t *testing.T) {
+	root := extensionListFixture(t)
+
+	code, stdout, stderr := Invoke(t, "extensions", "list", root, "--short")
+	if code != 0 || stderr != "" {
+		t.Fatalf("short list exit=%d stderr=%q", code, stderr)
+	}
+	if stdout != "echo\nother\n" {
+		t.Fatalf("short list output = %q", stdout)
+	}
+
+	code, plain, stderr := Invoke(t, "extensions", "list", root, "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("json list exit=%d stderr=%q", code, stderr)
+	}
+	code, flagged, stderr := Invoke(t, "extensions", "list", root, "--short", "--json")
+	if code != 0 || stderr != "" {
+		t.Fatalf("short json list exit=%d stderr=%q", code, stderr)
+	}
+	if plain != flagged {
+		t.Fatalf("--short changed JSON output:\nplain: %s\nshort: %s", plain, flagged)
+	}
+}
+
+func TestExtensionsShortOnlyForList(t *testing.T) {
+	root := extensionFixture(t)
+
+	code, stdout, _ := Invoke(t, "list", root, "--no-db", "--short", "--json")
+	if code != 2 {
+		t.Fatalf("expected exit 2, got %d", code)
+	}
+	envelope := decodeEnvelope(t, stdout)
+	if envelope.Error == nil || envelope.Error.Code != "INVALID_REQUEST" {
+		t.Fatalf("expected INVALID_REQUEST, got %+v", envelope.Error)
 	}
 }
 
