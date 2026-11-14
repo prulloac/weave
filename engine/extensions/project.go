@@ -35,6 +35,8 @@ type ProjectAnalysisRequest struct {
 // ProjectDocument is one file, symbol or external document in the response.
 type ProjectDocument struct {
 	ID              string            `json:"id"`
+	Type            string            `json:"type,omitempty"`
+	ContentKind     string            `json:"content_kind,omitempty"`
 	Title           string            `json:"title,omitempty"`
 	Description     string            `json:"description,omitempty"`
 	Keywords        []string          `json:"keywords,omitempty"`

@@ -60,7 +60,7 @@ func TestPathRelationFilter(t *testing.T) {
 
 func TestRelationKindValidation(t *testing.T) {
 	root := relationFixture(t)
-	if code, _, _ := Invoke(t, "relate", root, "a", "--no-db", "--relation", "nope", "--json"); code != 2 {
+	if code, _, _ := Invoke(t, "relate", root, "a", "--no-db", "--relation", "Not-A-Kind", "--json"); code != 2 {
 		t.Fatalf("expected exit 2, got %d", code)
 	}
 }

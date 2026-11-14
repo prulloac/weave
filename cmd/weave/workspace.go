@@ -32,14 +32,15 @@ type workspaceFile struct {
 
 // workspaceSource accepts either a local path string or a provider object.
 type workspaceSource struct {
-	Path       string
-	Git        string
-	Ref        string
-	Worktree   bool
-	Submodules bool
-	LFS        bool
-	History    bool
-	HistoryLim int
+	Path            string
+	Git             string
+	Ref             string
+	Worktree        bool
+	Submodules      bool
+	LFS             bool
+	History         bool
+	HistoryLim      int
+	ProviderOptions map[string]any
 }
 
 func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
@@ -48,14 +49,15 @@ func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
 		return nil
 	}
 	var value struct {
-		Path       string `yaml:"path"`
-		Git        string `yaml:"git"`
-		Ref        string `yaml:"ref"`
-		Worktree   bool   `yaml:"worktree"`
-		Submodules bool   `yaml:"submodules"`
-		LFS        bool   `yaml:"lfs"`
-		History    bool   `yaml:"history"`
-		HistoryLim int    `yaml:"history_limit"`
+		Path            string         `yaml:"path"`
+		Git             string         `yaml:"git"`
+		Ref             string         `yaml:"ref"`
+		Worktree        bool           `yaml:"worktree"`
+		Submodules      bool           `yaml:"submodules"`
+		LFS             bool           `yaml:"lfs"`
+		History         bool           `yaml:"history"`
+		HistoryLim      int            `yaml:"history_limit"`
+		ProviderOptions map[string]any `yaml:"provider_options"`
 	}
 	if err := node.Decode(&value); err != nil {
 		return err
@@ -68,6 +70,7 @@ func (s *workspaceSource) UnmarshalYAML(node *yaml.Node) error {
 	s.LFS = value.LFS
 	s.History = value.History
 	s.HistoryLim = value.HistoryLim
+	s.ProviderOptions = value.ProviderOptions
 	return nil
 }
 
@@ -76,14 +79,15 @@ func (s workspaceSource) MarshalYAML() (any, error) {
 		return s.Path, nil
 	}
 	return struct {
-		Git        string `yaml:"git"`
-		Ref        string `yaml:"ref,omitempty"`
-		Worktree   bool   `yaml:"worktree,omitempty"`
-		Submodules bool   `yaml:"submodules,omitempty"`
-		LFS        bool   `yaml:"lfs,omitempty"`
-		History    bool   `yaml:"history,omitempty"`
-		HistoryLim int    `yaml:"history_limit,omitempty"`
-	}{Git: s.Git, Ref: s.Ref, Worktree: s.Worktree, Submodules: s.Submodules, LFS: s.LFS, History: s.History, HistoryLim: s.HistoryLim}, nil
+		Git             string         `yaml:"git"`
+		Ref             string         `yaml:"ref,omitempty"`
+		Worktree        bool           `yaml:"worktree,omitempty"`
+		Submodules      bool           `yaml:"submodules,omitempty"`
+		LFS             bool           `yaml:"lfs,omitempty"`
+		History         bool           `yaml:"history,omitempty"`
+		HistoryLim      int            `yaml:"history_limit,omitempty"`
+		ProviderOptions map[string]any `yaml:"provider_options,omitempty"`
+	}{Git: s.Git, Ref: s.Ref, Worktree: s.Worktree, Submodules: s.Submodules, LFS: s.LFS, History: s.History, HistoryLim: s.HistoryLim, ProviderOptions: s.ProviderOptions}, nil
 }
 
 // workspace is a resolved manifest with absolute paths.
@@ -191,6 +195,7 @@ func loadWorkspace(target string) (workspace, error) {
 			spec.LFS = source.LFS
 			spec.History = source.History
 			spec.HistoryLimit = source.HistoryLim
+			spec.ProviderOptions = source.ProviderOptions
 			identity = strings.TrimSpace(source.Git)
 		} else {
 			resolved, err := expandTilde(source.Path)
@@ -694,6 +699,7 @@ func sourceListItem(record sqlitestore.SourceRecord) map[string]any {
 		"uri":      sourceURI(record),
 		"ref":      sourceMetadata(record, "ref_name"),
 		"commit":   sourceMetadata(record, "commit_sha"),
+		"metadata": sourceMetadataValues(record),
 	}
 }
 
@@ -712,15 +718,19 @@ func sourceURI(record sqlitestore.SourceRecord) string {
 }
 
 func sourceMetadata(record sqlitestore.SourceRecord, key string) string {
+	value, _ := sourceMetadataValues(record)[key].(string)
+	return value
+}
+
+func sourceMetadataValues(record sqlitestore.SourceRecord) map[string]any {
 	if len(record.Metadata) == 0 {
-		return ""
+		return nil
 	}
 	var values map[string]any
 	if json.Unmarshal(record.Metadata, &values) != nil {
-		return ""
+		return nil
 	}
-	value, _ := values[key].(string)
-	return value
+	return values
 }
 
 func showSource(alias, workspaceArg string, jsonOut bool, stdout, stderr io.Writer) int {
@@ -841,6 +851,7 @@ func resolvedWorkspaceSources(ws workspace) ([]contractv1.SourceSpec, map[string
 			value.Host = sourceMetadata(record, "host")
 			value.Owner = sourceMetadata(record, "owner")
 			value.Name = sourceMetadata(record, "name")
+			value.Metadata = sourceMetadataValues(record)
 		}
 		if value.Provider == "" {
 			value.Provider = "path"

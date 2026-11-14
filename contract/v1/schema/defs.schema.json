@@ -480,19 +480,7 @@
 		},
 		"RelationKind": {
 			"type": "string",
-			"enum": [
-				"link",
-				"related",
-				"imports",
-				"declares",
-				"references",
-				"calls",
-				"inherits",
-				"implements",
-				"contains",
-				"depends_on",
-				"parent_of"
-			]
+			"pattern": "^[a-z][a-z0-9_]{0,63}$"
 		},
 		"ConceptRelation": {
 			"type": "object",
@@ -2452,6 +2440,10 @@
 					"type": "integer",
 					"minimum": 0,
 					"maximum": 100
+				},
+				"provider_options": {
+					"type": "object",
+					"additionalProperties": true
 				}
 			}
 		},

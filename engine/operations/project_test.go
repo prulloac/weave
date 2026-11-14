@@ -7,6 +7,27 @@ import (
 	"github.com/prulloac/weave/engine/extensions"
 )
 
+func TestApplyProjectResponseUsesDeclaredTypes(t *testing.T) {
+	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{
+		{ID: "a.custom", Path: "a.custom", Type: "Document", ContentKind: "text"},
+	}}
+	response := extensions.ProjectAnalysisResponse{
+		Documents: []extensions.ProjectDocument{{
+			ID: "a.custom", Type: "CustomDocument", ContentKind: "blob", Title: "Custom",
+		}},
+	}
+	applyProjectResponse(bundle, response, bundle.Concepts[:1])
+	for _, concept := range bundle.Concepts {
+		if concept.ID == "a.custom" {
+			if concept.Type != "CustomDocument" || concept.ContentKind != "blob" {
+				t.Fatalf("concept = %+v", concept)
+			}
+			return
+		}
+	}
+	t.Fatal("a.custom missing")
+}
+
 func TestApplyProjectResponseSkipsOmittedFiles(t *testing.T) {
 	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{
 		{ID: "a.go", Path: "a.go", Type: "Code", ContentKind: "blob"},

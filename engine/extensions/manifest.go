@@ -10,12 +10,21 @@ import (
 
 // Manifest is the capability document returned by `weave-<name> --describe --json`.
 type Manifest struct {
-	V                string   `json:"v"`
-	Name             string   `json:"name"`
-	AssetTypes       []string `json:"asset_types,omitempty"`
-	SourceExtensions []string `json:"source_extensions,omitempty"`
-	AnalysisModes    []string `json:"analysis_modes,omitempty"`
-	SourceProviders  []string `json:"source_providers,omitempty"`
+	V                  string                    `json:"v"`
+	Name               string                    `json:"name"`
+	AssetTypes         []string                  `json:"asset_types,omitempty"`
+	SourceExtensions   []string                  `json:"source_extensions,omitempty"`
+	AnalysisModes      []string                  `json:"analysis_modes,omitempty"`
+	SourceProviders    []string                  `json:"source_providers,omitempty"`
+	DocumentNamespaces []string                  `json:"document_namespaces,omitempty"`
+	ArtifactNamespaces []string                  `json:"artifact_namespaces,omitempty"`
+	RelationKinds      []RelationKindDeclaration `json:"relation_kinds,omitempty"`
+}
+
+// RelationKindDeclaration is one extension-contributed graph relation kind.
+type RelationKindDeclaration struct {
+	Name    string `json:"name"`
+	Default bool   `json:"default,omitempty"`
 }
 
 // SupportsProjectAnalysis reports whether the manifest declares project analysis.

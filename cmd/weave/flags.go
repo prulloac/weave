@@ -12,73 +12,74 @@ import (
 )
 
 type flags struct {
-	json          bool
-	quiet         bool
-	verbose       bool
-	ascii         bool
-	short         bool
-	noCache       bool
-	help          bool
-	limit         *int
-	topK          *int
-	mode          contractv1.SearchMode
-	types         []string
-	tags          []string
-	status        string
-	failOn        contractv1.AuditFailOn
-	verifyKeys    bool
-	decrypt       bool
-	depth         *int
-	direction     contractv1.RelateDirection
-	relations     []string
-	id            string
-	extensionName string
-	docID         string
-	db            string
-	workspace     string
-	noDB          bool
-	strict        bool
-	permissive    bool
-	assets        bool
-	noAssets      bool
-	assetTypes    []string
-	codec         string
-	enricher      string
-	withEmbedder  string
-	embedder      string
-	rerank        string
-	scorer        string
-	scorerWeight  *float64
-	candidateK    *int
-	timeout       time.Duration
-	timeoutSet    bool
-	sources       []string
-	git           bool
-	gitRef        string
-	gitWorktree   bool
-	gitSubmodules bool
-	gitLFS        bool
-	gitHistory    bool
-	gitHistoryLim int
-	watch         bool
-	events        bool
-	out           string
-	format        string
-	keyID         string
-	force         bool
-	yes           bool
-	provider      string
-	dryRun        bool
-	noInput       bool
-	cacheDir      string
-	configPath    string
-	noConfig      bool
-	strictConfig  bool
-	model         string
-	dim           int
-	keepSource    bool
-	explicit      map[string]bool
-	positionals   []string
+	json           bool
+	quiet          bool
+	verbose        bool
+	ascii          bool
+	short          bool
+	noCache        bool
+	help           bool
+	limit          *int
+	topK           *int
+	mode           contractv1.SearchMode
+	types          []string
+	tags           []string
+	status         string
+	failOn         contractv1.AuditFailOn
+	verifyKeys     bool
+	decrypt        bool
+	depth          *int
+	direction      contractv1.RelateDirection
+	relations      []string
+	id             string
+	extensionName  string
+	docID          string
+	db             string
+	workspace      string
+	noDB           bool
+	strict         bool
+	permissive     bool
+	assets         bool
+	noAssets       bool
+	assetTypes     []string
+	codec          string
+	enricher       string
+	withEmbedder   string
+	embedder       string
+	rerank         string
+	scorer         string
+	scorerWeight   *float64
+	candidateK     *int
+	timeout        time.Duration
+	timeoutSet     bool
+	sources        []string
+	git            bool
+	gitRef         string
+	gitWorktree    bool
+	gitSubmodules  bool
+	gitLFS         bool
+	gitHistory     bool
+	gitHistoryLim  int
+	providerOption []string
+	watch          bool
+	events         bool
+	out            string
+	format         string
+	keyID          string
+	force          bool
+	yes            bool
+	provider       string
+	dryRun         bool
+	noInput        bool
+	cacheDir       string
+	configPath     string
+	noConfig       bool
+	strictConfig   bool
+	model          string
+	dim            int
+	keepSource     bool
+	explicit       map[string]bool
+	positionals    []string
 }
 
 func parseFlags(args []string) (flags, error) {
@@ -352,6 +353,16 @@ func parseFlags(args []string) (flags, error) {
 				return result, fmt.Errorf("--history-limit requires an integer between 1 and 100")
 			}
 			result.gitHistoryLim = limit
+		case "--provider-option":
+			value, next, err := flagValue(args, index, "--provider-option")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			if key, _, ok := strings.Cut(value, "="); !ok || strings.TrimSpace(key) == "" {
+				return result, fmt.Errorf("--provider-option requires key=value")
+			}
+			result.providerOption = append(result.providerOption, value)
 		case "--watch":
 			result.watch = true
 		case "--events":
@@ -485,13 +496,28 @@ func parseFlags(args []string) (flags, error) {
 		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank or --scorer")
 	}
 	if (result.gitRef != "" || result.gitWorktree || result.gitSubmodules || result.gitLFS ||
-		result.gitHistory || result.gitHistoryLim != 0) && !result.git {
-		return result, fmt.Errorf("--ref, --worktree, --submodules, --lfs and --history require --git")
+		result.gitHistory || result.gitHistoryLim != 0 || len(result.providerOption) > 0) && !result.git {
+		return result, fmt.Errorf("--ref, --worktree, --submodules, --lfs, --history and --provider-option require --git")
 	}
 	if result.gitHistoryLim != 0 && !result.gitHistory {
 		return result, fmt.Errorf("--history-limit requires --history")
 	}
 	return result, nil
+}
+
+func providerOptionMap(values []string) map[string]any {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make(map[string]any, len(values))
+	for _, value := range values {
+		key, raw, ok := strings.Cut(value, "=")
+		if !ok {
+			continue
+		}
+		result[strings.TrimSpace(key)] = raw
+	}
+	return result
 }
 
 func expandFlagEquals(args []string) []string {

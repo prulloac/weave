@@ -148,11 +148,19 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 	for position := range bundle.Concepts {
 		index[bundle.Concepts[position].ID] = position
 	}
-	upsert := func(document extensions.ProjectDocument, docType, kind string) int {
+	upsert := func(document extensions.ProjectDocument, defaultType, defaultKind string) int {
 		if position, ok := index[document.ID]; ok {
 			concept := &bundle.Concepts[position]
 			applyProjectMetadata(concept, document)
 			return position
+		}
+		docType := strings.TrimSpace(document.Type)
+		if docType == "" {
+			docType = defaultType
+		}
+		kind := strings.TrimSpace(document.ContentKind)
+		if kind == "" {
+			kind = defaultKind
 		}
 		title := document.Title
 		concept := contractv1.OkfConcept{
@@ -216,6 +224,12 @@ func applyProjectResponse(bundle *contractv1.Bundle, response extensions.Project
 }
 
 func applyProjectMetadata(concept *contractv1.OkfConcept, document extensions.ProjectDocument) {
+	if document.Type != "" {
+		concept.Type = document.Type
+	}
+	if document.ContentKind != "" {
+		concept.ContentKind = document.ContentKind
+	}
 	if document.Title != "" {
 		title := document.Title
 		concept.Title = &title

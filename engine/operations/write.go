@@ -154,7 +154,11 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			}
 		}
 	}
-	applySourceRepository(eng.Bundle(), request.Source)
+	if err := applySourceRepository(eng.Bundle(), request.Source); err != nil {
+		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{
+			"path": request.Path,
+		})
+	}
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
@@ -308,7 +312,9 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			if request.Permissive {
 				e.warn("project %s: %v", projectExt.Name, err)
 				bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
-				applySourceRepository(bundle, request.Source)
+				if err := applySourceRepository(bundle, request.Source); err != nil {
+					return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+				}
 				projectConcepts = bundle.Concepts
 			} else {
 				return failure(extensionErrorCode(err), err.Error(), map[string]any{
@@ -319,7 +325,9 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		} else {
 			bundle := &contractv1.Bundle{Root: absoluteRoot(request.Path), Concepts: scanned.Concepts}
 			applyProjectResponse(bundle, response, scanned.Concepts)
-			applySourceRepository(bundle, request.Source)
+			if err := applySourceRepository(bundle, request.Source); err != nil {
+				return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
+			}
 			projectConcepts = bundle.Concepts
 		}
 	}

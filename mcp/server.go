@@ -17,13 +17,14 @@ import (
 
 // SourceProvenance describes the acquisition metadata for one workspace source.
 type SourceProvenance struct {
-	Provider string `json:"provider,omitempty"`
-	URI      string `json:"uri,omitempty"`
-	Ref      string `json:"ref,omitempty"`
-	Commit   string `json:"commit,omitempty"`
-	Host     string `json:"host,omitempty"`
-	Owner    string `json:"owner,omitempty"`
-	Name     string `json:"name,omitempty"`
+	Provider string         `json:"provider,omitempty"`
+	URI      string         `json:"uri,omitempty"`
+	Ref      string         `json:"ref,omitempty"`
+	Commit   string         `json:"commit,omitempty"`
+	Host     string         `json:"host,omitempty"`
+	Owner    string         `json:"owner,omitempty"`
+	Name     string         `json:"name,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // Options configures an MCP server.
@@ -233,6 +234,9 @@ func (s *Server) sourceList(ctx context.Context) []map[string]any {
 		}
 		if provenance.Name != "" {
 			entry["name"] = provenance.Name
+		}
+		if len(provenance.Metadata) > 0 {
+			entry["metadata"] = provenance.Metadata
 		}
 		if stats, err := s.bundleStats(ctx, source.Path); err == nil {
 			for key, value := range stats {

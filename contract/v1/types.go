@@ -3,6 +3,15 @@
 // authoritative; these structs are validated against them in CI.
 package contractv1
 
+import "regexp"
+
+var relationKindPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
+
+// ValidRelationKind reports whether a relation kind has a valid contract name.
+func ValidRelationKind(kind RelationKind) bool {
+	return relationKindPattern.MatchString(string(kind))
+}
+
 type OkfVersion string
 
 const (
@@ -742,31 +751,72 @@ type SourceSpec struct {
 	History    bool   `json:"history,omitempty"`
 	// HistoryLimit bounds the opt-in commit window; zero uses the provider default.
 	HistoryLimit int `json:"history_limit,omitempty"`
+	// ProviderOptions are opaque keys interpreted only by the selected provider.
+	ProviderOptions map[string]any `json:"provider_options,omitempty"`
 }
 
 // SourceContext carries materialized source provenance through an in-process
 // write. It is never serialized on the wire.
 type SourceContext struct {
-	Alias           string
-	Provider        string
-	URI             string
-	Ref             string
-	Commit          string
-	SnapshotPath    string
-	RepositoryName  string
-	RepositoryTitle string
-	Description     string
-	Readme          string
-	Host            string
-	Owner           string
-	License         string
-	HostKind        string
-	WebURL          string
-	CommitURL       string
-	Worktree        bool
-	Warnings        []string
-	Projects        []SourceProject
-	Commits         []SourceCommit
+	Alias              string
+	Provider           string
+	URI                string
+	Ref                string
+	Commit             string
+	SnapshotPath       string
+	RepositoryName     string
+	RepositoryTitle    string
+	Description        string
+	Readme             string
+	Host               string
+	Owner              string
+	License            string
+	HostKind           string
+	WebURL             string
+	CommitURL          string
+	Worktree           bool
+	Warnings           []string
+	Projects           []SourceProject
+	Commits            []SourceCommit
+	Documents          []SyntheticDocument
+	Relations          []SyntheticRelation
+	Artifacts          []SyntheticArtifact
+	Metadata           map[string]any
+	DocumentNamespaces []string
+	ArtifactNamespaces []string
+	RelationKinds      []string
+}
+
+// SyntheticDocument is one extension-owned synthetic graph document.
+type SyntheticDocument struct {
+	ID          string
+	Path        string
+	Type        string
+	ContentKind string
+	MediaType   string
+	Title       string
+	Description string
+	Keywords    []string
+	Body        string
+	Metadata    map[string]any
+	Scope       *string
+	Consumes    []string
+}
+
+// SyntheticRelation is one extension-owned relation.
+type SyntheticRelation struct {
+	From   string
+	To     string
+	ToPath string
+	Kind   RelationKind
+	Raw    *string
+}
+
+// SyntheticArtifact is one extension-owned export artifact.
+type SyntheticArtifact struct {
+	Path      string
+	MediaType string
+	Content   any
 }
 
 // SourceProject is one manifest-backed project discovered in a source snapshot.

@@ -2216,20 +2216,7 @@
 			}
 		},
 		"RelationKind": {
-			"type": "string",
-			"enum": [
-				"calls",
-				"contains",
-				"declares",
-				"depends_on",
-				"implements",
-				"imports",
-				"inherits",
-				"link",
-				"parent_of",
-				"references",
-				"related"
-			]
+			"type": "string"
 		},
 		"ScorerInfo": {
 			"type": "object",
@@ -2635,6 +2622,9 @@
 				},
 				"provider": {
 					"type": "string"
+				},
+				"provider_options": {
+					"type": "object"
 				},
 				"ref": {
 					"type": "string"

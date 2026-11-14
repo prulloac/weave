@@ -3,6 +3,7 @@ package operations
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,9 +16,20 @@ import (
 
 const repositoryDocumentID = "_repo"
 
-// applySourceRepository adds the synthetic repository node and contains edges
-// for a materialized source snapshot.
-func applySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceContext) {
+// applySourceRepository adds synthetic source documents. Generic descriptors are
+// applied as data; legacy provider fields keep their existing adapter.
+func applySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceContext) error {
+	if bundle == nil || source == nil {
+		return nil
+	}
+	if len(source.Documents) > 0 || len(source.Relations) > 0 {
+		return applySyntheticSourceOutput(bundle, source)
+	}
+	applyLegacySourceRepository(bundle, source)
+	return nil
+}
+
+func applyLegacySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceContext) {
 	if bundle == nil || source == nil || source.Provider == "" || source.Provider == "path" {
 		return
 	}
@@ -84,6 +96,221 @@ func applySourceRepository(bundle *contractv1.Bundle, source *contractv1.SourceC
 	applySourceProjects(bundle, repositoryIndex, source)
 	applySourceCommits(bundle, repositoryIndex, source)
 	bundle.Validation.Warnings = append(bundle.Validation.Warnings, source.Warnings...)
+}
+
+func applySyntheticSourceOutput(bundle *contractv1.Bundle, source *contractv1.SourceContext) error {
+	if len(source.Documents) > 0 && len(source.DocumentNamespaces) == 0 {
+		return fmt.Errorf("synthetic documents require declared document namespaces")
+	}
+	for _, namespace := range source.DocumentNamespaces {
+		if !strings.HasPrefix(strings.TrimSpace(namespace), "_") {
+			return fmt.Errorf("invalid document namespace %q", namespace)
+		}
+	}
+	consumed := make(map[string]bool)
+	for _, document := range source.Documents {
+		for _, path := range document.Consumes {
+			clean := cleanSourcePath(path)
+			if strings.TrimSpace(path) != "" && clean == "" {
+				return fmt.Errorf("invalid consumed path %q", path)
+			}
+			if clean != "" {
+				consumed[clean] = true
+			}
+		}
+	}
+	if len(consumed) > 0 {
+		filtered := bundle.Concepts[:0]
+		for _, concept := range bundle.Concepts {
+			path := cleanSourcePath(filePath(&concept))
+			if path != "" && consumed[path] {
+				continue
+			}
+			filtered = append(filtered, concept)
+		}
+		bundle.Concepts = filtered
+	}
+	positions := make(map[string]int, len(bundle.Concepts)+len(source.Documents))
+	pathIndex := make(map[string]string, len(bundle.Concepts)+len(source.Documents))
+	for index := range bundle.Concepts {
+		concept := &bundle.Concepts[index]
+		positions[concept.ID] = index
+		if path := cleanSourcePath(filePath(concept)); path != "" {
+			pathIndex[path] = concept.ID
+		}
+	}
+	syntheticIDs := make(map[string]bool, len(source.Documents))
+	for _, document := range source.Documents {
+		id := strings.TrimSpace(document.ID)
+		if id == "" {
+			return fmt.Errorf("synthetic document id is required")
+		}
+		if !safeSyntheticID(id) {
+			return fmt.Errorf("invalid synthetic document id %q", id)
+		}
+		if !hasNamespace(id, source.DocumentNamespaces) {
+			return fmt.Errorf("synthetic document %q is outside declared namespaces", id)
+		}
+		if _, exists := positions[id]; exists {
+			return fmt.Errorf("synthetic document %q collides with an existing document", id)
+		}
+		path := strings.TrimSpace(document.Path)
+		if path == "" {
+			path = id
+		} else if path = cleanSourcePath(path); path == "" {
+			return fmt.Errorf("invalid synthetic document path %q", document.Path)
+		}
+		contentKind := strings.TrimSpace(document.ContentKind)
+		if contentKind == "" {
+			contentKind = "symbol"
+		}
+		title := strings.TrimSpace(document.Title)
+		keywords := boundedKeywords(document.Keywords)
+		concept := contractv1.OkfConcept{
+			ID:              id,
+			Path:            path,
+			Type:            strings.TrimSpace(document.Type),
+			Title:           stringPointer(title),
+			Description:     stringPointer(document.Description),
+			Keywords:        keywords,
+			Body:            document.Body,
+			BodyText:        true,
+			ContentKind:     contentKind,
+			ContentMetadata: document.Metadata,
+			Links:           []contractv1.OkfLink{},
+		}
+		if concept.Type == "" {
+			return fmt.Errorf("synthetic document %q type is required", id)
+		}
+		bundle.Concepts = append(bundle.Concepts, concept)
+		positions[id] = len(bundle.Concepts) - 1
+		if path := cleanSourcePath(path); path != "" {
+			pathIndex[path] = id
+		}
+		syntheticIDs[id] = true
+	}
+	for _, document := range source.Documents {
+		if document.Scope == nil {
+			continue
+		}
+		position, ok := positions[document.ID]
+		if !ok {
+			continue
+		}
+		scope := cleanSourcePath(*document.Scope)
+		if strings.TrimSpace(*document.Scope) != "" && scope == "" {
+			return fmt.Errorf("invalid document scope %q", *document.Scope)
+		}
+		for index := range bundle.Concepts {
+			file := &bundle.Concepts[index]
+			if syntheticIDs[file.ID] {
+				continue
+			}
+			path := cleanSourcePath(filePath(file))
+			if path == "" {
+				continue
+			}
+			if scope != "" && path != scope && !strings.HasPrefix(path, scope+"/") {
+				continue
+			}
+			addConceptRelation(&bundle.Concepts[position], file.ID, contractv1.RelationContains)
+		}
+	}
+	for _, relation := range source.Relations {
+		from := strings.TrimSpace(relation.From)
+		if from == "" {
+			return fmt.Errorf("relation from is required")
+		}
+		fromPosition, ok := positions[from]
+		if !ok {
+			return fmt.Errorf("relation source %q does not exist", from)
+		}
+		target := strings.TrimSpace(relation.To)
+		if target == "" {
+			path := cleanSourcePath(relation.ToPath)
+			if path == "" {
+				return fmt.Errorf("relation target is required")
+			}
+			target, ok = pathIndex[path]
+			if !ok {
+				bundle.Validation.Warnings = append(bundle.Validation.Warnings,
+					fmt.Sprintf("relation target %q was skipped because the file is not indexed", relation.ToPath))
+				continue
+			}
+		}
+		if _, ok := positions[target]; !ok {
+			return fmt.Errorf("relation target %q does not exist", target)
+		}
+		kind := contractv1.RelationKind(strings.TrimSpace(string(relation.Kind)))
+		if !allowedSyntheticRelation(kind, source.RelationKinds) {
+			return fmt.Errorf("relation kind %q is not registered", kind)
+		}
+		raw := relation.Raw
+		if !conceptHasRelation(&bundle.Concepts[fromPosition], target, kind) {
+			bundle.Concepts[fromPosition].Relations = append(bundle.Concepts[fromPosition].Relations, contractv1.ConceptRelation{
+				To: target, Kind: kind, Raw: raw,
+			})
+		}
+	}
+	bundle.Validation.Warnings = append(bundle.Validation.Warnings, source.Warnings...)
+	return nil
+}
+
+func conceptHasRelation(concept *contractv1.OkfConcept, to string, kind contractv1.RelationKind) bool {
+	for _, relation := range concept.Relations {
+		if relation.To == to && relation.Kind == kind {
+			return true
+		}
+	}
+	return false
+}
+
+func hasNamespace(id string, namespaces []string) bool {
+	for _, namespace := range namespaces {
+		if strings.HasPrefix(id, strings.TrimSpace(namespace)) {
+			return true
+		}
+	}
+	return false
+}
+
+func safeSyntheticID(id string) bool {
+	if strings.Contains(id, "\\") || strings.HasPrefix(id, "/") {
+		return false
+	}
+	for _, segment := range strings.Split(id, "/") {
+		if segment == ".." {
+			return false
+		}
+	}
+	return true
+}
+
+func allowedSyntheticRelation(kind contractv1.RelationKind, declared []string) bool {
+	switch kind {
+	case contractv1.RelationLink, contractv1.RelationRelated, contractv1.RelationContains:
+		return true
+	}
+	for _, value := range declared {
+		if kind == contractv1.RelationKind(strings.TrimSpace(value)) {
+			return true
+		}
+	}
+	return false
+}
+
+func cleanSourcePath(path string) string {
+	value := strings.TrimSpace(filepath.ToSlash(path))
+	value = strings.TrimPrefix(value, "./")
+	value = strings.Trim(value, "/")
+	if value == "" {
+		return ""
+	}
+	clean := filepath.ToSlash(filepath.Clean(value))
+	if clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || filepath.IsAbs(clean) {
+		return ""
+	}
+	return clean
 }
 
 func applySourceCommits(bundle *contractv1.Bundle, repositoryIndex int, source *contractv1.SourceContext) {
@@ -493,20 +720,31 @@ func repositoryKeywords(source *contractv1.SourceContext, title string) []string
 	return result
 }
 
-func recordSource(ctx context.Context, store *sqlitestore.Store, source *contractv1.SourceContext) error {
-	if store == nil || source == nil || source.Provider == "" || source.Provider == "path" {
-		return nil
-	}
-	metadata, err := json.Marshal(map[string]any{
+func mergeSourceMetadata(source *contractv1.SourceContext) map[string]any {
+	values := map[string]any{
 		"v":          1,
 		"uri":        source.URI,
 		"ref_name":   source.Ref,
+		"revision":   source.Commit,
 		"commit_sha": source.Commit,
 		"host":       source.Host,
 		"owner":      source.Owner,
 		"name":       source.RepositoryName,
 		"worktree":   source.Worktree,
-	})
+	}
+	for key, value := range source.Metadata {
+		if strings.TrimSpace(key) != "" {
+			values[key] = value
+		}
+	}
+	return values
+}
+
+func recordSource(ctx context.Context, store *sqlitestore.Store, source *contractv1.SourceContext) error {
+	if store == nil || source == nil || source.Provider == "" || source.Provider == "path" {
+		return nil
+	}
+	metadata, err := json.Marshal(mergeSourceMetadata(source))
 	if err != nil {
 		return err
 	}

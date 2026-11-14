@@ -15,17 +15,24 @@ import (
 )
 
 type resolvedSource struct {
-	Alias      string
-	Path       string
-	InputPath  string
-	Provider   string
-	Ref        string
-	Commit     string
-	Worktree   bool
-	Repository extensions.SourceRepository
-	Projects   []extensions.SourceProject
-	Commits    []extensions.SourceCommit
-	Warnings   []string
+	Alias              string
+	Path               string
+	InputPath          string
+	Provider           string
+	Ref                string
+	Commit             string
+	Worktree           bool
+	Repository         extensions.SourceRepository
+	Projects           []extensions.SourceProject
+	Commits            []extensions.SourceCommit
+	Documents          []extensions.SyntheticDocument
+	Relations          []extensions.SyntheticRelation
+	Artifacts          []extensions.SyntheticArtifact
+	Metadata           map[string]any
+	DocumentNamespaces []string
+	ArtifactNamespaces []string
+	RelationKinds      []string
+	Warnings           []string
 }
 
 func (e *Executor) executeMulti(
@@ -111,7 +118,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		case "", "path":
 			source.Provider = "path"
 		case "git":
-			provider, err := resolveSourceProvider(ctx, inputPath, request.Path)
+			provider, manifest, err := resolveSourceProvider(ctx, inputPath, request.Path)
 			if err != nil {
 				return nil, err
 			}
@@ -125,7 +132,15 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 				URI:      source.InputPath,
 				Ref:      source.Ref,
 				CacheDir: sourceCacheDir(),
-				Options:  extensions.SourceOptions{Worktree: spec.Worktree, Submodules: spec.Submodules, LFS: spec.LFS, History: spec.History, HistoryLimit: spec.HistoryLimit, Permissive: request.Permissive},
+				Options: extensions.SourceOptions{
+					Worktree:        spec.Worktree,
+					Submodules:      spec.Submodules,
+					LFS:             spec.LFS,
+					History:         spec.History,
+					HistoryLimit:    spec.HistoryLimit,
+					ProviderOptions: spec.ProviderOptions,
+					Permissive:      request.Permissive,
+				},
 			})
 			if err != nil {
 				return nil, err
@@ -137,6 +152,13 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 			source.Repository = response.Repository
 			source.Projects = response.Projects
 			source.Commits = response.Commits
+			source.Documents = response.Documents
+			source.Relations = response.Relations
+			source.Artifacts = response.Artifacts
+			source.Metadata = response.SourceMetadata
+			source.DocumentNamespaces = manifest.DocumentNamespaces
+			source.ArtifactNamespaces = manifest.ArtifactNamespaces
+			source.RelationKinds = relationKindNames(manifest)
 			source.Warnings = response.Warnings
 			for _, warning := range response.Warnings {
 				e.warn("source %s: %s", alias, warning)
@@ -187,7 +209,7 @@ func (e *Executor) markSourceDegraded(ctx context.Context, request contractv1.Op
 	})
 }
 
-func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string) (extensions.Extension, error) {
+func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string) (extensions.Extension, extensions.Manifest, error) {
 	for _, root := range []string{inputPath, workspacePath} {
 		if strings.TrimSpace(root) == "" {
 			continue
@@ -199,20 +221,30 @@ func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string)
 	}
 	provider, err := extensions.Resolve("", "git")
 	if err != nil {
-		return extensions.Extension{}, err
+		return extensions.Extension{}, extensions.Manifest{}, err
 	}
 	return validateSourceProvider(ctx, provider)
 }
 
-func validateSourceProvider(ctx context.Context, provider extensions.Extension) (extensions.Extension, error) {
+func validateSourceProvider(ctx context.Context, provider extensions.Extension) (extensions.Extension, extensions.Manifest, error) {
 	manifest, err := extensions.Describe(ctx, provider)
 	if err != nil {
-		return extensions.Extension{}, err
+		return extensions.Extension{}, extensions.Manifest{}, err
 	}
 	if !manifest.SupportsSourceProvider("git") {
-		return extensions.Extension{}, fmt.Errorf("%w: %s does not declare the git source provider", extensions.ErrProtocol, provider.Name)
+		return extensions.Extension{}, extensions.Manifest{}, fmt.Errorf("%w: %s does not declare the git source provider", extensions.ErrProtocol, provider.Name)
 	}
-	return provider, nil
+	return provider, manifest, nil
+}
+
+func relationKindNames(manifest extensions.Manifest) []string {
+	result := make([]string, 0, len(manifest.RelationKinds))
+	for _, declaration := range manifest.RelationKinds {
+		if name := strings.TrimSpace(declaration.Name); name != "" {
+			result = append(result, name)
+		}
+	}
+	return result
 }
 
 func canonicalSourceIdentity(value string) string {
@@ -260,26 +292,33 @@ func singleSourceRequest(request contractv1.OperationRequest, source resolvedSou
 	request.Sources = nil
 	if source.Provider != "" && source.Provider != "path" {
 		request.Source = &contractv1.SourceContext{
-			Alias:           source.Alias,
-			Provider:        source.Provider,
-			URI:             source.InputPath,
-			Ref:             source.Ref,
-			Commit:          source.Commit,
-			SnapshotPath:    source.Path,
-			RepositoryName:  source.Repository.Name,
-			RepositoryTitle: source.Repository.Title,
-			Description:     source.Repository.Description,
-			Readme:          source.Repository.Readme,
-			Host:            source.Repository.Host,
-			Owner:           source.Repository.Owner,
-			License:         source.Repository.License,
-			HostKind:        source.Repository.HostKind,
-			WebURL:          source.Repository.WebURL,
-			CommitURL:       source.Repository.CommitURL,
-			Worktree:        source.Worktree,
-			Warnings:        source.Warnings,
-			Projects:        contractSourceProjects(source.Projects),
-			Commits:         contractSourceCommits(source.Commits),
+			Alias:              source.Alias,
+			Provider:           source.Provider,
+			URI:                source.InputPath,
+			Ref:                source.Ref,
+			Commit:             source.Commit,
+			SnapshotPath:       source.Path,
+			RepositoryName:     source.Repository.Name,
+			RepositoryTitle:    source.Repository.Title,
+			Description:        source.Repository.Description,
+			Readme:             source.Repository.Readme,
+			Host:               source.Repository.Host,
+			Owner:              source.Repository.Owner,
+			License:            source.Repository.License,
+			HostKind:           source.Repository.HostKind,
+			WebURL:             source.Repository.WebURL,
+			CommitURL:          source.Repository.CommitURL,
+			Worktree:           source.Worktree,
+			Warnings:           source.Warnings,
+			Projects:           contractSourceProjects(source.Projects),
+			Commits:            contractSourceCommits(source.Commits),
+			Documents:          contractSyntheticDocuments(source.Documents),
+			Relations:          contractSyntheticRelations(source.Relations),
+			Artifacts:          contractSyntheticArtifacts(source.Artifacts),
+			Metadata:           source.Metadata,
+			DocumentNamespaces: source.DocumentNamespaces,
+			ArtifactNamespaces: source.ArtifactNamespaces,
+			RelationKinds:      source.RelationKinds,
 		}
 	} else {
 		request.Source = nil
@@ -323,6 +362,67 @@ func contractSourceCommits(values []extensions.SourceCommit) []contractv1.Source
 			Author:  value.Author,
 			Date:    value.Date,
 			Subject: value.Subject,
+		})
+	}
+	return result
+}
+
+func contractSyntheticDocuments(values []extensions.SyntheticDocument) []contractv1.SyntheticDocument {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]contractv1.SyntheticDocument, 0, len(values))
+	for _, value := range values {
+		var scope *string
+		if value.Scope != nil {
+			copied := *value.Scope
+			scope = &copied
+		}
+		result = append(result, contractv1.SyntheticDocument{
+			ID:          value.ID,
+			Path:        value.Path,
+			Type:        value.Type,
+			ContentKind: value.ContentKind,
+			MediaType:   value.MediaType,
+			Title:       value.Title,
+			Description: value.Description,
+			Keywords:    append([]string(nil), value.Keywords...),
+			Body:        value.Body,
+			Metadata:    value.Metadata,
+			Scope:       scope,
+			Consumes:    append([]string(nil), value.Consumes...),
+		})
+	}
+	return result
+}
+
+func contractSyntheticRelations(values []extensions.SyntheticRelation) []contractv1.SyntheticRelation {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]contractv1.SyntheticRelation, 0, len(values))
+	for _, value := range values {
+		result = append(result, contractv1.SyntheticRelation{
+			From:   value.From,
+			To:     value.To,
+			ToPath: value.ToPath,
+			Kind:   contractv1.RelationKind(value.Kind),
+			Raw:    value.Raw,
+		})
+	}
+	return result
+}
+
+func contractSyntheticArtifacts(values []extensions.SyntheticArtifact) []contractv1.SyntheticArtifact {
+	if len(values) == 0 {
+		return nil
+	}
+	result := make([]contractv1.SyntheticArtifact, 0, len(values))
+	for _, value := range values {
+		result = append(result, contractv1.SyntheticArtifact{
+			Path:      value.Path,
+			MediaType: value.MediaType,
+			Content:   value.Content,
 		})
 	}
 	return result

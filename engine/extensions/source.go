@@ -21,13 +21,14 @@ var sourceCommitPattern = regexp.MustCompile(`^[0-9a-f]{40}$|^[0-9a-f]{64}$`)
 
 // SourceOptions controls one source materialization.
 type SourceOptions struct {
-	Worktree     bool `json:"worktree,omitempty"`
-	Submodules   bool `json:"submodules,omitempty"`
-	LFS          bool `json:"lfs,omitempty"`
-	Depth        int  `json:"depth,omitempty"`
-	Permissive   bool `json:"permissive,omitempty"`
-	History      bool `json:"history,omitempty"`
-	HistoryLimit int  `json:"history_limit,omitempty"`
+	Worktree        bool           `json:"worktree,omitempty"`
+	Submodules      bool           `json:"submodules,omitempty"`
+	LFS             bool           `json:"lfs,omitempty"`
+	Depth           int            `json:"depth,omitempty"`
+	Permissive      bool           `json:"permissive,omitempty"`
+	History         bool           `json:"history,omitempty"`
+	HistoryLimit    int            `json:"history_limit,omitempty"`
+	ProviderOptions map[string]any `json:"provider_options,omitempty"`
 }
 
 // SourceRequest is one source-provider request payload.
@@ -45,7 +46,8 @@ type SourceRequest struct {
 type SourceSnapshot struct {
 	Path     string `json:"path"`
 	SourceID string `json:"source_id"`
-	Commit   string `json:"commit"`
+	Revision string `json:"revision,omitempty"`
+	Commit   string `json:"commit,omitempty"`
 	Ref      string `json:"ref,omitempty"`
 	URI      string `json:"uri,omitempty"`
 	ReadOnly bool   `json:"read_only,omitempty"`
@@ -92,15 +94,51 @@ type SourceCommit struct {
 	Subject string   `json:"subject,omitempty"`
 }
 
+// SyntheticDocument is one extension-owned synthetic graph document.
+type SyntheticDocument struct {
+	ID          string         `json:"id"`
+	Path        string         `json:"path,omitempty"`
+	Type        string         `json:"type"`
+	ContentKind string         `json:"content_kind,omitempty"`
+	MediaType   string         `json:"media_type,omitempty"`
+	Title       string         `json:"title,omitempty"`
+	Description string         `json:"description,omitempty"`
+	Keywords    []string       `json:"keywords,omitempty"`
+	Body        string         `json:"body,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+	Scope       *string        `json:"scope,omitempty"`
+	Consumes    []string       `json:"consumes,omitempty"`
+}
+
+// SyntheticRelation is one extension-owned relation.
+type SyntheticRelation struct {
+	From   string  `json:"from"`
+	To     string  `json:"to,omitempty"`
+	ToPath string  `json:"to_path,omitempty"`
+	Kind   string  `json:"kind"`
+	Raw    *string `json:"raw,omitempty"`
+}
+
+// SyntheticArtifact is one extension-owned export artifact.
+type SyntheticArtifact struct {
+	Path      string `json:"path"`
+	MediaType string `json:"media_type,omitempty"`
+	Content   any    `json:"content"`
+}
+
 // SourceResponse is one validated source-provider reply.
 type SourceResponse struct {
-	V          string           `json:"v"`
-	Type       string           `json:"type,omitempty"`
-	Snapshot   SourceSnapshot   `json:"snapshot"`
-	Repository SourceRepository `json:"repository"`
-	Projects   []SourceProject  `json:"projects,omitempty"`
-	Commits    []SourceCommit   `json:"commits,omitempty"`
-	Warnings   []string         `json:"warnings,omitempty"`
+	V              string              `json:"v"`
+	Type           string              `json:"type,omitempty"`
+	Snapshot       SourceSnapshot      `json:"snapshot"`
+	Repository     SourceRepository    `json:"repository"`
+	Projects       []SourceProject     `json:"projects,omitempty"`
+	Commits        []SourceCommit      `json:"commits,omitempty"`
+	Documents      []SyntheticDocument `json:"documents,omitempty"`
+	Relations      []SyntheticRelation `json:"relations,omitempty"`
+	Artifacts      []SyntheticArtifact `json:"artifacts,omitempty"`
+	SourceMetadata map[string]any      `json:"source_metadata,omitempty"`
+	Warnings       []string            `json:"warnings,omitempty"`
 }
 
 // MaterializeSource invokes a source provider and validates its snapshot identity.
@@ -121,17 +159,63 @@ func (r Runner) MaterializeSource(ctx context.Context, extension Extension, requ
 	if response.Snapshot.SourceID != request.SourceID {
 		return SourceResponse{}, fmt.Errorf("%w: source_id mismatch", ErrProtocol)
 	}
-	if !sourceCommitPattern.MatchString(response.Snapshot.Commit) {
-		return SourceResponse{}, fmt.Errorf("%w: invalid commit %q", ErrProtocol, response.Snapshot.Commit)
+	revision := strings.TrimSpace(response.Snapshot.Revision)
+	if revision == "" {
+		revision = strings.TrimSpace(response.Snapshot.Commit)
+		if !sourceCommitPattern.MatchString(revision) {
+			return SourceResponse{}, fmt.Errorf("%w: invalid commit %q", ErrProtocol, response.Snapshot.Commit)
+		}
+	}
+	if revision == "" {
+		return SourceResponse{}, fmt.Errorf("%w: snapshot revision is required", ErrProtocol)
+	}
+	response.Snapshot.Commit = revision
+	response.Snapshot.Revision = revision
+	if len(response.Documents) > 1000 {
+		return SourceResponse{}, fmt.Errorf("%w: too many synthetic documents", ErrProtocol)
+	}
+	seenDocuments := make(map[string]bool, len(response.Documents))
+	for _, document := range response.Documents {
+		if strings.TrimSpace(document.ID) == "" {
+			return SourceResponse{}, fmt.Errorf("%w: synthetic document id is required", ErrProtocol)
+		}
+		if seenDocuments[document.ID] {
+			return SourceResponse{}, fmt.Errorf("%w: duplicate synthetic document %q", ErrProtocol, document.ID)
+		}
+		seenDocuments[document.ID] = true
+	}
+	if len(response.Relations) > 5000 {
+		return SourceResponse{}, fmt.Errorf("%w: too many synthetic relations", ErrProtocol)
+	}
+	for _, relation := range response.Relations {
+		if strings.TrimSpace(relation.From) == "" || strings.TrimSpace(relation.Kind) == "" {
+			return SourceResponse{}, fmt.Errorf("%w: relation from and kind are required", ErrProtocol)
+		}
+		if (strings.TrimSpace(relation.To) == "") == (strings.TrimSpace(relation.ToPath) == "") {
+			return SourceResponse{}, fmt.Errorf("%w: relation requires exactly one of to or to_path", ErrProtocol)
+		}
+	}
+	if len(response.Artifacts) > 100 {
+		return SourceResponse{}, fmt.Errorf("%w: too many artifacts", ErrProtocol)
+	}
+	for _, artifact := range response.Artifacts {
+		if err := validateArtifactPath(artifact.Path); err != nil {
+			return SourceResponse{}, fmt.Errorf("%w: %v", ErrProtocol, err)
+		}
 	}
 	if !filepath.IsAbs(response.Snapshot.Path) {
 		return SourceResponse{}, fmt.Errorf("%w: snapshot path must be absolute", ErrProtocol)
 	}
-	if response.Repository.ID != "_repo" {
+	legacyRepository := response.Repository.ID != "" || len(response.Projects) > 0 || len(response.Commits) > 0
+	if legacyRepository {
+		if response.Repository.ID != "_repo" {
+			return SourceResponse{}, fmt.Errorf("%w: repository id must be _repo", ErrProtocol)
+		}
+		if strings.TrimSpace(response.Repository.Name) == "" {
+			return SourceResponse{}, fmt.Errorf("%w: repository name is required", ErrProtocol)
+		}
+	} else if len(response.Documents) == 0 && len(response.Relations) == 0 {
 		return SourceResponse{}, fmt.Errorf("%w: repository id must be _repo", ErrProtocol)
-	}
-	if strings.TrimSpace(response.Repository.Name) == "" {
-		return SourceResponse{}, fmt.Errorf("%w: repository name is required", ErrProtocol)
 	}
 	if len(response.Commits) > 100 {
 		return SourceResponse{}, fmt.Errorf("%w: commit history exceeds 100 entries", ErrProtocol)
@@ -158,6 +242,21 @@ func requireWithin(root, path string) error {
 	relative, err := filepath.Rel(filepath.Clean(root), filepath.Clean(path))
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
 		return fmt.Errorf("%w: snapshot path escapes cache", ErrProtocol)
+	}
+	return nil
+}
+
+func validateArtifactPath(path string) error {
+	value := strings.TrimSpace(path)
+	if value == "" {
+		return fmt.Errorf("artifact path is required")
+	}
+	if strings.Contains(value, "\\") || filepath.IsAbs(value) || strings.HasPrefix(value, "/") {
+		return fmt.Errorf("unsafe artifact path %q", path)
+	}
+	clean := filepath.ToSlash(filepath.Clean(value))
+	if clean == "." || clean == ".." || strings.HasPrefix(clean, "../") {
+		return fmt.Errorf("unsafe artifact path %q", path)
 	}
 	return nil
 }

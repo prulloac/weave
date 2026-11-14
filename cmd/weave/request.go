@@ -220,15 +220,10 @@ func relationKinds(values []string) ([]contractv1.RelationKind, error) {
 	result := make([]contractv1.RelationKind, 0, len(values))
 	for _, value := range values {
 		kind := contractv1.RelationKind(strings.TrimSpace(value))
-		switch kind {
-		case contractv1.RelationLink, contractv1.RelationRelated, contractv1.RelationImports,
-			contractv1.RelationDeclares, contractv1.RelationReferences, contractv1.RelationCalls,
-			contractv1.RelationInherits, contractv1.RelationImplements, contractv1.RelationContains,
-			contractv1.RelationDependsOn, contractv1.RelationParentOf:
-			result = append(result, kind)
-		default:
+		if !contractv1.ValidRelationKind(kind) {
 			return nil, fmt.Errorf("unknown relation kind %q", value)
 		}
+		result = append(result, kind)
 	}
 	return result, nil
 }
