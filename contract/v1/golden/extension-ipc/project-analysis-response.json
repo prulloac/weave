@@ -1,0 +1,28 @@
+{
+	"v": "weave.cli/v1",
+	"documents": [
+		{
+			"id": "src/main.go",
+			"title": "main package",
+			"description": "Command entrypoint.",
+			"keywords": [
+				"go",
+				"main"
+			],
+			"content_metadata": {
+				"v": 1,
+				"language": "go",
+				"package": "main"
+			}
+		}
+	],
+	"external_documents": [],
+	"relations": [
+		{
+			"from": "src/main.go",
+			"to": "src/server.go",
+			"kind": "imports"
+		}
+	],
+	"warnings": []
+}

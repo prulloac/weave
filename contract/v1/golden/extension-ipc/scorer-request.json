@@ -1,0 +1,40 @@
+{
+	"v": "weave.cli/v1",
+	"type": "scorer_request",
+	"query": "zero cgo database",
+	"mode": "hybrid",
+	"candidate_k": 2,
+	"candidates": [
+		{
+			"id": "docs/adr-004.md",
+			"path": "docs/adr-004.md",
+			"title": "Database Storage Selection",
+			"type": "adr",
+			"keywords": [
+				"sqlite",
+				"storage"
+			],
+			"scores": {
+				"keyword": 0.82,
+				"lexical": 0.82,
+				"fuzzy": 0.45,
+				"core": 0.64
+			}
+		},
+		{
+			"id": "docs/adr-001.md",
+			"path": "docs/adr-001.md",
+			"title": "Keyword Search",
+			"type": "adr",
+			"keywords": [
+				"search"
+			],
+			"scores": {
+				"keyword": 0.31,
+				"lexical": 0.31,
+				"fuzzy": 0.1,
+				"core": 0.21
+			}
+		}
+	]
+}

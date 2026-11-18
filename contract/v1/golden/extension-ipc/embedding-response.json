@@ -1,0 +1,6 @@
+{
+	"v": "weave.cli/v1",
+	"model": "nomic-embed-text",
+	"dim": 4,
+	"vector": "AACAPwAAAAAAAAAAAAAAAA=="
+}

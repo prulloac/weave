@@ -2806,6 +2806,640 @@
 				}
 			}
 		},
+		"ExtensionScorerScores": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"keyword",
+				"lexical",
+				"fuzzy",
+				"core"
+			],
+			"properties": {
+				"keyword": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"lexical": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"fuzzy": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"core": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExtensionScorerCandidate": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"path",
+				"scores"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"path": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				},
+				"status": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"snippet": {
+					"type": "string"
+				},
+				"scores": {
+					"$ref": "#/$defs/ExtensionScorerScores"
+				}
+			}
+		},
+		"ExtensionScorerRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"query",
+				"mode",
+				"candidate_k",
+				"candidates"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "scorer_request"
+				},
+				"query": {
+					"type": "string"
+				},
+				"mode": {
+					"type": "string"
+				},
+				"candidate_k": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 100
+				},
+				"candidates": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionScorerCandidate"
+					},
+					"maxItems": 100
+				}
+			}
+		},
+		"ExtensionScorerRankedCandidate": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"score"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"score": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				}
+			}
+		},
+		"ExtensionScorerResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"ranked_candidates"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"ranked_candidates": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionScorerRankedCandidate"
+					},
+					"maxItems": 100
+				}
+			}
+		},
+		"ExtensionEmbeddingRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"text",
+				"media_type",
+				"model"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "embedding_request"
+				},
+				"text": {
+					"type": "string"
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"model": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionEmbeddingResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"model",
+				"dim",
+				"vector"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"model": {
+					"type": "string",
+					"minLength": 1
+				},
+				"dim": {
+					"type": "integer",
+					"minimum": 1
+				},
+				"vector": {
+					"type": "string",
+					"minLength": 1
+				}
+			}
+		},
+		"ExtensionProjectFile": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"path"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"path": {
+					"type": "string"
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"content_hash": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionProjectOptions": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"symbol_documents"
+			],
+			"properties": {
+				"symbol_documents": {
+					"type": "boolean"
+				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"ExtensionProjectAnalysisRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"bundle_root",
+				"files",
+				"options"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "project_analysis_request"
+				},
+				"bundle_root": {
+					"type": "string"
+				},
+				"files": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionProjectFile"
+					}
+				},
+				"options": {
+					"$ref": "#/$defs/ExtensionProjectOptions"
+				}
+			}
+		},
+		"ExtensionProjectDocument": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"type": {
+					"type": "string"
+				},
+				"content_kind": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"body": {
+					"type": "string"
+				},
+				"content_metadata": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"symbol_documents": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionProjectDocument"
+					}
+				}
+			}
+		},
+		"ExtensionProjectRelation": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"from",
+				"to",
+				"kind"
+			],
+			"properties": {
+				"from": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				},
+				"kind": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionSyntheticArtifact": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"path",
+				"content"
+			],
+			"properties": {
+				"path": {
+					"type": "string",
+					"minLength": 1
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"content": {}
+			}
+		},
+		"ExtensionProjectAnalysisResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"documents"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"documents": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionProjectDocument"
+					}
+				},
+				"external_documents": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionProjectDocument"
+					}
+				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionProjectRelation"
+					}
+				},
+				"artifacts": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionSyntheticArtifact"
+					}
+				},
+				"warnings": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"ExtensionSourceProtocolVersion": {
+			"type": "string",
+			"const": "weave.source/v1"
+		},
+		"ExtensionSourceOptions": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"worktree": {
+					"type": "boolean"
+				},
+				"submodules": {
+					"type": "boolean"
+				},
+				"lfs": {
+					"type": "boolean"
+				},
+				"depth": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"permissive": {
+					"type": "boolean"
+				},
+				"history": {
+					"type": "boolean"
+				},
+				"history_limit": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"provider_options": {
+					"type": "object",
+					"additionalProperties": true
+				}
+			}
+		},
+		"ExtensionSourceRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"source_id",
+				"uri"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionSourceProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "source_request"
+				},
+				"source_id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"uri": {
+					"type": "string"
+				},
+				"ref": {
+					"type": "string"
+				},
+				"cache_dir": {
+					"type": "string"
+				},
+				"options": {
+					"$ref": "#/$defs/ExtensionSourceOptions"
+				}
+			}
+		},
+		"ExtensionSourceSnapshot": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"path",
+				"source_id",
+				"revision"
+			],
+			"properties": {
+				"path": {
+					"type": "string"
+				},
+				"source_id": {
+					"type": "string"
+				},
+				"revision": {
+					"type": "string"
+				},
+				"ref": {
+					"type": "string"
+				},
+				"uri": {
+					"type": "string"
+				},
+				"read_only": {
+					"type": "boolean"
+				}
+			}
+		},
+		"ExtensionSyntheticDocument": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"id",
+				"type"
+			],
+			"properties": {
+				"id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"path": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string"
+				},
+				"content_kind": {
+					"type": "string"
+				},
+				"media_type": {
+					"type": "string"
+				},
+				"title": {
+					"type": "string"
+				},
+				"description": {
+					"type": "string"
+				},
+				"keywords": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"body": {
+					"type": "string"
+				},
+				"metadata": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"scope": {
+					"type": "string"
+				},
+				"consumes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"ExtensionSyntheticRelation": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"from",
+				"kind"
+			],
+			"properties": {
+				"from": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				},
+				"to_path": {
+					"type": "string"
+				},
+				"kind": {
+					"type": "string"
+				},
+				"raw": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionSourceResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"snapshot"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionSourceProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "source_response"
+				},
+				"snapshot": {
+					"$ref": "#/$defs/ExtensionSourceSnapshot"
+				},
+				"documents": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionSyntheticDocument"
+					}
+				},
+				"relations": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionSyntheticRelation"
+					}
+				},
+				"artifacts": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionSyntheticArtifact"
+					}
+				},
+				"source_metadata": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"warnings": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
 		"ConfigPaths": {
 			"type": "object",
 			"additionalProperties": false,

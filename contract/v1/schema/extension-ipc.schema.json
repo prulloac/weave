@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://weave.dev/contract/v1/extension-ipc.schema.json",
 	"title": "ExtensionIPC",
-	"description": "weave.cli/v1 subprocess envelopes for enrichment and reranking.",
+	"description": "weave.cli/v1 subprocess envelopes for enrichment, reranking, scoring, embedding and project analysis, and weave.source/v1 source-provider envelopes.",
 	"oneOf": [
 		{
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEnrichmentRequest"
@@ -15,6 +15,30 @@
 		},
 		{
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionRerankResponse"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionScorerRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionScorerResponse"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEmbeddingRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEmbeddingResponse"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionProjectAnalysisRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionProjectAnalysisResponse"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceResponse"
 		}
 	]
 }

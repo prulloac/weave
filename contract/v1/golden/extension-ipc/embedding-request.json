@@ -1,0 +1,7 @@
+{
+	"v": "weave.cli/v1",
+	"type": "embedding_request",
+	"text": "zero cgo database",
+	"media_type": "text/plain",
+	"model": "nomic-embed-text"
+}

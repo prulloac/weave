@@ -184,6 +184,14 @@ func TestExtensionIPCFixturesValidate(t *testing.T) {
 		"enrichment-response.json",
 		"rerank-request.json",
 		"rerank-response.json",
+		"scorer-request.json",
+		"scorer-response.json",
+		"embedding-request.json",
+		"embedding-response.json",
+		"project-analysis-request.json",
+		"project-analysis-response.json",
+		"source-request.json",
+		"source-response.json",
 	}
 	for _, name := range fixtures {
 		t.Run(name, func(t *testing.T) {

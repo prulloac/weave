@@ -1,0 +1,12 @@
+{
+	"v": "weave.source/v1",
+	"type": "source_request",
+	"source_id": "git-7f3a",
+	"uri": "https://example.com/team/weave.git",
+	"ref": "main",
+	"cache_dir": "/home/user/.cache/weave",
+	"options": {
+		"worktree": true,
+		"depth": 1
+	}
+}

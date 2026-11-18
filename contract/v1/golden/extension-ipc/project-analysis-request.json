@@ -1,0 +1,20 @@
+{
+	"v": "weave.cli/v1",
+	"type": "project_analysis_request",
+	"bundle_root": "/home/user/repo",
+	"files": [
+		{
+			"id": "src/main.go",
+			"path": "src/main.go",
+			"media_type": "text/x-go",
+			"content_hash": "sha256:4f2b1c"
+		}
+	],
+	"options": {
+		"symbol_documents": false,
+		"relations": [
+			"imports",
+			"declares"
+		]
+	}
+}

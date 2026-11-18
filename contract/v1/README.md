@@ -39,7 +39,7 @@ contract/v1/
     ├── expected/                 # generated expected JSON
     ├── config/                   # CLI config output goldens
     ├── watch/                    # JSONL watch-event golden
-    ├── extension-ipc/            # canonical enrichment and rerank envelopes
+    ├── extension-ipc/            # canonical request and response envelopes per role
     └── schema-baseline.json      # additive-only schema snapshot
 ```
 
@@ -81,10 +81,12 @@ Golden updates are reviewed like code. CI fails on drift.
 
 ## Extension IPC Fixtures
 
-`schema/extension-ipc.schema.json` is the entrypoint for the `weave.cli/v1` enrichment and rerank
-envelopes; definitions live in `schema/defs.schema.json`. Canonical examples live in
-`golden/extension-ipc/` and are validated by `TestExtensionIPCFixturesValidate`. `weave-ai` mirrors
-these fixtures for its own conformance tests.
+`schema/extension-ipc.schema.json` is the entrypoint for the `weave.cli/v1` enrichment, rerank, scorer,
+embedding and project-analysis envelopes, and the `weave.source/v1` source-provider envelopes. Definitions
+live in `schema/defs.schema.json`. Canonical request and response examples for each role live in
+`golden/extension-ipc/` and are validated by `TestExtensionIPCFixturesValidate`. Codec extensions use raw
+byte pipes and are not covered by these JSON fixtures. `weave-ai` mirrors these fixtures for its own
+conformance tests; that mirror is not updated by this change.
 
 ## Normalization
 
