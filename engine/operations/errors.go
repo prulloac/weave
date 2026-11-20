@@ -82,6 +82,8 @@ func codecErrorCode(err error) (contractv1.ErrorCode, bool) {
 		return contractv1.ErrCodecProtocol, true
 	case "CODEC_FAILED":
 		return contractv1.ErrCodecFailed, true
+	case "EXTENSION_REQUIREMENT_UNMET":
+		return contractv1.ErrExtensionRequirement, true
 	default:
 		return contractv1.ErrCodecFailed, true
 	}

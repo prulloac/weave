@@ -161,7 +161,7 @@ func (e *Executor) readAudit(ctx context.Context, eng *engine.Engine, request co
 		provider, err = nil, nil
 	}
 	if err != nil {
-		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
+		return failure(providerFailureCode(err), err.Error(), map[string]any{"provider": request.Provider})
 	}
 	if provider != nil {
 		defer provider.Close()

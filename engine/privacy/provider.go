@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -48,6 +49,13 @@ type providerConfig struct {
 // ResolveProvider resolves a provider name from crypto.yaml and returns a
 // provider. A nil provider means the built-in local provider.
 func ResolveProvider(root, requested string) (Provider, error) {
+	return ResolveProviderWithWarnings(root, requested, nil)
+}
+
+// ResolveProviderWithWarnings is ResolveProvider with a sink for non-fatal requirement warnings.
+// An unmet requires entry on a discovered provider returns an error wrapping
+// extensions.ErrRequirementUnmet and never falls back to the local provider.
+func ResolveProviderWithWarnings(root, requested string, warn func(string)) (Provider, error) {
 	cfg := cryptoConfig{}
 	path := filepath.Join(root, ".weave", "crypto.yaml")
 	if data, err := os.ReadFile(path); err == nil {
@@ -70,7 +78,15 @@ func ResolveProvider(root, requested string) (Provider, error) {
 		binary = strings.TrimSpace(entry.Binary)
 	}
 	if binary == "" {
-		resolved, err := extensions.Resolve(root, "crypto-"+name)
+		resolved, warnings, err := extensions.Require(context.Background(), root, "crypto-"+name, extensions.DefaultTimeout)
+		if errors.Is(err, extensions.ErrRequirementUnmet) {
+			return nil, err
+		}
+		if warn != nil {
+			for _, warning := range warnings {
+				warn(warning)
+			}
+		}
 		if err != nil {
 			return nil, fmt.Errorf("%w: provider %s not found", ErrKeyUnavailable, name)
 		}

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/prulloac/weave/engine/compression"
+	"github.com/prulloac/weave/engine/extensions"
 )
 
 const (
@@ -55,6 +56,8 @@ func newError(code, message string) *Error {
 type Registry struct {
 	BundleRoot string
 	Timeout    time.Duration
+	// Warn receives non-fatal requirement warnings. Nil discards them.
+	Warn func(string)
 }
 
 // New creates a registry. A zero timeout uses DefaultTimeout.
@@ -66,12 +69,13 @@ func New(bundleRoot string, timeout time.Duration) *Registry {
 }
 
 type manifest struct {
-	V          string   `json:"v"`
-	Name       string   `json:"name"`
-	Kind       string   `json:"kind"`
-	Version    string   `json:"version"`
-	Directions []string `json:"directions"`
-	Frame      bool     `json:"frame"`
+	V          string                   `json:"v"`
+	Name       string                   `json:"name"`
+	Kind       string                   `json:"kind"`
+	Version    string                   `json:"version"`
+	Directions []string                 `json:"directions"`
+	Frame      bool                     `json:"frame"`
+	Requires   []extensions.Requirement `json:"requires,omitempty"`
 }
 
 func (m manifest) can(direction string) bool {
@@ -195,6 +199,15 @@ func (r *Registry) resolve(ctx context.Context, name string) (Info, error) {
 		}
 		if m.Name != name || m.Kind != "codec" {
 			return Info{}, newError("CODEC_PROTOCOL", "codec manifest does not match "+name)
+		}
+		warnings, err := extensions.CheckRequirements(ctx, r.BundleRoot, "codec "+name, m.Requires, r.Timeout)
+		for _, warning := range warnings {
+			if r.Warn != nil {
+				r.Warn(warning)
+			}
+		}
+		if err != nil {
+			return Info{}, newError("EXTENSION_REQUIREMENT_UNMET", err.Error())
 		}
 		return Info{
 			Name:          name,

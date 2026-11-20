@@ -83,7 +83,7 @@ func (e *Executor) export(ctx context.Context, request contractv1.OperationReque
 	}
 	provider, err := e.resolveProvider(root, request.Provider)
 	if err != nil {
-		return failure(contractv1.ErrPrivacyKey, err.Error(), map[string]any{"provider": request.Provider})
+		return failure(providerFailureCode(err), err.Error(), map[string]any{"provider": request.Provider})
 	}
 	if provider != nil {
 		defer provider.Close()

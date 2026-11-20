@@ -3,6 +3,7 @@ package operations
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,7 +22,17 @@ func (e *Executor) resolveProvider(root, name string) (privacy.Provider, error) 
 	if root == "" {
 		return nil, nil
 	}
-	return privacy.ResolveProvider(root, name)
+	return privacy.ResolveProviderWithWarnings(root, name, func(message string) {
+		e.warn("%s", message)
+	})
+}
+
+// providerFailureCode reports the failure code for an unresolved crypto provider.
+func providerFailureCode(err error) contractv1.ErrorCode {
+	if errors.Is(err, extensions.ErrRequirementUnmet) {
+		return contractv1.ErrExtensionRequirement
+	}
+	return contractv1.ErrPrivacyKey
 }
 
 func (e *Executor) warn(format string, args ...any) {

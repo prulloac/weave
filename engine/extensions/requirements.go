@@ -27,8 +27,18 @@ func Require(ctx context.Context, root, name string, timeout time.Duration) (Ext
 	if err != nil {
 		return extension, nil, nil
 	}
+	warnings, err := CheckRequirements(ctx, root, extension.Name, manifest.Requires, timeout)
+	if err != nil {
+		return Extension{}, warnings, err
+	}
+	return extension, warnings, nil
+}
+
+// CheckRequirements evaluates requires entries declared by owner. It is shared by every selection path,
+// including codecs and crypto providers, which do not use Require because their manifests differ.
+func CheckRequirements(ctx context.Context, root, owner string, requires []Requirement, timeout time.Duration) ([]string, error) {
 	var warnings, unmet []string
-	for _, requirement := range manifest.Requires {
+	for _, requirement := range requires {
 		warning, failure := checkRequirement(ctx, root, requirement, timeout)
 		if warning != "" {
 			warnings = append(warnings, warning)
@@ -38,9 +48,9 @@ func Require(ctx context.Context, root, name string, timeout time.Duration) (Ext
 		}
 	}
 	if len(unmet) > 0 {
-		return Extension{}, warnings, fmt.Errorf("%w: %s: %s", ErrRequirementUnmet, extension.Name, strings.Join(unmet, "; "))
+		return warnings, fmt.Errorf("%w: %s: %s", ErrRequirementUnmet, owner, strings.Join(unmet, "; "))
 	}
-	return extension, warnings, nil
+	return warnings, nil
 }
 
 func checkRequirement(ctx context.Context, root string, requirement Requirement, timeout time.Duration) (string, string) {

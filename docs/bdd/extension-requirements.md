@@ -64,6 +64,35 @@ Executable coverage: `TestRequirementUnversionedCompanionRefuses`.
 
 Executable coverage: `TestRequirementDevBuildWarns`.
 
+## Scenario: unmet requirement refuses a codec
+
+- Given a codec `newer` whose manifest requires `weave >= 0.12.0`
+- And the running `weave` is `0.10.1`
+- When a body is written with `--codec newer`
+- Then the operation fails with `EXTENSION_REQUIREMENT_UNMET`
+- And the codec is not invoked
+
+Executable coverage: `engine/codecs/requirements_test.go` (`TestCodecRequirementUnmetRefusesCompress`).
+
+## Scenario: development build warns on a codec requirement
+
+- Given a codec `newer` whose manifest requires `weave >= 0.12.0`
+- And the running `weave` is a development build
+- When the codec is selected
+- Then one warning reports that the requirement could not be compared
+- And the codec runs
+
+Executable coverage: `engine/codecs/requirements_test.go` (`TestCodecDevBuildWarnsAndRuns`).
+
+## Scenario: unmet requirement refuses a crypto provider
+
+- Given a crypto provider `newer` whose manifest requires `weave >= 0.12.0`
+- When a privacy directive selects `--provider newer`
+- Then the command fails with `EXTENSION_REQUIREMENT_UNMET`
+- And no provider is returned, so the local provider is not used as a fallback
+
+Executable coverage: `engine/privacy/requirements_test.go` (`TestCryptoProviderRequirementUnmetRefuses`).
+
 ## Scenario: listing does not evaluate requirements
 
 - Given an extension `newer` whose manifest requires `weave >= 0.12.0`
