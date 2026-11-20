@@ -551,12 +551,15 @@ Spec: [External Crypto Providers](https://github.com/prulloac/weave-docs/blob/ma
 
 List executable `weave-<name>` extensions from `<path>/.weave/bin/` and `$PATH`. Enrichers run
 during writes with `--with-enricher`, rerankers during search with `--rerank`; both speak
-`weave.cli/v1` JSON over stdin/stdout. `weave extensions data` reads and garbage-collects opaque
-artifacts published by extensions.
+`weave.cli/v1` JSON over stdin/stdout. `weave extensions check` validates one extension against the
+protocol contract, and `weave extensions data` reads and garbage-collects opaque artifacts published
+by extensions.
 
 ```sh
 weave extensions list ~/notes --json
 weave extensions list ~/notes --short
+weave extensions check ai ~/notes --json
+weave extensions check codec-lz4 ~/notes --timeout 30s
 weave extensions data list ~/notes --extension images --json
 weave extensions data get ~/notes images assets/architecture.png --out architecture.png --json
 weave extensions data gc ~/notes --dry-run --json
@@ -569,6 +572,9 @@ weave search ~/notes "token rotation" --rerank keywords --json
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.
 - Default timeout is `5s`; override with `--timeout`.
+- `extensions check` reads the manifest, evaluates `requires`, then runs one canned request per
+  declared role. It never reads or writes bundle documents. A failed check exits `1`; an unknown
+  extension exits `2`. Codecs are checked as `codec-<name>` and round-trip fixed bytes.
 - `extensions data get` writes exact bytes to `--out`; `--force` replaces an existing file.
 - `extensions data gc` removes blobs with no metadata row; `--dry-run` reports only.
 
