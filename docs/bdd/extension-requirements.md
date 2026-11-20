@@ -101,3 +101,43 @@ Executable coverage: `engine/privacy/requirements_test.go` (`TestCryptoProviderR
 - And the output has no status field
 
 Executable coverage: `TestRequirementListingUnchanged`.
+
+## Scenario: unversioned source provider is refused
+
+- Given a source provider `weave-git` whose manifest declares no `version`
+- And the running `weave` is `0.11.0`
+- When I run `weave ingest <bundle> --source core=https://example.com/team/weave.git --json`
+- Then the command exits `1` with `EXTENSION_REQUIREMENT_UNMET`
+- And the error says the provider requires version `0.11.0`
+- And no legacy pull path runs in its place
+
+Executable coverage: `TestResolveSourcesRefusesUnversionedProvider`.
+
+## Scenario: unversioned project analyzer is refused
+
+- Given a project analyzer `weave-code` whose manifest declares the project role but no `version`
+- And the running `weave` is `0.11.0`
+- When I run `weave ingest <bundle> --with-enricher code --json`
+- Then the command exits `1` with `EXTENSION_REQUIREMENT_UNMET`
+- And core does not fall back to per-document enrichment
+
+Executable coverage: `TestProjectExtensionRefusesUnversionedAnalyzer`.
+
+## Scenario: descriptor minimum is accepted
+
+- Given a project analyzer `weave-code` whose manifest declares `version: 0.11.0`
+- And the running `weave` is `0.11.0`
+- When I run `weave ingest <bundle> --with-enricher code --json`
+- Then the project analysis runs
+
+Executable coverage: `TestProjectExtensionAcceptsVersionedAnalyzer`.
+
+## Scenario: a development build warns about the descriptor minimum
+
+- Given a source provider whose manifest declares no `version`
+- And the running `weave` is a development build
+- When the provider is selected
+- Then one warning reports that the descriptor minimum could not be compared
+- And the provider runs
+
+Executable coverage: `TestCheckDescriptorVersion` (development-build case).

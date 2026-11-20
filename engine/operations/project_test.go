@@ -1,11 +1,64 @@
 package operations
 
 import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/extensions"
 )
+
+func writeProjectAnalyzer(t *testing.T, root, manifest string) {
+	t.Helper()
+	path := filepath.Join(root, ".weave", "bin", "weave-code")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "#!/bin/sh\nif [ \"$1\" = \"--describe\" ]; then\nprintf '%s' '" + manifest + "'\nexit 0\nfi\ncat >/dev/null\nprintf '%s' '{\"v\":\"weave.cli/v1\",\"documents\":[]}'\n"
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProjectExtensionRefusesUnversionedAnalyzer(t *testing.T) {
+	previous := extensions.CoreVersion
+	extensions.CoreVersion = "0.11.0"
+	t.Cleanup(func() { extensions.CoreVersion = previous })
+
+	root := t.TempDir()
+	writeProjectAnalyzer(t, root, `{"v":"weave.extension/v1","name":"code","analysis_modes":["project"]}`)
+	executor := Executor{}
+	_, _, _, err := executor.projectExtension(context.Background(), contractv1.OperationRequest{
+		Path:     root,
+		Enricher: "code",
+	})
+	if !errors.Is(err, extensions.ErrRequirementUnmet) {
+		t.Fatalf("expected ErrRequirementUnmet for an unversioned analyzer, got %v", err)
+	}
+}
+
+func TestProjectExtensionAcceptsVersionedAnalyzer(t *testing.T) {
+	previous := extensions.CoreVersion
+	extensions.CoreVersion = "0.11.0"
+	t.Cleanup(func() { extensions.CoreVersion = previous })
+
+	root := t.TempDir()
+	writeProjectAnalyzer(t, root, `{"v":"weave.extension/v1","name":"code","version":"0.11.0","analysis_modes":["project"]}`)
+	executor := Executor{}
+	_, _, project, err := executor.projectExtension(context.Background(), contractv1.OperationRequest{
+		Path:     root,
+		Enricher: "code",
+	})
+	if err != nil {
+		t.Fatalf("versioned analyzer refused: %v", err)
+	}
+	if !project {
+		t.Fatal("expected project analysis mode")
+	}
+}
 
 func TestApplyProjectResponseUsesDeclaredTypes(t *testing.T) {
 	bundle := &contractv1.Bundle{Concepts: []contractv1.OkfConcept{

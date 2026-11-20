@@ -58,6 +58,39 @@ func useCoreVersion(t *testing.T, release string) {
 	t.Cleanup(func() { extensions.CoreVersion = previous })
 }
 
+func TestCheckDescriptorVersion(t *testing.T) {
+	cases := []struct {
+		name        string
+		core        string
+		version     string
+		wantRefusal bool
+		wantWarning bool
+	}{
+		{"missing version on the 0.11 line", "0.11.0", "", true, false},
+		{"version below the line", "0.11.0", "0.9.0", true, false},
+		{"version at the line", "0.11.0", "0.11.0", false, false},
+		{"version above the line", "0.12.0", "0.11.1", false, false},
+		{"invalid version", "0.11.0", "main", true, false},
+		{"pre-descriptor core does not enforce", "0.10.1", "", false, false},
+		{"development build warns", "dev", "", false, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			useCoreVersion(t, c.core)
+			warning, err := extensions.CheckDescriptorVersion("git", c.version)
+			if got := err != nil; got != c.wantRefusal {
+				t.Fatalf("refusal = %v, want %v (err=%v)", got, c.wantRefusal, err)
+			}
+			if c.wantRefusal && !errors.Is(err, extensions.ErrRequirementUnmet) {
+				t.Fatalf("expected ErrRequirementUnmet, got %v", err)
+			}
+			if got := warning != ""; got != c.wantWarning {
+				t.Fatalf("warning = %q, want %v", warning, c.wantWarning)
+			}
+		})
+	}
+}
+
 func TestRequireRefusesUnmetCoreRequirement(t *testing.T) {
 	useCoreVersion(t, "0.10.1")
 	root := t.TempDir()

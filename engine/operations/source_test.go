@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -79,6 +80,28 @@ func TestResolveSourcesMaterializesGitProvider(t *testing.T) {
 	}
 	if source.Documents == nil || len(source.Documents) != 1 || source.Documents[0].ID != "_repo" {
 		t.Fatalf("unexpected documents: %+v", source.Documents)
+	}
+}
+
+func TestResolveSourcesRefusesUnversionedProvider(t *testing.T) {
+	previous := extensions.CoreVersion
+	extensions.CoreVersion = "0.11.0"
+	t.Cleanup(func() { extensions.CoreVersion = previous })
+
+	root := t.TempDir()
+	writeSourceProvider(t, root)
+	executor := Executor{}
+	_, err := executor.resolveSources(context.Background(), contractv1.OperationRequest{
+		Path: root,
+		Sources: []contractv1.SourceSpec{{
+			Alias:    "core",
+			Path:     root,
+			Provider: "git",
+			Ref:      "main",
+		}},
+	})
+	if !errors.Is(err, extensions.ErrRequirementUnmet) {
+		t.Fatalf("expected ErrRequirementUnmet for an unversioned provider, got %v", err)
 	}
 }
 

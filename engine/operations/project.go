@@ -30,6 +30,15 @@ func (e *Executor) projectExtension(ctx context.Context, request contractv1.Oper
 		// A missing or malformed manifest degrades to per-document enrichment.
 		return extension, extensions.Manifest{}, false, nil
 	}
+	if manifest.SupportsProjectAnalysis() {
+		warning, err := extensions.CheckDescriptorVersion(extension.Name, manifest.Version)
+		if warning != "" {
+			e.warn("%s", warning)
+		}
+		if err != nil {
+			return extensions.Extension{}, extensions.Manifest{}, false, err
+		}
+	}
 	return extension, manifest, manifest.SupportsProjectAnalysis(), nil
 }
 

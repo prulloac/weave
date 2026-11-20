@@ -216,7 +216,7 @@ func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string,
 		provider, warnings, err := extensions.Require(ctx, root, "git", extensions.DefaultTimeout)
 		if err == nil {
 			emitWarnings(warn, warnings)
-			return validateSourceProvider(ctx, provider)
+			return validateSourceProvider(ctx, provider, warn)
 		}
 		if errors.Is(err, extensions.ErrRequirementUnmet) {
 			return extensions.Extension{}, extensions.Manifest{}, err
@@ -227,7 +227,7 @@ func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string,
 		return extensions.Extension{}, extensions.Manifest{}, err
 	}
 	emitWarnings(warn, warnings)
-	return validateSourceProvider(ctx, provider)
+	return validateSourceProvider(ctx, provider, warn)
 }
 
 func emitWarnings(warn func(string), warnings []string) {
@@ -236,8 +236,15 @@ func emitWarnings(warn func(string), warnings []string) {
 	}
 }
 
-func validateSourceProvider(ctx context.Context, provider extensions.Extension) (extensions.Extension, extensions.Manifest, error) {
+func validateSourceProvider(ctx context.Context, provider extensions.Extension, warn func(string)) (extensions.Extension, extensions.Manifest, error) {
 	manifest, err := extensions.Describe(ctx, provider)
+	if err != nil {
+		return extensions.Extension{}, extensions.Manifest{}, err
+	}
+	warning, err := extensions.CheckDescriptorVersion(provider.Name, manifest.Version)
+	if warning != "" {
+		emitWarnings(warn, []string{warning})
+	}
 	if err != nil {
 		return extensions.Extension{}, extensions.Manifest{}, err
 	}

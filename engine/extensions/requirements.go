@@ -12,8 +12,36 @@ import (
 // CoreVersion is the release version of the running weave binary. "dev" means the version is unknown.
 var CoreVersion = "dev"
 
+// DescriptorMinVersion is the oldest manifest version core accepts for a role that depends on the
+// generic descriptor contract: source providers and project analyzers. It is the 0.11.0 line.
+const DescriptorMinVersion = "0.11.0"
+
 // ErrRequirementUnmet reports that an extension's requires entries are not satisfied.
 var ErrRequirementUnmet = errors.New("extension requirement unmet")
+
+// CheckDescriptorVersion reports whether an extension manifest version satisfies the minimum for a
+// descriptor role. Core enforces it only when the running core is at or above the minimum line; a
+// development build cannot compare versions and returns one warning instead of refusing.
+func CheckDescriptorVersion(owner, version string) (string, error) {
+	coreComparison, ok := CompareVersions(CoreVersion, DescriptorMinVersion)
+	if !ok {
+		return fmt.Sprintf("cannot compare descriptor minimum %s: core version %q is unknown", DescriptorMinVersion, CoreVersion), nil
+	}
+	if coreComparison < 0 {
+		return "", nil
+	}
+	if strings.TrimSpace(version) == "" {
+		return "", fmt.Errorf("%w: %s declares no version; the descriptor role requires >= %s", ErrRequirementUnmet, owner, DescriptorMinVersion)
+	}
+	comparison, ok := CompareVersions(version, DescriptorMinVersion)
+	if !ok {
+		return "", fmt.Errorf("%w: %s has invalid version %q; the descriptor role requires >= %s", ErrRequirementUnmet, owner, version, DescriptorMinVersion)
+	}
+	if comparison < 0 {
+		return "", fmt.Errorf("%w: %s is %s; the descriptor role requires >= %s", ErrRequirementUnmet, owner, version, DescriptorMinVersion)
+	}
+	return "", nil
+}
 
 // Require resolves an extension, reads its manifest and enforces its requires entries.
 // It returns warnings for requirements that cannot be compared, such as on a development build.
