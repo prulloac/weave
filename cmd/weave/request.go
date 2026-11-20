@@ -199,6 +199,10 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 	}
 }
 
+func extensionCheckInvocation(positionals []string) bool {
+	return len(positionals) >= 1 && positionals[0] == "check"
+}
+
 func (f flags) positional(index int) string {
 	if index < 0 || index >= len(f.positionals) {
 		return ""

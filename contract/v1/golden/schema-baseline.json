@@ -976,6 +976,62 @@
 				}
 			}
 		},
+		"ExtensionCheckReport": {
+			"type": "object",
+			"required": [
+				"checks",
+				"extension",
+				"ok",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"checks": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExtensionCheckResult"
+					}
+				},
+				"extension": {
+					"type": "string"
+				},
+				"ok": {
+					"type": "boolean"
+				},
+				"v": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionCheckResult": {
+			"type": "object",
+			"required": [
+				"check",
+				"status"
+			],
+			"additional_properties": false,
+			"properties": {
+				"check": {
+					"type": "string"
+				},
+				"code": {
+					"ref": "#/$defs/ErrorCode"
+				},
+				"message": {
+					"type": "string"
+				},
+				"status": {
+					"ref": "#/$defs/ExtensionCheckStatus"
+				}
+			}
+		},
+		"ExtensionCheckStatus": {
+			"type": "string",
+			"enum": [
+				"fail",
+				"pass"
+			]
+		},
 		"ExtensionDataRef": {
 			"type": "object",
 			"required": [
@@ -3482,6 +3538,9 @@
 		},
 		"export.schema.json": {
 			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExportReport"
+		},
+		"extension-check.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionCheckReport"
 		},
 		"extension-ipc.schema.json": {
 			"refs": [

@@ -60,6 +60,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if command == "extensions" && len(args) > 1 && args[1] == "data" {
 		return runExtensionData(args[2:], stdout, stderr)
 	}
+	if command == "extensions" && len(args) > 1 && args[1] == "check" {
+		return runExtensionCheck(args[1:], stdout, stderr)
+	}
 	if command == "config" {
 		return runConfigCommand(args[1:], stdout, stderr)
 	}

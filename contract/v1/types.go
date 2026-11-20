@@ -669,6 +669,30 @@ type ExtensionList struct {
 	SearchPaths []string        `json:"search_paths,omitempty"`
 }
 
+// ExtensionCheckStatus is the outcome of one conformance check.
+type ExtensionCheckStatus string
+
+const (
+	ExtensionCheckPass ExtensionCheckStatus = "pass"
+	ExtensionCheckFail ExtensionCheckStatus = "fail"
+)
+
+// ExtensionCheckResult is one manifest, requirement or role conformance check.
+type ExtensionCheckResult struct {
+	Check   string               `json:"check"`
+	Status  ExtensionCheckStatus `json:"status"`
+	Code    ErrorCode            `json:"code,omitempty"`
+	Message string               `json:"message,omitempty"`
+}
+
+// ExtensionCheckReport is the result of `weave extensions check`.
+type ExtensionCheckReport struct {
+	V         string                 `json:"v"`
+	Extension string                 `json:"extension"`
+	OK        bool                   `json:"ok"`
+	Checks    []ExtensionCheckResult `json:"checks"`
+}
+
 // ContractInfo is returned by `weave contract --json`.
 type ContractInfo struct {
 	Contract      string                `json:"contract"`

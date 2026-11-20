@@ -492,8 +492,8 @@ func parseFlags(args []string) (flags, error) {
 		return result, fmt.Errorf("--quiet and --verbose are mutually exclusive")
 	}
 	if result.timeoutSet && result.enricher == "" && result.rerank == "" && result.scorer == "" &&
-		result.withEmbedder == "" && result.embedder == "" {
-		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank or --scorer")
+		result.withEmbedder == "" && result.embedder == "" && !extensionCheckInvocation(result.positionals) {
+		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank, --scorer or `extensions check`")
 	}
 	if (result.gitRef != "" || result.gitWorktree || result.gitSubmodules || result.gitLFS ||
 		result.gitHistory || result.gitHistoryLim != 0 || len(result.providerOption) > 0) && !result.git {

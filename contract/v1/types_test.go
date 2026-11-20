@@ -546,6 +546,17 @@ func TestMachineOutputTypesValidate(t *testing.T) {
 	}
 	marshalValidate(t, compiler, "extensions.schema.json", extensions)
 
+	check := ExtensionCheckReport{
+		V:         "weave.cli/v1",
+		Extension: "rerank",
+		OK:        false,
+		Checks: []ExtensionCheckResult{
+			{Check: "manifest", Status: ExtensionCheckPass},
+			{Check: "rerank", Status: ExtensionCheckFail, Code: ErrExtensionProto, Message: "rerank_score is not numeric"},
+		},
+	}
+	marshalValidate(t, compiler, "extension-check.schema.json", check)
+
 	sourceBundles := SourceBundles{Sources: []SourceBundle{{
 		Source: "a", Bundle: &Bundle{
 			Root: "/a", Concepts: []OkfConcept{},

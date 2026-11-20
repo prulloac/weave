@@ -1939,6 +1939,62 @@
 				}
 			}
 		},
+		"ExtensionCheckStatus": {
+			"type": "string",
+			"enum": [
+				"pass",
+				"fail"
+			]
+		},
+		"ExtensionCheckResult": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"check",
+				"status"
+			],
+			"properties": {
+				"check": {
+					"type": "string"
+				},
+				"status": {
+					"$ref": "#/$defs/ExtensionCheckStatus"
+				},
+				"code": {
+					"$ref": "#/$defs/ErrorCode"
+				},
+				"message": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionCheckReport": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"extension",
+				"ok",
+				"checks"
+			],
+			"properties": {
+				"v": {
+					"type": "string"
+				},
+				"extension": {
+					"type": "string"
+				},
+				"ok": {
+					"type": "boolean"
+				},
+				"checks": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/ExtensionCheckResult"
+					}
+				}
+			}
+		},
 		"ContractInfo": {
 			"type": "object",
 			"additionalProperties": false,
