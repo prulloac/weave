@@ -12,6 +12,9 @@ import (
 type Manifest struct {
 	V                  string                    `json:"v"`
 	Name               string                    `json:"name"`
+	Version            string                    `json:"version,omitempty"`
+	Protocols          []string                  `json:"protocols,omitempty"`
+	Requires           []Requirement             `json:"requires,omitempty"`
 	AssetTypes         []string                  `json:"asset_types,omitempty"`
 	SourceExtensions   []string                  `json:"source_extensions,omitempty"`
 	AnalysisModes      []string                  `json:"analysis_modes,omitempty"`
@@ -19,6 +22,12 @@ type Manifest struct {
 	DocumentNamespaces []string                  `json:"document_namespaces,omitempty"`
 	ArtifactNamespaces []string                  `json:"artifact_namespaces,omitempty"`
 	RelationKinds      []RelationKindDeclaration `json:"relation_kinds,omitempty"`
+}
+
+// Requirement is one version requirement on `weave` or on another extension.
+type Requirement struct {
+	Name       string `json:"name"`
+	MinVersion string `json:"min_version"`
 }
 
 // RelationKindDeclaration is one extension-contributed graph relation kind.

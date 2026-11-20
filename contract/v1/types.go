@@ -105,6 +105,7 @@ const (
 	ErrPrivacyDecrypt        ErrorCode = "PRIVACY_DECRYPT_FAILED"
 	ErrConfirmation          ErrorCode = "CONFIRMATION_REQUIRED"
 	ErrExtensionMissing      ErrorCode = "EXTENSION_NOT_FOUND"
+	ErrExtensionRequirement  ErrorCode = "EXTENSION_REQUIREMENT_UNMET"
 	ErrExtensionTimeout      ErrorCode = "EXTENSION_TIMEOUT"
 	ErrExtensionFailed       ErrorCode = "EXTENSION_FAILED"
 	ErrExtensionProto        ErrorCode = "EXTENSION_PROTOCOL"

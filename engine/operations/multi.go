@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -116,7 +117,9 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		case "", "path":
 			source.Provider = "path"
 		case "git":
-			provider, manifest, err := resolveSourceProvider(ctx, inputPath, request.Path)
+			provider, manifest, err := resolveSourceProvider(ctx, inputPath, request.Path, func(message string) {
+				e.warn("%s", message)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -205,21 +208,32 @@ func (e *Executor) markSourceDegraded(ctx context.Context, request contractv1.Op
 	})
 }
 
-func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string) (extensions.Extension, extensions.Manifest, error) {
+func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string, warn func(string)) (extensions.Extension, extensions.Manifest, error) {
 	for _, root := range []string{inputPath, workspacePath} {
 		if strings.TrimSpace(root) == "" {
 			continue
 		}
-		provider, err := extensions.Resolve(root, "git")
+		provider, warnings, err := extensions.Require(ctx, root, "git", extensions.DefaultTimeout)
 		if err == nil {
+			emitWarnings(warn, warnings)
 			return validateSourceProvider(ctx, provider)
 		}
+		if errors.Is(err, extensions.ErrRequirementUnmet) {
+			return extensions.Extension{}, extensions.Manifest{}, err
+		}
 	}
-	provider, err := extensions.Resolve("", "git")
+	provider, warnings, err := extensions.Require(ctx, "", "git", extensions.DefaultTimeout)
 	if err != nil {
 		return extensions.Extension{}, extensions.Manifest{}, err
 	}
+	emitWarnings(warn, warnings)
 	return validateSourceProvider(ctx, provider)
+}
+
+func emitWarnings(warn func(string), warnings []string) {
+	for _, warning := range warnings {
+		warn(warning)
+	}
 }
 
 func validateSourceProvider(ctx context.Context, provider extensions.Extension) (extensions.Extension, extensions.Manifest, error) {

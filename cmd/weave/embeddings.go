@@ -87,14 +87,17 @@ func runEmbeddings(args []string, stdout, stderr io.Writer) int {
 		}
 		documents := 0
 		if reembed {
-			extension, err := extensions.Resolve(root, flags.withEmbedder)
-			if err != nil {
-				fmt.Fprintf(stderr, "weave: %v\n", err)
-				return 1
-			}
 			timeout := flags.timeout
 			if timeout <= 0 {
 				timeout = extensions.DefaultTimeout
+			}
+			extension, warnings, err := extensions.Require(context.Background(), root, flags.withEmbedder, timeout)
+			for _, warning := range warnings {
+				fmt.Fprintf(stderr, "weave: %s\n", warning)
+			}
+			if err != nil {
+				fmt.Fprintf(stderr, "weave: %v\n", err)
+				return 1
 			}
 			runner := extensions.Runner{Timeout: timeout}
 			embedder := func(ctx context.Context, text, mediaType string) (sqlitestore.Embedding, error) {

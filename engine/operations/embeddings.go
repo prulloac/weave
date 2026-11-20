@@ -13,13 +13,13 @@ func (e *Executor) newEmbedder(request contractv1.OperationRequest) (sqlitestore
 	if request.Embedder == "" {
 		return nil, nil
 	}
-	extension, err := extensions.Resolve(request.Path, request.Embedder)
-	if err != nil {
-		return nil, err
-	}
 	timeout := time.Duration(request.TimeoutMS) * time.Millisecond
 	if timeout <= 0 {
 		timeout = extensions.DefaultTimeout
+	}
+	extension, err := e.requireExtension(context.Background(), request.Path, request.Embedder, timeout)
+	if err != nil {
+		return nil, err
 	}
 	runner := extensions.Runner{Timeout: timeout}
 	return func(ctx context.Context, text, mediaType string) (sqlitestore.Embedding, error) {

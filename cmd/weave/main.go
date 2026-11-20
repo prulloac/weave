@@ -15,6 +15,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/extensions"
 	"github.com/prulloac/weave/engine/operations"
 	"github.com/prulloac/weave/engine/privacy"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
@@ -27,6 +28,7 @@ func main() {
 }
 
 func run(args []string, stdout io.Writer, stderr io.Writer) int {
+	extensions.CoreVersion = version
 	if len(args) == 0 {
 		printStart(stdout)
 		return 0

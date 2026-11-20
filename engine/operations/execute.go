@@ -49,6 +49,7 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrPrivacyProvider,
 	contractv1.ErrPrivacyDecrypt,
 	contractv1.ErrExtensionMissing,
+	contractv1.ErrExtensionRequirement,
 	contractv1.ErrExtensionTimeout,
 	contractv1.ErrExtensionFailed,
 	contractv1.ErrExtensionProto,

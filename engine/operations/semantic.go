@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"errors"
 	"math"
 	"time"
 
@@ -17,15 +18,19 @@ func (e *Executor) searchSemantic(ctx context.Context, request contractv1.Operat
 	if request.Embedder == "" {
 		return failure(contractv1.ErrInvalidRequest, "semantic search requires --embedder <name>", nil)
 	}
-	extension, err := extensions.Resolve(request.Path, request.Embedder)
-	if err != nil {
-		return failure(contractv1.ErrExtensionMissing, err.Error(), map[string]any{
-			"extension": request.Embedder,
-		})
-	}
 	timeout := time.Duration(request.TimeoutMS) * time.Millisecond
 	if timeout <= 0 {
 		timeout = extensions.DefaultTimeout
+	}
+	extension, err := e.requireExtension(ctx, request.Path, request.Embedder, timeout)
+	if err != nil {
+		code := contractv1.ErrExtensionMissing
+		if errors.Is(err, extensions.ErrRequirementUnmet) {
+			code = contractv1.ErrExtensionRequirement
+		}
+		return failure(code, err.Error(), map[string]any{
+			"extension": request.Embedder,
+		})
 	}
 	runner := extensions.Runner{Timeout: timeout}
 	embedding, err := runner.Embed(ctx, extension, extensions.EmbeddingRequest{Text: request.Query})

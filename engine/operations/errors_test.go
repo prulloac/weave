@@ -25,6 +25,7 @@ func TestOperationErrorMappings(t *testing.T) {
 		{"open missing", domainOpen, os.ErrNotExist, contractv1.ErrInvalidRoot, "path does not exist: "},
 		{"open fallback", domainOpen, errors.New("boom"), contractv1.ErrInvalidRoot, "cannot open bundle: "},
 		{"extension missing", domainExtension, extensions.ErrNotFound, contractv1.ErrExtensionMissing, ""},
+		{"extension requirement", domainExtension, extensions.ErrRequirementUnmet, contractv1.ErrExtensionRequirement, ""},
 		{"extension timeout", domainExtension, extensions.ErrTimeout, contractv1.ErrExtensionTimeout, ""},
 		{"extension failed", domainExtension, extensions.ErrFailed, contractv1.ErrExtensionFailed, ""},
 		{"extension protocol", domainExtension, extensions.ErrProtocol, contractv1.ErrExtensionProto, ""},

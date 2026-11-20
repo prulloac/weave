@@ -94,12 +94,12 @@ func (e *Executor) applyScorer(
 	if request.Rerank != "" {
 		return fmt.Errorf("scorer and rerank are mutually exclusive")
 	}
-	extension, err := extensions.Resolve(request.Path, request.Scorer)
-	if err != nil {
-		return err
-	}
 	if scorerWeight(request) == 0 {
 		return nil
+	}
+	extension, err := e.requireExtension(ctx, request.Path, request.Scorer, extensionTimeout(request))
+	if err != nil {
+		return err
 	}
 	mode := request.Mode
 	if mode == "" {

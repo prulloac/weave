@@ -33,6 +33,7 @@ var operationErrorMappings = []errorMapping{
 	{domainOpen, os.ErrPermission, contractv1.ErrPermissionDenied, "permission denied: "},
 	{domainOpen, os.ErrNotExist, contractv1.ErrInvalidRoot, "path does not exist: "},
 	{domainExtension, extensions.ErrNotFound, contractv1.ErrExtensionMissing, ""},
+	{domainExtension, extensions.ErrRequirementUnmet, contractv1.ErrExtensionRequirement, ""},
 	{domainExtension, extensions.ErrTimeout, contractv1.ErrExtensionTimeout, ""},
 	{domainExtension, extensions.ErrFailed, contractv1.ErrExtensionFailed, ""},
 	{domainExtension, extensions.ErrProtocol, contractv1.ErrExtensionProto, ""},

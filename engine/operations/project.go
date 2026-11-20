@@ -21,7 +21,7 @@ func (e *Executor) projectExtension(ctx context.Context, request contractv1.Oper
 	if request.Enricher == "" {
 		return extensions.Extension{}, extensions.Manifest{}, false, nil
 	}
-	extension, err := extensions.Resolve(request.Path, request.Enricher)
+	extension, err := e.requireExtension(ctx, request.Path, request.Enricher, extensionTimeout(request))
 	if err != nil {
 		return extensions.Extension{}, extensions.Manifest{}, false, err
 	}

@@ -25,6 +25,7 @@ var errorPolicies = map[contractv1.ErrorCode]errorPolicy{
 	contractv1.ErrPrivacyProvider:       {3, "check the provider algorithm against `weave-crypto-<name> --capabilities`"},
 	contractv1.ErrPrivacyDecrypt:        {3, "check the key version and ciphertext"},
 	contractv1.ErrExtensionMissing:      {2, "run `weave extensions list <path>`"},
+	contractv1.ErrExtensionRequirement:  {1, "upgrade weave or the companion extension named in the message; the extension was not run"},
 	contractv1.ErrExtensionTimeout:      {1, "increase `--timeout` or check the extension"},
 	contractv1.ErrExtensionFailed:       {1, "run the extension manually to see stderr"},
 	contractv1.ErrExtensionProto:        {1, "check the extension weave.cli/v1 payload"},

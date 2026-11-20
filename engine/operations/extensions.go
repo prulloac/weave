@@ -67,11 +67,20 @@ func extensionTimeout(request contractv1.OperationRequest) time.Duration {
 	return extensions.DefaultTimeout
 }
 
+// requireExtension selects an extension and enforces its requires entries before any invocation.
+func (e *Executor) requireExtension(ctx context.Context, path, name string, timeout time.Duration) (extensions.Extension, error) {
+	extension, warnings, err := extensions.Require(ctx, path, name, timeout)
+	for _, warning := range warnings {
+		e.warn("%s", warning)
+	}
+	return extension, err
+}
+
 func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore.Enricher, error) {
 	if request.Enricher == "" {
 		return nil, nil
 	}
-	extension, err := extensions.Resolve(request.Path, request.Enricher)
+	extension, err := e.requireExtension(context.Background(), request.Path, request.Enricher, extensionTimeout(request))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +190,7 @@ func (e *Executor) applyRerank(
 	if request.Rerank == "" {
 		return nil
 	}
-	extension, err := extensions.Resolve(request.Path, request.Rerank)
+	extension, err := e.requireExtension(ctx, request.Path, request.Rerank, extensionTimeout(request))
 	if err != nil {
 		return err
 	}
