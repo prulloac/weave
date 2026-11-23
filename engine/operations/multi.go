@@ -99,7 +99,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		if aliases[alias] {
 			return nil, fmt.Errorf("duplicate source alias %q", alias)
 		}
-		canonical := canonicalSourceIdentity(inputPath)
+		canonical := CanonicalSourceIdentity(inputPath)
 		if paths[canonical] {
 			return nil, fmt.Errorf("duplicate source path %q", inputPath)
 		}
@@ -109,7 +109,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		source := resolvedSource{
 			Alias:     alias,
 			Path:      inputPath,
-			InputPath: canonicalSourceIdentity(inputPath),
+			InputPath: CanonicalSourceIdentity(inputPath),
 			Provider:  strings.TrimSpace(spec.Provider),
 			Ref:       strings.TrimSpace(spec.Ref),
 		}
@@ -132,7 +132,7 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 				SourceID: sourceID,
 				URI:      source.InputPath,
 				Ref:      source.Ref,
-				CacheDir: sourceCacheDir(),
+				CacheDir: SourceCacheDir(),
 				Options: extensions.SourceOptions{
 					Worktree:        spec.Worktree,
 					Submodules:      spec.Submodules,
@@ -274,7 +274,7 @@ func relationDefaultNames(manifest extensions.Manifest) []string {
 	return result
 }
 
-func canonicalSourceIdentity(value string) string {
+func CanonicalSourceIdentity(value string) string {
 	if strings.Contains(value, "://") || strings.HasPrefix(value, "git@") {
 		return strings.TrimSpace(value)
 	}
@@ -284,7 +284,7 @@ func canonicalSourceIdentity(value string) string {
 	return filepath.Clean(value)
 }
 
-func sourceCacheDir() string {
+func SourceCacheDir() string {
 	if dir := strings.TrimSpace(os.Getenv("WEAVE_CACHE_DIR")); dir != "" {
 		return dir
 	}

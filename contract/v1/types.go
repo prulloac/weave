@@ -109,6 +109,9 @@ const (
 	ErrExtensionTimeout      ErrorCode = "EXTENSION_TIMEOUT"
 	ErrExtensionFailed       ErrorCode = "EXTENSION_FAILED"
 	ErrExtensionProto        ErrorCode = "EXTENSION_PROTOCOL"
+	ErrExtensionUntrusted    ErrorCode = "EXTENSION_UNTRUSTED"
+	ErrSourceNotFound        ErrorCode = "SOURCE_NOT_FOUND"
+	ErrSourceUnsupported     ErrorCode = "SOURCE_UNSUPPORTED"
 	ErrExtensionDataInvalid  ErrorCode = "EXTENSION_DATA_INVALID"
 	ErrExtensionDataTooLarge ErrorCode = "EXTENSION_DATA_TOO_LARGE"
 	ErrExtensionDataQuota    ErrorCode = "EXTENSION_DATA_QUOTA"
@@ -773,6 +776,24 @@ type WatchEvent struct {
 }
 
 // SourceSpec is one bundle source passed to a multi-source invocation.
+// SourceDiffChange is one file change between two source snapshots.
+type SourceDiffChange struct {
+	Kind         string `json:"kind"`
+	Path         string `json:"path"`
+	PreviousPath string `json:"previous_path,omitempty"`
+	Binary       bool   `json:"binary,omitempty"`
+	Patch        string `json:"patch,omitempty"`
+}
+
+// SourceDiffResult is the result of one snapshot comparison.
+type SourceDiffResult struct {
+	From      string             `json:"from"`
+	To        string             `json:"to"`
+	Truncated bool               `json:"truncated,omitempty"`
+	Changes   []SourceDiffChange `json:"changes"`
+}
+
+// SourceSpec is one source selected for a write.
 type SourceSpec struct {
 	Alias      string `json:"alias"`
 	Path       string `json:"path"`

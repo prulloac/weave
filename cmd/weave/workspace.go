@@ -381,7 +381,7 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "source requires a subcommand: add, remove, list or show")
+		fmt.Fprintln(stderr, "source requires a subcommand: add, remove, list, show or diff")
 		return 2
 	}
 	subcommand := args[0]
@@ -397,6 +397,12 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 	gitLFS := false
 	gitHistory := false
 	gitHistoryLim := 0
+	diffFrom := ""
+	diffTo := ""
+	diffFormat := ""
+	diffPath := ""
+	outFile := ""
+	timeout := time.Duration(0)
 	positionals := make([]string, 0)
 	for index := 0; index < len(rest); index++ {
 		arg := rest[index]
@@ -407,6 +413,53 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 			prune = true
 		case "--git":
 			gitSource = true
+		case "--from":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--from requires a value")
+				return 2
+			}
+			diffFrom = rest[index+1]
+			index++
+		case "--to":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--to requires a value")
+				return 2
+			}
+			diffTo = rest[index+1]
+			index++
+		case "--format":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--format requires a value")
+				return 2
+			}
+			diffFormat = rest[index+1]
+			index++
+		case "--path":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--path requires a value")
+				return 2
+			}
+			diffPath = rest[index+1]
+			index++
+		case "--out":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--out requires a value")
+				return 2
+			}
+			outFile = rest[index+1]
+			index++
+		case "--timeout":
+			if index+1 >= len(rest) {
+				fmt.Fprintln(stderr, "--timeout requires a value")
+				return 2
+			}
+			parsed, err := time.ParseDuration(rest[index+1])
+			if err != nil || parsed <= 0 {
+				fmt.Fprintln(stderr, "--timeout requires a positive duration")
+				return 2
+			}
+			timeout = parsed
+			index++
 		case "--ref":
 			if index+1 >= len(rest) {
 				fmt.Fprintln(stderr, "--ref requires a value")
@@ -450,6 +503,11 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
+	if subcommand != "diff" && (diffFrom != "" || diffTo != "" || diffFormat != "" || diffPath != "" || outFile != "" || timeout > 0) {
+		fmt.Fprintln(stderr, "--from, --to, --format, --path, --out and --timeout are only valid for source diff")
+		return 2
+	}
+
 	switch subcommand {
 	case "add":
 		if len(positionals) != 2 {
@@ -471,6 +529,12 @@ func runSourceCommand(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 		return showSource(positionals[0], firstNonEmpty(workspaceArg, "."), jsonOut, stdout, stderr)
+	case "diff":
+		if len(positionals) != 1 {
+			fmt.Fprintln(stderr, "source diff requires <alias>")
+			return 2
+		}
+		return runSourceDiff(positionals[0], firstNonEmpty(workspaceArg, "."), diffFrom, diffTo, diffFormat, diffPath, outFile, timeout, jsonOut, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "unknown source subcommand: %s\n", subcommand)
 		return 2

@@ -1,6 +1,7 @@
 package contractv1
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -176,6 +177,29 @@ func TestSchemasCompile(t *testing.T) {
 	}
 }
 
+func TestSourceDiffResultValidates(t *testing.T) {
+	compiler := newCompiler(t)
+	result := SourceDiffResult{
+		From: "3f2a1c9",
+		To:   "9b7e4d0",
+		Changes: []SourceDiffChange{
+			{Kind: "added", Path: "docs/new.md"},
+			{Kind: "modified", Path: "docs/adr.md", Patch: "@@ -1 +1 @@"},
+			{Kind: "renamed", Path: "docs/new-name.md", PreviousPath: "docs/old.md"},
+			{Kind: "added", Path: "assets/logo.bin", Binary: true},
+		},
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validate(t, compiler, "source-diff.schema.json", doc)
+}
+
 func TestExtensionIPCFixturesValidate(t *testing.T) {
 	compiler := newCompiler(t)
 
@@ -194,6 +218,8 @@ func TestExtensionIPCFixturesValidate(t *testing.T) {
 		"project-analysis-response.json",
 		"source-request.json",
 		"source-response.json",
+		"source-diff-request.json",
+		"source-diff-response.json",
 	}
 	for _, name := range fixtures {
 		t.Run(name, func(t *testing.T) {

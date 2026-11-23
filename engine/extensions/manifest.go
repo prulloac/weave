@@ -17,6 +17,7 @@ type Manifest struct {
 	Requires           []Requirement             `json:"requires,omitempty"`
 	Roles              []string                  `json:"roles,omitempty"`
 	CacheKey           string                    `json:"cache_key,omitempty"`
+	Capabilities       []string                  `json:"capabilities,omitempty"`
 	AssetTypes         []string                  `json:"asset_types,omitempty"`
 	SourceExtensions   []string                  `json:"source_extensions,omitempty"`
 	AnalysisModes      []string                  `json:"analysis_modes,omitempty"`
@@ -52,6 +53,16 @@ func (m Manifest) SupportsProjectAnalysis() bool {
 func (m Manifest) SupportsSourceProvider(provider string) bool {
 	for _, value := range m.SourceProviders {
 		if value == provider {
+			return true
+		}
+	}
+	return false
+}
+
+// SupportsCapability reports whether the manifest advertises one capability.
+func (m Manifest) SupportsCapability(capability string) bool {
+	for _, value := range m.Capabilities {
+		if value == capability {
 			return true
 		}
 	}

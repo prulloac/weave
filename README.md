@@ -476,20 +476,26 @@ Guide: [Connect an agent over MCP](docs/guides/workspace-mcp.md).
 
 #### `weave source`
 
-Register, remove or inspect workspace bundle sources.
+Register, remove, inspect or compare workspace bundle sources.
 
 ```sh
 weave source add notes ~/notes --workspace ~/weave-workspace
 weave source list --workspace ~/weave-workspace --json
 weave source show notes --workspace ~/weave-workspace --json
+weave source diff core --workspace ~/weave-workspace --from v0.1.0 --to main --json
+weave source diff core --workspace ~/weave-workspace --from v0.1.0 --to main --format patch
 weave source remove work --workspace ~/weave-workspace --prune
 ```
 
 - Aliases must match `[a-z0-9][a-z0-9-]*`; `contract`, `weave` and `workspace` are reserved.
 - `add` writes the manifest and indexes the source; `--prune` deletes index rows on remove.
 - Source status is `active`, `indexing` or `degraded`.
+- `diff` compares two provider-resolved refs. Providers declare the `diff` capability; a provider
+  without it is `SOURCE_UNSUPPORTED`. `--format patch` writes unified hunks, `--path` filters
+  changed paths, and `--out` writes the patch atomically. Binary changes carry no hunks.
 
-Spec: [Workspace and Source Registry](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md).
+Specs: [Workspace and Source Registry](https://github.com/prulloac/weave-docs/blob/main/specs/workspace.md),
+[Source Snapshot Diff](https://github.com/prulloac/weave-docs/blob/main/specs/source-diff.md).
 
 #### Privacy directives
 

@@ -45,6 +45,12 @@
 		},
 		{
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceResponse"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceDiffRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceDiffResponse"
 		}
 	]
 }

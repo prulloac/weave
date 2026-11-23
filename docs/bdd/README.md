@@ -43,7 +43,8 @@ or check; a scenario without one is a documentation gap.
 | [Privacy directives](privacy-directives.md) | [privacy-directives.md](https://github.com/prulloac/weave-docs/blob/main/specs/privacy-directives.md) | `cmd/weave/privacy_bdd_test.go`, `engine/privacy/privacy_test.go` |
 | [Release automation](release-automation.md) | [release-automation.md](https://github.com/prulloac/weave-docs/blob/main/specs/release-automation.md) | `release/release_test.go`, `cmd/weave/release_bdd_test.go` |
 | [Release readiness](release-readiness.md) | [release-readiness.md](https://github.com/prulloac/weave-docs/blob/main/specs/release-readiness.md) | `cmd/docs-lint/main_test.go`, `cmd/weave/smoke_test.go`, `release/release_test.go`, `weave-docs/scripts/check-links.py`, `Docs` workflow |
-| [Search field filters](search-field-filters.md) | [search-field-filters.md](https://github.com/prulloac/weave-docs/blob/main/specs/search-field-filters.md) | `cmd/weave/search_filters_bdd_test.go`, `engine/search/filters_test.go` |
+| [Search field filters](search-field-filters.md) | [search-field-filters.md](https://github.com/prulloac/weave-docs/blob/main/specs/search-field-filters.md) | `cmd/weave/search_filters_bdd_test.go`, `engine/search/filter_test.go` |
+| [Source snapshot diff](source-diff.md) | [source-diff.md](https://github.com/prulloac/weave-docs/blob/main/specs/source-diff.md) | `cmd/weave/source_diff_bdd_test.go`, `engine/extensions/source_diff_test.go`; provider tests live in `weave-git` |
 | [Storage and sync](storage-and-sync.md) | [storage-and-sync.md](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md) | `cmd/weave/storage_bdd_test.go` |
 | [Sync watch](sync-watch.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `cmd/weave/sync_watch_bdd_test.go` |
 | [Watch mode](watch-mode.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `watch/watcher_test.go` |

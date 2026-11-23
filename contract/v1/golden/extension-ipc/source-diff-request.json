@@ -1,0 +1,13 @@
+{
+	"v": "weave.source/v1",
+	"type": "source_diff_request",
+	"source_id": "git-7f3a",
+	"uri": "https://example.com/team/weave.git",
+	"cache_dir": "/home/user/.cache/weave",
+	"from": "3f2a1c9",
+	"to": "9b7e4d0",
+	"options": {
+		"format": "changes",
+		"context": 3
+	}
+}

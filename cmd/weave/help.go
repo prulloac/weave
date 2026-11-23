@@ -26,16 +26,22 @@ var commandHelpText = map[string]commandHelp{
 		},
 	},
 	"source": {
-		Usage:   "weave source add|remove|list|show [flags]",
-		Summary: "Register, remove or inspect workspace bundle sources.",
+		Usage:   "weave source add|remove|list|show|diff [flags]",
+		Summary: "Register, remove, inspect or compare workspace bundle sources.",
 		Flags: []string{
 			"--workspace <dir>                  manifest directory or file",
+			"--from <ref>                       diff: source ref or commit",
+			"--to <ref>                         diff: target ref or commit",
+			"--format json|patch                diff: output format",
+			"--path <glob>                      diff: filter changed paths",
+			"--out <file>                       diff: write the patch to a file",
 			"--prune                            delete index rows on remove",
 			"--json                             one weave.cli/v1 envelope",
 		},
 		Examples: []string{
 			`weave source add notes ~/notes --workspace ~/weave-workspace`,
 			`weave source list --workspace ~/weave-workspace --json`,
+			`weave source diff core --workspace ~/weave-workspace --from v0.1.0 --to main --json`,
 		},
 	},
 	"search": {

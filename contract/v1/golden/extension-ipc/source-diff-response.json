@@ -1,0 +1,22 @@
+{
+	"v": "weave.source/v1",
+	"type": "source_diff_response",
+	"from": "3f2a1c9",
+	"to": "9b7e4d0",
+	"changes": [
+		{
+			"kind": "added",
+			"path": "docs/new.md"
+		},
+		{
+			"kind": "modified",
+			"path": "docs/adr-004.md",
+			"patch": "@@ -1,3 +1,4 @@\n line\n+added\n"
+		},
+		{
+			"kind": "renamed",
+			"path": "docs/guide.md",
+			"previous_path": "docs/old.md"
+		}
+	]
+}

@@ -193,6 +193,9 @@
 				"EXTENSION_TIMEOUT",
 				"EXTENSION_FAILED",
 				"EXTENSION_PROTOCOL",
+				"EXTENSION_UNTRUSTED",
+				"SOURCE_NOT_FOUND",
+				"SOURCE_UNSUPPORTED",
 				"EXTENSION_DATA_INVALID",
 				"EXTENSION_DATA_TOO_LARGE",
 				"EXTENSION_DATA_QUOTA",
@@ -2496,6 +2499,67 @@
 				}
 			}
 		},
+		"SourceDiffChange": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"kind",
+				"path"
+			],
+			"properties": {
+				"kind": {
+					"type": "string",
+					"enum": [
+						"added",
+						"removed",
+						"modified",
+						"renamed"
+					]
+				},
+				"path": {
+					"type": "string",
+					"minLength": 1
+				},
+				"previous_path": {
+					"type": "string"
+				},
+				"binary": {
+					"type": "boolean"
+				},
+				"patch": {
+					"type": "string"
+				}
+			}
+		},
+		"SourceDiffResult": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"from",
+				"to",
+				"changes"
+			],
+			"properties": {
+				"from": {
+					"type": "string",
+					"minLength": 1
+				},
+				"to": {
+					"type": "string",
+					"minLength": 1
+				},
+				"truncated": {
+					"type": "boolean"
+				},
+				"changes": {
+					"type": "array",
+					"maxItems": 10000,
+					"items": {
+						"$ref": "#/$defs/SourceDiffChange"
+					}
+				}
+			}
+		},
 		"SourceSpec": {
 			"type": "object",
 			"additionalProperties": false,
@@ -3448,6 +3512,136 @@
 				},
 				"options": {
 					"$ref": "#/$defs/ExtensionSourceOptions"
+				}
+			}
+		},
+		"ExtensionSourceDiffRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"source_id",
+				"uri",
+				"from",
+				"to"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionSourceProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "source_diff_request"
+				},
+				"source_id": {
+					"type": "string",
+					"minLength": 1
+				},
+				"uri": {
+					"type": "string"
+				},
+				"cache_dir": {
+					"type": "string"
+				},
+				"from": {
+					"type": "string",
+					"minLength": 1
+				},
+				"to": {
+					"type": "string",
+					"minLength": 1
+				},
+				"options": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"format": {
+							"type": "string",
+							"enum": [
+								"changes",
+								"patch"
+							]
+						},
+						"context": {
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 100
+						},
+						"permissive": {
+							"type": "boolean"
+						}
+					}
+				}
+			}
+		},
+		"ExtensionSourceDiffChange": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"kind",
+				"path"
+			],
+			"properties": {
+				"kind": {
+					"type": "string",
+					"enum": [
+						"added",
+						"removed",
+						"modified",
+						"renamed"
+					]
+				},
+				"path": {
+					"type": "string",
+					"minLength": 1
+				},
+				"previous_path": {
+					"type": "string"
+				},
+				"binary": {
+					"type": "boolean"
+				},
+				"patch": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionSourceDiffResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"from",
+				"to",
+				"changes"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionSourceProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "source_diff_response"
+				},
+				"from": {
+					"type": "string",
+					"minLength": 1
+				},
+				"to": {
+					"type": "string",
+					"minLength": 1
+				},
+				"truncated": {
+					"type": "boolean"
+				},
+				"changes": {
+					"type": "array",
+					"maxItems": 10000,
+					"items": {
+						"$ref": "#/$defs/ExtensionSourceDiffChange"
+					}
 				}
 			}
 		},

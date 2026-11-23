@@ -242,7 +242,7 @@ func (e *Executor) resolveReadPath(ctx context.Context, request contractv1.Opera
 	if request.NoDB || request.Path == "" {
 		return request
 	}
-	input := canonicalSourceIdentity(request.Path)
+	input := CanonicalSourceIdentity(request.Path)
 	dbPath, err := resolveDBPath(request.DB)
 	if err != nil {
 		return request

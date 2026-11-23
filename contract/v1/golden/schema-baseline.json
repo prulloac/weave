@@ -540,6 +540,7 @@
 				"EXTENSION_PROTOCOL",
 				"EXTENSION_REQUIREMENT_UNMET",
 				"EXTENSION_TIMEOUT",
+				"EXTENSION_UNTRUSTED",
 				"INTERNAL",
 				"INVALID_REQUEST",
 				"INVALID_ROOT",
@@ -549,7 +550,9 @@
 				"PRIVACY_DECRYPT_FAILED",
 				"PRIVACY_DIRECTIVE_INVALID",
 				"PRIVACY_KEY_UNAVAILABLE",
-				"PRIVACY_PROVIDER_UNSUPPORTED"
+				"PRIVACY_PROVIDER_UNSUPPORTED",
+				"SOURCE_NOT_FOUND",
+				"SOURCE_UNSUPPORTED"
 			]
 		},
 		"ExplainFuzzy": {
@@ -1637,6 +1640,111 @@
 					"type": "number",
 					"minimum": 0,
 					"maximum": 1
+				}
+			}
+		},
+		"ExtensionSourceDiffChange": {
+			"type": "object",
+			"required": [
+				"kind",
+				"path"
+			],
+			"additional_properties": false,
+			"properties": {
+				"binary": {
+					"type": "boolean"
+				},
+				"kind": {
+					"type": "string",
+					"enum": [
+						"added",
+						"modified",
+						"removed",
+						"renamed"
+					]
+				},
+				"patch": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"previous_path": {
+					"type": "string"
+				}
+			}
+		},
+		"ExtensionSourceDiffRequest": {
+			"type": "object",
+			"required": [
+				"from",
+				"source_id",
+				"to",
+				"type",
+				"uri",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"cache_dir": {
+					"type": "string"
+				},
+				"from": {
+					"type": "string"
+				},
+				"options": {
+					"type": "object"
+				},
+				"source_id": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"const": "source_diff_request"
+				},
+				"uri": {
+					"type": "string"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionSourceProtocolVersion"
+				}
+			}
+		},
+		"ExtensionSourceDiffResponse": {
+			"type": "object",
+			"required": [
+				"changes",
+				"from",
+				"to",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"changes": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/ExtensionSourceDiffChange"
+					}
+				},
+				"from": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				},
+				"truncated": {
+					"type": "boolean"
+				},
+				"type": {
+					"type": "string",
+					"const": "source_diff_response"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionSourceProtocolVersion"
 				}
 			}
 		},
@@ -3299,6 +3407,63 @@
 				}
 			}
 		},
+		"SourceDiffChange": {
+			"type": "object",
+			"required": [
+				"kind",
+				"path"
+			],
+			"additional_properties": false,
+			"properties": {
+				"binary": {
+					"type": "boolean"
+				},
+				"kind": {
+					"type": "string",
+					"enum": [
+						"added",
+						"modified",
+						"removed",
+						"renamed"
+					]
+				},
+				"patch": {
+					"type": "string"
+				},
+				"path": {
+					"type": "string"
+				},
+				"previous_path": {
+					"type": "string"
+				}
+			}
+		},
+		"SourceDiffResult": {
+			"type": "object",
+			"required": [
+				"changes",
+				"from",
+				"to"
+			],
+			"additional_properties": false,
+			"properties": {
+				"changes": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SourceDiffChange"
+					}
+				},
+				"from": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				},
+				"truncated": {
+					"type": "boolean"
+				}
+			}
+		},
 		"SourceGraph": {
 			"type": "object",
 			"required": [
@@ -3650,6 +3815,8 @@
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionRerankResponse",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionScorerRequest",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionScorerResponse",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceDiffRequest",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceDiffResponse",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceRequest",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceResponse",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionTokenizerRequest",
@@ -3695,6 +3862,9 @@
 		},
 		"show.schema.json": {
 			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ShowResult"
+		},
+		"source-diff.schema.json": {
+			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SourceDiffResult"
 		},
 		"sync.schema.json": {
 			"ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/SyncReport"
