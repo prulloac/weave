@@ -21,6 +21,7 @@ func writeProjectAnalyzer(t *testing.T, root, manifest string) {
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustOperationsExtension(t, root, "code")
 }
 
 func TestProjectExtensionRefusesUnversionedAnalyzer(t *testing.T) {

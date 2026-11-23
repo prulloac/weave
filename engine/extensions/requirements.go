@@ -51,6 +51,9 @@ func Require(ctx context.Context, root, name string, timeout time.Duration) (Ext
 	if err != nil {
 		return Extension{}, nil, err
 	}
+	if err := CheckTrusted(root, extension); err != nil {
+		return Extension{}, nil, err
+	}
 	manifest, err := DescribeWithTimeout(ctx, extension, timeout)
 	if err != nil {
 		return extension, nil, nil

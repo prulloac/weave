@@ -117,10 +117,18 @@ func (e *Executor) resolveSources(ctx context.Context, request contractv1.Operat
 		case "", "path":
 			source.Provider = "path"
 		case "git":
-			provider, manifest, err := resolveSourceProvider(ctx, inputPath, request.Path, func(message string) {
+			workspacePath := request.Path
+			if request.WorkspaceRoot != "" {
+				workspacePath = request.WorkspaceRoot
+			}
+			provider, manifest, err := resolveSourceProvider(ctx, inputPath, workspacePath, func(message string) {
 				e.warn("%s", message)
 			})
 			if err != nil {
+				if errors.Is(err, extensions.ErrUntrusted) && request.WorkspaceRoot != "" {
+					e.warn("%s: %v", alias, err)
+					continue
+				}
 				return nil, err
 			}
 			sourceID := extensions.SingleSourceID(source.InputPath)
@@ -219,6 +227,9 @@ func resolveSourceProvider(ctx context.Context, inputPath, workspacePath string,
 			return validateSourceProvider(ctx, provider, warn)
 		}
 		if errors.Is(err, extensions.ErrRequirementUnmet) {
+			return extensions.Extension{}, extensions.Manifest{}, err
+		}
+		if errors.Is(err, extensions.ErrUntrusted) {
 			return extensions.Extension{}, extensions.Manifest{}, err
 		}
 	}

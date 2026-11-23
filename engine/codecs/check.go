@@ -30,6 +30,12 @@ func (r *Registry) Check(ctx context.Context, name string) (report contractv1.Ex
 	if !ok {
 		return report, fmt.Errorf("%w: codec-%s", extensions.ErrNotFound, name)
 	}
+	if err := extensions.CheckTrusted(r.BundleRoot, extensions.Extension{
+		Name: "codec-" + name, Path: candidate.path, Source: "bundle",
+	}); err != nil {
+		report.Checks = append(report.Checks, failedCodecCheck("requirements", err))
+		return report, nil
+	}
 
 	manifest, err := r.describe(ctx, candidate.path)
 	if err != nil {
@@ -152,6 +158,9 @@ func codecCheckErrorCode(err error) contractv1.ErrorCode {
 		default:
 			return contractv1.ErrCodecFailed
 		}
+	}
+	if errors.Is(err, extensions.ErrUntrusted) {
+		return contractv1.ErrExtensionUntrusted
 	}
 	if errors.Is(err, extensions.ErrRequirementUnmet) {
 		return contractv1.ErrExtensionRequirement

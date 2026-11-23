@@ -24,6 +24,17 @@ func installCodec(t *testing.T, root, name, manifest string) {
 	if err := os.WriteFile(filepath.Join(dir, "weave-codec-"+name), []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustInternalCodec(t, root, name)
+}
+
+func trustInternalCodec(t *testing.T, root, name string) {
+	t.Helper()
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, "codec-"+name); err != nil {
+		t.Fatalf("trust codec %s: %v", name, err)
+	}
 }
 
 func TestCodecRequirementUnmetRefusesCompress(t *testing.T) {

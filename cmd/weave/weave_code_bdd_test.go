@@ -106,6 +106,7 @@ func weaveCodeRepo(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(root, "lib.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, root, "code")
 	return root
 }
 

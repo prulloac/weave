@@ -33,6 +33,7 @@ var operationErrorMappings = []errorMapping{
 	{domainOpen, os.ErrPermission, contractv1.ErrPermissionDenied, "permission denied: "},
 	{domainOpen, os.ErrNotExist, contractv1.ErrInvalidRoot, "path does not exist: "},
 	{domainExtension, extensions.ErrNotFound, contractv1.ErrExtensionMissing, ""},
+	{domainExtension, extensions.ErrUntrusted, contractv1.ErrExtensionUntrusted, ""},
 	{domainExtension, extensions.ErrRequirementUnmet, contractv1.ErrExtensionRequirement, ""},
 	{domainExtension, extensions.ErrTimeout, contractv1.ErrExtensionTimeout, ""},
 	{domainExtension, extensions.ErrFailed, contractv1.ErrExtensionFailed, ""},
@@ -84,6 +85,8 @@ func codecErrorCode(err error) (contractv1.ErrorCode, bool) {
 		return contractv1.ErrCodecFailed, true
 	case "EXTENSION_REQUIREMENT_UNMET":
 		return contractv1.ErrExtensionRequirement, true
+	case "EXTENSION_UNTRUSTED":
+		return contractv1.ErrExtensionUntrusted, true
 	default:
 		return contractv1.ErrCodecFailed, true
 	}

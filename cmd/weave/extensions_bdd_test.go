@@ -61,6 +61,7 @@ func installExtension(t *testing.T, root, name, script string) string {
 	if err := os.Chmod(destination, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, root, name)
 	return destination
 }
 

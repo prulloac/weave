@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/prulloac/weave/engine/extensions"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
@@ -23,9 +24,23 @@ func Invoke(t *testing.T, args ...string) (int, string, string) {
 	if os.Getenv("WEAVE_CACHE_DIR") == "" && (len(args) == 0 || args[0] != "config") {
 		t.Setenv("WEAVE_CACHE_DIR", t.TempDir())
 	}
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
 	var stdout, stderr bytes.Buffer
 	code := run(args, &stdout, &stderr)
 	return code, stdout.String(), stderr.String()
+}
+
+// trustTestExtension trusts one bundle-local fixture in the test's isolated trust file.
+func trustTestExtension(t *testing.T, root, name string) {
+	t.Helper()
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, name); err != nil {
+		t.Fatalf("trust %s: %v", name, err)
+	}
 }
 
 func InvokePersistent(t *testing.T, args ...string) (int, string, string) {

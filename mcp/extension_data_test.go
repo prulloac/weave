@@ -11,6 +11,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
+	"github.com/prulloac/weave/engine/extensions"
 	"github.com/prulloac/weave/engine/operations"
 	"github.com/prulloac/weave/mcp"
 )
@@ -66,6 +67,12 @@ func TestMCPExtensionDataResource(t *testing.T) {
 	command := exec.Command("go", "build", "-o", filepath.Join(extensionDir, "weave-data"), program)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build fixture extension: %v\n%s", err, output)
+	}
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, "data"); err != nil {
+		t.Fatal(err)
 	}
 
 	db := filepath.Join(t.TempDir(), "index.db")

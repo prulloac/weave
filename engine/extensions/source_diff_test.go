@@ -16,11 +16,17 @@ func diffExtension(t *testing.T, response string) Extension {
 	if runtime.GOOS == "windows" {
 		t.Skip("shell-script extensions are POSIX only")
 	}
-	path := filepath.Join(t.TempDir(), "weave-git")
+	root := t.TempDir()
+	dir := filepath.Join(root, ".weave", "bin")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "weave-git")
 	body := "#!/bin/sh\ncat >/dev/null\nprintf '%s' '" + response + "'\n"
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustFixture(t, root, "git")
 	return Extension{Name: "git", Path: path, Source: "bundle"}
 }
 

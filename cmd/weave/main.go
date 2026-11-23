@@ -64,6 +64,12 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if command == "extensions" && len(args) > 1 && args[1] == "check" {
 		return runExtensionCheck(args[1:], stdout, stderr)
 	}
+	if command == "extensions" && len(args) > 1 {
+		switch args[1] {
+		case "trust", "untrust", "trusted":
+			return runExtensionTrust(args[1:], stdout, stderr)
+		}
+	}
 	if command == "config" {
 		return runConfigCommand(args[1:], stdout, stderr)
 	}

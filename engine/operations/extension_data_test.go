@@ -62,6 +62,7 @@ func TestExtensionDataIngest(t *testing.T) {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build fixture extension: %v\n%s", err, output)
 	}
+	trustExternalExtension(t, root, "data")
 
 	dbPath := filepath.Join(t.TempDir(), "index.db")
 	successResult(t, executor().Execute(context.Background(), contractv1.OperationRequest{

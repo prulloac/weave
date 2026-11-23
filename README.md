@@ -558,14 +558,17 @@ Spec: [External Crypto Providers](https://github.com/prulloac/weave-docs/blob/ma
 List executable `weave-<name>` extensions from `<path>/.weave/bin/` and `$PATH`. Enrichers run
 during writes with `--with-enricher`, rerankers during search with `--rerank`; both speak
 `weave.cli/v1` JSON over stdin/stdout. `weave extensions check` validates one extension against the
-protocol contract, and `weave extensions data` reads and garbage-collects opaque artifacts published
-by extensions.
+protocol contract, `weave extensions trust` manages bundle-local trust, and `weave extensions data`
+reads and garbage-collects opaque artifacts published by extensions.
 
 ```sh
 weave extensions list ~/notes --json
 weave extensions list ~/notes --short
 weave extensions check ai ~/notes --json
 weave extensions check codec-lz4 ~/notes --timeout 30s
+weave extensions trust ai ~/notes
+weave extensions trusted --json
+weave extensions untrust ai
 weave extensions data list ~/notes --extension images --json
 weave extensions data get ~/notes images assets/architecture.png --out architecture.png --json
 weave extensions data gc ~/notes --dry-run --json
@@ -574,6 +577,11 @@ weave search ~/notes "token rotation" --rerank keywords --json
 ```
 
 - Bundle-local extensions win over `$PATH` entries with the same name.
+- A bundle-local extension runs only after `weave extensions trust <name> <path>` records its
+  absolute path and SHA-256 in `~/.weave/trust.yaml`. Untrusted ones are skipped with a warning when
+  discovered automatically; naming one explicitly fails with `EXTENSION_UNTRUSTED`, exit `1`.
+  Replacing the executable requires trusting it again, and a bundle file cannot grant trust.
+- `$PATH` extensions are not gated; installing them there is already a user action.
 - `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.

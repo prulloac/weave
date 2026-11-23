@@ -54,6 +54,7 @@ func buildUpperCodec(t *testing.T, root string) {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build codec: %v\n%s", err, output)
 	}
+	trustTestExtension(t, root, "codec-upper")
 }
 
 func TestCodecsListBuiltins(t *testing.T) {

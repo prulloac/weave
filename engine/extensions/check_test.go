@@ -28,6 +28,17 @@ func installCheckExtension(t *testing.T, root, name, manifest, response, prelude
 	if err := os.WriteFile(filepath.Join(dir, "weave-"+name), []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustFixture(t, root, name)
+}
+
+func trustFixture(t *testing.T, root, name string) {
+	t.Helper()
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := TrustExtension(root, name); err != nil {
+		t.Fatalf("trust %s: %v", name, err)
+	}
 }
 
 func useCheckCoreVersion(t *testing.T, release string) {
@@ -276,6 +287,7 @@ func installCheckDispatch(t *testing.T, root, name, manifest string, responses m
 	if err := os.WriteFile(filepath.Join(dir, "weave-"+name), []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustFixture(t, root, name)
 }
 
 func TestCheckUsesDeclaredRoles(t *testing.T) {

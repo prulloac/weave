@@ -28,6 +28,12 @@ func TestCryptoProviderRequirementUnmetRefuses(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "weave-crypto-newer"), []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, "crypto-newer"); err != nil {
+		t.Fatal(err)
+	}
 
 	provider, err := ResolveProvider(root, "newer")
 	if !errors.Is(err, extensions.ErrRequirementUnmet) {

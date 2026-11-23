@@ -101,6 +101,7 @@ func installScorerBinary(t *testing.T, root string) {
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build scorer fixture: %v\n%s", err, output)
 	}
+	trustTestExtension(t, root, "score")
 }
 
 func scorerBundle(t *testing.T) (string, string) {

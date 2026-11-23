@@ -26,6 +26,10 @@ func Check(ctx context.Context, root, name string, timeout time.Duration) (repor
 	if err != nil {
 		return report, err
 	}
+	if err := CheckTrusted(root, extension); err != nil {
+		report.Checks = append(report.Checks, failedCheck("requirements", err))
+		return report, nil
+	}
 	if timeout <= 0 {
 		timeout = DefaultTimeout
 	}
@@ -301,6 +305,8 @@ func failedCheck(name string, err error) contractv1.ExtensionCheckResult {
 
 func checkErrorCode(err error) contractv1.ErrorCode {
 	switch {
+	case errors.Is(err, ErrUntrusted):
+		return contractv1.ErrExtensionUntrusted
 	case errors.Is(err, ErrRequirementUnmet):
 		return contractv1.ErrExtensionRequirement
 	case errors.Is(err, ErrTimeout):

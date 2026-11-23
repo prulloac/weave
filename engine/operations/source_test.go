@@ -29,6 +29,7 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustOperationsExtension(t, root, "git")
 }
 
 func assertRelation(t *testing.T, concept contractv1.OkfConcept, to string, kind contractv1.RelationKind) {

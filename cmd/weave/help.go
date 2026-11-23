@@ -214,8 +214,8 @@ var commandHelpText = map[string]commandHelp{
 		},
 	},
 	"extensions": {
-		Usage:   "weave extensions list [<path>] [--short] [--json]\n  weave extensions check <name> [<path>] [--timeout 5s] [--json]\n  weave extensions data list <path> [--extension <name>] [--doc <id>] [--json]\n  weave extensions data get <path> <extension> <key> --out <file> [--force] [--json]\n  weave extensions data gc <path> [--dry-run] [--json]",
-		Summary: "List extensions, check conformance and read extension-owned opaque data.",
+		Usage:   "weave extensions list [<path>] [--short] [--json]\n  weave extensions check <name> [<path>] [--timeout 5s] [--json]\n  weave extensions trust <name> [<path>]\n  weave extensions untrust <name>\n  weave extensions trusted [<path>] [--json]\n  weave extensions data list <path> [--extension <name>] [--doc <id>] [--json]\n  weave extensions data get <path> <extension> <key> --out <file> [--force] [--json]\n  weave extensions data gc <path> [--dry-run] [--json]",
+		Summary: "List extensions, check conformance, manage trust and read extension-owned opaque data.",
 		Flags: []string{
 			"--short                            print extension names only",
 			"--timeout                          bound each check invocation",

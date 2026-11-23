@@ -27,6 +27,7 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, root, "git")
 }
 
 func TestGenericProviderDescriptors(t *testing.T) {
@@ -108,6 +109,7 @@ printf '%s' '{"v":"weave.cli/v1","type":"project_analysis_response","documents":
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-code"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, root, "code")
 	db := filepath.Join(t.TempDir(), "index.db")
 	code, stdout, stderr := Invoke(t, "ingest", root, "--with-enricher", "code", "--db", db, "--strict", "--json")
 	if code != 0 {

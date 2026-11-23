@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/prulloac/weave/engine/codecs"
+	"github.com/prulloac/weave/engine/extensions"
 )
 
 const helperSource = `package main
@@ -63,7 +64,18 @@ func buildCodec(t *testing.T, dir, name string) string {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build codec: %v\n%s", err, output)
 	}
+	trustCodec(t, filepath.Dir(filepath.Dir(dir)), name)
 	return path
+}
+
+func trustCodec(t *testing.T, root, name string) {
+	t.Helper()
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, "codec-"+name); err != nil {
+		t.Fatalf("trust codec %s: %v", name, err)
+	}
 }
 
 func TestBuiltinsAndDiscovery(t *testing.T) {

@@ -56,6 +56,9 @@ func DiffSource(ctx context.Context, options SourceDiffOptions) (contractv1.Sour
 	if err != nil {
 		return contractv1.SourceDiffResult{}, err
 	}
+	if err := extensions.CheckTrusted(options.WorkspaceRoot, extension); err != nil {
+		return contractv1.SourceDiffResult{}, err
+	}
 	manifest, err := extensions.DescribeWithTimeout(ctx, extension, timeout)
 	if err != nil {
 		return contractv1.SourceDiffResult{}, err

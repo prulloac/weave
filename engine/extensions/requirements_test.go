@@ -49,6 +49,12 @@ func installTestExtension(t *testing.T, root, name, manifest string) {
 	if err := os.WriteFile(filepath.Join(dir, "weave-"+name), []byte(body), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, name); err != nil {
+		t.Fatalf("trust %s: %v", name, err)
+	}
 }
 
 func useCoreVersion(t *testing.T, release string) {
@@ -152,6 +158,12 @@ func TestRequireAllowsExtensionWithoutReadableManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "weave-plain"), []byte("#!/bin/sh\ncat >/dev/null\nprintf '%s' '{}'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if os.Getenv("WEAVE_TRUST_FILE") == "" {
+		t.Setenv("WEAVE_TRUST_FILE", filepath.Join(t.TempDir(), "trust.yaml"))
+	}
+	if _, err := extensions.TrustExtension(root, "plain"); err != nil {
 		t.Fatal(err)
 	}
 

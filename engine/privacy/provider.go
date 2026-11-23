@@ -82,6 +82,9 @@ func ResolveProviderWithWarnings(root, requested string, warn func(string)) (Pro
 		if errors.Is(err, extensions.ErrRequirementUnmet) {
 			return nil, err
 		}
+		if errors.Is(err, extensions.ErrUntrusted) {
+			return nil, err
+		}
 		if warn != nil {
 			for _, warning := range warnings {
 				warn(warning)

@@ -85,6 +85,7 @@ func extensionDataCLIFixture(t *testing.T) string {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build fixture extension: %v\n%s", err, output)
 	}
+	trustTestExtension(t, root, "data")
 	return root
 }
 

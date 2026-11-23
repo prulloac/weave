@@ -27,6 +27,7 @@ func installCryptoMock(t *testing.T, root, script string, config string) {
 	if err := os.Chmod(path, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, root, "crypto-mock")
 	if config == "" {
 		config = "default_provider: mock\n"
 	}

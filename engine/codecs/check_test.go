@@ -79,6 +79,7 @@ func buildCheckCodec(t *testing.T, dir, name string) string {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build codec: %v\n%s", err, output)
 	}
+	trustCodec(t, filepath.Dir(filepath.Dir(dir)), name)
 	return path
 }
 

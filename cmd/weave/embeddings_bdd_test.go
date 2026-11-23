@@ -69,6 +69,7 @@ func buildEmbedder(t *testing.T, root string) {
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build embedder: %v\n%s", err, output)
 	}
+	trustTestExtension(t, root, "embed")
 }
 
 func embeddingFixture(t *testing.T) string {

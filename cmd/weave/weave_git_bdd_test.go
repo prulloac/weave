@@ -23,6 +23,7 @@ printf '{"v":"weave.source/v1","type":"source_response","snapshot":{"path":"%s",
 	if err := os.WriteFile(filepath.Join(root, ".weave", "bin", "weave-git"), []byte(provider), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, root, "git")
 }
 
 func TestWeaveGitLocalSourceIngest(t *testing.T) {

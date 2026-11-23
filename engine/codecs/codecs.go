@@ -98,6 +98,13 @@ func (r *Registry) List(ctx context.Context) ([]Info, error) {
 		if seen[candidate.name] {
 			continue
 		}
+		if candidate.source == "bundle" {
+			if err := extensions.CheckTrusted(r.BundleRoot, extensions.Extension{
+				Name: "codec-" + candidate.name, Path: candidate.path, Source: "bundle",
+			}); err != nil {
+				continue
+			}
+		}
 		m, err := r.describe(ctx, candidate.path)
 		if err != nil {
 			continue
@@ -192,6 +199,13 @@ func (r *Registry) resolve(ctx context.Context, name string) (Info, error) {
 	for _, candidate := range r.candidates() {
 		if candidate.name != name {
 			continue
+		}
+		if candidate.source == "bundle" {
+			if err := extensions.CheckTrusted(r.BundleRoot, extensions.Extension{
+				Name: "codec-" + name, Path: candidate.path, Source: "bundle",
+			}); err != nil {
+				return Info{}, newError("EXTENSION_UNTRUSTED", err.Error())
+			}
 		}
 		m, err := r.describe(ctx, candidate.path)
 		if err != nil {

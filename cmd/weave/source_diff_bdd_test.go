@@ -30,6 +30,7 @@ func sourceDiffWorkspace(t *testing.T, fixture string) string {
 	if err := os.WriteFile(filepath.Join(binDir, "weave-git"), data, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	trustTestExtension(t, dir, "git")
 	manifest := "version: 1\nsources:\n  docs:\n    git: /tmp/repo\n"
 	if err := os.WriteFile(filepath.Join(dir, workspaceManifestName), []byte(manifest), 0o644); err != nil {
 		t.Fatal(err)
