@@ -1,0 +1,22 @@
+{
+	"v": "weave.cli/v1",
+	"type": "batch_request",
+	"requests": [
+		{
+			"v": "weave.cli/v1",
+			"type": "enrichment_request",
+			"doc_id": "docs/a.md",
+			"title": "A",
+			"frontmatter": {},
+			"body": "alpha"
+		},
+		{
+			"v": "weave.cli/v1",
+			"type": "enrichment_request",
+			"doc_id": "docs/b.md",
+			"title": "B",
+			"frontmatter": {},
+			"body": "beta"
+		}
+	]
+}

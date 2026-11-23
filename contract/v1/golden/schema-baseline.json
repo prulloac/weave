@@ -949,6 +949,54 @@
 				}
 			}
 		},
+		"ExtensionBatchRequest": {
+			"type": "object",
+			"required": [
+				"requests",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"requests": {
+					"type": "array",
+					"items": {
+						"type": "object"
+					}
+				},
+				"type": {
+					"type": "string",
+					"const": "batch_request"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
+				}
+			}
+		},
+		"ExtensionBatchResponse": {
+			"type": "object",
+			"required": [
+				"results",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"results": {
+					"type": "array",
+					"items": {
+						"type": "object"
+					}
+				},
+				"type": {
+					"type": "string",
+					"const": "batch_response"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
+				}
+			}
+		},
 		"ExtensionCandidate": {
 			"type": "object",
 			"required": [
@@ -3805,6 +3853,8 @@
 		},
 		"extension-ipc.schema.json": {
 			"refs": [
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionBatchRequest",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionBatchResponse",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEmbeddingRequest",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEmbeddingResponse",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEnrichmentRequest",

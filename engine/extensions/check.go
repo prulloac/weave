@@ -67,6 +67,9 @@ func Check(ctx context.Context, root, name string, timeout time.Duration) (repor
 	}
 
 	runner := Runner{Timeout: timeout}
+	if manifest.SupportsCapability("batch") && containsRole(roles, "enrichment") {
+		report.Checks = append(report.Checks, checkBatch(ctx, runner, extension))
+	}
 	for _, role := range roles {
 		if err := runRoleCheck(ctx, runner, extension, role); err != nil {
 			report.Checks = append(report.Checks, failedCheck(role, err))
@@ -301,6 +304,23 @@ func failedCheck(name string, err error) contractv1.ExtensionCheckResult {
 		Code:    checkErrorCode(err),
 		Message: err.Error(),
 	}
+}
+
+func checkBatch(ctx context.Context, runner Runner, extension Extension) contractv1.ExtensionCheckResult {
+	_, _, err := runner.EnrichBatch(ctx, extension, []EnrichmentRequest{cannedEnrichmentRequest()})
+	if err != nil {
+		return failedCheck("batch", err)
+	}
+	return passedCheck("batch", "")
+}
+
+func containsRole(roles []string, role string) bool {
+	for _, value := range roles {
+		if value == role {
+			return true
+		}
+	}
+	return false
 }
 
 func checkErrorCode(err error) contractv1.ErrorCode {

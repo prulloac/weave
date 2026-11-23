@@ -3170,6 +3170,58 @@
 				}
 			}
 		},
+		"ExtensionBatchRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"requests"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "batch_request"
+				},
+				"requests": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 128,
+					"items": {
+						"type": "object"
+					}
+				}
+			}
+		},
+		"ExtensionBatchResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"results"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "batch_response"
+				},
+				"results": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 128,
+					"items": {
+						"type": "object"
+					}
+				}
+			}
+		},
 		"ExtensionTokenizerRequest": {
 			"type": "object",
 			"additionalProperties": false,

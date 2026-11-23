@@ -2,7 +2,6 @@ package operations
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -87,91 +86,36 @@ func (e *Executor) requireExtension(ctx context.Context, path, name string, time
 	return extension, err
 }
 
-func (e *Executor) newEnricher(request contractv1.OperationRequest) (sqlitestore.Enricher, error) {
+func (e *Executor) newEnricher(ctx context.Context, request contractv1.OperationRequest, concepts []contractv1.OkfConcept) (sqlitestore.Enricher, error) {
 	if request.Enricher == "" {
 		return nil, nil
 	}
-	extension, err := e.requireExtension(context.Background(), request.Path, request.Enricher, extensionTimeout(request))
+	extension, err := e.requireExtension(ctx, request.Path, request.Enricher, extensionTimeout(request))
 	if err != nil {
 		return nil, err
 	}
-	runner := extensions.Runner{Timeout: extensionTimeout(request)}
+	timeout := extensionTimeout(request)
+	runner := extensions.Runner{Timeout: timeout}
+	manifest, err := extensions.DescribeWithTimeout(ctx, extension, timeout)
+	if err != nil {
+		return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
+			return e.enrichOne(ctx, request.Path, extension, runner, concept)
+		}, nil
+	}
+	if manifest.SupportsCapability("batch") && len(concepts) > 0 {
+		applies, errs := e.enrichBatch(ctx, request.Path, extension, runner, concepts)
+		return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
+			if itemErr := errs[concept.ID]; itemErr != nil {
+				return sqlitestore.EnrichmentApply{}, itemErr
+			}
+			if apply, ok := applies[concept.ID]; ok {
+				return apply, nil
+			}
+			return e.enrichOne(ctx, request.Path, extension, runner, concept)
+		}, nil
+	}
 	return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
-		title := concept.ID
-		if concept.Title != nil {
-			title = *concept.Title
-		}
-		workspace, err := os.MkdirTemp("", "weave-extension-*")
-		if err != nil {
-			e.warn("extension %s: %v", extension.Name, err)
-			return sqlitestore.EnrichmentApply{}, err
-		}
-		defer os.RemoveAll(workspace)
-		if err := os.MkdirAll(filepath.Join(workspace, "files"), 0o700); err != nil {
-			e.warn("extension %s: %v", extension.Name, err)
-			return sqlitestore.EnrichmentApply{}, err
-		}
-		bundleRoot, err := filepath.Abs(request.Path)
-		if err != nil {
-			bundleRoot = request.Path
-		}
-		response, err := runner.Enrich(ctx, extension, extensions.EnrichmentRequest{
-			DocID:       concept.ID,
-			DocPath:     concept.Path,
-			BundleRoot:  bundleRoot,
-			Workspace:   workspace,
-			Title:       title,
-			Frontmatter: concept.Frontmatter,
-			Body:        privacy.RedactForAI(concept),
-		})
-		if err != nil {
-			e.warn("extension %s: %v", extension.Name, err)
-			return sqlitestore.EnrichmentApply{}, err
-		}
-		data, err := json.Marshal(map[string]any{
-			"name":              extension.Name,
-			"inferred_keywords": response.InferredKeywords,
-			"response":          response.CustomMetadata,
-		})
-		if err != nil {
-			return sqlitestore.EnrichmentApply{}, err
-		}
-		for _, warning := range response.Warnings {
-			if strings.TrimSpace(warning) != "" {
-				e.warn("extension %s: %s", extension.Name, warning)
-			}
-		}
-		apply := sqlitestore.EnrichmentApply{
-			Enricher:        extension.Name,
-			Keywords:        mergeKeywords(concept.Keywords, response.InferredKeywords),
-			Title:           response.InferredTitle,
-			Description:     response.InferredDescription,
-			Text:            response.InferredText,
-			TextSource:      response.InferredTextSource,
-			ContentMetadata: response.InferredContentMetadata,
-			Data:            data,
-			Warnings:        len(response.Warnings),
-		}
-		files, err := extensions.ValidateWorkspace(workspace)
-		if err != nil {
-			e.warn("extension %s: %v", extension.Name, err)
-			apply.Warnings++
-			return apply, nil
-		}
-		if files != nil {
-			for index := range files {
-				content, err := os.ReadFile(files[index].SourcePath)
-				if err != nil {
-					e.warn("extension %s: %v", extension.Name, err)
-					apply.Warnings++
-					return apply, nil
-				}
-				files[index].Content = content
-			}
-			apply.ExtensionData = files
-			apply.ExtensionReady = true
-		}
-		return apply, nil
+		return e.enrichOne(ctx, request.Path, extension, runner, concept)
 	}, nil
 }
 

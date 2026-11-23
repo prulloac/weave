@@ -66,9 +66,23 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			"extension": request.Enricher,
 		})
 	}
+	options := e.Options
+	options.Permissive = permissive
+	if request.Source != nil {
+		// Source snapshots are arbitrary repositories, not OKF bundles. The
+		// repository README is represented by the synthetic _repo node.
+		options.Permissive = true
+	}
+	eng, err := engine.Open(ctx, request.Path, options)
+	if err != nil {
+		code, message := mapOpenError(err)
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
+	defer eng.Close()
+
 	var enricher sqlitestore.Enricher
 	if !projectMode {
-		enricher, err = e.newEnricher(request)
+		enricher, err = e.newEnricher(ctx, request, eng.Bundle().Concepts)
 		if err != nil {
 			return failure(extensionErrorCode(err), err.Error(), map[string]any{
 				"extension": request.Enricher,
@@ -88,19 +102,6 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	if provider != nil {
 		defer provider.Close()
 	}
-	options := e.Options
-	options.Permissive = permissive
-	if request.Source != nil {
-		// Source snapshots are arbitrary repositories, not OKF bundles. The
-		// repository README is represented by the synthetic _repo node.
-		options.Permissive = true
-	}
-	eng, err := engine.Open(ctx, request.Path, options)
-	if err != nil {
-		code, message := mapOpenError(err)
-		return failure(code, message, map[string]any{"path": request.Path})
-	}
-	defer eng.Close()
 
 	dbPath, err := resolveDBPath(request.DB)
 	if err != nil {
@@ -274,8 +275,13 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		}
 	}
 	var enricher sqlitestore.Enricher
-	if !projectMode {
-		enricher, err = e.newEnricher(request)
+	if !projectMode && request.Enricher != "" {
+		bundleForEnrichment, err := store.LoadBundle(ctx, request.Path)
+		if err != nil {
+			code, message := mapStorageError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+		enricher, err = e.newEnricher(ctx, request, bundleForEnrichment.Concepts)
 		if err != nil {
 			return failure(extensionErrorCode(err), err.Error(), map[string]any{
 				"extension": request.Enricher,

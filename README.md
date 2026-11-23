@@ -582,6 +582,9 @@ weave search ~/notes "token rotation" --rerank keywords --json
   discovered automatically; naming one explicitly fails with `EXTENSION_UNTRUSTED`, exit `1`.
   Replacing the executable requires trusting it again, and a bundle file cannot grant trust.
 - `$PATH` extensions are not gated; installing them there is already a user action.
+- An enricher that declares `batch` in `capabilities` receives up to 128 documents per process in a
+  `batch_request`; per-item failures keep core behavior for that document and do not fail the batch.
+  Extensions without the capability run once per document.
 - `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.

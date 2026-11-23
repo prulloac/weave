@@ -1,0 +1,19 @@
+{
+	"v": "weave.cli/v1",
+	"type": "batch_response",
+	"results": [
+		{
+			"v": "weave.cli/v1",
+			"inferred_keywords": [
+				"alpha"
+			]
+		},
+		{
+			"ok": false,
+			"error": {
+				"code": "EXTENSION_FAILED",
+				"message": "provider unavailable"
+			}
+		}
+	]
+}

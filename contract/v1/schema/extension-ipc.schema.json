@@ -35,6 +35,12 @@
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionTokenizerResponse"
 		},
 		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionBatchRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionBatchResponse"
+		},
+		{
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionProjectAnalysisRequest"
 		},
 		{
