@@ -238,10 +238,16 @@ var commandHelpText = map[string]commandHelp{
 		Summary: "Parse a bundle and report validation and index state.",
 	},
 	"graph": {
-		Usage:   "weave graph <path> [--source ...] [--relation <kind,...>] [--json]",
-		Summary: "Print nodes, edges and dangling links.",
+		Usage:   "weave graph <path> [--source ...] [--relation <kind,...>] [--format dot|mermaid|graphml] [--out <file>] [--json]",
+		Summary: "Print nodes, edges and dangling links, or export the graph.",
 		Flags: []string{
 			"--relation <kind,...>              filter edges by relation kind",
+			"--format <format>                  export as dot, mermaid or graphml",
+			"--out <file>                       write the export to a file",
+		},
+		Examples: []string{
+			`weave graph ~/notes --format dot --out graph.dot`,
+			`weave graph ~/notes --format mermaid`,
 		},
 	},
 	"backlinks": {

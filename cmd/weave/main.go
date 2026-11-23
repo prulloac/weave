@@ -16,6 +16,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
 	"github.com/prulloac/weave/engine/extensions"
+	graphpkg "github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/operations"
 	"github.com/prulloac/weave/engine/privacy"
 	sqlitestore "github.com/prulloac/weave/storage/sqlite"
@@ -308,9 +309,21 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return usageError(stdout, stderr, flags.json, "--provider is not supported for this command")
 		}
 	}
-	if request.Op != contractv1.OpExport && request.Op != contractv1.OpShow {
+	if request.Op == contractv1.OpGraph && flags.format != "" {
+		format := strings.ToLower(strings.TrimSpace(flags.format))
+		if !graphpkg.ValidExportFormat(format) {
+			return usageError(stdout, stderr, flags.json, "--format must be dot, mermaid or graphml for graph")
+		}
+		if flags.json {
+			return usageError(stdout, stderr, flags.json, "--format and --json are mutually exclusive")
+		}
+		if flags.keyID != "" || flags.force || flags.yes {
+			return usageError(stdout, stderr, flags.json, "--key-id, --force and --yes are not valid for graph")
+		}
+		request.Format = format
+	} else if request.Op != contractv1.OpExport && request.Op != contractv1.OpShow {
 		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.force || flags.yes {
-			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for show and export")
+			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for show, export and graph export")
 		}
 	} else if request.Op == contractv1.OpShow {
 		if flags.format != "" || flags.keyID != "" || flags.yes {
@@ -390,6 +403,34 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	if flags.verbose {
 		fmt.Fprintf(stderr, "weave: elapsed: %s\n", time.Since(started).Round(time.Millisecond))
+	}
+
+	if request.Op == contractv1.OpGraph && request.Format != "" {
+		if envelope, ok := value.(contractv1.SuccessEnvelope); ok {
+			if result, ok := envelope.Result.(contractv1.Graph); ok {
+				data, err := graphpkg.RenderExport(result, request.Format)
+				if err != nil {
+					fmt.Fprintf(stderr, "weave: %v\n", err)
+					return 1
+				}
+				dangling := 0
+				for _, links := range result.Dangling {
+					dangling += len(links)
+				}
+				if dangling > 0 && !flags.quiet {
+					fmt.Fprintf(stderr, "weave: %d dangling link(s) omitted from the export\n", dangling)
+				}
+				if request.Out != "" {
+					if err := writeFileAtomic(request.Out, data); err != nil {
+						fmt.Fprintf(stderr, "weave: %v\n", err)
+						return 1
+					}
+					return 0
+				}
+				fmt.Fprint(stdout, string(data))
+				return 0
+			}
+		}
 	}
 
 	if request.Op == contractv1.OpShow && request.Out != "" {
