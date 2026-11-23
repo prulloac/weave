@@ -89,9 +89,6 @@ func finalizeReport(report *contractv1.ExtensionCheckReport) {
 	}
 }
 
-// canonicalRoles lists the role names a manifest may declare, in report order.
-var canonicalRoles = []string{"enrichment", "project", "source", "rerank", "scorer", "embedder", "tokenizer"}
-
 // declaredRoles reports the roles a manifest declares. A `roles` list wins over the older keys. When
 // it is absent, enrichment has no explicit manifest key: an extension is an enricher unless it
 // declares a source provider or opts out by declaring only non-document analysis modes.
@@ -99,13 +96,13 @@ func declaredRoles(manifest Manifest) ([]string, error) {
 	if len(manifest.Roles) > 0 {
 		declared := make(map[string]bool, len(manifest.Roles))
 		for _, role := range manifest.Roles {
-			if !knownRole(role) {
+			if _, ok := Role(role); !ok {
 				return nil, fmt.Errorf("%w: unknown role %q", ErrProtocol, role)
 			}
 			declared[role] = true
 		}
 		roles := make([]string, 0, len(declared))
-		for _, role := range canonicalRoles {
+		for _, role := range RoleNames() {
 			if declared[role] {
 				roles = append(roles, role)
 			}
@@ -124,15 +121,6 @@ func declaredRoles(manifest Manifest) ([]string, error) {
 		roles = append(roles, "enrichment")
 	}
 	return roles, nil
-}
-
-func knownRole(role string) bool {
-	for _, canonical := range canonicalRoles {
-		if role == canonical {
-			return true
-		}
-	}
-	return false
 }
 
 func supportsDocumentMode(modes []string) bool {
@@ -170,11 +158,11 @@ func checkProtocols(manifest Manifest, roles []string) (contractv1.ExtensionChec
 		}
 	}
 	for _, role := range roles {
-		if role == "source" {
-			wanted[SourceProtocolVersion] = true
-			continue
+		descriptor, ok := Role(role)
+		if !ok {
+			return failedCheck("protocols", fmt.Errorf("%w: unknown role %q", ErrProtocol, role)), true
 		}
-		wanted[ProtocolVersion] = true
+		wanted[descriptor.Protocol] = true
 	}
 	for protocol := range wanted {
 		found := false
@@ -196,31 +184,7 @@ func checkProtocols(manifest Manifest, roles []string) (contractv1.ExtensionChec
 }
 
 func runRoleCheck(ctx context.Context, runner Runner, extension Extension, role string) error {
-	switch role {
-	case "enrichment":
-		_, err := runner.Enrich(ctx, extension, cannedEnrichmentRequest())
-		return err
-	case "project":
-		_, err := runner.ProjectAnalysis(ctx, extension, cannedProjectRequest())
-		return err
-	case "source":
-		_, err := runner.MaterializeSource(ctx, extension, cannedSourceRequest())
-		return err
-	case "rerank":
-		_, err := runner.Rerank(ctx, extension, cannedRerankRequest())
-		return err
-	case "scorer":
-		_, err := runner.Score(ctx, extension, cannedScorerRequest())
-		return err
-	case "embedder":
-		_, err := runner.Embed(ctx, extension, cannedEmbeddingRequest())
-		return err
-	case "tokenizer":
-		_, err := runner.Tokenize(ctx, extension, cannedTokenizerRequest())
-		return err
-	default:
-		return fmt.Errorf("%w: unknown role %q", ErrProtocol, role)
-	}
+	return runner.RunRoleCheck(ctx, extension, role)
 }
 
 func cannedEnrichmentRequest() EnrichmentRequest {
