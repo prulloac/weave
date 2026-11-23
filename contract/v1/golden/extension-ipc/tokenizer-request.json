@@ -1,0 +1,7 @@
+{
+	"v": "weave.cli/v1",
+	"type": "tokenizer_request",
+	"text": "Tokenization normalizes text",
+	"language": "en",
+	"mode": "index"
+}

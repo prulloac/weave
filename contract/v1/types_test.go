@@ -188,6 +188,8 @@ func TestExtensionIPCFixturesValidate(t *testing.T) {
 		"scorer-response.json",
 		"embedding-request.json",
 		"embedding-response.json",
+		"tokenizer-request.json",
+		"tokenizer-response.json",
 		"project-analysis-request.json",
 		"project-analysis-response.json",
 		"source-request.json",

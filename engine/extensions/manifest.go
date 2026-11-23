@@ -15,6 +15,8 @@ type Manifest struct {
 	Version            string                    `json:"version,omitempty"`
 	Protocols          []string                  `json:"protocols,omitempty"`
 	Requires           []Requirement             `json:"requires,omitempty"`
+	Roles              []string                  `json:"roles,omitempty"`
+	CacheKey           string                    `json:"cache_key,omitempty"`
 	AssetTypes         []string                  `json:"asset_types,omitempty"`
 	SourceExtensions   []string                  `json:"source_extensions,omitempty"`
 	AnalysisModes      []string                  `json:"analysis_modes,omitempty"`

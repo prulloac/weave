@@ -149,6 +149,65 @@ func TestCheckCommandCodec(t *testing.T) {
 	}
 }
 
+func TestCheckCommandUsesDeclaredRoles(t *testing.T) {
+	withCoreVersion(t, "0.11.0")
+	root := extensionFixture(t)
+	installExtension(t, root, "rerank", "check-rerank.sh")
+
+	code, stdout, stderr := Invoke(t, "extensions", "check", "rerank", root, "--json")
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d stdout=%s stderr=%s", code, stdout, stderr)
+	}
+	report := decodeCheckReport(t, stdout)
+	if !report.OK {
+		t.Fatalf("expected a passing report: %+v", report.Checks)
+	}
+	if got := checkBy(t, report, "rerank").Status; got != contractv1.ExtensionCheckPass {
+		t.Fatalf("rerank status = %s", got)
+	}
+	for _, other := range report.Checks {
+		if other.Check == "enrichment" {
+			t.Fatal("roles must suppress the legacy enrichment inference")
+		}
+	}
+}
+
+func TestCheckCommandRerankRole(t *testing.T) {
+	withCoreVersion(t, "0.11.0")
+	root := extensionFixture(t)
+	installExtension(t, root, "rerank", "check-rerank.sh")
+
+	code, stdout, stderr := Invoke(t, "extensions", "check", "rerank", root, "--json")
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d stdout=%s stderr=%s", code, stdout, stderr)
+	}
+	report := decodeCheckReport(t, stdout)
+	names := make([]string, 0, len(report.Checks))
+	for _, check := range report.Checks {
+		names = append(names, check.Check)
+	}
+	want := []string{"manifest", "protocols", "rerank"}
+	if strings.Join(names, ",") != strings.Join(want, ",") {
+		t.Fatalf("checks = %v, want %v", names, want)
+	}
+}
+
+func TestDeclaredRolesDoNotAutoSelect(t *testing.T) {
+	withCoreVersion(t, "0.11.0")
+	marker := filepath.Join(t.TempDir(), "invoked")
+	t.Setenv("TEST_MARKER", marker)
+	root := extensionFixture(t)
+	installExtension(t, root, "rerank", "check-rerank-marker.sh")
+
+	code, stdout, stderr := Invoke(t, "search", root, "alpha", "--no-db", "--json")
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d stdout=%s stderr=%s", code, stdout, stderr)
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("a declared role must not be selected implicitly, stat err = %v", err)
+	}
+}
+
 func TestCheckCommandHumanOutput(t *testing.T) {
 	withCoreVersion(t, "0.11.0")
 	root := extensionFixture(t)

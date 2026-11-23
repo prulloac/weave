@@ -1879,6 +1879,68 @@
 				}
 			}
 		},
+		"ExtensionTokenizerRequest": {
+			"type": "object",
+			"required": [
+				"mode",
+				"text",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"language": {
+					"type": "string"
+				},
+				"mode": {
+					"type": "string",
+					"enum": [
+						"index",
+						"query"
+					]
+				},
+				"options": {
+					"type": "object"
+				},
+				"text": {
+					"type": "string"
+				},
+				"type": {
+					"type": "string",
+					"const": "tokenizer_request"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
+				}
+			}
+		},
+		"ExtensionTokenizerResponse": {
+			"type": "object",
+			"required": [
+				"terms",
+				"type",
+				"v"
+			],
+			"additional_properties": false,
+			"properties": {
+				"expansions": {
+					"type": "object"
+				},
+				"terms": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"type": {
+					"type": "string",
+					"const": "tokenizer_response"
+				},
+				"v": {
+					"ref": "#/$defs/ExtensionProtocolVersion"
+				}
+			}
+		},
 		"FailureEnvelope": {
 			"type": "object",
 			"required": [
@@ -3555,7 +3617,9 @@
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionScorerRequest",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionScorerResponse",
 				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceRequest",
-				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceResponse"
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionSourceResponse",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionTokenizerRequest",
+				"https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionTokenizerResponse"
 			]
 		},
 		"extensions.schema.json": {

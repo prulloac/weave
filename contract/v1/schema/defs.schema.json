@@ -3071,6 +3071,81 @@
 				}
 			}
 		},
+		"ExtensionTokenizerRequest": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"text",
+				"mode"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "tokenizer_request"
+				},
+				"text": {
+					"type": "string",
+					"maxLength": 1048576
+				},
+				"language": {
+					"type": "string"
+				},
+				"mode": {
+					"type": "string",
+					"enum": [
+						"index",
+						"query"
+					]
+				},
+				"options": {
+					"type": "object"
+				}
+			}
+		},
+		"ExtensionTokenizerResponse": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"v",
+				"type",
+				"terms"
+			],
+			"properties": {
+				"v": {
+					"$ref": "#/$defs/ExtensionProtocolVersion"
+				},
+				"type": {
+					"type": "string",
+					"const": "tokenizer_response"
+				},
+				"terms": {
+					"type": "array",
+					"maxItems": 4096,
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 128
+					}
+				},
+				"expansions": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "array",
+						"maxItems": 32,
+						"items": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 128
+						}
+					}
+				}
+			}
+		},
 		"ExtensionProjectFile": {
 			"type": "object",
 			"additionalProperties": false,

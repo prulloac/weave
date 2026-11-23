@@ -1,0 +1,15 @@
+{
+	"v": "weave.cli/v1",
+	"type": "tokenizer_response",
+	"terms": [
+		"token",
+		"normal",
+		"text"
+	],
+	"expansions": {
+		"token": [
+			"tokenize",
+			"tokenization"
+		]
+	}
+}

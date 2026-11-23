@@ -29,6 +29,12 @@
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionEmbeddingResponse"
 		},
 		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionTokenizerRequest"
+		},
+		{
+			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionTokenizerResponse"
+		},
+		{
 			"$ref": "https://weave.dev/contract/v1/defs.schema.json#/$defs/ExtensionProjectAnalysisRequest"
 		},
 		{

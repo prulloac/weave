@@ -35,9 +35,13 @@ func Check(ctx context.Context, root, name string, timeout time.Duration) (repor
 		report.Checks = append(report.Checks, failedCheck("manifest", err))
 		return report, nil
 	}
+	roles, err := declaredRoles(manifest)
+	if err != nil {
+		report.Checks = append(report.Checks, failedCheck("manifest", err))
+		return report, nil
+	}
 	report.Checks = append(report.Checks, passedCheck("manifest", ""))
 
-	roles := declaredRoles(manifest)
 	warnings, err := CheckRequirements(ctx, root, name, manifest.Requires, timeout)
 	if err == nil && (manifestNeedsDescriptor(roles)) {
 		warning, failure := CheckDescriptorVersion(extension.Name, manifest.Version)
@@ -85,10 +89,29 @@ func finalizeReport(report *contractv1.ExtensionCheckReport) {
 	}
 }
 
-// declaredRoles reports the roles a manifest declares. Enrichment has no explicit manifest key: an
-// extension is an enricher unless it declares a source provider or opts out by declaring only
-// non-document analysis modes.
-func declaredRoles(manifest Manifest) []string {
+// canonicalRoles lists the role names a manifest may declare, in report order.
+var canonicalRoles = []string{"enrichment", "project", "source", "rerank", "scorer", "embedder", "tokenizer"}
+
+// declaredRoles reports the roles a manifest declares. A `roles` list wins over the older keys. When
+// it is absent, enrichment has no explicit manifest key: an extension is an enricher unless it
+// declares a source provider or opts out by declaring only non-document analysis modes.
+func declaredRoles(manifest Manifest) ([]string, error) {
+	if len(manifest.Roles) > 0 {
+		declared := make(map[string]bool, len(manifest.Roles))
+		for _, role := range manifest.Roles {
+			if !knownRole(role) {
+				return nil, fmt.Errorf("%w: unknown role %q", ErrProtocol, role)
+			}
+			declared[role] = true
+		}
+		roles := make([]string, 0, len(declared))
+		for _, role := range canonicalRoles {
+			if declared[role] {
+				roles = append(roles, role)
+			}
+		}
+		return roles, nil
+	}
 	roles := make([]string, 0, 3)
 	source := len(manifest.SourceProviders) > 0
 	if source {
@@ -100,7 +123,16 @@ func declaredRoles(manifest Manifest) []string {
 	if !source && supportsDocumentMode(manifest.AnalysisModes) {
 		roles = append(roles, "enrichment")
 	}
-	return roles
+	return roles, nil
+}
+
+func knownRole(role string) bool {
+	for _, canonical := range canonicalRoles {
+		if role == canonical {
+			return true
+		}
+	}
+	return false
 }
 
 func supportsDocumentMode(modes []string) bool {
@@ -140,10 +172,9 @@ func checkProtocols(manifest Manifest, roles []string) (contractv1.ExtensionChec
 	for _, role := range roles {
 		if role == "source" {
 			wanted[SourceProtocolVersion] = true
+			continue
 		}
-		if role == "enrichment" || role == "project" {
-			wanted[ProtocolVersion] = true
-		}
+		wanted[ProtocolVersion] = true
 	}
 	for protocol := range wanted {
 		found := false
@@ -174,6 +205,18 @@ func runRoleCheck(ctx context.Context, runner Runner, extension Extension, role 
 		return err
 	case "source":
 		_, err := runner.MaterializeSource(ctx, extension, cannedSourceRequest())
+		return err
+	case "rerank":
+		_, err := runner.Rerank(ctx, extension, cannedRerankRequest())
+		return err
+	case "scorer":
+		_, err := runner.Score(ctx, extension, cannedScorerRequest())
+		return err
+	case "embedder":
+		_, err := runner.Embed(ctx, extension, cannedEmbeddingRequest())
+		return err
+	case "tokenizer":
+		_, err := runner.Tokenize(ctx, extension, cannedTokenizerRequest())
 		return err
 	default:
 		return fmt.Errorf("%w: unknown role %q", ErrProtocol, role)
@@ -221,6 +264,57 @@ func cannedSourceRequest() SourceRequest {
 			Worktree: true,
 			Depth:    1,
 		},
+	}
+}
+
+func cannedRerankRequest() RerankRequest {
+	return RerankRequest{
+		Query: "zero cgo database",
+		Candidates: []Candidate{
+			{ID: "docs/adr-004.md", KeywordScore: 0.82, LexicalScore: 0.82, FuzzyScore: 0.45},
+			{ID: "docs/adr-001.md", KeywordScore: 0.31, LexicalScore: 0.31, FuzzyScore: 0.1},
+		},
+	}
+}
+
+func cannedScorerRequest() ScorerRequest {
+	return ScorerRequest{
+		Query: "zero cgo database",
+		Mode:  "hybrid",
+		Candidates: []ScorerCandidate{
+			{
+				ID:       "docs/adr-004.md",
+				Path:     "docs/adr-004.md",
+				Title:    "Database Storage Selection",
+				Type:     "adr",
+				Keywords: []string{"sqlite", "storage"},
+				Scores:   ScorerScores{Keyword: 0.82, Lexical: 0.82, Fuzzy: 0.45, Core: 0.64},
+			},
+			{
+				ID:       "docs/adr-001.md",
+				Path:     "docs/adr-001.md",
+				Title:    "Keyword Search",
+				Type:     "adr",
+				Keywords: []string{"search"},
+				Scores:   ScorerScores{Keyword: 0.31, Lexical: 0.31, Fuzzy: 0.1, Core: 0.21},
+			},
+		},
+	}
+}
+
+func cannedEmbeddingRequest() EmbeddingRequest {
+	return EmbeddingRequest{
+		Text:      "zero cgo database",
+		MediaType: "text/plain",
+		Model:     "nomic-embed-text",
+	}
+}
+
+func cannedTokenizerRequest() TokenizerRequest {
+	return TokenizerRequest{
+		Text:     "Tokenization normalizes text",
+		Language: "en",
+		Mode:     "index",
 	}
 }
 
