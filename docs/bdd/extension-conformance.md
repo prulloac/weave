@@ -74,6 +74,35 @@ Executable coverage: `TestCheckUnknownExtension`, `TestCheckCommandUnknownExtens
 
 Executable coverage: `TestCheckCommandHumanOutput`.
 
+## Scenario: a declared rerank role is checked
+
+- Given an extension whose manifest declares `roles: ["rerank"]`
+- And its rerank response is valid `weave.cli/v1`
+- When I run `weave extensions check rerank <bundle> --json`
+- Then the `manifest`, `rerank` and `protocols` checks pass
+- And the command exits `0`
+
+Executable coverage: `TestCheckRerankRole`, `TestCheckCommandRerankRole`.
+
+## Scenario: a malformed rerank response fails its role check
+
+- Given a declared rerank response whose `rerank_score` is not numeric
+- When the conformance check runs
+- Then the `rerank` check fails with `EXTENSION_PROTOCOL`
+- And the `manifest` check still passes
+
+Executable coverage: `TestCheckRerankMalformed`.
+
+## Scenario: declared scorer, embedder and tokenizer roles are checked
+
+- Given a manifest declares `scorer`, `embedder` and `tokenizer`
+- When I run `weave extensions check <name> <bundle> --json`
+- Then one check per role appears, in name order
+- And each request matches its golden fixture
+- And a malformed response for any role fails only that check
+
+Executable coverage: `TestCheckScorerEmbedderTokenizerRoles`, `TestCheckRoleValidators`.
+
 ## Scenario: a codec extension round-trips raw bytes
 
 - Given a codec `ident` that copies stdin to stdout
