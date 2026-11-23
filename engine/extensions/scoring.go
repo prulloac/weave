@@ -2,7 +2,6 @@ package extensions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 )
@@ -57,15 +56,8 @@ func (r Runner) Score(ctx context.Context, extension Extension, request ScorerRe
 	request.V = ProtocolVersion
 	request.Type = "scorer_request"
 	request.CandidateK = len(request.Candidates)
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrProtocol, err)
-	}
-	if len(payload) > MaxScorerRequest {
-		return nil, fmt.Errorf("%w: %s request exceeds %d bytes", ErrProtocol, extension.Name, MaxScorerRequest)
-	}
 	var response scorerResponse
-	if err := r.invoke(ctx, extension, request, &response); err != nil {
+	if err := r.invokeRole(ctx, extension, "scorer", request, &response); err != nil {
 		return nil, err
 	}
 	if len(response.Ranked) != len(request.Candidates) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -97,15 +96,8 @@ type SourceResponse struct {
 func (r Runner) MaterializeSource(ctx context.Context, extension Extension, request SourceRequest) (SourceResponse, error) {
 	request.V = SourceProtocolVersion
 	request.Type = "source_request"
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return SourceResponse{}, fmt.Errorf("%w: %v", ErrProtocol, err)
-	}
-	if len(payload) > MaxSourceResponseBytes {
-		return SourceResponse{}, fmt.Errorf("%w: %s request exceeds %d bytes", ErrProtocol, extension.Name, MaxSourceResponseBytes)
-	}
 	var response SourceResponse
-	if err := r.invokeVersionWithLimit(ctx, extension, request, &response, MaxSourceResponseBytes, SourceProtocolVersion); err != nil {
+	if err := r.invokeRole(ctx, extension, "source", request, &response); err != nil {
 		return SourceResponse{}, err
 	}
 	if response.Snapshot.SourceID != request.SourceID {

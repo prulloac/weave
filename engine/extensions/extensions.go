@@ -171,7 +171,7 @@ func (r Runner) Enrich(ctx context.Context, extension Extension, request Enrichm
 	request.Type = "enrichment_request"
 	request.Body = truncate(request.Body, maxBody)
 	var response EnrichmentResponse
-	if err := r.invoke(ctx, extension, request, &response); err != nil {
+	if err := r.invokeRole(ctx, extension, "enrichment", request, &response); err != nil {
 		return EnrichmentResponse{}, err
 	}
 	response.InferredKeywords = normalizeKeywords(response.InferredKeywords)
@@ -210,7 +210,7 @@ func (r Runner) Rerank(ctx context.Context, extension Extension, request RerankR
 	request.V = ProtocolVersion
 	request.Type = "rerank_request"
 	var response rerankResponse
-	if err := r.invoke(ctx, extension, request, &response); err != nil {
+	if err := r.invokeRole(ctx, extension, "rerank", request, &response); err != nil {
 		return nil, err
 	}
 	if len(response.Ranked) != len(request.Candidates) {
@@ -275,7 +275,7 @@ func (r Runner) Embed(ctx context.Context, extension Extension, request Embeddin
 	request.Type = "embedding_request"
 	request.Text = truncate(request.Text, 8<<10)
 	var response embeddingResponse
-	if err := r.invoke(ctx, extension, request, &response); err != nil {
+	if err := r.invokeRole(ctx, extension, "embedder", request, &response); err != nil {
 		return Embedding{}, err
 	}
 	if request.Model != "" && response.Model != request.Model {

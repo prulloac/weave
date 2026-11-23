@@ -40,7 +40,7 @@ func (r Runner) Tokenize(ctx context.Context, extension Extension, request Token
 	request.Type = "tokenizer_request"
 	request.Text = truncate(request.Text, maxTokenizerText)
 	var response TokenizerResponse
-	if err := r.invoke(ctx, extension, request, &response); err != nil {
+	if err := r.invokeRole(ctx, extension, "tokenizer", request, &response); err != nil {
 		return TokenizerResponse{}, err
 	}
 	if response.Terms == nil {

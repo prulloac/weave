@@ -2,7 +2,6 @@ package extensions
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 )
 
@@ -66,15 +65,8 @@ type ProjectAnalysisResponse struct {
 func (r Runner) ProjectAnalysis(ctx context.Context, extension Extension, request ProjectAnalysisRequest) (ProjectAnalysisResponse, error) {
 	request.V = ProtocolVersion
 	request.Type = "project_analysis_request"
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return ProjectAnalysisResponse{}, fmt.Errorf("%w: %v", ErrProtocol, err)
-	}
-	if len(payload) > MaxProjectAnalysisBytes {
-		return ProjectAnalysisResponse{}, fmt.Errorf("%w: %s request exceeds %d bytes", ErrProtocol, extension.Name, MaxProjectAnalysisBytes)
-	}
 	var response ProjectAnalysisResponse
-	if err := r.invokeWithLimit(ctx, extension, request, &response, MaxProjectAnalysisBytes); err != nil {
+	if err := r.invokeRole(ctx, extension, "project", request, &response); err != nil {
 		return ProjectAnalysisResponse{}, err
 	}
 	// Files may be omitted when the analyzer skips them because of ignore

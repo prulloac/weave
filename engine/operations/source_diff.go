@@ -52,21 +52,7 @@ func DiffSource(ctx context.Context, options SourceDiffOptions) (contractv1.Sour
 	if timeout <= 0 {
 		timeout = 120 * time.Second
 	}
-	extension, err := extensions.Resolve(options.WorkspaceRoot, options.Provider)
-	if err != nil {
-		return contractv1.SourceDiffResult{}, err
-	}
-	if err := extensions.CheckTrusted(options.WorkspaceRoot, extension); err != nil {
-		return contractv1.SourceDiffResult{}, err
-	}
-	manifest, err := extensions.DescribeWithTimeout(ctx, extension, timeout)
-	if err != nil {
-		return contractv1.SourceDiffResult{}, err
-	}
-	if !manifest.SupportsCapability("diff") {
-		return contractv1.SourceDiffResult{}, fmt.Errorf("%w: %s", ErrSourceUnsupported, options.Provider)
-	}
-	warnings, err := extensions.CheckRequirements(ctx, options.WorkspaceRoot, options.Provider, manifest.Requires, timeout)
+	extension, manifest, warnings, err := extensions.SelectRole(ctx, options.WorkspaceRoot, options.Provider, "source", timeout)
 	for _, warning := range warnings {
 		if options.Warn != nil {
 			options.Warn(warning)
@@ -75,10 +61,8 @@ func DiffSource(ctx context.Context, options SourceDiffOptions) (contractv1.Sour
 	if err != nil {
 		return contractv1.SourceDiffResult{}, err
 	}
-	if warning, failure := extensions.CheckDescriptorVersion(extension.Name, manifest.Version); failure != nil {
-		return contractv1.SourceDiffResult{}, failure
-	} else if warning != "" && options.Warn != nil {
-		options.Warn(warning)
+	if !manifest.SupportsCapability("diff") {
+		return contractv1.SourceDiffResult{}, fmt.Errorf("%w: %s", ErrSourceUnsupported, options.Provider)
 	}
 
 	runner := extensions.Runner{Timeout: timeout}
