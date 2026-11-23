@@ -31,12 +31,17 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 		if err := requirePositional(command, flags, 2); err != nil {
 			return contractv1.OperationRequest{}, 0, err
 		}
+		filters, err := parseSearchFilters(flags.where)
+		if err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
 		request := contractv1.OperationRequest{
-			Op:    contractv1.OpSearch,
-			Path:  flags.positional(0),
-			Query: flags.positional(1),
-			Mode:  flags.mode,
-			TopK:  flags.topK,
+			Op:      contractv1.OpSearch,
+			Path:    flags.positional(0),
+			Query:   flags.positional(1),
+			Mode:    flags.mode,
+			TopK:    flags.topK,
+			Filters: filters,
 		}
 		if err := scorerRequest(&request, flags); err != nil {
 			return contractv1.OperationRequest{}, 0, err
@@ -201,6 +206,31 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 
 func extensionCheckInvocation(positionals []string) bool {
 	return len(positionals) >= 1 && positionals[0] == "check"
+}
+
+func parseSearchFilters(values []string) ([]contractv1.SearchFilter, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	filters := make([]contractv1.SearchFilter, 0, len(values))
+	for _, value := range values {
+		field, raw, found := strings.Cut(value, ":")
+		if !found {
+			return nil, fmt.Errorf("--where requires <field>:<value>")
+		}
+		field = strings.ToLower(strings.TrimSpace(field))
+		raw = strings.TrimSpace(raw)
+		switch field {
+		case "type", "status", "tag", "keyword":
+		default:
+			return nil, fmt.Errorf("--where field must be type, status, tag or keyword")
+		}
+		if raw == "" {
+			return nil, fmt.Errorf("--where value cannot be empty")
+		}
+		filters = append(filters, contractv1.SearchFilter{Field: field, Value: raw})
+	}
+	return filters, nil
 }
 
 func (f flags) positional(index int) string {

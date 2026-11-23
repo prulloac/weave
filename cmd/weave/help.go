@@ -49,6 +49,7 @@ var commandHelpText = map[string]commandHelp{
 			"--scorer <name>                    score with a weave-<name> extension",
 			"--scorer-weight <0..1>             blend weight, default 0.5",
 			"--candidate-k <n>                  candidates to score, 1..100, default 100",
+			"--where <field>:<value>            filter by type, status, tag or keyword (repeatable)",
 			"--source <alias=path>              add a bundle source (repeatable)",
 			"--timeout <duration>               extension timeout, default 5s (scorer: 10s)",
 			"--db <file> | --no-db              persistent or transient",

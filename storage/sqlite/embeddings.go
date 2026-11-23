@@ -13,6 +13,7 @@ import (
 	"time"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
+	"github.com/prulloac/weave/engine/search"
 )
 
 const embeddingTextLimit = 8 << 10
@@ -297,7 +298,23 @@ func (s *Store) SemanticHits(
 	vector []float32,
 	topK int,
 ) ([]SemanticRow, error) {
-	root, err := normalizeRoot(root)
+	return s.SemanticHitsWithFilters(ctx, root, model, vector, topK, nil)
+}
+
+// SemanticHitsWithFilters returns nearest neighbours with metadata filters applied before the cut.
+func (s *Store) SemanticHitsWithFilters(
+	ctx context.Context,
+	root string,
+	model string,
+	vector []float32,
+	topK int,
+	filters []contractv1.SearchFilter,
+) ([]SemanticRow, error) {
+	filterSet, err := search.NewFilterSet(filters)
+	if err != nil {
+		return nil, err
+	}
+	root, err = normalizeRoot(root)
 	if err != nil {
 		return nil, err
 	}
@@ -322,21 +339,48 @@ func (s *Store) SemanticHits(
 	if err != nil {
 		return nil, err
 	}
+	k := topK
+	if !filterSet.Empty() {
+		count := 0
+		if err := s.db.QueryRowContext(ctx,
+			`SELECT count(*) FROM `+table+` WHERE bundle_root = ?`, root).Scan(&count); err != nil {
+			return nil, err
+		}
+		if count > k {
+			k = count
+		}
+		if k > 10000 {
+			k = 10000
+		}
+	}
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT doc_id, content_hash, distance FROM `+table+`
 		WHERE embedding MATCH vec_f32(?) AND bundle_root = ? AND k = ?`,
-		encodeFloat32(vector), root, topK)
+		encodeFloat32(vector), root, k)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+	var metadata map[string]search.FilterMeta
+	if !filterSet.Empty() {
+		metadata, err = s.searchMetadata(ctx, root)
+		if err != nil {
+			return nil, err
+		}
+	}
 	hits := make([]SemanticRow, 0, topK)
 	for rows.Next() {
 		var hit SemanticRow
 		if err := rows.Scan(&hit.DocID, &hit.ContentHash, &hit.Distance); err != nil {
 			return nil, err
 		}
+		if !filterSet.Match(metadata[hit.DocID]) {
+			continue
+		}
 		hits = append(hits, hit)
+		if len(hits) == topK {
+			break
+		}
 	}
 	return hits, rows.Err()
 }

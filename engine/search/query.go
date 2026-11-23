@@ -48,6 +48,22 @@ func Search(
 	mode contractv1.SearchMode,
 	topK int,
 ) (contractv1.SearchResponse, error) {
+	return SearchWithFilters(index, query, mode, topK, nil)
+}
+
+// SearchWithFilters runs the keyword, fuzzy and hybrid dimensions with metadata filters applied
+// before the top-K cut.
+func SearchWithFilters(
+	index *Index,
+	query string,
+	mode contractv1.SearchMode,
+	topK int,
+	filters []contractv1.SearchFilter,
+) (contractv1.SearchResponse, error) {
+	filterSet, err := NewFilterSet(filters)
+	if err != nil {
+		return contractv1.SearchResponse{}, err
+	}
 	if mode == "" {
 		mode = contractv1.SearchHybrid
 	}
@@ -70,6 +86,7 @@ func Search(
 		Query:   query,
 		Mode:    mode,
 		TopK:    topK,
+		Filters: filters,
 		Keyword: []contractv1.KeywordHit{},
 		Fuzzy:   []contractv1.FuzzyHit{},
 		Hybrid:  []contractv1.HybridHit{},
@@ -79,15 +96,15 @@ func Search(
 		return response, nil
 	}
 
-	keywordHits := keywordSearch(index, tokens, topK)
-	fuzzyHits := fuzzySearch(index, tokens, topK)
+	keywordHits := keywordSearch(index, tokens, topK, filterSet)
+	fuzzyHits := fuzzySearch(index, tokens, topK, filterSet)
 	response.Keyword = keywordHits
 	response.Fuzzy = fuzzyHits
 	response.Hybrid = hybridSearch(index, keywordHits, fuzzyHits, topK)
 	return response, nil
 }
 
-func keywordSearch(index *Index, queryTokens []string, topK int) []contractv1.KeywordHit {
+func keywordSearch(index *Index, queryTokens []string, topK int, filters FilterSet) []contractv1.KeywordHit {
 	scores := make([]map[int]float64, len(queryTokens))
 	origins := make([]map[int]string, len(queryTokens))
 	candidates := make(map[int]bool)
@@ -137,6 +154,14 @@ func keywordSearch(index *Index, queryTokens []string, topK int) []contractv1.Ke
 			}
 		}
 		document := index.Documents[documentIndex]
+		if !filters.Match(FilterMeta{
+			Type:     document.Type,
+			Status:   document.Status,
+			Tags:     document.Tags,
+			Keywords: document.Keywords,
+		}) {
+			continue
+		}
 		results = append(results, contractv1.KeywordHit{
 			ID:              document.ID,
 			Title:           document.Title,
@@ -160,7 +185,7 @@ func keywordSearch(index *Index, queryTokens []string, topK int) []contractv1.Ke
 	return results
 }
 
-func fuzzySearch(index *Index, queryTokens []string, topK int) []contractv1.FuzzyHit {
+func fuzzySearch(index *Index, queryTokens []string, topK int, filters FilterSet) []contractv1.FuzzyHit {
 	fieldScores := make([]map[int][]float64, len(Fields))
 	bodyTokens := make(map[int][]string)
 	for position := range Fields {
@@ -236,6 +261,14 @@ func fuzzySearch(index *Index, queryTokens []string, topK int) []contractv1.Fuzz
 		})
 
 		document := index.Documents[documentIndex]
+		if !filters.Match(FilterMeta{
+			Type:     document.Type,
+			Status:   document.Status,
+			Tags:     document.Tags,
+			Keywords: document.Keywords,
+		}) {
+			continue
+		}
 		hit := contractv1.FuzzyHit{
 			ID:            document.ID,
 			Title:         document.Title,

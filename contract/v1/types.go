@@ -379,16 +379,24 @@ type ScorerInfo struct {
 }
 
 // SearchResponse contains the keyword, fuzzy, hybrid, lexical and semantic top-K lists.
+// SearchFilter is one metadata filter applied to a search.
+type SearchFilter struct {
+	Field string `json:"field"`
+	Value string `json:"value"`
+}
+
+// SearchResponse is the result of one search invocation.
 type SearchResponse struct {
-	Query    string        `json:"query"`
-	Mode     SearchMode    `json:"mode"`
-	TopK     int           `json:"top_k"`
-	Keyword  []KeywordHit  `json:"keyword"`
-	Fuzzy    []FuzzyHit    `json:"fuzzy"`
-	Hybrid   []HybridHit   `json:"hybrid"`
-	Lexical  []LexicalHit  `json:"lexical,omitempty"`
-	Semantic []SemanticHit `json:"semantic,omitempty"`
-	Scorer   *ScorerInfo   `json:"scorer,omitempty"`
+	Query    string         `json:"query"`
+	Mode     SearchMode     `json:"mode"`
+	TopK     int            `json:"top_k"`
+	Filters  []SearchFilter `json:"filters,omitempty"`
+	Keyword  []KeywordHit   `json:"keyword"`
+	Fuzzy    []FuzzyHit     `json:"fuzzy"`
+	Hybrid   []HybridHit    `json:"hybrid"`
+	Lexical  []LexicalHit   `json:"lexical,omitempty"`
+	Semantic []SemanticHit  `json:"semantic,omitempty"`
+	Scorer   *ScorerInfo    `json:"scorer,omitempty"`
 }
 
 // ListResult is one metadata-filtered concept.
@@ -905,6 +913,7 @@ type OperationRequest struct {
 	Query         string          `json:"query,omitempty"`
 	Mode          SearchMode      `json:"mode,omitempty"`
 	TopK          *int            `json:"top_k,omitempty"`
+	Filters       []SearchFilter  `json:"filters,omitempty"`
 	Target        string          `json:"target,omitempty"`
 	From          string          `json:"from,omitempty"`
 	To            string          `json:"to,omitempty"`

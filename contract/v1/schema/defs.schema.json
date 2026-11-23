@@ -39,6 +39,29 @@
 				"body"
 			]
 		},
+		"SearchFilter": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"field",
+				"value"
+			],
+			"properties": {
+				"field": {
+					"type": "string",
+					"enum": [
+						"type",
+						"status",
+						"tag",
+						"keyword"
+					]
+				},
+				"value": {
+					"type": "string",
+					"minLength": 1
+				}
+			}
+		},
 		"AuditFailOn": {
 			"type": "string",
 			"enum": [
@@ -862,6 +885,12 @@
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 100
+				},
+				"filters": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/SearchFilter"
+					}
 				},
 				"keyword": {
 					"type": "array",
@@ -2079,6 +2108,12 @@
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 100
+				},
+				"filters": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/SearchFilter"
+					}
 				},
 				"target": {
 					"type": "string"

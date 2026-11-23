@@ -30,6 +30,9 @@ func (e *Executor) readGraph(_ context.Context, eng *engine.Engine, request cont
 }
 
 func (e *Executor) readSearch(ctx context.Context, eng *engine.Engine, request contractv1.OperationRequest) any {
+	if err := validateFilters(request.Filters); err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
 	topK := 10
 	if request.TopK != nil {
 		topK = *request.TopK
@@ -39,7 +42,7 @@ func (e *Executor) readSearch(ctx context.Context, eng *engine.Engine, request c
 		mode = contractv1.SearchHybrid
 	}
 	limit := searchLimit(request, topK)
-	result, err := eng.Search(request.Query, mode, limit)
+	result, err := eng.SearchWithFilters(request.Query, mode, limit, request.Filters)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"query": request.Query,

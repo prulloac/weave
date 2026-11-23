@@ -2672,6 +2672,12 @@
 				"fail_on": {
 					"ref": "#/$defs/AuditFailOn"
 				},
+				"filters": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SearchFilter"
+					}
+				},
 				"force": {
 					"type": "boolean"
 				},
@@ -2988,6 +2994,28 @@
 				"title"
 			]
 		},
+		"SearchFilter": {
+			"type": "object",
+			"required": [
+				"field",
+				"value"
+			],
+			"additional_properties": false,
+			"properties": {
+				"field": {
+					"type": "string",
+					"enum": [
+						"keyword",
+						"status",
+						"tag",
+						"type"
+					]
+				},
+				"value": {
+					"type": "string"
+				}
+			}
+		},
 		"SearchMode": {
 			"type": "string",
 			"enum": [
@@ -3010,6 +3038,12 @@
 			],
 			"additional_properties": false,
 			"properties": {
+				"filters": {
+					"type": "array",
+					"items": {
+						"ref": "#/$defs/SearchFilter"
+					}
+				},
 				"fuzzy": {
 					"type": "array",
 					"items": {

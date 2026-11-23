@@ -22,6 +22,8 @@ type Document struct {
 	Description   string
 	BodyText      string
 	Type          string
+	Status        string
+	Tags          []string
 	Path          string
 	Keywords      []string
 	KeywordOrigin map[string]string
@@ -94,6 +96,8 @@ func BuildWithOptions(bundle *contractv1.Bundle, _ *graph.Graph, options BuildOp
 			Title:         title,
 			Description:   description,
 			Type:          concept.Type,
+			Status:        conceptStatus(concept.Status),
+			Tags:          concept.Tags,
 			Path:          concept.Path,
 			Keywords:      concept.Keywords,
 			KeywordOrigin: make(map[string]string),
@@ -179,4 +183,11 @@ func trigrams(token string) []string {
 		result = append(result, string(runes[i:i+3]))
 	}
 	return result
+}
+
+func conceptStatus(status *contractv1.ConceptStatus) string {
+	if status == nil {
+		return ""
+	}
+	return string(*status)
 }

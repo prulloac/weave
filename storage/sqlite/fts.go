@@ -137,7 +137,25 @@ func (s *Store) SearchBM25(
 	query string,
 	topK int,
 ) ([]contractv1.LexicalHit, error) {
-	root, err := normalizeRoot(root)
+	return s.SearchBM25WithFilters(ctx, root, query, topK, nil)
+}
+
+// SearchBM25WithFilters returns lexical hits with metadata filters applied before the top-K cut.
+func (s *Store) SearchBM25WithFilters(
+	ctx context.Context,
+	root string,
+	query string,
+	topK int,
+	filters []contractv1.SearchFilter,
+) ([]contractv1.LexicalHit, error) {
+	if _, err := search.NewFilterSet(filters); err != nil {
+		return nil, err
+	}
+	where, filterArgs, err := filterSQL(filters)
+	if err != nil {
+		return nil, err
+	}
+	root, err = normalizeRoot(root)
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +180,10 @@ func (s *Store) SearchBM25(
 		return []contractv1.LexicalHit{}, nil
 	}
 
+	args := make([]any, 0, 3+len(filterArgs))
+	args = append(args, root, match)
+	args = append(args, filterArgs...)
+	args = append(args, topK)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT d.id, d.title, d.file_path, d.doc_type,
 		       -bm25(fts_documents, 0.0, 0.0, 10.0, 8.0, 4.0, 1.0) AS raw
@@ -170,9 +192,9 @@ func (s *Store) SearchBM25(
 		  ON d.bundle_root = fts_documents.bundle_root
 		 AND d.id = fts_documents.id
 		WHERE fts_documents.bundle_root = ?
-		  AND fts_documents MATCH ?
+		  AND fts_documents MATCH ?`+where+`
 		ORDER BY raw DESC, d.id ASC
-		LIMIT ?`, root, match, topK)
+		LIMIT ?`, args...)
 	if err != nil {
 		return nil, err
 	}

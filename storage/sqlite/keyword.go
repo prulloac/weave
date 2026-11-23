@@ -17,7 +17,22 @@ func (s *Store) KeywordHits(
 	query string,
 	topK int,
 ) ([]contractv1.KeywordHit, error) {
-	root, err := normalizeRoot(root)
+	return s.KeywordHitsWithFilters(ctx, root, query, topK, nil)
+}
+
+// KeywordHitsWithFilters answers a keyword query and applies filters before the top-K cut.
+func (s *Store) KeywordHitsWithFilters(
+	ctx context.Context,
+	root string,
+	query string,
+	topK int,
+	filters []contractv1.SearchFilter,
+) ([]contractv1.KeywordHit, error) {
+	filterSet, err := search.NewFilterSet(filters)
+	if err != nil {
+		return nil, err
+	}
+	root, err = normalizeRoot(root)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +48,7 @@ func (s *Store) KeywordHits(
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, title, file_path, doc_type, keywords_json
+		SELECT id, title, file_path, doc_type, keywords_json, status, tags_json
 		FROM documents
 		WHERE bundle_root = ? AND privacy_policy != 'encrypt'`, root)
 	if err != nil {
@@ -43,14 +58,25 @@ func (s *Store) KeywordHits(
 
 	hits := make([]contractv1.KeywordHit, 0)
 	for rows.Next() {
-		var id, title, path, keywordsJSON string
-		var docType sql.NullString
-		if err := rows.Scan(&id, &title, &path, &docType, &keywordsJSON); err != nil {
+		var id, title, path, keywordsJSON, tagsJSON string
+		var docType, status sql.NullString
+		if err := rows.Scan(&id, &title, &path, &docType, &keywordsJSON, &status, &tagsJSON); err != nil {
 			return nil, err
 		}
-		var keywords []string
+		var keywords, tags []string
 		if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
 			return nil, err
+		}
+		if err := json.Unmarshal([]byte(tagsJSON), &tags); err != nil {
+			return nil, err
+		}
+		if !filterSet.Match(search.FilterMeta{
+			Type:     docType.String,
+			Status:   status.String,
+			Tags:     tags,
+			Keywords: keywords,
+		}) {
+			continue
 		}
 		hit, ok := keywordHit(queryTokens, id, title, path, docType.String, keywords)
 		if !ok {

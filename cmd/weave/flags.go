@@ -31,6 +31,7 @@ type flags struct {
 	depth          *int
 	direction      contractv1.RelateDirection
 	relations      []string
+	where          []string
 	id             string
 	extensionName  string
 	docID          string
@@ -471,6 +472,13 @@ func parseFlags(args []string) (flags, error) {
 				}
 				result.relations = append(result.relations, relation)
 			}
+		case "--where":
+			value, next, err := flagValue(args, index, "--where")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.where = append(result.where, value)
 		case "--":
 			result.positionals = append(result.positionals, args[index+1:]...)
 			return result, nil

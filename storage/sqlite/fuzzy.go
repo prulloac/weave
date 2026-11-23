@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"sort"
 	"strings"
@@ -28,7 +29,22 @@ func (s *Store) FuzzyHits(
 	query string,
 	topK int,
 ) ([]contractv1.FuzzyHit, error) {
-	root, err := normalizeRoot(root)
+	return s.FuzzyHitsWithFilters(ctx, root, query, topK, nil)
+}
+
+// FuzzyHitsWithFilters answers a fuzzy query and applies filters before the top-K cut.
+func (s *Store) FuzzyHitsWithFilters(
+	ctx context.Context,
+	root string,
+	query string,
+	topK int,
+	filters []contractv1.SearchFilter,
+) ([]contractv1.FuzzyHit, error) {
+	filterSet, err := search.NewFilterSet(filters)
+	if err != nil {
+		return nil, err
+	}
+	root, err = normalizeRoot(root)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +62,13 @@ func (s *Store) FuzzyHits(
 	documentIDs, err := s.searchDocumentIDs(ctx, root)
 	if err != nil {
 		return nil, err
+	}
+	metadata := make(map[string]search.FilterMeta, len(documentIDs))
+	if !filterSet.Empty() {
+		metadata, err = s.searchMetadata(ctx, root)
+		if err != nil {
+			return nil, err
+		}
 	}
 	vocabulary, err := s.searchVocabulary(ctx, root)
 	if err != nil {
@@ -112,6 +135,10 @@ func (s *Store) FuzzyHits(
 		if int(documentIndex) >= len(documentIDs) {
 			continue
 		}
+		id := documentIDs[documentIndex]
+		if !filterSet.Match(metadata[id]) {
+			continue
+		}
 		weighted := 0.0
 		fieldValues := make([]float64, len(fields))
 		for fieldIndex, field := range fields {
@@ -141,7 +168,6 @@ func (s *Store) FuzzyHits(
 			return matchedFields[i] < matchedFields[j]
 		})
 
-		id := documentIDs[documentIndex]
 		hit := contractv1.FuzzyHit{
 			ID:            id,
 			Score:         search.RoundScore(weighted),
@@ -202,6 +228,39 @@ func (s *Store) searchDocumentIDs(ctx context.Context, root string) ([]string, e
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+func (s *Store) searchMetadata(ctx context.Context, root string) (map[string]search.FilterMeta, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, doc_type, status, tags_json, keywords_json
+		FROM documents
+		WHERE bundle_root = ?`, root)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	metadata := make(map[string]search.FilterMeta)
+	for rows.Next() {
+		var id, tagsJSON, keywordsJSON string
+		var docType, status sql.NullString
+		if err := rows.Scan(&id, &docType, &status, &tagsJSON, &keywordsJSON); err != nil {
+			return nil, err
+		}
+		var tags, keywords []string
+		if err := json.Unmarshal([]byte(tagsJSON), &tags); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
+			return nil, err
+		}
+		metadata[id] = search.FilterMeta{
+			Type:     docType.String,
+			Status:   status.String,
+			Tags:     tags,
+			Keywords: keywords,
+		}
+	}
+	return metadata, rows.Err()
 }
 
 func (s *Store) searchDocument(ctx context.Context, root, id string) (searchDocument, error) {

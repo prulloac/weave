@@ -12,6 +12,9 @@ import (
 )
 
 func (e *Executor) searchPersistent(ctx context.Context, request contractv1.OperationRequest) (any, bool) {
+	if err := validateFilters(request.Filters); err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil), true
+	}
 	topK := 10
 	if request.TopK != nil {
 		topK = *request.TopK
@@ -42,7 +45,7 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 		}), true
 	}
 	limit := searchLimit(request, topK)
-	fuzzy, err := store.FuzzyHits(ctx, request.Path, request.Query, limit)
+	fuzzy, err := store.FuzzyHitsWithFilters(ctx, request.Path, request.Query, limit, request.Filters)
 	if err != nil {
 		if errors.Is(err, sqlitestore.ErrSearchIndexUnavailable) {
 			return nil, false
@@ -57,7 +60,7 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 		mode = contractv1.SearchHybrid
 	}
 	if explicitHybrid {
-		lexical, err := store.SearchBM25(ctx, request.Path, request.Query, limit)
+		lexical, err := store.SearchBM25WithFilters(ctx, request.Path, request.Query, limit, request.Filters)
 		if err != nil {
 			if errors.Is(err, search.ErrInvalidTopK) {
 				return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK}), true
@@ -68,6 +71,7 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 			Query:   request.Query,
 			Mode:    contractv1.SearchHybrid,
 			TopK:    topK,
+			Filters: request.Filters,
 			Keyword: []contractv1.KeywordHit{},
 			Fuzzy:   fuzzy,
 			Hybrid:  search.HybridBM25(lexical, fuzzy, limit),
@@ -81,7 +85,7 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 		return success(response), true
 	}
 
-	keyword, err := store.KeywordHits(ctx, request.Path, request.Query, limit)
+	keyword, err := store.KeywordHitsWithFilters(ctx, request.Path, request.Query, limit, request.Filters)
 	if err != nil {
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path}), true
@@ -90,6 +94,7 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 		Query:   request.Query,
 		Mode:    mode,
 		TopK:    topK,
+		Filters: request.Filters,
 		Keyword: keyword,
 		Fuzzy:   fuzzy,
 		Hybrid:  search.CombineHybrid(keyword, fuzzy, limit),
@@ -103,6 +108,9 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 }
 
 func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.OperationRequest) any {
+	if err := validateFilters(request.Filters); err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
 	topK := 10
 	if request.TopK != nil {
 		topK = *request.TopK
@@ -133,7 +141,7 @@ func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.Op
 		})
 	}
 	limit := searchLimit(request, topK)
-	hits, err := store.KeywordHits(ctx, request.Path, request.Query, limit)
+	hits, err := store.KeywordHitsWithFilters(ctx, request.Path, request.Query, limit, request.Filters)
 	if err != nil {
 		code, message := mapStorageError(err)
 		return failure(code, message, map[string]any{"path": request.Path})
@@ -156,6 +164,7 @@ func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.Op
 		Query:   request.Query,
 		Mode:    contractv1.SearchKeyword,
 		TopK:    topK,
+		Filters: request.Filters,
 		Keyword: hits,
 		Fuzzy:   []contractv1.FuzzyHit{},
 		Hybrid:  hybrid,
@@ -169,6 +178,9 @@ func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.Op
 }
 
 func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationRequest) any {
+	if err := validateFilters(request.Filters); err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
 	if request.NoDB {
 		return failure(contractv1.ErrInvalidRequest, "bm25 requires persistent storage; remove --no-db", map[string]any{
 			"mode": request.Mode,
@@ -204,7 +216,7 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 		})
 	}
 	limit := searchLimit(request, topK)
-	hits, err := store.SearchBM25(ctx, root, request.Query, limit)
+	hits, err := store.SearchBM25WithFilters(ctx, root, request.Query, limit, request.Filters)
 	if err != nil {
 		if errors.Is(err, search.ErrInvalidTopK) {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK})
@@ -215,6 +227,7 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 		Query:   request.Query,
 		Mode:    contractv1.SearchBM25,
 		TopK:    topK,
+		Filters: request.Filters,
 		Keyword: []contractv1.KeywordHit{},
 		Fuzzy:   []contractv1.FuzzyHit{},
 		Hybrid:  []contractv1.HybridHit{},
@@ -234,6 +247,9 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 }
 
 func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.OperationRequest) any {
+	if err := validateFilters(request.Filters); err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
 	topK := 10
 	if request.TopK != nil {
 		topK = *request.TopK
@@ -272,14 +288,14 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 	defer eng.Close()
 
 	limit := searchLimit(request, topK)
-	fuzzyResponse, err := eng.Search(request.Query, contractv1.SearchFuzzy, limit)
+	fuzzyResponse, err := eng.SearchWithFilters(request.Query, contractv1.SearchFuzzy, limit, request.Filters)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"query": request.Query,
 			"top_k": topK,
 		})
 	}
-	lexical, err := store.SearchBM25(ctx, root, request.Query, limit)
+	lexical, err := store.SearchBM25WithFilters(ctx, root, request.Query, limit, request.Filters)
 	if err != nil {
 		if errors.Is(err, search.ErrInvalidTopK) {
 			return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"top_k": topK})
@@ -291,6 +307,7 @@ func (e *Executor) searchHybridBM25(ctx context.Context, request contractv1.Oper
 		Query:   request.Query,
 		Mode:    contractv1.SearchHybrid,
 		TopK:    topK,
+		Filters: request.Filters,
 		Keyword: []contractv1.KeywordHit{},
 		Fuzzy:   fuzzyResponse.Fuzzy,
 		Hybrid:  hybrid,
@@ -602,3 +619,8 @@ const (
 	keywordWeightForExplain = 0.50
 	fuzzyWeightForExplain   = 0.50
 )
+
+func validateFilters(filters []contractv1.SearchFilter) error {
+	_, err := search.NewFilterSet(filters)
+	return err
+}

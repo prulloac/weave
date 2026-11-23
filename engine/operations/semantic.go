@@ -12,6 +12,9 @@ import (
 )
 
 func (e *Executor) searchSemantic(ctx context.Context, request contractv1.OperationRequest) any {
+	if err := validateFilters(request.Filters); err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
 	if request.NoDB {
 		return failure(contractv1.ErrInvalidRequest, "semantic search requires persistent storage", nil)
 	}
@@ -60,7 +63,7 @@ func (e *Executor) searchSemantic(ctx context.Context, request contractv1.Operat
 	if topK > 100 {
 		topK = 100
 	}
-	hits, err := store.SemanticHits(ctx, request.Path, embedding.Model, embedding.Vector, topK)
+	hits, err := store.SemanticHitsWithFilters(ctx, request.Path, embedding.Model, embedding.Vector, topK, request.Filters)
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{"path": request.Path})
 	}
@@ -77,6 +80,7 @@ func (e *Executor) searchSemantic(ctx context.Context, request contractv1.Operat
 		Query:    request.Query,
 		Mode:     contractv1.SearchSemantic,
 		TopK:     topK,
+		Filters:  request.Filters,
 		Keyword:  []contractv1.KeywordHit{},
 		Fuzzy:    []contractv1.FuzzyHit{},
 		Hybrid:   []contractv1.HybridHit{},

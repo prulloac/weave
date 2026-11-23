@@ -77,6 +77,16 @@ func (e *Engine) Search(query string, mode contractv1.SearchMode, topK int) (con
 	return search.Search(e.indexForMode(mode), query, mode, topK)
 }
 
+// SearchWithFilters runs a search with metadata filters applied before the top-K cut.
+func (e *Engine) SearchWithFilters(
+	query string,
+	mode contractv1.SearchMode,
+	topK int,
+	filters []contractv1.SearchFilter,
+) (contractv1.SearchResponse, error) {
+	return search.SearchWithFilters(e.indexForMode(mode), query, mode, topK, filters)
+}
+
 func (e *Engine) Explain(
 	query string,
 	mode contractv1.SearchMode,
