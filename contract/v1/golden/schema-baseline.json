@@ -2872,6 +2872,11 @@
 				"out": {
 					"type": "string"
 				},
+				"parallelism": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 8
+				},
 				"path": {
 					"type": "string"
 				},

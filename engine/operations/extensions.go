@@ -96,14 +96,19 @@ func (e *Executor) newEnricher(ctx context.Context, request contractv1.Operation
 	}
 	timeout := extensionTimeout(request)
 	runner := extensions.Runner{Timeout: timeout}
+	parallelism, err := enrichmentParallelism(request)
+	if err != nil {
+		return nil, err
+	}
 	manifest, err := extensions.DescribeWithTimeout(ctx, extension, timeout)
 	if err != nil {
 		return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
 			return e.enrichOne(ctx, request.Path, extension, runner, concept)
 		}, nil
 	}
-	if manifest.SupportsCapability("batch") && len(concepts) > 0 {
-		applies, errs := e.enrichBatch(ctx, request.Path, extension, runner, concepts)
+	batch := manifest.SupportsCapability("batch")
+	if (batch || parallelism > 1) && len(concepts) > 0 {
+		applies, errs := e.enrichmentResults(ctx, request.Path, extension, runner, concepts, parallelism, batch)
 		return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
 			if itemErr := errs[concept.ID]; itemErr != nil {
 				return sqlitestore.EnrichmentApply{}, itemErr

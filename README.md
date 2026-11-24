@@ -585,6 +585,8 @@ weave search ~/notes "token rotation" --rerank keywords --json
 - An enricher that declares `batch` in `capabilities` receives up to 128 documents per process in a
   `batch_request`; per-item failures keep core behavior for that document and do not fail the batch.
   Extensions without the capability run once per document.
+- `--extension-parallelism N` (1..8, default 1) overlaps batch chunks and per-document enrichment.
+  Results and warnings merge in document order, so output is identical to the sequential run.
 - `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.

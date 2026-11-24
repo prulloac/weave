@@ -12,75 +12,76 @@ import (
 )
 
 type flags struct {
-	json           bool
-	quiet          bool
-	verbose        bool
-	ascii          bool
-	short          bool
-	noCache        bool
-	help           bool
-	limit          *int
-	topK           *int
-	mode           contractv1.SearchMode
-	types          []string
-	tags           []string
-	status         string
-	failOn         contractv1.AuditFailOn
-	verifyKeys     bool
-	decrypt        bool
-	depth          *int
-	direction      contractv1.RelateDirection
-	relations      []string
-	where          []string
-	id             string
-	extensionName  string
-	docID          string
-	db             string
-	workspace      string
-	noDB           bool
-	strict         bool
-	permissive     bool
-	assets         bool
-	noAssets       bool
-	assetTypes     []string
-	codec          string
-	enricher       string
-	withEmbedder   string
-	embedder       string
-	rerank         string
-	scorer         string
-	scorerWeight   *float64
-	candidateK     *int
-	timeout        time.Duration
-	timeoutSet     bool
-	sources        []string
-	git            bool
-	gitRef         string
-	gitWorktree    bool
-	gitSubmodules  bool
-	gitLFS         bool
-	gitHistory     bool
-	gitHistoryLim  int
-	providerOption []string
-	watch          bool
-	events         bool
-	out            string
-	format         string
-	keyID          string
-	force          bool
-	yes            bool
-	provider       string
-	dryRun         bool
-	noInput        bool
-	cacheDir       string
-	configPath     string
-	noConfig       bool
-	strictConfig   bool
-	model          string
-	dim            int
-	keepSource     bool
-	explicit       map[string]bool
-	positionals    []string
+	json                 bool
+	quiet                bool
+	verbose              bool
+	ascii                bool
+	short                bool
+	noCache              bool
+	help                 bool
+	limit                *int
+	topK                 *int
+	extensionParallelism *int
+	mode                 contractv1.SearchMode
+	types                []string
+	tags                 []string
+	status               string
+	failOn               contractv1.AuditFailOn
+	verifyKeys           bool
+	decrypt              bool
+	depth                *int
+	direction            contractv1.RelateDirection
+	relations            []string
+	where                []string
+	id                   string
+	extensionName        string
+	docID                string
+	db                   string
+	workspace            string
+	noDB                 bool
+	strict               bool
+	permissive           bool
+	assets               bool
+	noAssets             bool
+	assetTypes           []string
+	codec                string
+	enricher             string
+	withEmbedder         string
+	embedder             string
+	rerank               string
+	scorer               string
+	scorerWeight         *float64
+	candidateK           *int
+	timeout              time.Duration
+	timeoutSet           bool
+	sources              []string
+	git                  bool
+	gitRef               string
+	gitWorktree          bool
+	gitSubmodules        bool
+	gitLFS               bool
+	gitHistory           bool
+	gitHistoryLim        int
+	providerOption       []string
+	watch                bool
+	events               bool
+	out                  string
+	format               string
+	keyID                string
+	force                bool
+	yes                  bool
+	provider             string
+	dryRun               bool
+	noInput              bool
+	cacheDir             string
+	configPath           string
+	noConfig             bool
+	strictConfig         bool
+	model                string
+	dim                  int
+	keepSource           bool
+	explicit             map[string]bool
+	positionals          []string
 }
 
 func parseFlags(args []string) (flags, error) {
@@ -163,6 +164,17 @@ func parseFlags(args []string) (flags, error) {
 				return result, fmt.Errorf("--top-k must be between 1 and 100")
 			}
 			result.topK = &parsed
+		case "--extension-parallelism":
+			value, next, err := flagValue(args, index, "--extension-parallelism")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			parsed, err := strconv.Atoi(value)
+			if err != nil || parsed < 1 || parsed > 8 {
+				return result, fmt.Errorf("--extension-parallelism must be between 1 and 8")
+			}
+			result.extensionParallelism = &parsed
 		case "--fail-on":
 			value, next, err := flagValue(args, index, "--fail-on")
 			if err != nil {

@@ -2118,6 +2118,11 @@
 						"$ref": "#/$defs/SearchFilter"
 					}
 				},
+				"parallelism": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 8
+				},
 				"target": {
 					"type": "string"
 				},

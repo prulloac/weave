@@ -935,6 +935,7 @@ type OperationRequest struct {
 	Mode          SearchMode      `json:"mode,omitempty"`
 	TopK          *int            `json:"top_k,omitempty"`
 	Filters       []SearchFilter  `json:"filters,omitempty"`
+	Parallelism   int             `json:"parallelism,omitempty"`
 	Target        string          `json:"target,omitempty"`
 	From          string          `json:"from,omitempty"`
 	To            string          `json:"to,omitempty"`

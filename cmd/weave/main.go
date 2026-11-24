@@ -225,6 +225,14 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if request.Rerank != "" && request.Op != contractv1.OpSearch {
 		return usageError(stdout, stderr, flags.json, "--rerank is only valid for search")
 	}
+	if flags.extensionParallelism != nil {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:
+			request.Parallelism = *flags.extensionParallelism
+		default:
+			return usageError(stdout, stderr, flags.json, "--extension-parallelism is only valid for ingest, rebuild and sync")
+		}
+	}
 	if len(flags.where) > 0 && request.Op != contractv1.OpSearch {
 		return usageError(stdout, stderr, flags.json, "--where is only valid for search")
 	}
