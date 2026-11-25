@@ -16,6 +16,7 @@ or check; a scenario without one is a documentation gap.
 | [Configuration](configuration.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/config_bdd_test.go` |
 | [Dry run](dryrun.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/dryrun_bdd_test.go` |
 | [Embeddings](embeddings.md) | [embeddings.md](https://github.com/prulloac/weave-docs/blob/main/specs/embeddings.md) | `cmd/weave/embeddings_bdd_test.go`, `storage/sqlite/embeddings_test.go`, `storage/sqlite/vec_test.go` |
+| [Enrichment caching](enrichment-caching.md) | [enrichment-caching.md](https://github.com/prulloac/weave-docs/blob/main/specs/enrichment-caching.md) | `cmd/weave/enrichment_caching_bdd_test.go`, `storage/sqlite/enrichment_cache_test.go` |
 | [Error contract](error-contract.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/error_contract_bdd_test.go` |
 | [Extension IPC](extension-ipc.md) | [extension-ipc.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md) | `engine/extensions/extensions_test.go`, `cmd/weave/extensions_bdd_test.go` |
 | [Extension requirements](extension-requirements.md) | [extension-ipc.md](https://github.com/prulloac/weave-docs/blob/main/specs/extension-ipc.md) | `cmd/weave/extension_requirements_bdd_test.go`, `engine/extensions/requirements_test.go` |

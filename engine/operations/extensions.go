@@ -86,7 +86,7 @@ func (e *Executor) requireExtension(ctx context.Context, path, name string, time
 	return extension, err
 }
 
-func (e *Executor) newEnricher(ctx context.Context, request contractv1.OperationRequest, concepts []contractv1.OkfConcept) (sqlitestore.Enricher, error) {
+func (e *Executor) newEnricher(ctx context.Context, store *sqlitestore.Store, request contractv1.OperationRequest, concepts []contractv1.OkfConcept) (sqlitestore.Enricher, error) {
 	if request.Enricher == "" {
 		return nil, nil
 	}
@@ -103,12 +103,16 @@ func (e *Executor) newEnricher(ctx context.Context, request contractv1.Operation
 	manifest, err := extensions.DescribeWithTimeout(ctx, extension, timeout)
 	if err != nil {
 		return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
-			return e.enrichOne(ctx, request.Path, extension, runner, concept)
+			return e.enrichOne(ctx, request.Path, extension, extensions.Manifest{}, runner, concept)
 		}, nil
 	}
+	applies, remaining := e.cachedEnrichmentApplies(ctx, store, request, extension, manifest, concepts)
 	batch := manifest.SupportsCapability("batch")
-	if (batch || parallelism > 1) && len(concepts) > 0 {
-		applies, errs := e.enrichmentResults(ctx, request.Path, extension, runner, concepts, parallelism, batch)
+	if batch || parallelism > 1 {
+		invoked, errs := e.enrichmentResults(ctx, request.Path, extension, manifest, runner, remaining, parallelism, batch)
+		for id, apply := range invoked {
+			applies[id] = apply
+		}
 		return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
 			if itemErr := errs[concept.ID]; itemErr != nil {
 				return sqlitestore.EnrichmentApply{}, itemErr
@@ -116,11 +120,14 @@ func (e *Executor) newEnricher(ctx context.Context, request contractv1.Operation
 			if apply, ok := applies[concept.ID]; ok {
 				return apply, nil
 			}
-			return e.enrichOne(ctx, request.Path, extension, runner, concept)
+			return e.enrichOne(ctx, request.Path, extension, manifest, runner, concept)
 		}, nil
 	}
 	return func(ctx context.Context, concept contractv1.OkfConcept) (sqlitestore.EnrichmentApply, error) {
-		return e.enrichOne(ctx, request.Path, extension, runner, concept)
+		if apply, ok := applies[concept.ID]; ok {
+			return apply, nil
+		}
+		return e.enrichOne(ctx, request.Path, extension, manifest, runner, concept)
 	}, nil
 }
 

@@ -83,9 +83,20 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 		return failure(code, message, map[string]any{"path": request.Path})
 	}
 
+	dbPath, err := resolveDBPath(request.DB)
+	if err != nil {
+		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
+	}
+	store, err := sqlitestore.Open(dbPath)
+	if err != nil {
+		code, message := mapStorageError(err)
+		return failure(code, message, map[string]any{"db": dbPath})
+	}
+	defer store.Close()
+
 	var enricher sqlitestore.Enricher
 	if !projectMode {
-		enricher, err = e.newEnricher(ctx, request, eng.Bundle().Concepts)
+		enricher, err = e.newEnricher(ctx, store, request, eng.Bundle().Concepts)
 		if err != nil {
 			return failure(extensionErrorCode(err), err.Error(), map[string]any{
 				"extension": request.Enricher,
@@ -105,17 +116,6 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 	if provider != nil {
 		defer provider.Close()
 	}
-
-	dbPath, err := resolveDBPath(request.DB)
-	if err != nil {
-		return failure(contractv1.ErrInvalidRequest, err.Error(), nil)
-	}
-	store, err := sqlitestore.Open(dbPath)
-	if err != nil {
-		code, message := mapStorageError(err)
-		return failure(code, message, map[string]any{"db": dbPath})
-	}
-	defer store.Close()
 
 	assetTypes := request.AssetTypes
 	if projectMode && len(assetTypes) == 0 {
@@ -284,7 +284,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			code, message := mapStorageError(err)
 			return failure(code, message, map[string]any{"path": request.Path})
 		}
-		enricher, err = e.newEnricher(ctx, request, bundleForEnrichment.Concepts)
+		enricher, err = e.newEnricher(ctx, nil, request, bundleForEnrichment.Concepts)
 		if err != nil {
 			return failure(extensionErrorCode(err), err.Error(), map[string]any{
 				"extension": request.Enricher,

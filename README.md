@@ -398,6 +398,10 @@ weave ingest ~/notes --strict --db /tmp/notes.db --json
 weave ingest ~/notes --strict --with-enricher keywords --json
 ```
 
+Enrichment results are cached by enricher name, version, optional manifest `cache_key` and the exact
+document request. Unchanged documents reuse the stored result without invoking the extension;
+`--force` bypasses the cache, and results that wrote workspace files are never reused.
+
 Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md),
 [Permissive Ingestion](https://github.com/prulloac/weave-docs/blob/main/specs/permissive-ingestion.md), [Compression](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md).
 

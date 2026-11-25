@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
@@ -22,6 +23,26 @@ type EnrichmentApply struct {
 	ExtensionData   []extensions.DataFile
 	ExtensionReady  bool
 	Warnings        int
+}
+
+// EnrichmentData returns the stored enrichment payload for one document and enricher.
+func (s *Store) EnrichmentData(ctx context.Context, root, docID, enricherID string) ([]byte, bool, error) {
+	root, err := normalizeRoot(root)
+	if err != nil {
+		return nil, false, err
+	}
+	var data string
+	err = s.db.QueryRowContext(ctx, `
+		SELECT data_json FROM enrichments
+		WHERE bundle_root = ? AND doc_id = ? AND enricher_id = ?`,
+		root, docID, enricherID).Scan(&data)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return []byte(data), true, nil
 }
 
 // Enricher enriches one concept before it is stored.

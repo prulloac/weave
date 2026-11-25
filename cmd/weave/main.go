@@ -355,6 +355,13 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		} else if flags.out != "" {
 			return usageError(stdout, stderr, flags.json, "--out requires --format sarif for audit")
 		}
+	} else if request.Op == contractv1.OpIngest || request.Op == contractv1.OpRebuild || request.Op == contractv1.OpSync {
+		if flags.force && request.Enricher == "" {
+			return usageError(stdout, stderr, flags.json, "--force requires --with-enricher")
+		}
+		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.yes {
+			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id and --yes are not valid for this command")
+		}
 	} else if request.Op != contractv1.OpExport && request.Op != contractv1.OpShow {
 		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.force || flags.yes {
 			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for show, export and graph export")
