@@ -11,6 +11,7 @@ import (
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/privacy"
+	"github.com/prulloac/weave/engine/typeschema"
 )
 
 // Options controls audit report construction.
@@ -44,6 +45,7 @@ func Build(bundle *contractv1.Bundle, view *graph.Graph, options Options) contra
 	}
 
 	addValidationFindings(bundle, &report, options.Permissive || bundle.Validation.Permissive)
+	addTypeSchemaFindings(bundle, &report)
 	addGraphFindings(bundle, view, &report)
 	addIndexFindings(bundle, &report)
 	addBundleWarnings(bundle, &report)
@@ -121,6 +123,39 @@ func addValidationFindings(bundle *contractv1.Bundle, report *contractv1.AuditRe
 				"",
 				"",
 				"concept has no keywords",
+			))
+		}
+	}
+}
+
+func addTypeSchemaFindings(bundle *contractv1.Bundle, report *contractv1.AuditReport) {
+	if bundle == nil {
+		return
+	}
+	set, err := typeschema.Load(bundle.Root)
+	if err != nil {
+		report.Findings = append(report.Findings, finding(
+			contractv1.AuditTypeSchemaInvalid,
+			contractv1.AuditSeverityError,
+			"",
+			"",
+			"",
+			err.Error(),
+		))
+		return
+	}
+	if set.Empty() {
+		return
+	}
+	for _, concept := range bundle.Concepts {
+		for _, violation := range set.Validate(concept) {
+			report.Findings = append(report.Findings, finding(
+				contractv1.AuditTypeSchemaInvalid,
+				contractv1.AuditSeverityError,
+				concept.ID,
+				concept.Path,
+				"",
+				violation.Message,
 			))
 		}
 	}

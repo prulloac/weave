@@ -56,6 +56,8 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrExtensionProto,
 	contractv1.ErrSourceNotFound,
 	contractv1.ErrSourceUnsupported,
+	contractv1.ErrTypeSchemaInvalid,
+	contractv1.ErrTypeSchemaUnsupported,
 	contractv1.ErrExtensionDataInvalid,
 	contractv1.ErrExtensionDataTooLarge,
 	contractv1.ErrExtensionDataQuota,

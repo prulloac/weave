@@ -79,6 +79,9 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 		return failure(code, message, map[string]any{"path": request.Path})
 	}
 	defer eng.Close()
+	if code, message, failed := e.typeSchemaFailure(request.Path, eng.Bundle(), request.Permissive); failed {
+		return failure(code, message, map[string]any{"path": request.Path})
+	}
 
 	var enricher sqlitestore.Enricher
 	if !projectMode {
@@ -364,6 +367,16 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
 	}
 	artifacts = append(artifacts, projectRecords...)
+	if has, err := store.HasBundle(ctx, request.Path); err == nil && has {
+		bundleForSchemas, err := store.LoadBundle(ctx, request.Path)
+		if err != nil {
+			code, message := mapStorageError(err)
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+		if code, message, failed := e.typeSchemaFailure(request.Path, bundleForSchemas, request.Permissive); failed {
+			return failure(code, message, map[string]any{"path": request.Path})
+		}
+	}
 	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
 		Mode:                mode,
 		Codec:               request.Codec,

@@ -29,6 +29,8 @@ var errorPolicies = map[contractv1.ErrorCode]errorPolicy{
 	contractv1.ErrExtensionUntrusted:    {1, "run `weave extensions trust <name> <path>` after reviewing the executable"},
 	contractv1.ErrSourceNotFound:        {1, "run `weave source list --workspace <dir>` to see registered aliases"},
 	contractv1.ErrSourceUnsupported:     {2, "upgrade the source provider or use one that declares the requested capability"},
+	contractv1.ErrTypeSchemaInvalid:     {1, "fix .weave/types/<type>.schema.json or the document frontmatter"},
+	contractv1.ErrTypeSchemaUnsupported: {1, "remove remote $ref entries; type schemas resolve locally only"},
 	contractv1.ErrExtensionTimeout:      {1, "increase `--timeout` or check the extension"},
 	contractv1.ErrExtensionFailed:       {1, "run the extension manually to see stderr"},
 	contractv1.ErrExtensionProto:        {1, "check the extension weave.cli/v1 payload"},

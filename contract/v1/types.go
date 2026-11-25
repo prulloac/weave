@@ -77,6 +77,7 @@ const (
 	AuditDanglingExternal       AuditFindingCode = "DANGLING_EXTERNAL"
 	AuditKeyUnavailable         AuditFindingCode = "KEY_UNAVAILABLE"
 	AuditCodecMissing           AuditFindingCode = "CODEC_MISSING"
+	AuditTypeSchemaInvalid      AuditFindingCode = "TYPE_SCHEMA_INVALID"
 	AuditEmbeddingStale         AuditFindingCode = "EMBEDDING_STALE"
 	AuditEmbeddingIndexMismatch AuditFindingCode = "EMBEDDING_INDEX_MISMATCH"
 )
@@ -112,6 +113,8 @@ const (
 	ErrExtensionUntrusted    ErrorCode = "EXTENSION_UNTRUSTED"
 	ErrSourceNotFound        ErrorCode = "SOURCE_NOT_FOUND"
 	ErrSourceUnsupported     ErrorCode = "SOURCE_UNSUPPORTED"
+	ErrTypeSchemaInvalid     ErrorCode = "TYPE_SCHEMA_INVALID"
+	ErrTypeSchemaUnsupported ErrorCode = "TYPE_SCHEMA_UNSUPPORTED"
 	ErrExtensionDataInvalid  ErrorCode = "EXTENSION_DATA_INVALID"
 	ErrExtensionDataTooLarge ErrorCode = "EXTENSION_DATA_TOO_LARGE"
 	ErrExtensionDataQuota    ErrorCode = "EXTENSION_DATA_QUOTA"

@@ -334,6 +334,26 @@ weave audit ~/notes --verify-keys --json
 
 Spec: [Weave Audit](https://github.com/prulloac/weave-docs/blob/main/specs/weave-audit.md).
 
+#### Per-type frontmatter schemas
+
+Opt in to stricter frontmatter by adding `.weave/types/<type>.schema.json`. The base `type` and
+`keywords` profile still applies; the schema adds required fields and constraints for that type.
+
+```text
+<notes>/.weave/types/
+  adr.schema.json
+  runbook.schema.json
+```
+
+- A strict ingest fails with `TYPE_SCHEMA_INVALID` and names the document and violation.
+- `--permissive` downgrades violations to warnings and indexes the document.
+- `weave audit` reports the same violations with severity `error`.
+- `$ref` may point at another file under `.weave/types`; remote references fail with
+  `TYPE_SCHEMA_UNSUPPORTED`.
+- Bundles without `.weave/types` behave exactly as before.
+
+Spec: [Per-Type Frontmatter Schemas](https://github.com/prulloac/weave-docs/blob/main/specs/per-type-schemas.md).
+
 #### `weave relate`
 
 Return the bounded graph neighborhood of a concept by depth and direction, as a deterministic
