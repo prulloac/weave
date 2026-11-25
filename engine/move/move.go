@@ -29,6 +29,7 @@ var (
 type Write struct {
 	Path string
 	Data []byte
+	Mode fs.FileMode
 }
 
 // Plan is a computed, not yet applied move.
@@ -84,10 +85,6 @@ func Build(root, from, to string) (*Plan, error) {
 	case !errors.Is(err, os.ErrNotExist):
 		return nil, fmt.Errorf("%w: %v", ErrInvalidRequest, err)
 	}
-	if strings.EqualFold(from, to) && !sameFile {
-		// A case-only rename on a case-sensitive filesystem is still a valid move.
-		sameFile = false
-	}
 
 	files, err := markdownFiles(absRoot)
 	if err != nil {
@@ -110,13 +107,19 @@ func Build(root, from, to string) (*Plan, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrInvalidRequest, err)
 		}
+		fileInfo, err := os.Stat(fileAbs)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidRequest, err)
+		}
 		moved := file == from
 		outputPath := file
 		outputDir := path.Dir(file)
 		resolveDir := path.Dir(file)
+		mode := fileInfo.Mode().Perm()
 		if moved {
 			outputPath = to
 			outputDir = path.Dir(to)
+			mode = sourceInfo.Mode().Perm()
 		}
 		context := rewriteContext{
 			oldPath:    from,
@@ -137,7 +140,7 @@ func Build(root, from, to string) (*Plan, error) {
 			return nil, fmt.Errorf("%w: %v", ErrInvalidRequest, err)
 		}
 		if moved || references > 0 {
-			plan.Writes = append(plan.Writes, Write{Path: outputPath, Data: []byte(rewritten)})
+			plan.Writes = append(plan.Writes, Write{Path: outputPath, Data: []byte(rewritten), Mode: mode})
 			plan.Rewritten = append(plan.Rewritten, contractv1.MoveRewrite{
 				Path:       outputPath,
 				References: references,
@@ -220,7 +223,7 @@ func (p *Plan) Apply(after func() error) error {
 			restore()
 			return err
 		}
-		if err := os.WriteFile(abs, write.Data, 0o644); err != nil {
+		if err := os.WriteFile(abs, write.Data, write.Mode.Perm()); err != nil {
 			restore()
 			return err
 		}
