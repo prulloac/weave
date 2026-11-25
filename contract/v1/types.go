@@ -98,6 +98,8 @@ const (
 	ErrPermissionDenied      ErrorCode = "PERMISSION_DENIED"
 	ErrParseError            ErrorCode = "PARSE_ERROR"
 	ErrConceptNotFound       ErrorCode = "CONCEPT_NOT_FOUND"
+	ErrDestinationExists     ErrorCode = "DESTINATION_EXISTS"
+	ErrMoveFailed            ErrorCode = "MOVE_FAILED"
 	ErrPathNotFound          ErrorCode = "PATH_NOT_FOUND"
 	ErrBundleNotIndexed      ErrorCode = "BUNDLE_NOT_INDEXED"
 	ErrPrivacyDirective      ErrorCode = "PRIVACY_DIRECTIVE_INVALID"
@@ -152,6 +154,7 @@ const (
 	OpIngest     OperationName = "ingest"
 	OpRebuild    OperationName = "rebuild"
 	OpSync       OperationName = "sync"
+	OpMv         OperationName = "mv"
 	OpExtensions OperationName = "extensions"
 	OpExport     OperationName = "export"
 	OpCodecs     OperationName = "codecs"
@@ -665,6 +668,20 @@ type SyncReport struct {
 	Errors    int            `json:"errors"`
 	DryRun    bool           `json:"dry_run,omitempty"`
 	Sources   []SourceReport `json:"sources,omitempty"`
+}
+
+// MoveRewrite counts the references changed in one file.
+type MoveRewrite struct {
+	Path       string `json:"path"`
+	References int    `json:"references"`
+}
+
+// MoveResult is the result of `weave mv`.
+type MoveResult struct {
+	From      string        `json:"from"`
+	To        string        `json:"to"`
+	DryRun    bool          `json:"dry_run"`
+	Rewritten []MoveRewrite `json:"rewritten"`
 }
 
 // OperationDescriptor describes one machine operation for discovery.

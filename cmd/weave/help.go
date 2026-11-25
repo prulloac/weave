@@ -152,6 +152,19 @@ var commandHelpText = map[string]commandHelp{
 			`weave sync ~/notes --db ~/.weave/index.db --watch --json --events`,
 		},
 	},
+	"mv": {
+		Usage:   "weave mv <path> <old-path> <new-path> [flags]",
+		Summary: "Move one document and rewrite links and related ids that name it.",
+		Flags: []string{
+			"--db <file>                        persistent database to update",
+			"--dry-run                          preview the move and rewrites without writing",
+			"--json                             one weave.cli/v1 envelope",
+		},
+		Examples: []string{
+			`weave mv ~/notes notes/old.md notes/archive/old.md --json`,
+			`weave mv ~/notes notes/old.md notes/archive/old.md --dry-run --json`,
+		},
+	},
 	"show": {
 		Usage:   "weave show <path> <id|file> [flags]",
 		Summary: "Show one concept, redacting encrypted bodies by default.",

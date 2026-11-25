@@ -319,9 +319,9 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	request.DryRun = flags.dryRun
 	if flags.dryRun {
 		switch request.Op {
-		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpExport:
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpExport, contractv1.OpMv:
 		default:
-			return usageError(stdout, stderr, flags.json, "--dry-run is only valid for ingest, rebuild, sync and export")
+			return usageError(stdout, stderr, flags.json, "--dry-run is only valid for ingest, rebuild, sync, export and mv")
 		}
 	}
 	if flags.noInput && request.Op != contractv1.OpExport {

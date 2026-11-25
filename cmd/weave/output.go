@@ -383,6 +383,16 @@ func printHuman(stdout io.Writer, stderr io.Writer, op contractv1.OperationName,
 			report.Bundle, report.Documents, report.Added, report.Updated, report.Removed, report.Skipped)
 		fmt.Fprintf(stdout, "db: %s (%s)\n", report.DB, report.Mode)
 		return 0
+	case contractv1.OpMv:
+		moved := result.(contractv1.MoveResult)
+		if moved.DryRun {
+			fmt.Fprintln(stdout, "dry run: no changes written")
+		}
+		fmt.Fprintf(stdout, "%s %s %s\n", moved.From, arrow(ascii), moved.To)
+		for _, rewrite := range moved.Rewritten {
+			fmt.Fprintf(stdout, "%s: %d references\n", rewrite.Path, rewrite.References)
+		}
+		return 0
 	default:
 		fmt.Fprintln(stderr, "weave: unsupported operation")
 		return 1

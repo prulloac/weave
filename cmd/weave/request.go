@@ -197,6 +197,16 @@ func buildRequest(command string, flags flags) (contractv1.OperationRequest, int
 			Op:   contractv1.OpSync,
 			Path: flags.positional(0),
 		}, 0, nil
+	case "mv":
+		if err := requirePositional(command, flags, 3); err != nil {
+			return contractv1.OperationRequest{}, 0, err
+		}
+		return contractv1.OperationRequest{
+			Op:   contractv1.OpMv,
+			Path: flags.positional(0),
+			From: flags.positional(1),
+			To:   flags.positional(2),
+		}, 0, nil
 	case "mount", "unmount", "status":
 		return contractv1.OperationRequest{}, 2, fmt.Errorf("%s is not implemented in the Go CLI yet", command)
 	default:

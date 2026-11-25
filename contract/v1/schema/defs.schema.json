@@ -187,6 +187,8 @@
 				"PERMISSION_DENIED",
 				"PARSE_ERROR",
 				"CONCEPT_NOT_FOUND",
+				"DESTINATION_EXISTS",
+				"MOVE_FAILED",
 				"PATH_NOT_FOUND",
 				"BUNDLE_NOT_INDEXED",
 				"EXTENSION_NOT_FOUND",
@@ -241,6 +243,7 @@
 				"ingest",
 				"rebuild",
 				"sync",
+				"mv",
 				"extensions",
 				"export",
 				"codecs"
@@ -1797,6 +1800,50 @@
 				},
 				"dry_run": {
 					"type": "boolean"
+				}
+			}
+		},
+		"MoveRewrite": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"path",
+				"references"
+			],
+			"properties": {
+				"path": {
+					"type": "string"
+				},
+				"references": {
+					"type": "integer",
+					"minimum": 0
+				}
+			}
+		},
+		"MoveResult": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"from",
+				"to",
+				"dry_run",
+				"rewritten"
+			],
+			"properties": {
+				"from": {
+					"type": "string"
+				},
+				"to": {
+					"type": "string"
+				},
+				"dry_run": {
+					"type": "boolean"
+				},
+				"rewritten": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/MoveRewrite"
+					}
 				}
 			}
 		},

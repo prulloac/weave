@@ -31,6 +31,7 @@ var operationDescriptors = []contractv1.OperationDescriptor{
 	{Op: contractv1.OpIngest, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
 	{Op: contractv1.OpRebuild, Fields: []string{"path", "db", "strict", "codec"}, Result: "IngestReport"},
 	{Op: contractv1.OpSync, Fields: []string{"path", "db", "strict", "permissive", "codec"}, Result: "SyncReport"},
+	{Op: contractv1.OpMv, Fields: []string{"path", "from", "to", "dry_run"}, Result: "MoveResult"},
 	{Op: contractv1.OpExtensions, Fields: []string{"path"}, Result: "ExtensionList"},
 	{Op: contractv1.OpCodecs, Fields: []string{"path"}, Result: "CodecList"},
 	{Op: contractv1.OpExport, Fields: []string{"path", "out", "format", "key_id", "db", "force", "confirmed"}, Result: "ExportReport"},
@@ -42,6 +43,8 @@ var operationErrors = []contractv1.ErrorCode{
 	contractv1.ErrPermissionDenied,
 	contractv1.ErrParseError,
 	contractv1.ErrConceptNotFound,
+	contractv1.ErrDestinationExists,
+	contractv1.ErrMoveFailed,
 	contractv1.ErrPathNotFound,
 	contractv1.ErrBundleNotIndexed,
 	contractv1.ErrPrivacyDirective,
@@ -115,6 +118,7 @@ var requestHandlers = map[contractv1.OperationName]operationHandler{
 	contractv1.OpIngest:  (*Executor).ingest,
 	contractv1.OpRebuild: (*Executor).ingest,
 	contractv1.OpSync:    (*Executor).sync,
+	contractv1.OpMv:      (*Executor).move,
 }
 
 var engineHandlers = map[contractv1.OperationName]engineHandler{

@@ -14,6 +14,7 @@ or check; a scenario without one is a documentation gap.
 | [Codec extensions](codec-extensions.md) | [codec-extensions.md](https://github.com/prulloac/weave-docs/blob/main/specs/codec-extensions.md) | `cmd/weave/codecs_bdd_test.go`, `engine/codecs/codecs_test.go`, `storage/sqlite/schema_v7_test.go` |
 | [Compression](compression.md) | [compression.md](https://github.com/prulloac/weave-docs/blob/main/specs/compression.md) | `cmd/weave/compression_bdd_test.go`, `storage/sqlite/compression_test.go` |
 | [Configuration](configuration.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/config_bdd_test.go` |
+| [Document move](document-move.md) | [document-move.md](https://github.com/prulloac/weave-docs/blob/main/specs/document-move.md) | `cmd/weave/document_move_bdd_test.go` |
 | [Dry run](dryrun.md) | [configuration.md](https://github.com/prulloac/weave-docs/blob/main/specs/configuration.md) | `cmd/weave/dryrun_bdd_test.go` |
 | [Embeddings](embeddings.md) | [embeddings.md](https://github.com/prulloac/weave-docs/blob/main/specs/embeddings.md) | `cmd/weave/embeddings_bdd_test.go`, `storage/sqlite/embeddings_test.go`, `storage/sqlite/vec_test.go` |
 | [Enrichment caching](enrichment-caching.md) | [enrichment-caching.md](https://github.com/prulloac/weave-docs/blob/main/specs/enrichment-caching.md) | `cmd/weave/enrichment_caching_bdd_test.go`, `storage/sqlite/enrichment_cache_test.go` |

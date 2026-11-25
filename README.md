@@ -442,6 +442,28 @@ SIGINT/SIGTERM exits cleanly.
 
 Specs: [Storage & Sync](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md), [Watch Mode](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md).
 
+#### `weave mv`
+
+Move or rename one Markdown document inside a bundle and rewrite the relative links, images and
+`related` ids that name its old path. Link fragments, link titles, root-relative targets and
+reference definitions are preserved. Fenced code, inline code, HTML comments, external URLs and
+links that already point at the destination are untouched, as are prose, other frontmatter, asset
+bytes and encrypted bodies.
+
+```sh
+weave mv ~/notes notes/old.md notes/archive/old.md --json
+weave mv ~/notes notes/old.md notes/archive/old.md --dry-run --json
+```
+
+Paths are bundle-relative POSIX paths ending in `.md`; directories, symlinks and cross-bundle paths
+are refused. An existing destination fails with `DESTINATION_EXISTS`, and a missing source fails with
+`CONCEPT_NOT_FOUND`. `--dry-run` reports the same rewrites without writing. When `--db` names an
+existing index that contains the bundle, the index updates in one transaction after the files move;
+an index failure restores every file and reports `MOVE_FAILED`. Without an index the move still
+succeeds and the next `ingest` or `sync` indexes the new path.
+
+Spec: [Document Move](https://github.com/prulloac/weave-docs/blob/main/specs/document-move.md).
+
 #### `weave export`
 
 Reconstruct bundle files from the index.
