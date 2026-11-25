@@ -649,6 +649,8 @@ weave search ~/notes "token rotation" --rerank keywords --json
   it fails, search falls back to the built-in tokenizer with one warning.
 - `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
+- [Build a Weave extension](docs/guides/extension-authoring.md) covers the manifest, transport, roles,
+  trust, requirements, conformance and a complete shell enricher.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.
 - Default timeout is `5s`; override with `--timeout`.
 - `extensions check` reads the manifest, evaluates `requires`, then runs one canned request per

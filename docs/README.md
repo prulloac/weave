@@ -7,6 +7,8 @@ roadmap, backlog, specifications, architecture, ADRs, knowledge and style — li
 ## Use Weave
 
 - [README](../README.md) — install, quickstart, commands and configuration.
+- [Build a Weave extension](guides/extension-authoring.md) — manifest, transport, roles, conformance
+  and a complete shell enricher.
 - [Connect an agent over MCP](guides/workspace-mcp.md) — workspace setup, dynamic bundles and MCP.
 - [Agent skills](https://github.com/prulloac/weave-skills) — installable CLI workflows for agents.
 - [Quickstart](../README.md#quickstart)
