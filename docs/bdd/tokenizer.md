@@ -8,7 +8,7 @@ Behavior scenarios for the opt-in tokenizer role. The contract is
 - Given a bundle indexed without `--tokenizer`
 - When I search or rebuild without one
 - Then terms, scores, order and output are unchanged
-- And the index records the built-in tokenizer
+- And the index records `builtin` as its tokenizer
 
 Executable coverage: `TestTokenizerDefaultUnchanged`.
 
@@ -57,6 +57,15 @@ Executable coverage: `TestTokenizerUsesRecorded`.
 - And no partial index is committed
 
 Executable coverage: `TestTokenizerProtocol`, `TestTokenizerTimeout`.
+
+## Scenario: --no-db search falls back
+
+- Given a tokenizer that fails
+- When I run `weave search --no-db --tokenizer <name>`
+- Then the search uses the built-in tokenizer
+- And one warning is emitted
+
+Executable coverage: `TestTokenizerNoDB`, `TestTokenizerNoDBFallback`.
 
 ## Scenario: privacy applies before tokenization
 

@@ -87,6 +87,24 @@ func (e *Engine) SearchWithFilters(
 	return search.SearchWithFilters(e.indexForMode(mode), query, mode, topK, filters)
 }
 
+// SearchWithFiltersAndKeywordGroups runs a search whose keyword positions come from a tokenizer.
+func (e *Engine) SearchWithFiltersAndKeywordGroups(
+	query string,
+	mode contractv1.SearchMode,
+	topK int,
+	filters []contractv1.SearchFilter,
+	groups [][]string,
+) (contractv1.SearchResponse, error) {
+	return search.SearchWithFiltersAndKeywordGroups(e.indexForMode(mode), query, mode, topK, filters, groups)
+}
+
+// SearchIndexWithKeywordTokenizer builds a transient index whose keyword terms come from a tokenizer.
+func (e *Engine) SearchIndexWithKeywordTokenizer(
+	tokenize search.KeywordTokenize,
+) (*search.Index, error) {
+	return search.BuildWithKeywordTokenizer(e.bundle, e.graph, tokenize)
+}
+
 func (e *Engine) Explain(
 	query string,
 	mode contractv1.SearchMode,

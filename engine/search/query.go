@@ -60,6 +60,20 @@ func SearchWithFilters(
 	topK int,
 	filters []contractv1.SearchFilter,
 ) (contractv1.SearchResponse, error) {
+	return SearchWithFiltersAndKeywordGroups(index, query, mode, topK, filters, nil)
+}
+
+// SearchWithFiltersAndKeywordGroups runs a filtered search with keyword groups supplied by a caller.
+// Each group is one AND position; the terms inside a group are alternatives (OR). A nil groups slice
+// keeps the built-in tokenizer.
+func SearchWithFiltersAndKeywordGroups(
+	index *Index,
+	query string,
+	mode contractv1.SearchMode,
+	topK int,
+	filters []contractv1.SearchFilter,
+	groups [][]string,
+) (contractv1.SearchResponse, error) {
 	filterSet, err := NewFilterSet(filters)
 	if err != nil {
 		return contractv1.SearchResponse{}, err
@@ -92,11 +106,17 @@ func SearchWithFilters(
 		Hybrid:  []contractv1.HybridHit{},
 	}
 	tokens := Tokenize(query)
-	if len(tokens) == 0 {
+	if len(groups) == 0 {
+		groups = make([][]string, 0, len(tokens))
+		for _, token := range tokens {
+			groups = append(groups, []string{token})
+		}
+	}
+	if len(tokens) == 0 && len(groups) == 0 {
 		return response, nil
 	}
 
-	keywordHits := keywordSearch(index, tokens, topK, filterSet)
+	keywordHits := keywordSearch(index, groups, topK, filterSet)
 	fuzzyHits := fuzzySearch(index, tokens, topK, filterSet)
 	response.Keyword = keywordHits
 	response.Fuzzy = fuzzyHits
@@ -104,25 +124,27 @@ func SearchWithFilters(
 	return response, nil
 }
 
-func keywordSearch(index *Index, queryTokens []string, topK int, filters FilterSet) []contractv1.KeywordHit {
-	scores := make([]map[int]float64, len(queryTokens))
-	origins := make([]map[int]string, len(queryTokens))
+func keywordSearch(index *Index, queryGroups [][]string, topK int, filters FilterSet) []contractv1.KeywordHit {
+	scores := make([]map[int]float64, len(queryGroups))
+	origins := make([]map[int]string, len(queryGroups))
 	candidates := make(map[int]bool)
 
-	for queryPosition, queryToken := range queryTokens {
+	for queryPosition, queryGroup := range queryGroups {
 		scores[queryPosition] = make(map[int]float64)
 		origins[queryPosition] = make(map[int]string)
 
-		for token, postings := range index.KeywordPostings {
-			score, _ := keywordTokenScore(queryToken, token)
-			if score == 0 {
-				continue
-			}
+		for _, queryToken := range queryGroup {
+			for token, postings := range index.KeywordPostings {
+				score, _ := keywordTokenScore(queryToken, token)
+				if score == 0 {
+					continue
+				}
 
-			for documentIndex := range postings {
-				if score > scores[queryPosition][documentIndex] {
-					scores[queryPosition][documentIndex] = score
-					origins[queryPosition][documentIndex] = index.Documents[documentIndex].KeywordOrigin[token]
+				for documentIndex := range postings {
+					if score > scores[queryPosition][documentIndex] {
+						scores[queryPosition][documentIndex] = score
+						origins[queryPosition][documentIndex] = index.Documents[documentIndex].KeywordOrigin[token]
+					}
 				}
 			}
 		}
@@ -147,7 +169,7 @@ func keywordSearch(index *Index, queryTokens []string, topK int, filters FilterS
 	for documentIndex := range candidates {
 		total := 0.0
 		matched := make(map[string]bool)
-		for queryPosition := range queryTokens {
+		for queryPosition := range queryGroups {
 			total += scores[queryPosition][documentIndex]
 			if origin := origins[queryPosition][documentIndex]; origin != "" {
 				matched[origin] = true
@@ -169,7 +191,7 @@ func keywordSearch(index *Index, queryTokens []string, topK int, filters FilterS
 			Type:            document.Type,
 			Keywords:        document.Keywords,
 			MatchedKeywords: sortedKeys(matched),
-			Score:           RoundScore(total / float64(len(queryTokens))),
+			Score:           RoundScore(total / float64(len(queryGroups))),
 		})
 	}
 

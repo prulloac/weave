@@ -42,7 +42,30 @@ func (e *Executor) readSearch(ctx context.Context, eng *engine.Engine, request c
 		mode = contractv1.SearchHybrid
 	}
 	limit := searchLimit(request, topK)
-	result, err := eng.SearchWithFilters(request.Query, mode, limit, request.Filters)
+	var (
+		tokenizer *sqlitestore.Tokenizer
+		groups    [][]string
+		tokenized bool
+	)
+	if request.NoDB {
+		tokenizer, groups, tokenized = e.transientSearchTokenizer(ctx, request, extensionTimeout(request))
+	}
+	var result contractv1.SearchResponse
+	var err error
+	if tokenized {
+		index, buildErr := eng.SearchIndexWithKeywordTokenizer(func(text string) ([]string, error) {
+			terms, _, termErr := tokenizer.Terms(ctx, text, "index")
+			return terms, termErr
+		})
+		if buildErr != nil {
+			return failure(extensionErrorCode(buildErr), buildErr.Error(), map[string]any{
+				"tokenizer": request.Tokenizer,
+			})
+		}
+		result, err = search.SearchWithFiltersAndKeywordGroups(index, request.Query, mode, limit, request.Filters, groups)
+	} else {
+		result, err = eng.SearchWithFilters(request.Query, mode, limit, request.Filters)
+	}
 	if err != nil {
 		return failure(contractv1.ErrInvalidRequest, err.Error(), map[string]any{
 			"query": request.Query,

@@ -623,7 +623,8 @@ weave search ~/notes "token rotation" --rerank keywords --json
   tokenizer name, version and optional `cache_key`; search uses the recorded identity and refuses a
   mismatch with `TOKENIZER_CHANGED` (exit `1`) until the bundle is rebuilt. Encrypted bodies are
   skipped, and malformed or timed-out responses fail the write with `TOKENIZER_PROTOCOL` or
-  `TOKENIZER_TIMEOUT`.
+  `TOKENIZER_TIMEOUT`. A `--no-db` search applies the selected tokenizer to the transient index; if
+  it fails, search falls back to the built-in tokenizer with one warning.
 - `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.

@@ -116,6 +116,29 @@ func (e *Executor) writeTokenizer(ctx context.Context, store *sqlitestore.Store,
 	return tokenizer, err
 }
 
+// transientSearchTokenizer resolves --tokenizer for a --no-db search. A failure falls back to the
+// built-in tokenizer with one warning because there is no stored index identity to enforce.
+func (e *Executor) transientSearchTokenizer(
+	ctx context.Context,
+	request contractv1.OperationRequest,
+	timeout time.Duration,
+) (*sqlitestore.Tokenizer, [][]string, bool) {
+	if request.Tokenizer == "" {
+		return nil, nil, false
+	}
+	tokenizer, _, err := e.newTokenizer(ctx, request.Path, request.Tokenizer, timeout)
+	if err != nil {
+		e.warn("tokenizer %s unavailable: %v; using the built-in tokenizer", request.Tokenizer, err)
+		return nil, nil, false
+	}
+	groups, err := tokenizer.QueryGroups(ctx, request.Query)
+	if err != nil {
+		e.warn("tokenizer %s failed: %v; using the built-in tokenizer", request.Tokenizer, err)
+		return nil, nil, false
+	}
+	return tokenizer, groups, true
+}
+
 // searchTokenizer resolves the tokenizer recorded in one index and enforces identity.
 func (e *Executor) searchTokenizer(ctx context.Context, store *sqlitestore.Store, request contractv1.OperationRequest, timeout time.Duration) error {
 	identity, _, err := store.TokenizerIdentity(ctx, request.Path)

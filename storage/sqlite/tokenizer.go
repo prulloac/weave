@@ -31,7 +31,7 @@ func (i TokenizerIdentity) Builtin() bool { return i.ID == "" || i.Name == "" }
 
 func tokenizerColumns(tokenizer *Tokenizer) (name, version, cacheKey, id string) {
 	if tokenizer == nil {
-		return "", "", "", ""
+		return "builtin", "weave.contract/v1", "", ""
 	}
 	return tokenizer.Name, tokenizer.Version, tokenizer.CacheKey, tokenizer.ID
 }

@@ -88,8 +88,8 @@ func TestTokenizerDefaultUnchanged(t *testing.T) {
 	if ids := tokenizerHitIDs(t, tokenizerSearch(t, root, db, "mouse")); len(ids) != 0 {
 		t.Fatalf("built-in tokenizer must not stem, got %v", ids)
 	}
-	if name, _ := tokenizerIdentity(t, db, root); name != "" {
-		t.Fatalf("built-in tokenizer identity = %q, want empty", name)
+	if name, _ := tokenizerIdentity(t, db, root); name != "builtin" {
+		t.Fatalf("built-in tokenizer identity = %q, want builtin", name)
 	}
 }
 
@@ -246,6 +246,37 @@ func TestTokenizerIdentity(t *testing.T) {
 	}
 	if envelope := decodeEnvelope(t, stdout); envelope.Error == nil || envelope.Error.Code != contractv1.ErrTokenizerChanged {
 		t.Fatalf("error = %+v", envelope.Error)
+	}
+}
+
+func TestTokenizerNoDB(t *testing.T) {
+	root := tokenizerFixture(t)
+	installExtension(t, root, "stem", "tokenizer.sh")
+	code, stdout, stderr := Invoke(t, "search", root, "mouse", "--no-db", "--mode", "keyword", "--tokenizer", "stem", "--json")
+	if code != 0 {
+		t.Fatalf("search exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	if ids := tokenizerHitIDs(t, decodeEnvelope(t, stdout)); len(ids) != 1 || ids[0] != "stem" {
+		t.Fatalf("no-db tokenized search = %v", ids)
+	}
+}
+
+func TestTokenizerNoDBFallback(t *testing.T) {
+	root := tokenizerFixture(t)
+	installExtension(t, root, "bad", "tokenizer.sh")
+	t.Setenv("TEST_TOKENIZER_INVALID", "1")
+	code, stdout, stderr := Invoke(t, "search", root, "mice", "--no-db", "--mode", "keyword", "--tokenizer", "bad", "--json")
+	if code != 0 {
+		t.Fatalf("search exit=%d stderr=%q stdout=%s", code, stderr, stdout)
+	}
+	if ids := tokenizerHitIDs(t, decodeEnvelope(t, stdout)); len(ids) != 1 || ids[0] != "stem" {
+		t.Fatalf("fallback search = %v", ids)
+	}
+	if !strings.Contains(stderr, "bad") || !strings.Contains(stderr, "built-in tokenizer") {
+		t.Fatalf("expected one fallback warning, got %q", stderr)
+	}
+	if strings.Count(stderr, "built-in tokenizer") != 1 {
+		t.Fatalf("expected exactly one fallback warning, got %q", stderr)
 	}
 }
 

@@ -56,6 +56,28 @@ func BuildKeywords(bundle *contractv1.Bundle) *Index {
 
 // BuildWithOptions indexes a parsed bundle with explicit structure choices.
 func BuildWithOptions(bundle *contractv1.Bundle, _ *graph.Graph, options BuildOptions) *Index {
+	index, _ := buildWithOptions(bundle, options, nil)
+	return index
+}
+
+// KeywordTokenize transforms one keyword into index terms. A nil function keeps the built-in
+// tokenizer.
+type KeywordTokenize func(text string) ([]string, error)
+
+// BuildWithKeywordTokenizer indexes a bundle and replaces keyword terms with the supplied tokenizer.
+func BuildWithKeywordTokenizer(
+	bundle *contractv1.Bundle,
+	graph *graph.Graph,
+	tokenize KeywordTokenize,
+) (*Index, error) {
+	return buildWithOptions(bundle, BuildOptions{}, tokenize)
+}
+
+func buildWithOptions(
+	bundle *contractv1.Bundle,
+	options BuildOptions,
+	keywordTokenize KeywordTokenize,
+) (*Index, error) {
 	index := &Index{
 		Documents:       make([]Document, 0, len(bundle.Concepts)),
 		KeywordPostings: make(map[string]map[int]bool),
@@ -140,7 +162,15 @@ func BuildWithOptions(bundle *contractv1.Bundle, _ *graph.Graph, options BuildOp
 		}
 
 		for _, keyword := range concept.Keywords {
-			for _, token := range Tokenize(keyword) {
+			tokens := Tokenize(keyword)
+			if keywordTokenize != nil {
+				transformed, err := keywordTokenize(keyword)
+				if err != nil {
+					return nil, err
+				}
+				tokens = uniqueTokens(transformed)
+			}
+			for _, token := range tokens {
 				posting := index.KeywordPostings[token]
 				if posting == nil {
 					posting = make(map[int]bool)
@@ -156,7 +186,7 @@ func BuildWithOptions(bundle *contractv1.Bundle, _ *graph.Graph, options BuildOp
 		index.Documents = append(index.Documents, document)
 	}
 
-	return index
+	return index, nil
 }
 
 func uniqueTokens(tokens []string) []string {
