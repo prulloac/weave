@@ -298,14 +298,6 @@ func (r Runner) Embed(ctx context.Context, extension Extension, request Embeddin
 	return Embedding{Model: response.Model, Dim: response.Dim, Vector: vector}, nil
 }
 
-func (r Runner) invoke(ctx context.Context, extension Extension, payload, target any) error {
-	return r.invokeWithLimit(ctx, extension, payload, target, maxOutput)
-}
-
-func (r Runner) invokeWithLimit(ctx context.Context, extension Extension, payload, target any, outputLimit int) error {
-	return r.invokeVersionWithLimit(ctx, extension, payload, target, outputLimit, ProtocolVersion)
-}
-
 func (r Runner) invokeVersionWithLimit(ctx context.Context, extension Extension, payload, target any, outputLimit int, protocolVersion string) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
