@@ -330,7 +330,11 @@ concepts and index gaps. Intended as a CI quality gate.
 weave audit ~/notes --fail-on error --json
 weave audit ~/notes --fail-on warning
 weave audit ~/notes --verify-keys --json
+weave audit ~/notes --format sarif --out audit.sarif
 ```
+
+`--format sarif` writes a SARIF 2.1.0 log with one result per finding, deterministic ordering and the
+same `--fail-on` exit status. `--format sarif` and `--json` are mutually exclusive.
 
 Spec: [Weave Audit](https://github.com/prulloac/weave-docs/blob/main/specs/weave-audit.md).
 

@@ -172,10 +172,15 @@ var commandHelpText = map[string]commandHelp{
 		Summary: "Report conformance, link and key-availability findings.",
 		Flags: []string{
 			"--fail-on error|warning|none       failure threshold",
+			"--format sarif                     write a SARIF 2.1.0 log",
+			"--out <file>                       write the SARIF log to a file",
 			"--verify-keys                      report KEY_UNAVAILABLE findings",
 			"--provider <name>                  external crypto provider",
 		},
-		Examples: []string{`weave audit ~/notes --verify-keys --json`},
+		Examples: []string{
+			`weave audit ~/notes --verify-keys --json`,
+			`weave audit ~/notes --format sarif --out audit.sarif`,
+		},
 	},
 	"export": {
 		Usage:   "weave export <path> --out <dir> --format raw|encrypted [flags]",

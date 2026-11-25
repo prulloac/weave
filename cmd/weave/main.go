@@ -15,6 +15,7 @@ import (
 
 	contractv1 "github.com/prulloac/weave/contract/v1"
 	"github.com/prulloac/weave/engine"
+	auditpkg "github.com/prulloac/weave/engine/audit"
 	"github.com/prulloac/weave/engine/extensions"
 	graphpkg "github.com/prulloac/weave/engine/graph"
 	"github.com/prulloac/weave/engine/operations"
@@ -338,6 +339,22 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return usageError(stdout, stderr, flags.json, "--key-id, --force and --yes are not valid for graph")
 		}
 		request.Format = format
+	} else if request.Op == contractv1.OpAudit {
+		if flags.format != "" {
+			format := strings.ToLower(strings.TrimSpace(flags.format))
+			if format != "sarif" {
+				return usageError(stdout, stderr, flags.json, "--format must be sarif for audit")
+			}
+			if flags.json {
+				return usageError(stdout, stderr, flags.json, "--format sarif and --json are mutually exclusive")
+			}
+			if flags.keyID != "" || flags.force || flags.yes {
+				return usageError(stdout, stderr, flags.json, "--key-id, --force and --yes are not valid for audit")
+			}
+			request.Format = "sarif"
+		} else if flags.out != "" {
+			return usageError(stdout, stderr, flags.json, "--out requires --format sarif for audit")
+		}
 	} else if request.Op != contractv1.OpExport && request.Op != contractv1.OpShow {
 		if flags.out != "" || flags.format != "" || flags.keyID != "" || flags.force || flags.yes {
 			return usageError(stdout, stderr, flags.json, "--out, --format, --key-id, --force and --yes are only valid for show, export and graph export")
@@ -420,6 +437,27 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 	if flags.verbose {
 		fmt.Fprintf(stderr, "weave: elapsed: %s\n", time.Since(started).Round(time.Millisecond))
+	}
+
+	if request.Op == contractv1.OpAudit && request.Format == "sarif" {
+		if envelope, ok := value.(contractv1.SuccessEnvelope); ok {
+			if report, ok := envelope.Result.(contractv1.AuditReport); ok {
+				data, err := auditpkg.RenderSARIF(report, version)
+				if err != nil {
+					fmt.Fprintf(stderr, "weave: %v\n", err)
+					return 1
+				}
+				if request.Out != "" {
+					if err := writeFileAtomic(request.Out, data); err != nil {
+						fmt.Fprintf(stderr, "weave: %v\n", err)
+						return 1
+					}
+					return auditSuccessExit(report)
+				}
+				fmt.Fprint(stdout, string(data))
+				return auditSuccessExit(report)
+			}
+		}
 	}
 
 	if request.Op == contractv1.OpGraph && request.Format != "" {
