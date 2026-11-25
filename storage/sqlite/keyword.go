@@ -42,13 +42,16 @@ func (s *Store) KeywordHitsWithFilters(
 	if topK > 100 {
 		topK = 100
 	}
-	queryTokens := search.Tokenize(query)
-	if len(queryTokens) == 0 {
+	queryGroups, err := s.queryGroups(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(queryGroups) == 0 {
 		return []contractv1.KeywordHit{}, nil
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, title, file_path, doc_type, keywords_json, status, tags_json
+		SELECT id, title, file_path, doc_type, keywords_json, search_keywords_json, status, tags_json
 		FROM documents
 		WHERE bundle_root = ? AND privacy_policy != 'encrypt'`, root)
 	if err != nil {
@@ -58,14 +61,20 @@ func (s *Store) KeywordHitsWithFilters(
 
 	hits := make([]contractv1.KeywordHit, 0)
 	for rows.Next() {
-		var id, title, path, keywordsJSON, tagsJSON string
+		var id, title, path, keywordsJSON, searchKeywordsJSON, tagsJSON string
 		var docType, status sql.NullString
-		if err := rows.Scan(&id, &title, &path, &docType, &keywordsJSON, &status, &tagsJSON); err != nil {
+		if err := rows.Scan(&id, &title, &path, &docType, &keywordsJSON, &searchKeywordsJSON, &status, &tagsJSON); err != nil {
 			return nil, err
 		}
-		var keywords, tags []string
+		var keywords, searchKeywords, tags []string
 		if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
 			return nil, err
+		}
+		if err := json.Unmarshal([]byte(searchKeywordsJSON), &searchKeywords); err != nil {
+			return nil, err
+		}
+		if len(searchKeywords) == 0 {
+			searchKeywords = keywords
 		}
 		if err := json.Unmarshal([]byte(tagsJSON), &tags); err != nil {
 			return nil, err
@@ -78,10 +87,11 @@ func (s *Store) KeywordHitsWithFilters(
 		}) {
 			continue
 		}
-		hit, ok := keywordHit(queryTokens, id, title, path, docType.String, keywords)
+		hit, ok := keywordHit(queryGroups, id, title, path, docType.String, searchKeywords)
 		if !ok {
 			continue
 		}
+		hit.Keywords = keywords
 		hits = append(hits, hit)
 	}
 	if err := rows.Err(); err != nil {
@@ -100,21 +110,23 @@ func (s *Store) KeywordHitsWithFilters(
 }
 
 func keywordHit(
-	queryTokens []string,
+	queryGroups [][]string,
 	id, title, path, docType string,
 	keywords []string,
 ) (contractv1.KeywordHit, bool) {
 	matched := make(map[string]bool)
 	total := 0.0
-	for _, queryToken := range queryTokens {
+	for _, group := range queryGroups {
 		best := 0.0
 		bestKeyword := ""
-		for _, keyword := range keywords {
-			for _, token := range search.Tokenize(keyword) {
-				score := search.KeywordTokenScore(queryToken, token)
-				if score > best {
-					best = score
-					bestKeyword = keyword
+		for _, queryToken := range group {
+			for _, keyword := range keywords {
+				for _, token := range search.Tokenize(keyword) {
+					score := search.KeywordTokenScore(queryToken, token)
+					if score > best {
+						best = score
+						bestKeyword = keyword
+					}
 				}
 			}
 		}
@@ -138,6 +150,6 @@ func keywordHit(
 		Type:            docType,
 		Keywords:        keywords,
 		MatchedKeywords: matchedKeywords,
-		Score:           search.RoundScore(total / float64(len(queryTokens))),
+		Score:           search.RoundScore(total / float64(len(queryGroups))),
 	}, true
 }

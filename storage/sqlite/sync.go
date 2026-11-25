@@ -119,7 +119,15 @@ func (s *Store) Sync(
 	if assetTypes == nil {
 		assetTypesJSON = []byte("[]")
 	}
-	if _, err := tx.ExecContext(ctx,
+	if options.Tokenizer != nil {
+		name, version, cacheKey, id := tokenizerColumns(options.Tokenizer)
+		if _, err := tx.ExecContext(ctx,
+			"UPDATE bundles SET mode = ?, okf_version = ?, index_json = ?, validation_json = ?, asset_types_json = ?, tokenizer_name = ?, tokenizer_version = ?, tokenizer_cache_key = ?, tokenizer_id = ?, updated_at = ? WHERE bundle_root = ?",
+			mode, nullableString(version), string(indexJSON), string(validationJSON), string(assetTypesJSON),
+			name, version, cacheKey, id, time.Now().Unix(), root); err != nil {
+			return contractv1.SyncReport{}, err
+		}
+	} else if _, err := tx.ExecContext(ctx,
 		"UPDATE bundles SET mode = ?, okf_version = ?, index_json = ?, validation_json = ?, asset_types_json = ?, updated_at = ? WHERE bundle_root = ?",
 		mode, nullableString(version), string(indexJSON), string(validationJSON),
 		string(assetTypesJSON), time.Now().Unix(), root); err != nil {
@@ -152,7 +160,7 @@ func (s *Store) Sync(
 		}
 		switch {
 		case !exists:
-			warnings, _, item, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
+			warnings, _, item, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Tokenizer, options.Provider, now)
 			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
@@ -193,7 +201,7 @@ func (s *Store) Sync(
 				"DELETE FROM documents WHERE bundle_root = ? AND file_path = ?", root, path); err != nil {
 				return contractv1.SyncReport{}, err
 			}
-			warnings, enriched, item, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Provider, now)
+			warnings, enriched, item, err := insertSyncedConcept(ctx, tx, root, concept, codec, options.Enricher, options.Tokenizer, options.Provider, now)
 			privacySkipped += warnings
 			if err != nil {
 				if errors.Is(err, privacy.ErrKeyUnavailable) && mode == "permissive" {
@@ -269,7 +277,7 @@ func (s *Store) Sync(
 		}
 	}
 	for _, id := range changedIDs {
-		if err := insertFTSDoc(ctx, tx, root, id); err != nil {
+		if err := insertFTSDoc(ctx, tx, root, id, options.Tokenizer); err != nil {
 			return contractv1.SyncReport{}, err
 		}
 	}

@@ -98,17 +98,20 @@ func (s *Store) writeBundle(
 	if _, err := tx.ExecContext(ctx, "DELETE FROM extension_artifacts WHERE bundle_root = ?", root); err != nil {
 		return contractv1.IngestReport{}, err
 	}
+	tokenizerName, tokenizerVersion, tokenizerCacheKey, tokenizerID := tokenizerColumns(options.Tokenizer)
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, asset_types_json, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		INSERT INTO bundles (bundle_root, mode, okf_version, index_json, validation_json, asset_types_json,
+			tokenizer_name, tokenizer_version, tokenizer_cache_key, tokenizer_id, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, mode, nullableString(version), string(indexJSON), string(validationJSON),
-		string(assetTypesJSON), time.Now().Unix()); err != nil {
+		string(assetTypesJSON), tokenizerName, tokenizerVersion, tokenizerCacheKey, tokenizerID,
+		time.Now().Unix()); err != nil {
 		return contractv1.IngestReport{}, err
 	}
 
 	now := time.Now().Unix()
 	codecWarnings := textCodecWarnings(bundle, options.CodecSet)
-	prepared, skipped, err := prepareConcepts(ctx, root, bundle.Concepts, mode == "permissive", codec, options.Enricher, options.Provider)
+	prepared, skipped, err := prepareConcepts(ctx, root, bundle.Concepts, mode == "permissive", codec, options.Enricher, options.Tokenizer, options.Provider)
 	if err != nil {
 		return contractv1.IngestReport{}, err
 	}
@@ -152,7 +155,7 @@ func (s *Store) writeBundle(
 			return contractv1.IngestReport{}, err
 		}
 	}
-	if err := populateFTS(ctx, tx, root); err != nil {
+	if err := populateFTSWithTokenizer(ctx, tx, root, options.Tokenizer); err != nil {
 		return contractv1.IngestReport{}, err
 	}
 	if err := populateSearchTokens(ctx, tx, root, bundle); err != nil {
@@ -205,6 +208,10 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 		return err
 	}
 	keywords, err := json.Marshal(concept.Keywords)
+	if err != nil {
+		return err
+	}
+	searchKeywords, err := json.Marshal(item.searchKeywords)
 	if err != nil {
 		return err
 	}
@@ -294,15 +301,15 @@ func insertConcept(ctx context.Context, tx *sql.Tx, root string, item preparedCo
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO documents (
 			bundle_root, id, file_path, content_hash, title, description, doc_type,
-			keywords_json, frontmatter_json, tags_json, status, links_json,
+			keywords_json, search_keywords_json, frontmatter_json, tags_json, status, links_json,
 			content_kind, media_type, content_metadata, body_raw, body_compressed,
 			body_codec, size, stored_size, privacy_policy, privacy_provider,
 			privacy_key_id, privacy_provider_name, privacy_key_version, redacted,
 			privacy_spans_json, updated_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-		          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		root, concept.ID, concept.Path, contentHash(root, concept), title, description, concept.Type,
-		string(keywords), string(frontmatter), string(tags), status, string(links),
+		string(keywords), string(searchKeywords), string(frontmatter), string(tags), status, string(links),
 		kind, mediaType, string(metadataJSON), bodyRaw, bodyCompressed, bodyCodec,
 		size, storedSize, policy, provider, keyID, item.providerName, item.keyVersion,
 		boolInt(item.redacted), string(spans), now)
@@ -316,6 +323,7 @@ func insertSyncedConcept(
 	concept contractv1.OkfConcept,
 	codec string,
 	enricher Enricher,
+	tokenizer *Tokenizer,
 	provider privacy.Provider,
 	now int64,
 ) (int, bool, preparedConcept, error) {
@@ -348,6 +356,15 @@ func insertSyncedConcept(
 			warnings += apply.Warnings
 		}
 	}
+	if tokenizer != nil {
+		terms, _, err := tokenizer.Terms(ctx, strings.Join(item.concept.Keywords, " "), "index")
+		if err != nil {
+			return warnings, false, preparedConcept{}, err
+		}
+		item.searchKeywords = terms
+	} else {
+		item.searchKeywords = item.concept.Keywords
+	}
 	if err := insertConcept(ctx, tx, root, item, now); err != nil {
 		return warnings, false, preparedConcept{}, err
 	}
@@ -369,6 +386,7 @@ func insertEnrichment(ctx context.Context, tx *sql.Tx, root, docID, enricherID s
 
 type preparedConcept struct {
 	concept            contractv1.OkfConcept
+	searchKeywords     []string
 	body               string
 	codec              string
 	directive          *contractv1.PrivacyDirective
@@ -389,6 +407,7 @@ func prepareConcepts(
 	permissive bool,
 	codec string,
 	enricher Enricher,
+	tokenizer *Tokenizer,
 	provider privacy.Provider,
 ) ([]preparedConcept, int, error) {
 	prepared := make([]preparedConcept, 0, len(concepts))
@@ -425,6 +444,15 @@ func prepareConcepts(
 				item.extensionDataReady = apply.ExtensionReady
 				warnings += apply.Warnings
 			}
+		}
+		if tokenizer != nil {
+			terms, _, err := tokenizer.Terms(ctx, strings.Join(item.concept.Keywords, " "), "index")
+			if err != nil {
+				return nil, warnings, err
+			}
+			item.searchKeywords = terms
+		} else {
+			item.searchKeywords = item.concept.Keywords
 		}
 		prepared = append(prepared, item)
 	}

@@ -21,8 +21,8 @@ func TestSchemaV10Artifacts(t *testing.T) {
 	if err := store.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 10 {
-		t.Fatalf("user_version = %d, want 10", version)
+	if version != 11 {
+		t.Fatalf("user_version = %d, want 11", version)
 	}
 
 	root := filepath.Join(t.TempDir(), "bundle")

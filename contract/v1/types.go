@@ -115,6 +115,10 @@ const (
 	ErrSourceUnsupported     ErrorCode = "SOURCE_UNSUPPORTED"
 	ErrTypeSchemaInvalid     ErrorCode = "TYPE_SCHEMA_INVALID"
 	ErrTypeSchemaUnsupported ErrorCode = "TYPE_SCHEMA_UNSUPPORTED"
+	ErrTokenizerNotFound     ErrorCode = "TOKENIZER_NOT_FOUND"
+	ErrTokenizerChanged      ErrorCode = "TOKENIZER_CHANGED"
+	ErrTokenizerProtocol     ErrorCode = "TOKENIZER_PROTOCOL"
+	ErrTokenizerTimeout      ErrorCode = "TOKENIZER_TIMEOUT"
 	ErrExtensionDataInvalid  ErrorCode = "EXTENSION_DATA_INVALID"
 	ErrExtensionDataTooLarge ErrorCode = "EXTENSION_DATA_TOO_LARGE"
 	ErrExtensionDataQuota    ErrorCode = "EXTENSION_DATA_QUOTA"
@@ -939,6 +943,7 @@ type OperationRequest struct {
 	TopK          *int            `json:"top_k,omitempty"`
 	Filters       []SearchFilter  `json:"filters,omitempty"`
 	Parallelism   int             `json:"parallelism,omitempty"`
+	Tokenizer     string          `json:"tokenizer,omitempty"`
 	Target        string          `json:"target,omitempty"`
 	From          string          `json:"from,omitempty"`
 	To            string          `json:"to,omitempty"`

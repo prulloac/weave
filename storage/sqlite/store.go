@@ -23,8 +23,9 @@ var (
 
 // Store is a bundle-scoped SQLite index.
 type Store struct {
-	db   *sql.DB
-	path string
+	db        *sql.DB
+	path      string
+	Tokenizer *Tokenizer
 }
 
 // IngestOptions controls how a bundle is stored.
@@ -35,6 +36,7 @@ type IngestOptions struct {
 	AssetTypes []string // resolved blob filter
 	Enricher   Enricher
 	Embedder   Embedder
+	Tokenizer  *Tokenizer
 	Provider   privacy.Provider
 	Artifacts  []ArtifactRecord
 	// RelationDefaults are active extension default traversal kinds.
@@ -50,6 +52,7 @@ type SyncOptions struct {
 	NoAssets   bool
 	Enricher   Enricher
 	Embedder   Embedder
+	Tokenizer  *Tokenizer
 	Provider   privacy.Provider
 	// ProjectConcepts are precomputed code, symbol and external documents.
 	ProjectConcepts []contractv1.OkfConcept

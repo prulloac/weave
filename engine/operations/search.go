@@ -44,6 +44,9 @@ func (e *Executor) searchPersistent(ctx context.Context, request contractv1.Oper
 			"path": request.Path,
 		}), true
 	}
+	if err := e.searchTokenizer(ctx, store, request, extensionTimeout(request)); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{"tokenizer": request.Tokenizer}), true
+	}
 	limit := searchLimit(request, topK)
 	fuzzy, err := store.FuzzyHitsWithFilters(ctx, request.Path, request.Query, limit, request.Filters)
 	if err != nil {
@@ -140,6 +143,9 @@ func (e *Executor) searchKeywordStore(ctx context.Context, request contractv1.Op
 			"path": request.Path,
 		})
 	}
+	if err := e.searchTokenizer(ctx, store, request, extensionTimeout(request)); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{"tokenizer": request.Tokenizer})
+	}
 	limit := searchLimit(request, topK)
 	hits, err := store.KeywordHitsWithFilters(ctx, request.Path, request.Query, limit, request.Filters)
 	if err != nil {
@@ -214,6 +220,9 @@ func (e *Executor) searchBM25(ctx context.Context, request contractv1.OperationR
 		return failure(contractv1.ErrBundleNotIndexed, "bundle is not indexed; run: weave ingest "+request.Path, map[string]any{
 			"path": request.Path,
 		})
+	}
+	if err := e.searchTokenizer(ctx, store, request, extensionTimeout(request)); err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{"tokenizer": request.Tokenizer})
 	}
 	limit := searchLimit(request, topK)
 	hits, err := store.SearchBM25WithFilters(ctx, root, request.Query, limit, request.Filters)

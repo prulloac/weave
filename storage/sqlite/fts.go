@@ -13,6 +13,10 @@ import (
 )
 
 func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
+	return populateFTSWithTokenizer(ctx, tx, root, nil)
+}
+
+func populateFTSWithTokenizer(ctx context.Context, tx *sql.Tx, root string, tokenizer *Tokenizer) error {
 	if _, err := tx.ExecContext(ctx, "DELETE FROM fts_documents WHERE bundle_root = ?", root); err != nil {
 		return err
 	}
@@ -60,11 +64,26 @@ func populateFTS(ctx context.Context, tx *sql.Tx, root string) error {
 		if err := json.Unmarshal([]byte(entry.keywords), &keywords); err != nil {
 			return err
 		}
+		title, err := tokenizedField(ctx, tokenizer, entry.title)
+		if err != nil {
+			return err
+		}
+		keywordText, err := tokenizedField(ctx, tokenizer, strings.Join(keywords, " "))
+		if err != nil {
+			return err
+		}
+		description, err := tokenizedField(ctx, tokenizer, entry.description.String)
+		if err != nil {
+			return err
+		}
+		body, err := tokenizedField(ctx, tokenizer, search.StripMarkdown(entry.body))
+		if err != nil {
+			return err
+		}
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO fts_documents (rowid, bundle_root, id, title, keywords, description, body)
 			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			entry.rowid, root, entry.id, entry.title, strings.Join(keywords, " "),
-			entry.description.String, search.StripMarkdown(entry.body))
+			entry.rowid, root, entry.id, title, keywordText, description, body)
 		if err != nil {
 			return err
 		}
@@ -96,7 +115,7 @@ func deleteFTSByPath(ctx context.Context, tx *sql.Tx, root, path string) error {
 	return err
 }
 
-func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string) error {
+func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string, tokenizer *Tokenizer) error {
 	var rowid int64
 	var title, keywordsJSON, metadata, policy string
 	var bodyRaw sql.NullString
@@ -122,11 +141,26 @@ func insertFTSDoc(ctx context.Context, tx *sql.Tx, root, id string) error {
 	if err := json.Unmarshal([]byte(keywordsJSON), &keywords); err != nil {
 		return err
 	}
+	title, err = tokenizedField(ctx, tokenizer, title)
+	if err != nil {
+		return err
+	}
+	keywordText, err := tokenizedField(ctx, tokenizer, strings.Join(keywords, " "))
+	if err != nil {
+		return err
+	}
+	descriptionText, err := tokenizedField(ctx, tokenizer, description.String)
+	if err != nil {
+		return err
+	}
+	bodyText, err := tokenizedField(ctx, tokenizer, search.StripMarkdown(body))
+	if err != nil {
+		return err
+	}
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO fts_documents (rowid, bundle_root, id, title, keywords, description, body)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		rowid, root, id, title, strings.Join(keywords, " "), description.String,
-		search.StripMarkdown(body))
+		rowid, root, id, title, keywordText, descriptionText, bodyText)
 	return err
 }
 
@@ -165,7 +199,15 @@ func (s *Store) SearchBM25WithFilters(
 	if topK < 1 || topK > 100 {
 		return nil, search.ErrInvalidTopK
 	}
-	match := buildFTSQuery(query)
+	match := ""
+	if s.Tokenizer != nil {
+		match, err = s.Tokenizer.Match(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		match = buildFTSQuery(query)
+	}
 	aliases := privacy.ExpandQuery(query, s.privacyRefs(ctx, root), func(id string) ([]byte, error) {
 		return privacy.ResolveKey(root, id)
 	})
@@ -521,4 +563,15 @@ func quoteFTSTerm(term string) string {
 	// FTS5 treats punctuation such as "-" as an operator; quote literal terms
 	// so hyphenated identifiers match as phrases.
 	return `"` + strings.ReplaceAll(term, `"`, `""`) + `"`
+}
+
+func tokenizedField(ctx context.Context, tokenizer *Tokenizer, text string) (string, error) {
+	if tokenizer == nil || strings.TrimSpace(text) == "" {
+		return text, nil
+	}
+	terms, _, err := tokenizer.Terms(ctx, text, "index")
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(terms, " "), nil
 }

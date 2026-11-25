@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const schemaVersion = 10
+const schemaVersion = 11
 
 var migrations = []struct {
 	version int
@@ -21,6 +21,7 @@ var migrations = []struct {
 	{8, migrateV7toV8},
 	{9, migrateV8toV9},
 	{10, migrateV9toV10},
+	{11, migrateV10toV11},
 }
 
 func userVersion(db *sql.DB) (int, error) {
@@ -317,6 +318,57 @@ CREATE TABLE IF NOT EXISTS extension_relations (
 	return err
 }
 
+func migrateV10toV11(db *sql.DB) error {
+	for _, column := range []struct {
+		table  string
+		name   string
+		column string
+	}{
+		{"bundles", "tokenizer_name", `ALTER TABLE bundles ADD COLUMN tokenizer_name TEXT NOT NULL DEFAULT '';`},
+		{"bundles", "tokenizer_version", `ALTER TABLE bundles ADD COLUMN tokenizer_version TEXT NOT NULL DEFAULT '';`},
+		{"bundles", "tokenizer_cache_key", `ALTER TABLE bundles ADD COLUMN tokenizer_cache_key TEXT NOT NULL DEFAULT '';`},
+		{"bundles", "tokenizer_id", `ALTER TABLE bundles ADD COLUMN tokenizer_id TEXT NOT NULL DEFAULT '';`},
+		{"documents", "search_keywords_json", `ALTER TABLE documents ADD COLUMN search_keywords_json TEXT NOT NULL DEFAULT '[]';`},
+	} {
+		exists, err := tableColumnExists(db, column.table, column.name)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		if _, err := db.Exec(column.column); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func tableColumnExists(db *sql.DB, table, name string) (bool, error) {
+	rows, err := db.Query("PRAGMA table_info(" + table + ")")
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			cid        int
+			column     string
+			kind       string
+			notNull    int
+			defaultVal sql.NullString
+			primaryKey int
+		)
+		if err := rows.Scan(&cid, &column, &kind, &notNull, &defaultVal, &primaryKey); err != nil {
+			return false, err
+		}
+		if column == name {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
+}
+
 func sourceColumnExists(db *sql.DB, name string) (bool, error) {
 	rows, err := db.Query("PRAGMA table_info(sources)")
 	if err != nil {
@@ -395,6 +447,10 @@ CREATE TABLE IF NOT EXISTS bundles (
     index_json TEXT NOT NULL,
     validation_json TEXT NOT NULL,
     asset_types_json TEXT NOT NULL DEFAULT '[]',
+    tokenizer_name TEXT NOT NULL DEFAULT '',
+    tokenizer_version TEXT NOT NULL DEFAULT '',
+    tokenizer_cache_key TEXT NOT NULL DEFAULT '',
+    tokenizer_id TEXT NOT NULL DEFAULT '',
     updated_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS documents (
@@ -406,6 +462,7 @@ CREATE TABLE IF NOT EXISTS documents (
     description TEXT,
     doc_type TEXT,
     keywords_json TEXT NOT NULL,
+    search_keywords_json TEXT NOT NULL DEFAULT '[]',
     frontmatter_json TEXT NOT NULL,
     tags_json TEXT NOT NULL,
     status TEXT,

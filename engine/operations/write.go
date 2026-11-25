@@ -177,12 +177,16 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 		return failure(contractv1.ErrExtensionProto, err.Error(), map[string]any{"path": request.Path})
 	}
 	artifacts = append(artifacts, projectRecords...)
+	tokenizer, err := e.writeTokenizer(ctx, store, request, extensionTimeout(request))
+	if err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{"tokenizer": request.Tokenizer})
+	}
 
 	var report contractv1.IngestReport
 	if request.Op == contractv1.OpRebuild {
-		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider, Artifacts: artifacts, RelationDefaults: sourceRelationDefaults(request.Source)})
+		report, err = store.Rebuild(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Tokenizer: tokenizer, Provider: provider, Artifacts: artifacts, RelationDefaults: sourceRelationDefaults(request.Source)})
 	} else {
-		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Provider: provider, Artifacts: artifacts, RelationDefaults: sourceRelationDefaults(request.Source)})
+		report, err = store.Ingest(ctx, eng.Bundle(), sqlitestore.IngestOptions{Mode: mode, Codec: codec, CodecSet: request.CodecSet, AssetTypes: assetTypes, Enricher: enricher, Embedder: embedder, Tokenizer: tokenizer, Provider: provider, Artifacts: artifacts, RelationDefaults: sourceRelationDefaults(request.Source)})
 	}
 	if err != nil {
 		if errors.Is(err, privacy.ErrKeyUnavailable) {
@@ -192,6 +196,12 @@ func (e *Executor) ingest(ctx context.Context, request contractv1.OperationReque
 			})
 		}
 		if code, ok := codecErrorCode(err); ok {
+			return failure(code, err.Error(), map[string]any{
+				"path": request.Path,
+				"db":   dbPath,
+			})
+		}
+		if code, ok := tokenizerErrorCode(err); ok {
 			return failure(code, err.Error(), map[string]any{
 				"path": request.Path,
 				"db":   dbPath,
@@ -377,6 +387,10 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			return failure(code, message, map[string]any{"path": request.Path})
 		}
 	}
+	tokenizer, err := e.writeTokenizer(ctx, store, request, extensionTimeout(request))
+	if err != nil {
+		return failure(extensionErrorCode(err), err.Error(), map[string]any{"tokenizer": request.Tokenizer})
+	}
 	report, err := store.Sync(ctx, request.Path, sqlitestore.SyncOptions{
 		Mode:                mode,
 		Codec:               request.Codec,
@@ -385,6 +399,7 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 		NoAssets:            request.NoAssets,
 		Enricher:            enricher,
 		Embedder:            embedder,
+		Tokenizer:           tokenizer,
 		Provider:            provider,
 		ProjectConcepts:     projectConcepts,
 		Artifacts:           artifacts,
@@ -405,6 +420,12 @@ func (e *Executor) sync(ctx context.Context, request contractv1.OperationRequest
 			})
 		}
 		if code, ok := codecErrorCode(err); ok {
+			return failure(code, err.Error(), map[string]any{
+				"path": request.Path,
+				"db":   dbPath,
+			})
+		}
+		if code, ok := tokenizerErrorCode(err); ok {
 			return failure(code, err.Error(), map[string]any{
 				"path": request.Path,
 				"db":   dbPath,

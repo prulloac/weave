@@ -53,6 +53,7 @@ or check; a scenario without one is a documentation gap.
 | [Source snapshot diff](source-diff.md) | [source-diff.md](https://github.com/prulloac/weave-docs/blob/main/specs/source-diff.md) | `cmd/weave/source_diff_bdd_test.go`, `engine/extensions/source_diff_test.go`; provider tests live in `weave-git` |
 | [Storage and sync](storage-and-sync.md) | [storage-and-sync.md](https://github.com/prulloac/weave-docs/blob/main/specs/storage-and-sync.md) | `cmd/weave/storage_bdd_test.go` |
 | [Sync watch](sync-watch.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `cmd/weave/sync_watch_bdd_test.go` |
+| [Tokenizer](tokenizer.md) | [tokenizer.md](https://github.com/prulloac/weave-docs/blob/main/specs/tokenizer.md) | `cmd/weave/tokenizer_bdd_test.go` |
 | [Watch mode](watch-mode.md) | [watch-mode.md](https://github.com/prulloac/weave-docs/blob/main/specs/watch-mode.md) | `watch/watcher_test.go` |
 | [Weave explain](weave-explain.md) | [weave-explain.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-explain.md) | `cmd/weave/explain_bdd_test.go` |
 | [Weave image](weave-image.md) | [weave-image.md](https://github.com/prulloac/weave-docs/blob/main/specs/weave-image.md) | `cmd/weave/blob_assets_bdd_test.go`, `weave-image/main_test.go` |

@@ -123,9 +123,9 @@ Global flags:
 - `--assets` enables blob scanning; `--asset-types image/png,text/*` selects media types and is
   persisted for later sync/rebuild runs; `--no-assets` drops blob rows.
 - `weave show <id> --out <file>` writes exact document or blob bytes; add `--force` to replace.
-- `--with-enricher <name>`, `--with-embedder <name>` and `--rerank <name>` enable `weave-<name>`
-  extensions; `--timeout` overrides the 5s default. `weave search --mode semantic --embedder <name>`
-  uses the matching embedding space.
+- `--with-enricher <name>`, `--with-embedder <name>`, `--rerank <name>` and `--tokenizer <name>`
+  enable `weave-<name>` extensions; `--timeout` overrides the 5s default. `weave search --mode
+  semantic --embedder <name>` uses the matching embedding space.
 - `--source <alias=path>` adds another bundle source; repeatable on read and write commands.
 - `--provider <name>` selects a `weave-crypto-<name>` provider for ingest/sync/show/audit/export.
 - `--config <file>` selects a config file (`WEAVE_CONFIG` also works); `--no-config` ignores it;
@@ -249,6 +249,9 @@ the legacy keyword + fuzzy fallback.
 - `--candidate-k <n>` — candidate set to score, default `100`, valid range `1..100`, at least `--top-k`.
 - `--scorer` and `--rerank` are mutually exclusive. A missing scorer exits `2`; a failed or
   timed-out scorer warns on stderr and returns the core result.
+- `--tokenizer <name>` — use a `weave-<name>` tokenizer for keyword and BM25 terms; the index records
+  its identity and search reuses it automatically. A changed tokenizer exits `1` with
+  `TOKENIZER_CHANGED` until `weave rebuild --tokenizer <name>` rebuilds the index.
 - `--timeout <duration>` — extension timeout, default `5s` (`10s` for a scorer).
 - Fuzzy field weights: **title 1.00, description 0.60, body 0.30**.
 - BM25 requires persistent storage; `--no-db` with `--mode bm25` is an error.
@@ -261,6 +264,7 @@ weave search ~/notes "security" --mode keyword --json
 weave search ~/notes "alpha beta" --mode bm25 --json
 weave search ~/notes "token rotation" --rerank keywords --timeout 2s --json
 weave search ~/notes "token rotation" --scorer semantic --scorer-weight 0.8 --candidate-k 50 --json
+weave search ~/notes "token rotation" --tokenizer stem --json
 ```
 
 #### Multiple bundle sources
@@ -615,6 +619,11 @@ weave search ~/notes "token rotation" --rerank keywords --json
   Extensions without the capability run once per document.
 - `--extension-parallelism N` (1..8, default 1) overlaps batch chunks and per-document enrichment.
   Results and warnings merge in document order, so output is identical to the sequential run.
+- `--tokenizer <name>` selects a tokenizer for index and query terms. The index records the
+  tokenizer name, version and optional `cache_key`; search uses the recorded identity and refuses a
+  mismatch with `TOKENIZER_CHANGED` (exit `1`) until the bundle is rebuilt. Encrypted bodies are
+  skipped, and malformed or timed-out responses fail the write with `TOKENIZER_PROTOCOL` or
+  `TOKENIZER_TIMEOUT`.
 - `--short` prints only extension names, one per line; it does not change `--json` output.
 - Enrichment failures add a warning and keep core results; writes still succeed.
 - Rerank blends `0.5 * core + 0.5 * rerank` and falls back to core order on failure.

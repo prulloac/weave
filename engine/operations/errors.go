@@ -38,6 +38,10 @@ var operationErrorMappings = []errorMapping{
 	{domainExtension, extensions.ErrTimeout, contractv1.ErrExtensionTimeout, ""},
 	{domainExtension, extensions.ErrFailed, contractv1.ErrExtensionFailed, ""},
 	{domainExtension, extensions.ErrProtocol, contractv1.ErrExtensionProto, ""},
+	{domainExtension, ErrTokenizerNotFound, contractv1.ErrTokenizerNotFound, ""},
+	{domainExtension, ErrTokenizerChanged, contractv1.ErrTokenizerChanged, ""},
+	{domainExtension, ErrTokenizerProtocol, contractv1.ErrTokenizerProtocol, ""},
+	{domainExtension, ErrTokenizerTimeout, contractv1.ErrTokenizerTimeout, ""},
 }
 
 var errorFallbacks = map[errorDomain]errorMapping{

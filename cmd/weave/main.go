@@ -226,6 +226,14 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if request.Rerank != "" && request.Op != contractv1.OpSearch {
 		return usageError(stdout, stderr, flags.json, "--rerank is only valid for search")
 	}
+	if flags.tokenizer != "" {
+		switch request.Op {
+		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync, contractv1.OpSearch:
+			request.Tokenizer = flags.tokenizer
+		default:
+			return usageError(stdout, stderr, flags.json, "--tokenizer is only valid for ingest, rebuild, sync and search")
+		}
+	}
 	if flags.extensionParallelism != nil {
 		switch request.Op {
 		case contractv1.OpIngest, contractv1.OpRebuild, contractv1.OpSync:

@@ -199,6 +199,10 @@
 				"SOURCE_UNSUPPORTED",
 				"TYPE_SCHEMA_INVALID",
 				"TYPE_SCHEMA_UNSUPPORTED",
+				"TOKENIZER_NOT_FOUND",
+				"TOKENIZER_CHANGED",
+				"TOKENIZER_PROTOCOL",
+				"TOKENIZER_TIMEOUT",
 				"EXTENSION_DATA_INVALID",
 				"EXTENSION_DATA_TOO_LARGE",
 				"EXTENSION_DATA_QUOTA",
@@ -2125,6 +2129,9 @@
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 8
+				},
+				"tokenizer": {
+					"type": "string"
 				},
 				"target": {
 					"type": "string"

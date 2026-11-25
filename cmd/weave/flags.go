@@ -48,6 +48,7 @@ type flags struct {
 	enricher             string
 	withEmbedder         string
 	embedder             string
+	tokenizer            string
 	rerank               string
 	scorer               string
 	scorerWeight         *float64
@@ -283,6 +284,13 @@ func parseFlags(args []string) (flags, error) {
 			}
 			index = next
 			result.embedder = value
+		case "--tokenizer":
+			value, next, err := flagValue(args, index, "--tokenizer")
+			if err != nil {
+				return result, err
+			}
+			index = next
+			result.tokenizer = value
 		case "--rerank":
 			value, next, err := flagValue(args, index, "--rerank")
 			if err != nil {
@@ -512,8 +520,9 @@ func parseFlags(args []string) (flags, error) {
 		return result, fmt.Errorf("--quiet and --verbose are mutually exclusive")
 	}
 	if result.timeoutSet && result.enricher == "" && result.rerank == "" && result.scorer == "" &&
-		result.withEmbedder == "" && result.embedder == "" && !extensionCheckInvocation(result.positionals) {
-		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank, --scorer or `extensions check`")
+		result.withEmbedder == "" && result.embedder == "" && result.tokenizer == "" &&
+		!extensionCheckInvocation(result.positionals) {
+		return result, fmt.Errorf("--timeout requires --with-enricher, --with-embedder, --embedder, --rerank, --scorer, --tokenizer or `extensions check`")
 	}
 	if (result.gitRef != "" || result.gitWorktree || result.gitSubmodules || result.gitLFS ||
 		result.gitHistory || result.gitHistoryLim != 0 || len(result.providerOption) > 0) && !result.git {
